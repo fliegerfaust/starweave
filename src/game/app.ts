@@ -127,6 +127,13 @@ export class App {
 
   // ─── Экраны ─────────────────────────────────────────────────────────────
 
+  private navToken = 0;
+
+  /** Показывает экран, если за время загрузки модуля не начался другой переход. */
+  private showIf(token: number, make: () => Screen): void {
+    if (token === this.navToken) this.show(make());
+  }
+
   show(screen: Screen): void {
     this.screen?.unmount();
     this.root.replaceChildren();
@@ -135,34 +142,36 @@ export class App {
   }
 
   async goMenu(): Promise<void> {
+    const token = ++this.navToken;
     const { MenuScreen } = await import('@/ui/screens/menu');
     this.svc.starfield.setPalette(0);
-    this.show(new MenuScreen(this));
+    this.showIf(token, () => new MenuScreen(this));
   }
 
   /** Экран по фазе забега — единственное место, где решается «что показывать». */
   async route(): Promise<void> {
     const run = this.run;
     if (!run) return this.goMenu();
+    const token = ++this.navToken;
     this.svc.starfield.setPalette(run.ante - 1);
     switch (run.phase) {
       case 'map': {
         const { MapScreen } = await import('@/ui/screens/map');
-        return this.show(new MapScreen(this, run));
+        return this.showIf(token, () => new MapScreen(this, run));
       }
       case 'night':
       case 'reward':
       case 'gameOver': {
         const { NightScreen } = await import('@/ui/screens/night');
-        return this.show(new NightScreen(this, run));
+        return this.showIf(token, () => new NightScreen(this, run));
       }
       case 'shop': {
         const { ShopScreen } = await import('@/ui/screens/shop');
-        return this.show(new ShopScreen(this, run));
+        return this.showIf(token, () => new ShopScreen(this, run));
       }
       case 'victory': {
         const { NightScreen } = await import('@/ui/screens/night');
-        return this.show(new NightScreen(this, run));
+        return this.showIf(token, () => new NightScreen(this, run));
       }
     }
   }
