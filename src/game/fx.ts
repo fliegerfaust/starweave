@@ -128,6 +128,8 @@ export function flash(world: GameWorld, color = '255,240,200', strength = 0.5, d
 /** Короткая вибрация на телефонах (Android); на iOS API нет — молча пропускаем. */
 export function haptic(pattern: number | number[]): void {
   try {
+    // До первого касания браузер всё равно запретит вибрацию и насорит в консоль
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
     navigator.vibrate?.(pattern);
   } catch {
     /* вибрация запрещена политикой — не страшно */
