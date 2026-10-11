@@ -54,6 +54,7 @@ export class NightScene {
   private readonly presenter: Presenter;
   private drag: { id: number; entity: Entity; startX: number; startY: number; active: boolean; offY: number } | null = null;
   private hoverCell: number | null = null;
+  private hoverHand: number | null = null;
   private preview: PlacementPreview | null = null;
   private previewKey = '';
   private destroyed = false;
@@ -428,6 +429,22 @@ export class NightScene {
       const cell = this.cellAt(x, y);
       this.setHover(this.canPlaceAt(cell) ? cell : null);
     }
+    if (!touch) this.setHandHover(this.handIndexAt(x, y));
+  }
+
+  /** Наведение мышью на карту руки: лёгкий подъём. */
+  private setHandHover(index: number | null): void {
+    if (index === this.hoverHand) return;
+    this.hoverHand = index;
+    this.hand.forEach((id, i) => {
+      const e = this.cards.get(id);
+      if (e === undefined) return;
+      const v = this.world.req(e, CardView);
+      if (v.zone !== 'hand') return;
+      const target = i === this.selected ? this.liftAmount : i === index ? this.liftAmount * 0.35 : 0;
+      void this.svc.tweens.to(v, { lift: target }, { duration: 0.12 });
+    });
+    this.svc.renderer.canvas.style.cursor = index !== null || this.hoverCell !== null ? 'pointer' : 'default';
   }
 
   private onUp(x: number, y: number): void {

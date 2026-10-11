@@ -11,6 +11,11 @@ export function deserializeRun(text: string | null): RunState | null {
   try {
     const run = JSON.parse(text) as RunState;
     if (run?.version !== SAVE_VERSION || !Array.isArray(run.deck)) return null;
+    // Мягкая миграция: поля, добавленные после первой версии сохранений
+    if (run.shop) {
+      run.shop.packs ??= [];
+      run.shop.openPack ??= null;
+    }
     return run;
   } catch {
     return null;

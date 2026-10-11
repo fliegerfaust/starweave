@@ -240,6 +240,7 @@ body {
 /* ─── HUD ночи ────────────────────────────────────────────────────────── */
 
 .hud {
+  animation: fade-in 0.4s ease;
   position: absolute;
   top: 0;
   left: 50%;

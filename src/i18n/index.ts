@@ -41,7 +41,7 @@ export function format(text: string, vars: Record<string, string | number>): str
 }
 
 /** Название и описание из таблиц `omen`/`boss`/`ritual`/`sky`. */
-export function named(table: 'omen' | 'boss' | 'ritual' | 'sky', id: string, vars: Record<string, string | number> = {}): { name: string; desc: string } {
+export function named(table: 'omen' | 'boss' | 'ritual' | 'sky' | 'pack', id: string, vars: Record<string, string | number> = {}): { name: string; desc: string } {
   const pair = DICTS[current][table][id];
   if (!pair) return { name: id, desc: '' };
   return { name: pair[0], desc: format(pair[1], vars) };

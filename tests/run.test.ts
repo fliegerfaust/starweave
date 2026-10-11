@@ -3,7 +3,7 @@ import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
-import { buyItem, reroll, sellOmen } from '../src/core/shop';
+import { buyItem, buyPack, choosePack, reroll, sellOmen } from '../src/core/shop';
 import { createOmen } from '../src/core/omen-instance';
 import { OMEN_LIST } from '../src/core/content/omens';
 import { BOSS_LIST } from '../src/core/content/bosses';
@@ -50,14 +50,35 @@ describe('забег', () => {
     run.phase = 'shop';
     run.gold = 100;
     run.omens.push(createOmen(run, 'stardust'));
-    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'ascend', price: 3, sold: false }], rerollCost: 5 };
+    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'ascend', price: 3, sold: false }], packs: [], rerollCost: 5, openPack: null };
     const target = run.deck.find((c) => c.rank === 3)!;
     buyItem(run, 0, [target.id]);
     expect(run.deck.find((c) => c.id === target.id)!.rank).toBe(4);
     sellOmen(run, run.omens[0]!.uid);
     expect(run.omens).toHaveLength(0);
     reroll(run);
-    expect(run.shop.rerollCost).toBe(6);
+    expect(run.shop!.rerollCost).toBe(6);
+  });
+
+  it('пакет: покупка раскрывает варианты, выбор применяет', () => {
+    const run = newRun({ seed: 9 });
+    run.phase = 'shop';
+    run.gold = 50;
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5, openPack: null };
+    buyPack(run, 0);
+    expect(run.gold).toBe(44);
+    expect(run.shop.openPack!.options).toHaveLength(3);
+    const chosen = run.shop.openPack!.options[1]!;
+    choosePack(run, 1);
+    expect(run.omens.map((o) => o.id)).toContain(chosen);
+    expect(run.shop.openPack).toBeNull();
+
+    run.shop.packs = [{ kind: 'pack', pack: 'chart', price: 4, sold: false }];
+    buyPack(run, 0);
+    const combo = run.shop.openPack!.options[0]! as 'pair';
+    const before = run.comboLevels[combo];
+    choosePack(run, 0);
+    expect(run.comboLevels[combo]).toBe(before + 1);
   });
 
   it('у каждого Знамения, Затмения, ритуала и неба уникальный id', () => {
