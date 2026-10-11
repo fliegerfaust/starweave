@@ -59,6 +59,7 @@ export class NightScreen implements Screen {
     const n = this.run.night!;
     if (n.bossId) toast(named('boss', n.bossId).desc);
     coach(this.app, 'place');
+    coach(this.app, 'target');
   }
 
   private burn(): void {
@@ -153,7 +154,6 @@ export class NightScreen implements Screen {
       ],
       { title: t('reward.title'), dismissable: false, className: 'narrow reward' },
     );
-    if (this.run.nightIndex === 0 && this.run.ante === 1) coach(this.app, 'target');
   }
 
   private showGameOver(): void {

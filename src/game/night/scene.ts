@@ -7,7 +7,7 @@ import type { PointerEventData } from '@/engine/input';
 import type { Hud } from '@/ui/hud';
 import { CardView, Drawable, Hit, Layer, Transform, transform } from '../components';
 import type { Services } from '../context';
-import { computeLayout, handPositions, type NightLayout } from '../layout';
+import { computeLayout, handPositions, isLandscape, type NightLayout, type PlayArea } from '../layout';
 import { Presenter } from './presenter';
 import { previewPlacement, type PlacementPreview } from './preview';
 
@@ -78,11 +78,19 @@ export class NightScene {
 
   private computeLayout(): void {
     const { renderer } = this.svc;
+    const { width, height } = renderer;
     const safe = safeInsets();
-    const hudBottom = this.hud.el.getBoundingClientRect().bottom || safe.top + 168;
-    const actionsTop = this.hud.actions.getBoundingClientRect().top || renderer.height - safe.bottom - 64;
-    this.layout = computeLayout(renderer.width, renderer.height, this.night.rules.gridSize, hudBottom, actionsTop);
-    document.documentElement.style.setProperty('--board-top', `${this.layout.board.y}px`);
+    const landscape = isLandscape(width, height);
+    document.body.classList.toggle('landscape', landscape);
+    const hud = this.hud.el.getBoundingClientRect();
+    const actions = this.hud.actions.getBoundingClientRect();
+    const area: PlayArea = landscape
+      ? { top: safe.top, bottom: height - safe.bottom, left: Math.max(hud.right, actions.right), right: width }
+      : { top: hud.bottom || safe.top + 168, bottom: actions.top || height - safe.bottom - 64, left: 0, right: width };
+    this.layout = computeLayout(width, height, this.night.rules.gridSize, area);
+    const root = document.documentElement.style;
+    root.setProperty('--board-top', `${this.layout.board.y}px`);
+    root.setProperty('--board-cx', `${this.layout.board.x + this.layout.board.w / 2}px`);
   }
 
   /** Создаёт клетки и карты по текущему стейту ночи (новая ночь или продолжение). */
@@ -104,6 +112,11 @@ export class NightScene {
     }
     this.layoutHand(false);
     this.unsubscribers.push(this.svc.renderer.onResize(this.onResize), this.svc.input.on(this.onPointer));
+  }
+
+  /** Насколько выдвигается выбранная карта: вверх в портрете, влево в ландшафте. */
+  get liftAmount(): number {
+    return this.layout.mode === 'landscape' ? this.layout.handW * 0.22 : this.layout.handH * 0.16;
   }
 
   get boardScale(): number {
@@ -146,7 +159,8 @@ export class NightScene {
     const showFace = v.faceUp && t.flip >= 0;
     const img = showFace ? cardFace(v.card, w, dpr, { hideRank: v.hideRank }) : cardBack(w, dpr);
     ctx.globalAlpha = t.alpha;
-    ctx.translate(t.x, t.y - v.lift);
+    if (this.layout.mode === 'landscape') ctx.translate(t.x - v.lift, t.y);
+    else ctx.translate(t.x, t.y - v.lift);
     ctx.rotate(t.rot);
     ctx.scale(t.scale * Math.max(0.02, Math.abs(t.flip)), t.scale);
     if (v.glow > 0.01) {
@@ -283,7 +297,7 @@ export class NightScene {
       d.layer = Layer.Hand;
       d.z = i;
       v.zone = 'hand';
-      v.lift = this.selected === i ? this.layout.handH * 0.16 : 0;
+      v.lift = this.selected === i ? this.liftAmount : 0;
       v.glow = this.selected === i ? 1 : 0;
       const p = pos[i]!;
       if (animate) jobs.push(this.svc.tweens.to(t, { x: p.x, y: p.y, rot: p.rot, scale: 1 }, { duration: 0.28 / this.world.res.speed, ease: 'outCubic' }));
@@ -298,7 +312,7 @@ export class NightScene {
     if (this.destroyed) return;
     this.svc.audio.unlock();
     if (e.kind === 'down') this.onDown(e.x, e.y);
-    else if (e.kind === 'move') this.onMove(e.x, e.y);
+    else if (e.kind === 'move') this.onMove(e.x, e.y, e.pointerType === 'touch');
     else if (e.kind === 'up') this.onUp(e.x, e.y);
     else if (e.kind === 'cancel') this.cancelDrag();
   };
@@ -307,8 +321,9 @@ export class NightScene {
     const pos = handPositions(this.layout, this.hand.length);
     for (let i = this.hand.length - 1; i >= 0; i--) {
       const p = pos[i]!;
-      const lift = this.selected === i ? this.layout.handH * 0.16 : 0;
-      if (Math.abs(x - p.x) < this.layout.handW / 2 && Math.abs(y - (p.y - lift)) < this.layout.handH / 2) return i;
+      const lift = this.selected === i ? this.liftAmount : 0;
+      const [lx, ly] = this.layout.mode === 'landscape' ? [lift, 0] : [0, lift];
+      if (Math.abs(x - (p.x - lx)) < this.layout.handW / 2 && Math.abs(y - (p.y - ly)) < this.layout.handH / 2) return i;
     }
     return null;
   }
@@ -352,7 +367,7 @@ export class NightScene {
     if (cell === null && this.selected !== null) this.select(null);
   }
 
-  private onMove(x: number, y: number): void {
+  private onMove(x: number, y: number, touch = true): void {
     const { renderer, starfield } = this.svc;
     starfield.parallaxX = (x / renderer.width - 0.5) * 2;
     starfield.parallaxY = (y / renderer.height - 0.5) * 2;
@@ -373,7 +388,7 @@ export class NightScene {
       if (d.active) {
         const t = this.world.req(d.entity, Transform);
         // Карта висит над пальцем, чтобы её было видно
-        const lift = this.layout.handH * 0.45;
+        const lift = touch ? this.layout.handH * 0.45 : 0;
         t.x = x;
         t.y = y - lift;
         t.rot = 0;

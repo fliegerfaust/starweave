@@ -17,6 +17,7 @@ export const ru = {
     start: 'Начать',
     back: 'Назад',
     locked: 'Закрыто',
+    overwrite: 'Начать заново? Текущий забег пропадёт.',
     seed: 'Сид',
   },
   suit: { sun: 'Солнце', moon: 'Луна', star: 'Звезда', comet: 'Комета' },

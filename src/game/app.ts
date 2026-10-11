@@ -19,6 +19,7 @@ import { setUiSound, toast } from '@/ui/widgets';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
+import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
@@ -59,7 +60,10 @@ export class App {
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
     const starfield = new Starfield();
     starfield.resize(renderer.width, renderer.height);
+    const updateOrientation = () => document.body.classList.toggle('landscape', isLandscape(renderer.width, renderer.height));
+    updateOrientation();
     renderer.onResize(() => {
+      updateOrientation();
       starfield.resize(renderer.width, renderer.height);
       if (res.dpr !== renderer.dpr) {
         res.dpr = renderer.dpr;

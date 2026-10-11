@@ -18,6 +18,7 @@ export const en: Dict = {
     start: 'Start',
     back: 'Back',
     locked: 'Locked',
+    overwrite: 'Start over? The current run will be lost.',
     seed: 'Seed',
   },
   suit: { sun: 'Sun', moon: 'Moon', star: 'Star', comet: 'Comet' },
