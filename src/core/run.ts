@@ -14,6 +14,7 @@ export interface NewRunOptions {
   seed: number;
   skyId?: string;
   daily?: boolean;
+  stake?: number;
 }
 
 export function rollBoss(rng: RngState, ante: number, previous: readonly string[]): string {
@@ -21,7 +22,7 @@ export function rollBoss(rng: RngState, ante: number, previous: readonly string[
   return pick(rng, pool.length ? pool : BOSS_LIST).id;
 }
 
-export function newRun({ seed, skyId = 'classic', daily = false }: NewRunOptions): RunState {
+export function newRun({ seed, skyId = 'classic', daily = false, stake = 0 }: NewRunOptions): RunState {
   const sky = skyDef(skyId);
   const rng = createRng(seed);
   const { cards, nextId } = buildDeck(sky.deck, 1);
@@ -49,6 +50,7 @@ export function newRun({ seed, skyId = 'classic', daily = false }: NewRunOptions
     shop: null,
     stats: { linesIgnited: 0, bestPlacement: 0, bestCombo: 'scatter', crosses: 0, nightsWon: 0, goldEarned: 0 },
     endless: false,
+    stake,
   };
   for (const id of sky.startOmens ?? []) run.omens.push(createOmen(run, id));
   return run;

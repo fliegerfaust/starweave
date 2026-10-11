@@ -1,4 +1,5 @@
 import { SKY_LIST, type Unlock } from '@/core/content/skies';
+import { MAX_STAKE } from '@/core/content/stakes';
 import { hashSeed } from '@/core/rng';
 import type { RunState } from '@/core/types';
 import { KEYS, storage } from './storage';
@@ -22,6 +23,8 @@ export interface Profile {
   unlockedSkies: string[];
   tutorial: string[];
   daily: DailyRecord | null;
+  /** Наибольшая открытая звёздность. */
+  maxStake: number;
 }
 
 export function emptyProfile(): Profile {
@@ -37,6 +40,7 @@ export function emptyProfile(): Profile {
     unlockedSkies: ['classic'],
     tutorial: [],
     daily: null,
+    maxStake: 0,
   };
 }
 
@@ -105,6 +109,7 @@ export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] 
     p.runs += 1;
     if (won) p.wins += 1;
   }
+  if (won) p.maxStake = Math.max(p.maxStake, Math.min(MAX_STAKE, (run.stake ?? 0) + 1));
   p.bestAnte = Math.max(p.bestAnte, run.ante);
   p.bestPlacement = Math.max(p.bestPlacement, run.stats.bestPlacement);
   p.totalLines += run.stats.linesIgnited - (run.recordedLines ?? 0);
