@@ -56,7 +56,7 @@ export function newRun({ seed, skyId = 'classic', daily = false }: NewRunOptions
 
 /** Забрать награду ночи и войти в Обсерваторию. */
 export function collectReward(run: RunState): void {
-  if (run.phase !== 'reward' || !run.reward) throw new RuleError('Нет награды');
+  if (run.phase !== 'reward' || !run.reward) throw new RuleError('noReward');
   run.gold += run.reward.total;
   run.stats.goldEarned += run.reward.total;
   run.reward = null;
@@ -67,7 +67,7 @@ export function collectReward(run: RunState): void {
 
 /** Покинуть Обсерваторию: следующая ночь или победа. */
 export function leaveShop(run: RunState): void {
-  if (run.phase !== 'shop') throw new RuleError('Мы не в Обсерватории');
+  if (run.phase !== 'shop') throw new RuleError('notShop');
   run.shop = null;
   run.nightIndex += 1;
   if (run.nightIndex >= 3) {
@@ -84,7 +84,7 @@ export function leaveShop(run: RunState): void {
 
 /** После победы — продолжить в бесконечном режиме. */
 export function continueEndless(run: RunState): void {
-  if (run.phase !== 'victory') throw new RuleError('Бесконечный режим открывается после победы');
+  if (run.phase !== 'victory') throw new RuleError('notVictory');
   run.endless = true;
   ensureBoss(run);
   run.phase = 'map';
