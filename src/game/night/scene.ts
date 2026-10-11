@@ -295,6 +295,13 @@ export class NightScene {
     });
     for (const [, e] of this.cards) {
       const v = this.world.req(e, CardView);
+      if (v.zone === 'flying') continue;
+      // Летящие твины ведут к старым координатам — обрываем и ставим карты на новые места
+      const tr = this.world.req(e, Transform);
+      this.svc.tweens.cancel(tr);
+      this.svc.tweens.cancel(v);
+      tr.flip = 1;
+      tr.alpha = 1;
       v.width = this.layout.handW;
       const hit = this.world.req(e, Hit);
       hit.w = this.layout.handW;
@@ -323,8 +330,9 @@ export class NightScene {
       d.layer = Layer.Hand;
       d.z = i;
       v.zone = 'hand';
-      v.lift = this.selected === i ? this.liftAmount : 0;
-      v.glow = this.selected === i ? 1 : 0;
+      // Через твин: он перебивает незаконченный подъём от наведения мыши
+      const sel = this.selected === i;
+      void this.svc.tweens.to(v, { lift: sel ? this.liftAmount : 0, glow: sel ? 1 : 0 }, { duration: animate ? 0.12 : 0.001 });
       const p = pos[i]!;
       if (animate) jobs.push(this.svc.tweens.to(t, { x: p.x, y: p.y, rot: p.rot, scale: 1 }, { duration: 0.28 / this.world.res.speed, ease: 'outCubic' }));
       else Object.assign(t, { x: p.x, y: p.y, rot: p.rot, scale: 1 });

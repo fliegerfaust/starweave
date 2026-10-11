@@ -220,6 +220,8 @@ export interface RunState {
   shop: ShopState | null;
   stats: RunStats;
   endless: boolean;
+  /** Сколько линий уже записано в профиль (забег после победы продолжается). */
+  recordedLines?: number;
 }
 
 // ─── События для презентера ───────────────────────────────────────────────

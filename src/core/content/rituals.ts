@@ -10,6 +10,8 @@ export interface RitualDef {
   price: number;
   minTargets: number;
   maxTargets: number;
+  /** Ограничение сверху, зависящее от забега. */
+  maxTargetsFor?(run: RunState): number;
   /** Подходит ли карта как цель (например, Возвышение не берёт девятки). */
   canTarget?(card: Card): boolean;
   /** Возвращает false, если ритуал неприменим в текущем забеге. */
@@ -71,8 +73,9 @@ export const RITUAL_LIST: RitualDef[] = [
     minTargets: 1,
     maxTargets: 2,
     available: (run) => run.deck.length > MIN_DECK_SIZE,
+    maxTargetsFor: (run) => run.deck.length - MIN_DECK_SIZE,
     apply(run, targets) {
-      const ids = new Set(targets.slice(0, Math.max(0, run.deck.length - MIN_DECK_SIZE)).map((t) => t.id));
+      const ids = new Set(targets.map((t) => t.id));
       run.deck = run.deck.filter((c) => !ids.has(c.id));
     },
   },

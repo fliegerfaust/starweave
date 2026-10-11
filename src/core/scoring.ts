@@ -65,6 +65,7 @@ function scoreLine(
   effects: ActiveEffect[],
   rng: RngState,
   shattered: Set<number>,
+  rolled: Set<number>,
 ): LineScore & { gold: number } {
   const cells = activeCells(line, night.sealed);
   const cards = cells.map((cell) => night.grid[cell] as Card);
@@ -112,7 +113,11 @@ function scoreLine(
       }
       for (const fx of effects) fx.hooks.onCardScored?.(cardCtx(fx));
     }
-    if (card.glyph === 'glass' && chance(rng, GLASS_BREAK_CHANCE)) shattered.add(card.id);
+    // Один бросок на карту за ход, даже если она в двух линиях креста
+    if (card.glyph === 'glass' && !rolled.has(card.id)) {
+      rolled.add(card.id);
+      if (chance(rng, GLASS_BREAK_CHANCE)) shattered.add(card.id);
+    }
   });
 
   for (const fx of effects) {
@@ -136,7 +141,8 @@ function withCell(source: StepSource, cell: number): StepSource {
 export function scorePlacement(run: RunState, night: NightState, lines: Line[], rng: RngState): PlacementScore {
   const effects = activeEffects(run, night);
   const shattered = new Set<number>();
-  const scored = lines.map((line) => scoreLine(run, night, line, effects, rng, shattered));
+  const rolled = new Set<number>();
+  const scored = lines.map((line) => scoreLine(run, night, line, effects, rng, shattered, rolled));
 
   const steps: ScoreStep[] = [];
   const sum = scored.reduce((s, l) => s + l.total, 0);
