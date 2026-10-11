@@ -5,6 +5,7 @@ import { ritualDef } from '@/core/content/rituals';
 import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
+import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenTooltip } from '../hud';
@@ -48,6 +49,9 @@ export class ShopScreen implements Screen {
   private render(): void {
     const run = this.run;
     const shop = run.shop!;
+    const seen = [...shop.omens.flatMap((i) => (i.kind === 'omen' ? [i.omenId] : [])), ...run.omens.map((o) => o.id)];
+    if (shop.openPack?.pack === 'omen') seen.push(...shop.openPack.options);
+    if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
 
     const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => this.itemCard(item, () => this.act((r) => buyOmen(r, i)))));

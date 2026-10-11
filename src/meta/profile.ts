@@ -85,6 +85,18 @@ export function markSeen(p: Profile, run: RunState): void {
   if (boss && !p.seenBosses.includes(boss)) p.seenBosses.push(boss);
 }
 
+/** Знамения, встреченные в Обсерватории, считаются открытыми для Кодекса. */
+export function markOmensSeen(p: Profile, ids: string[]): boolean {
+  let changed = false;
+  for (const id of ids) {
+    if (!p.seenOmens.includes(id)) {
+      p.seenOmens.push(id);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 /** Итог забега в профиль. Возвращает открытые небеса. */
 export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] {
   p.runs += 1;
