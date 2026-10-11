@@ -82,6 +82,10 @@ export const en: Dict = {
     pickTarget: 'Pick a card',
     apply: 'Apply',
     cancel: 'Cancel',
+    packs: 'Star packs',
+    take: 'Take',
+    skip: 'Skip',
+    packTitle: 'Choose one',
     dragHint: 'Omen order matters: put ×mult omens to the right',
   },
   over: {
@@ -258,6 +262,11 @@ export const en: Dict = {
     'glyph-echo': ['Echo Glyph', 'Card gains Echo: scores twice'],
     'glyph-glass': ['Glass Glyph', 'Card becomes Glass: ×2 mult, may shatter'],
     'glyph-prism': ['Prism Glyph', 'Card becomes Prism: any suit'],
+  },
+  pack: {
+    omen: ['Omen Pack', 'Open and choose 1 of 3 Omens'],
+    ritual: ['Ritual Pack', 'Open and choose 1 of 3 rituals — free'],
+    chart: ['Star Atlas', 'Open and level up 1 of 3 constellations'],
   },
   sky: {
     classic: ['Classic Sky', '36 cards: four suits, ranks 1–9'],
