@@ -5,6 +5,11 @@ import { buyItem, buyOmen, omenSlots } from '../shop';
 import { omenDef } from '../content/omens';
 import type { Card, NightState, RunState } from '../types';
 
+/** Вес точки креста в оценке позиции (подобран симуляцией). */
+export const CROSS_WEIGHT = Number(globalThis.process?.env?.CROSS_WEIGHT ?? 60);
+/** Сколько лучших ходов просматривать на ход вперёд. */
+export const LOOKAHEAD = Number(globalThis.process?.env?.LOOKAHEAD ?? 6);
+
 export interface Move {
   handIndex: number;
   cell: number;
@@ -30,39 +35,85 @@ function linePotential(cards: Card[], length: number): number {
 }
 
 function positionalValue(night: NightState, cell: number): number {
+  const lines = buildLines(night.rules);
   let value = 0;
-  for (const line of buildLines(night.rules)) {
+  for (const line of lines) {
     if (!line.cells.includes(cell)) continue;
     const active = activeCells(line, night.sealed);
     const cards = active.map((c) => night.grid[c]).filter((c): c is Card => !!c);
     value += linePotential(cards, active.length);
   }
+  // Точки креста: пустая клетка, закрывающая сразу две линии, — будущий ×2
+  for (let c = 0; c < night.grid.length; c++) {
+    if (night.grid[c] || night.sealed[c]) continue;
+    let closes = 0;
+    for (const line of lines) {
+      if (!line.cells.includes(c)) continue;
+      const active = activeCells(line, night.sealed);
+      if (active.every((x) => x === c || night.grid[x])) closes++;
+    }
+    if (closes >= 2) value += CROSS_WEIGHT * closes;
+  }
   return value;
 }
 
-/** Жадный выбор хода: очки сразу + потенциал позиции. Его же можно использовать как подсказку. */
-export function bestMove(run: RunState): Move | null {
-  const night = run.night;
-  if (!night) return null;
-  let best: Move | null = null;
+/** Оценка одного хода: очки сразу + потенциал позиции. */
+function evaluate(run: RunState, handIndex: number, cell: number): { value: number; sim: RunState } {
+  const sim = structuredClone(run);
+  const events = placeCard(sim, handIndex, cell);
+  const ignite = events.find((e) => e.t === 'ignite');
+  let value = ignite && ignite.t === 'ignite' ? ignite.score.total : 0;
+  if (sim.night && sim.phase === 'night') value += positionalValue(sim.night, cell) * (1 + run.ante * 0.5);
+  return { value, sim };
+}
+
+function candidates(run: RunState): Move[] {
+  const night = run.night!;
+  const moves: Move[] = [];
   night.hand.forEach((_, handIndex) => {
     night.grid.forEach((occupant, cell) => {
       if (occupant || night.sealed[cell]) return;
-      const sim = structuredClone(run);
-      const events = placeCard(sim, handIndex, cell);
-      const ignite = events.find((e) => e.t === 'ignite');
-      let value = ignite && ignite.t === 'ignite' ? ignite.score.total : 0;
-      if (sim.night) value += positionalValue(sim.night, cell) * (1 + run.ante * 0.5);
-      if (!best || value > best.value) best = { handIndex, cell, value };
+      moves.push({ handIndex, cell, value: 0 });
     });
   });
-  return best;
+  return moves;
+}
+
+/**
+ * Выбор хода: жадная оценка всех ходов, затем для лучших — просмотр на ход вперёд
+ * оставшимися картами руки (новую карту бот не знает). Так он видит кресты.
+ */
+export function bestMove(run: RunState, lookahead = LOOKAHEAD): Move | null {
+  const night = run.night;
+  if (!night || night.result !== 'playing') return null;
+  const scored = candidates(run).map((m) => {
+    const { value, sim } = evaluate(run, m.handIndex, m.cell);
+    return { ...m, value, sim };
+  });
+  if (scored.length === 0) return null;
+  scored.sort((a, b) => b.value - a.value);
+  if (lookahead > 0) {
+    for (const m of scored.slice(0, lookahead)) {
+      if (m.sim.phase !== 'night' || !m.sim.night || m.sim.night.movesLeft <= 0) continue;
+      let follow = 0;
+      for (const next of candidates(m.sim)) {
+        // Карты, пришедшие добором, бот не видит — смотрим только старые
+        const card = m.sim.night.hand[next.handIndex]!;
+        if (!night.hand.some((c) => c.id === card.id)) continue;
+        follow = Math.max(follow, evaluate(m.sim, next.handIndex, next.cell).value);
+      }
+      m.value += follow * 0.6;
+    }
+    scored.sort((a, b) => b.value - a.value);
+  }
+  const { handIndex, cell, value } = scored[0]!;
+  return { handIndex, cell, value };
 }
 
 /** Играет текущую ночь до конца. */
-export function playNight(run: RunState): void {
+export function playNight(run: RunState, lookahead = LOOKAHEAD): void {
   while (run.phase === 'night' && run.night?.result === 'playing') {
-    const move = bestMove(run);
+    const move = bestMove(run, lookahead);
     if (!move) break;
     if (move.value < 5 && run.night.burnsLeft > 0) {
       burnCard(run, move.handIndex);

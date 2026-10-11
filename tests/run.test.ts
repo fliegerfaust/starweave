@@ -16,8 +16,8 @@ describe('забег', () => {
     const b = newRun({ seed: 42 });
     startNight(a);
     startNight(b);
-    playNight(a);
-    playNight(b);
+    playNight(a, 0);
+    playNight(b, 0);
     expect(serializeRun(a)).toBe(serializeRun(b));
   });
 
@@ -32,7 +32,7 @@ describe('забег', () => {
   it('полный цикл: ночь → награда → Обсерватория → следующая ночь', () => {
     const run = newRun({ seed: 11 });
     startNight(run);
-    playNight(run);
+    playNight(run, 0);
     expect(['reward', 'gameOver']).toContain(run.phase);
     if (run.phase === 'reward') {
       const gold = run.gold + run.reward!.total;
@@ -78,7 +78,7 @@ describe('фаззинг: бот проходит много забегов бе
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 40) {
         if (run.phase === 'map') startNight(run);
-        if (run.phase === 'night') playNight(run);
+        if (run.phase === 'night') playNight(run, 0);
         if (run.phase === 'reward') collectReward(run);
         if (run.phase === 'shop') {
           shopGreedy(run);

@@ -106,7 +106,7 @@ export class Hud {
     clear(this.bossBadge);
     if (night?.bossId) {
       const icon = canvasImg(bossSigil(night.bossId, 28, dpr()), 28);
-      const badge = h('span.boss-chip', null, [icon, named('boss', night.bossId).name]);
+      const badge = h('span.boss-chip', null, [icon, h('span.boss-chip-name', null, named('boss', night.bossId).name)]);
       attachTooltip(badge, () => bossTooltip(night.bossId!));
       this.bossBadge.append(badge);
     }

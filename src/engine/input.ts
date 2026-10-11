@@ -5,6 +5,8 @@ export interface PointerEventData {
   id: number;
   x: number;
   y: number;
+  /** mouse | touch | pen */
+  pointerType: string;
 }
 
 /** Нормализует мышь и касания в поток событий с координатами в CSS-пикселях канваса. */
@@ -43,7 +45,7 @@ export class PointerInput {
     const rect = this.el.getBoundingClientRect();
     this.x = e.clientX - rect.left;
     this.y = e.clientY - rect.top;
-    const data = { kind, id: e.pointerId, x: this.x, y: this.y };
+    const data = { kind, id: e.pointerId, x: this.x, y: this.y, pointerType: e.pointerType };
     for (const fn of this.listeners) fn(data);
   }
 }
