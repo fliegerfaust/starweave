@@ -11,7 +11,7 @@ import { PointerInput } from '@/engine/input';
 import { Renderer } from '@/engine/renderer';
 import { Tweener } from '@/engine/tween';
 import { named, setLang, t } from '@/i18n';
-import { dailySeed, loadProfile, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
+import { dailySeed, loadProfile, markDailyStarted, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
@@ -19,6 +19,7 @@ import { setUiSound, toast } from '@/ui/widgets';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
+import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
@@ -59,7 +60,10 @@ export class App {
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
     const starfield = new Starfield();
     starfield.resize(renderer.width, renderer.height);
+    const updateOrientation = () => document.body.classList.toggle('landscape', isLandscape(renderer.width, renderer.height));
+    updateOrientation();
     renderer.onResize(() => {
+      updateOrientation();
       starfield.resize(renderer.width, renderer.height);
       if (res.dpr !== renderer.dpr) {
         res.dpr = renderer.dpr;
@@ -166,13 +170,32 @@ export class App {
   // ─── Забег ──────────────────────────────────────────────────────────────
 
   startRun(skyId: string, daily = false): void {
+    // Перезаписываемый забег засчитывается как сданный
+    if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
+    if (daily) markDailyStarted(this.profile);
+    saveProfile(this.profile);
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
     this.run = newRun({ seed, skyId, daily });
     this.save();
     void this.route();
   }
 
+  /** Кнопки фаз могут нажать дважды, пока закрывается модалка: второе нажатие — тихо игнорируем. */
+  private guarded(fn: () => void): boolean {
+    try {
+      fn();
+      return true;
+    } catch (e) {
+      if (!(e instanceof RuleError)) throw e;
+      return false;
+    }
+  }
+
   beginNight(): void {
+    this.guarded(() => this.doBeginNight());
+  }
+
+  private doBeginNight(): void {
     const run = this.run!;
     startNight(run);
     markSeen(this.profile, run);
@@ -211,12 +234,20 @@ export class App {
   }
 
   collectReward(): void {
+    this.guarded(() => this.doCollectReward());
+  }
+
+  private doCollectReward(): void {
     collectReward(this.run!);
     this.save();
     void this.route();
   }
 
   leaveShop(): void {
+    this.guarded(() => this.doLeaveShop());
+  }
+
+  private doLeaveShop(): void {
     const run = this.run!;
     leaveShop(run);
     if (run.phase === 'victory') {
@@ -246,7 +277,7 @@ export class App {
   }
 
   continueEndless(): void {
-    continueEndless(this.run!);
+    if (!this.guarded(() => continueEndless(this.run!))) return;
     this.save();
     void this.route();
   }

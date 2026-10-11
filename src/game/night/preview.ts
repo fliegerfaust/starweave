@@ -14,6 +14,8 @@ export interface PlacementPreview {
  */
 export function previewPlacement(run: RunState, handIndex: number, cell: number): PlacementPreview | null {
   const sim = structuredClone(run);
+  // Своя случайность: превью не должно подсказывать исход Стекла или Игрока
+  sim.rng.s = (Math.random() * 2 ** 32) >>> 0;
   try {
     const events = placeCard(sim, handIndex, cell);
     const ignite = events.find((e) => e.t === 'ignite');

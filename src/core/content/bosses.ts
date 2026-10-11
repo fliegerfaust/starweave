@@ -62,6 +62,7 @@ export const BOSS_LIST: BossDef[] = [
     minAnte: 2,
     modifyRules(rules) {
       rules.rowsIgnite = false;
+      rules.diagonals = false;
     },
   },
   {

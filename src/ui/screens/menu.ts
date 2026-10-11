@@ -2,10 +2,10 @@ import { cardFace } from '@/art/card';
 import { SKY_LIST } from '@/core/content/skies';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
-import { isUnlocked, todayKey } from '@/meta/profile';
+import { dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { button, modal } from '../widgets';
+import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
 
 const DECOR: Pick<Card, 'suit' | 'rank'>[] = [
@@ -37,11 +37,11 @@ export class MenuScreen implements Screen {
       img.style.setProperty('--i', String(i - 1));
       fan.append(img);
     });
-    const dailyDone = app.profile.daily?.date === todayKey() && app.profile.daily.finished;
+    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && app.hasSave);
     const buttons = h('div.menu-buttons', null, [
       app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
-      button(t('menu.newRun'), () => this.chooseSky(), { variant: app.hasSave ? 'secondary' : 'primary' }),
-      button(dailyDone ? t('menu.dailyDone') : t('menu.daily'), () => app.startRun('classic', true), {
+      button(t('menu.newRun'), () => this.guardSave(() => this.chooseSky()), { variant: app.hasSave ? 'secondary' : 'primary' }),
+      button(dailyDone ? t('menu.dailyDone') : t('menu.daily'), () => this.guardSave(() => app.startRun('classic', true)), {
         variant: 'secondary',
         disabled: dailyDone,
         sub: todayKey(),
@@ -63,12 +63,22 @@ export class MenuScreen implements Screen {
     );
   }
 
+  /** Новый забег затирает сохранённый — спрашиваем. */
+  private guardSave(next: () => void): void {
+    if (!this.app.hasSave) return next();
+    confirmDialog(t('menu.overwrite'), next, 'primary');
+  }
+
   private rerender(): void {
     this.render();
   }
 
   private chooseSky(): void {
     const app = this.app;
+    if (app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile))) {
+      app.startRun('classic');
+      return;
+    }
     let chosen = 'classic';
     const list = h('div.sky-list');
     const items: HTMLElement[] = [];

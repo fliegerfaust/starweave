@@ -85,13 +85,30 @@ export function markSeen(p: Profile, run: RunState): void {
   if (boss && !p.seenBosses.includes(boss)) p.seenBosses.push(boss);
 }
 
+/** Знамения, встреченные в Обсерватории, считаются открытыми для Кодекса. */
+export function markOmensSeen(p: Profile, ids: string[]): boolean {
+  let changed = false;
+  for (const id of ids) {
+    if (!p.seenOmens.includes(id)) {
+      p.seenOmens.push(id);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 /** Итог забега в профиль. Возвращает открытые небеса. */
 export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] {
-  p.runs += 1;
-  if (won) p.wins += 1;
+  // Забег мог уже быть записан (победа, затем бесконечный режим) — второй раз не считаем
+  const already = run.recordedLines !== undefined;
+  if (!already) {
+    p.runs += 1;
+    if (won) p.wins += 1;
+  }
   p.bestAnte = Math.max(p.bestAnte, run.ante);
   p.bestPlacement = Math.max(p.bestPlacement, run.stats.bestPlacement);
-  p.totalLines += run.stats.linesIgnited;
+  p.totalLines += run.stats.linesIgnited - (run.recordedLines ?? 0);
+  run.recordedLines = run.stats.linesIgnited;
   if (run.daily) {
     const date = todayKey();
     const prev = p.daily?.date === date ? p.daily : null;
@@ -103,6 +120,16 @@ export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] 
     };
   }
   return refreshUnlocks(p);
+}
+
+/** Вызов дня начат: вторая попытка за день не даётся. */
+export function markDailyStarted(p: Profile): void {
+  const date = todayKey();
+  if (p.daily?.date !== date) p.daily = { date, ante: 0, best: 0, finished: false };
+}
+
+export function dailyTaken(p: Profile): boolean {
+  return p.daily?.date === todayKey();
 }
 
 /** Прогресс по ходу забега (дошёл до созвездия — уже засчитано, даже если вкладку закроют). */

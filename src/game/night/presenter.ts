@@ -4,7 +4,7 @@ import type { Entity } from '@/engine/ecs';
 import { num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform, transform } from '../components';
-import { burst, floatText, ring, shake } from '../fx';
+import { burst, flash, floatText, haptic, ring, shake } from '../fx';
 import { handPositions } from '../layout';
 import type { NightScene } from './scene';
 
@@ -134,6 +134,7 @@ export class Presenter {
     d.layer = Layer.BoardCards;
     d.z = cell;
     this.audio.bell(view.card.rank);
+    haptic(8);
     ring(this.world, p.x, p.y, SUIT_COLORS[view.card.suit].main, scene.layout.cardW * 0.8, 0.5);
     await this.tweens.to(tr, { scale: scene.boardScale }, { duration: 0.12 / this.speed, ease: 'outBack' });
     scene.hud.setMoves(scene.night.movesLeft, scene.night.burnsLeft);
@@ -322,6 +323,8 @@ export class Presenter {
     const power = Math.min(1, score.total / target);
     this.audio.impact(power);
     shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
+    haptic(score.lines.length > 1 ? [20, 40, 30] : 18 + Math.round(power * 30));
+    if (power >= 0.35 || score.lines.length > 1) flash(this.world, score.lines.length > 1 ? '255,214,140' : '200,230,255', 0.25 + power * 0.35);
     for (const line of score.lines) {
       for (const cell of line.cells) {
         const p = this.cellPos(cell);

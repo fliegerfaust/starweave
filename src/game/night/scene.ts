@@ -1,13 +1,14 @@
 import { CARD_PAD, cardBack, cardFace } from '@/art/card';
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
+import { activeCells, buildLines } from '@/core/grid';
 import type { Card, GameEvent, RunState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import type { PointerEventData } from '@/engine/input';
 import type { Hud } from '@/ui/hud';
 import { CardView, Drawable, Hit, Layer, Transform, transform } from '../components';
 import type { Services } from '../context';
-import { computeLayout, handPositions, type NightLayout } from '../layout';
+import { computeLayout, handPositions, isLandscape, type NightLayout, type PlayArea } from '../layout';
 import { Presenter } from './presenter';
 import { previewPlacement, type PlacementPreview } from './preview';
 
@@ -30,6 +31,9 @@ export interface CellState {
   /** 0..1 — линия вспыхнет при этом ходе. */
   ignite: number;
   igniteColor: string;
+  /** Сколько линий закроет карта в этой клетке (0, 1, 2+) — подсказка чтения поля. */
+  closes: number;
+  closesAnim: number;
 }
 
 const DRAG_THRESHOLD = 8;
@@ -50,6 +54,7 @@ export class NightScene {
   private readonly presenter: Presenter;
   private drag: { id: number; entity: Entity; startX: number; startY: number; active: boolean; offY: number } | null = null;
   private hoverCell: number | null = null;
+  private hoverHand: number | null = null;
   private preview: PlacementPreview | null = null;
   private previewKey = '';
   private destroyed = false;
@@ -78,11 +83,19 @@ export class NightScene {
 
   private computeLayout(): void {
     const { renderer } = this.svc;
+    const { width, height } = renderer;
     const safe = safeInsets();
-    const hudBottom = this.hud.el.getBoundingClientRect().bottom || safe.top + 168;
-    const actionsTop = this.hud.actions.getBoundingClientRect().top || renderer.height - safe.bottom - 64;
-    this.layout = computeLayout(renderer.width, renderer.height, this.night.rules.gridSize, hudBottom, actionsTop);
-    document.documentElement.style.setProperty('--board-top', `${this.layout.board.y}px`);
+    const landscape = isLandscape(width, height);
+    document.body.classList.toggle('landscape', landscape);
+    const hud = this.hud.el.getBoundingClientRect();
+    const actions = this.hud.actions.getBoundingClientRect();
+    const area: PlayArea = landscape
+      ? { top: safe.top, bottom: height - safe.bottom, left: Math.max(hud.right, actions.right), right: width }
+      : { top: hud.bottom || safe.top + 168, bottom: actions.top || height - safe.bottom - 64, left: 0, right: width };
+    this.layout = computeLayout(width, height, this.night.rules.gridSize, area);
+    const root = document.documentElement.style;
+    root.setProperty('--board-top', `${this.layout.board.y}px`);
+    root.setProperty('--board-cx', `${this.layout.board.x + this.layout.board.w / 2}px`);
   }
 
   /** Создаёт клетки и карты по текущему стейту ночи (новая ночь или продолжение). */
@@ -103,7 +116,13 @@ export class NightScene {
       this.hand.push(card.id);
     }
     this.layoutHand(false);
+    this.refreshClosers();
     this.unsubscribers.push(this.svc.renderer.onResize(this.onResize), this.svc.input.on(this.onPointer));
+  }
+
+  /** Насколько выдвигается выбранная карта: вверх в портрете, влево в ландшафте. */
+  get liftAmount(): number {
+    return this.layout.mode === 'landscape' ? this.layout.handW * 0.22 : this.layout.handH * 0.16;
   }
 
   get boardScale(): number {
@@ -146,7 +165,8 @@ export class NightScene {
     const showFace = v.faceUp && t.flip >= 0;
     const img = showFace ? cardFace(v.card, w, dpr, { hideRank: v.hideRank }) : cardBack(w, dpr);
     ctx.globalAlpha = t.alpha;
-    ctx.translate(t.x, t.y - v.lift);
+    if (this.layout.mode === 'landscape') ctx.translate(t.x - v.lift, t.y);
+    else ctx.translate(t.x, t.y - v.lift);
     ctx.rotate(t.rot);
     ctx.scale(t.scale * Math.max(0.02, Math.abs(t.flip)), t.scale);
     if (v.glow > 0.01) {
@@ -181,7 +201,7 @@ export class NightScene {
     const e = this.world.create();
     const p = this.layout.cells[index]!;
     const t = this.world.add(e, Transform, transform(p.x, p.y, { alpha: 0 }));
-    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b' };
+    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0 };
     this.world.add(e, Drawable, {
       layer: Layer.Board,
       z: 0,
@@ -229,6 +249,26 @@ export class NightScene {
     for (const [cx, cy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + hgt - 6], [x + w - 6, y + hgt - 6]] as const) {
       ctx.fillRect(cx - 1, cy - 1, 2, 2);
     }
+    if (s.closesAnim > 0.01) {
+      // Клетка закроет линию: золотой контур; крест — ярче и с меткой
+      const k = s.closesAnim;
+      const cross = s.closes >= 2;
+      ctx.save();
+      roundRect(ctx, x + 3, y + 3, w - 6, hgt - 6, r * 0.8);
+      ctx.strokeStyle = cross ? `rgba(255,214,120,${0.55 * k + pulse * 0.25 * k})` : `rgba(246,194,91,${0.28 * k})`;
+      ctx.lineWidth = cross ? 2 : 1.2;
+      ctx.stroke();
+      if (cross) {
+        ctx.font = `400 ${Math.round(w * 0.34)}px Forum, serif`;
+        ctx.shadowColor = 'rgba(255,214,120,0.9)';
+        ctx.shadowBlur = 12;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255,214,120,${0.8 * k})`;
+        ctx.fillText(`×${s.closes}`, t.x, t.y);
+      }
+      ctx.restore();
+    }
     if (s.ignite > 0.01) {
       ctx.save();
       ctx.shadowColor = s.igniteColor;
@@ -255,6 +295,13 @@ export class NightScene {
     });
     for (const [, e] of this.cards) {
       const v = this.world.req(e, CardView);
+      if (v.zone === 'flying') continue;
+      // Летящие твины ведут к старым координатам — обрываем и ставим карты на новые места
+      const tr = this.world.req(e, Transform);
+      this.svc.tweens.cancel(tr);
+      this.svc.tweens.cancel(v);
+      tr.flip = 1;
+      tr.alpha = 1;
       v.width = this.layout.handW;
       const hit = this.world.req(e, Hit);
       hit.w = this.layout.handW;
@@ -283,8 +330,9 @@ export class NightScene {
       d.layer = Layer.Hand;
       d.z = i;
       v.zone = 'hand';
-      v.lift = this.selected === i ? this.layout.handH * 0.16 : 0;
-      v.glow = this.selected === i ? 1 : 0;
+      // Через твин: он перебивает незаконченный подъём от наведения мыши
+      const sel = this.selected === i;
+      void this.svc.tweens.to(v, { lift: sel ? this.liftAmount : 0, glow: sel ? 1 : 0 }, { duration: animate ? 0.12 : 0.001 });
       const p = pos[i]!;
       if (animate) jobs.push(this.svc.tweens.to(t, { x: p.x, y: p.y, rot: p.rot, scale: 1 }, { duration: 0.28 / this.world.res.speed, ease: 'outCubic' }));
       else Object.assign(t, { x: p.x, y: p.y, rot: p.rot, scale: 1 });
@@ -298,7 +346,7 @@ export class NightScene {
     if (this.destroyed) return;
     this.svc.audio.unlock();
     if (e.kind === 'down') this.onDown(e.x, e.y);
-    else if (e.kind === 'move') this.onMove(e.x, e.y);
+    else if (e.kind === 'move') this.onMove(e.x, e.y, e.pointerType === 'touch');
     else if (e.kind === 'up') this.onUp(e.x, e.y);
     else if (e.kind === 'cancel') this.cancelDrag();
   };
@@ -307,8 +355,9 @@ export class NightScene {
     const pos = handPositions(this.layout, this.hand.length);
     for (let i = this.hand.length - 1; i >= 0; i--) {
       const p = pos[i]!;
-      const lift = this.selected === i ? this.layout.handH * 0.16 : 0;
-      if (Math.abs(x - p.x) < this.layout.handW / 2 && Math.abs(y - (p.y - lift)) < this.layout.handH / 2) return i;
+      const lift = this.selected === i ? this.liftAmount : 0;
+      const [lx, ly] = this.layout.mode === 'landscape' ? [lift, 0] : [0, lift];
+      if (Math.abs(x - (p.x - lx)) < this.layout.handW / 2 && Math.abs(y - (p.y - ly)) < this.layout.handH / 2) return i;
     }
     return null;
   }
@@ -352,7 +401,7 @@ export class NightScene {
     if (cell === null && this.selected !== null) this.select(null);
   }
 
-  private onMove(x: number, y: number): void {
+  private onMove(x: number, y: number, touch = true): void {
     const { renderer, starfield } = this.svc;
     starfield.parallaxX = (x / renderer.width - 0.5) * 2;
     starfield.parallaxY = (y / renderer.height - 0.5) * 2;
@@ -373,7 +422,7 @@ export class NightScene {
       if (d.active) {
         const t = this.world.req(d.entity, Transform);
         // Карта висит над пальцем, чтобы её было видно
-        const lift = this.layout.handH * 0.45;
+        const lift = touch ? this.layout.handH * 0.45 : 0;
         t.x = x;
         t.y = y - lift;
         t.rot = 0;
@@ -388,6 +437,22 @@ export class NightScene {
       const cell = this.cellAt(x, y);
       this.setHover(this.canPlaceAt(cell) ? cell : null);
     }
+    if (!touch) this.setHandHover(this.handIndexAt(x, y));
+  }
+
+  /** Наведение мышью на карту руки: лёгкий подъём. */
+  private setHandHover(index: number | null): void {
+    if (index === this.hoverHand) return;
+    this.hoverHand = index;
+    this.hand.forEach((id, i) => {
+      const e = this.cards.get(id);
+      if (e === undefined) return;
+      const v = this.world.req(e, CardView);
+      if (v.zone !== 'hand') return;
+      const target = i === this.selected ? this.liftAmount : i === index ? this.liftAmount * 0.35 : 0;
+      void this.svc.tweens.to(v, { lift: target }, { duration: 0.12 });
+    });
+    this.svc.renderer.canvas.style.cursor = index !== null || this.hoverCell !== null ? 'pointer' : 'default';
   }
 
   private onUp(x: number, y: number): void {
@@ -472,6 +537,24 @@ export class NightScene {
     else this.hud.setPreview(this.preview.lines, this.preview.total);
   }
 
+  /** Пересчитывает, какие пустые клетки закрывают линии (и где крест). */
+  refreshClosers(): void {
+    const n = this.night;
+    const lines = buildLines(n.rules);
+    this.cells.forEach((state, cell) => {
+      let closes = 0;
+      if (!n.sealed[cell] && !n.grid[cell]) {
+        for (const line of lines) {
+          if (!line.cells.includes(cell)) continue;
+          const active = activeCells(line, n.sealed);
+          if (active.length >= 2 && active.every((c) => c === cell || n.grid[c])) closes++;
+        }
+      }
+      state.closes = closes;
+      void this.svc.tweens.to(state, { closesAnim: closes > 0 ? 1 : 0 }, { duration: 0.3 });
+    });
+  }
+
   // ─── Действия ───────────────────────────────────────────────────────────
 
   async place(handIndex: number, cell: number, dragged?: Entity): Promise<void> {
@@ -487,6 +570,7 @@ export class NightScene {
     this.setHover(null);
     for (const c of this.cells) void this.svc.tweens.to(c, { avail: 0, ignite: 0 }, { duration: 0.15 });
     await this.presenter.play(events, dragged);
+    this.refreshClosers();
     this.busy = false;
     if (!this.destroyed) this.hooks.onSettled(events);
   }

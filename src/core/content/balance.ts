@@ -34,6 +34,9 @@ export const MOVES_PER_GOLD = 3;
 
 export const SHOP_OMEN_SLOTS = 2;
 export const SHOP_ITEM_SLOTS = 2;
+export const SHOP_PACK_SLOTS = 1;
+export const PACK_PRICE = { omen: 6, ritual: 4, chart: 4 } as const;
+export const PACK_OPTIONS = 3;
 export const REROLL_BASE = 5;
 export const CHART_PRICE = 3;
 export const RARITY_WEIGHT = { 1: 70, 2: 25, 3: 5 } as const;

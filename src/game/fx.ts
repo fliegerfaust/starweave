@@ -99,3 +99,37 @@ export function floatText(world: GameWorld, x: number, y: number, text: string, 
   void tweens.to(t, { y: y - (opts.rise ?? 36) }, { duration: life, ease: 'outCubic' });
   void tweens.to(t, { alpha: 0 }, { duration: life * 0.35, delay: life * 0.65, ease: 'inQuad' });
 }
+
+/** Вспышка всего экрана — для крупных ходов. */
+export function flash(world: GameWorld, color = '255,240,200', strength = 0.5, duration = 0.5): void {
+  if (world.res.reduceMotion) strength *= 0.4;
+  const e = world.create();
+  const t = world.add(e, Transform, transform(0, 0, { alpha: strength }));
+  const { renderer } = world.res;
+  world.add(e, Drawable, {
+    layer: Layer.Popups,
+    z: -1,
+    visible: true,
+    draw(ctx, tr) {
+      const w = renderer.width;
+      const h = renderer.height;
+      const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
+      g.addColorStop(0, `rgba(${color},${tr.alpha})`);
+      g.addColorStop(1, `rgba(${color},0)`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = g;
+      ctx.fillRect(-20, -20, w + 40, h + 40);
+    },
+  });
+  world.add(e, Lifetime, { left: duration });
+  void world.res.tweens.to(t, { alpha: 0 }, { duration, ease: 'outQuad' });
+}
+
+/** Короткая вибрация на телефонах (Android); на iOS API нет — молча пропускаем. */
+export function haptic(pattern: number | number[]): void {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* вибрация запрещена политикой — не страшно */
+  }
+}

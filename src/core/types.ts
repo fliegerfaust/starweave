@@ -166,15 +166,26 @@ export interface RewardSummary {
   total: number;
 }
 
+export type PackKind = 'omen' | 'ritual' | 'chart';
+
 export type ShopItem =
   | { kind: 'omen'; omenId: string; price: number; sold: boolean }
   | { kind: 'chart'; combo: ComboId; price: number; sold: boolean }
-  | { kind: 'ritual'; ritualId: string; price: number; sold: boolean };
+  | { kind: 'ritual'; ritualId: string; price: number; sold: boolean }
+  | { kind: 'pack'; pack: PackKind; price: number; sold: boolean };
+
+/** Открытый пакет: варианты на выбор (id Знамений, ритуалов или созвездий). */
+export interface OpenPack {
+  pack: PackKind;
+  options: string[];
+}
 
 export interface ShopState {
   omens: ShopItem[];
   items: ShopItem[];
+  packs: ShopItem[];
   rerollCost: number;
+  openPack: OpenPack | null;
 }
 
 export interface RunStats {
@@ -209,6 +220,8 @@ export interface RunState {
   shop: ShopState | null;
   stats: RunStats;
   endless: boolean;
+  /** Сколько линий уже записано в профиль (забег после победы продолжается). */
+  recordedLines?: number;
 }
 
 // ─── События для презентера ───────────────────────────────────────────────

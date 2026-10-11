@@ -240,6 +240,7 @@ body {
 /* ─── HUD ночи ────────────────────────────────────────────────────────── */
 
 .hud {
+  animation: fade-in 0.4s ease;
   position: absolute;
   top: 0;
   left: 50%;
@@ -344,7 +345,7 @@ body {
 .calc {
   position: absolute;
   top: calc(var(--board-top, 170px) + 6px);
-  left: 50%;
+  left: var(--board-cx, 50%);
   transform: translate(-50%, -8px) scale(0.92);
   opacity: 0;
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -376,7 +377,7 @@ body {
 .preview {
   position: absolute;
   top: calc(var(--board-top, 170px) - 18px);
-  left: 50%;
+  left: var(--board-cx, 50%);
   transform: translateX(-50%);
   display: none;
   gap: 8px;
@@ -414,10 +415,11 @@ body {
 .menu {
   position: absolute;
   inset: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   gap: 26px;
   padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
   pointer-events: none;
@@ -456,7 +458,7 @@ body {
   margin-top: 6px;
 }
 .tagline { color: var(--ink-dim); margin: 12px 0 0; font-size: 15px; text-align: center; }
-.menu-buttons { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); }
+.menu-buttons { pointer-events: auto; display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); }
 .menu-buttons > .btn { width: 100%; }
 .menu-buttons .row .btn { flex: 1; padding: 10px 8px; font-size: 13px; }
 .menu-foot { color: rgba(165, 160, 207, 0.4); font-size: 11px; }
@@ -643,7 +645,8 @@ body {
   cursor: pointer;
 }
 .seg.on { color: #1a1206; background: var(--gold); }
-.segmented.tabs { margin-bottom: 12px; }
+.segmented.tabs { margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; }
+.segmented.tabs .seg { flex: 1 0 auto; padding: 8px 9px; font-size: 12px; }
 .codex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
 .codex-cell { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); cursor: help; }
 .codex-cell.unknown { filter: grayscale(1) brightness(0.35); cursor: default; }
@@ -681,3 +684,39 @@ body {
   .shop-row { flex-direction: row; }
   .shop-row > .shop-item { flex: 1; }
 }
+
+/* ─── Ландшафт: HUD колонкой слева ────────────────────────────────────── */
+
+body.landscape .hud {
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  transform: none;
+  width: 280px;
+  padding-top: calc(12px + var(--safe-top));
+}
+body.landscape .hud-row.mid { flex-wrap: wrap; row-gap: 8px; }
+body.landscape .hud-score-wrap { flex-basis: 100%; }
+body.landscape .hud-omens { flex-wrap: wrap; height: auto; justify-content: flex-start; }
+body.landscape .actions {
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  transform: none;
+  width: 280px;
+  padding: 0;
+}
+body.landscape .coach { left: auto; right: 16px; transform: none; width: min(420px, 50vw); }
+body.landscape .menu { flex-direction: row; flex-wrap: wrap; gap: 28px 48px; }
+body.landscape .menu-hero { flex: 0 1 auto; }
+body.landscape .menu-foot { flex-basis: 100%; text-align: center; }
+@media (max-height: 520px) {
+  .menu-fan { display: none; }
+  .logo-main { font-size: 46px; }
+  .menu { gap: 14px; }
+  .btn { min-height: 40px; }
+}
+
+@media (max-width: 480px) {
+  .boss-chip-name { display: none; }
+  .boss-chip { padding-right: 2px; }
+}
+body.landscape .boss-chip-name { display: none; }
+body.landscape .boss-chip { padding-right: 2px; }
+.hud-title { flex: 0 1 auto; min-width: 0; }

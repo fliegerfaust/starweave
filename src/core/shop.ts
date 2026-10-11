@@ -1,11 +1,11 @@
-import { CHART_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS } from './content/balance';
+import { CHART_PRICE, PACK_OPTIONS, PACK_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS, SHOP_PACK_SLOTS } from './content/balance';
 import { OMEN_LIST, omenDef } from './content/omens';
 import { RITUAL_LIST, ritualDef } from './content/rituals';
 import { RuleError } from './errors';
-import { chance, pick, weightedPick } from './rng';
+import { chance, pick, shuffle, weightedPick } from './rng';
 import { buildRules } from './rules';
 import { createOmen } from './omen-instance';
-import { COMBO_IDS, type Card, type ComboId, type RunState, type ShopItem, type ShopState } from './types';
+import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type ShopItem, type ShopState } from './types';
 
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
@@ -46,13 +46,74 @@ function rollItems(run: RunState, count: number): ShopItem[] {
   return items;
 }
 
+function rollPacks(run: RunState, count: number): ShopItem[] {
+  const kinds: PackKind[] = ['omen', 'ritual', 'chart'];
+  return Array.from({ length: count }, () => {
+    const pack = weightedPick(run.rng, kinds, (k) => (k === 'omen' ? 2 : 1));
+    return { kind: 'pack', pack, price: PACK_PRICE[pack], sold: false };
+  });
+}
+
 export function generateShop(run: RunState): ShopState {
   const owned = new Set(run.omens.map((o) => o.id));
   return {
     omens: rollOmens(run, SHOP_OMEN_SLOTS, owned),
     items: rollItems(run, SHOP_ITEM_SLOTS),
+    packs: rollPacks(run, SHOP_PACK_SLOTS),
     rerollCost: REROLL_BASE,
+    openPack: null,
   };
+}
+
+/** Варианты пакета — без повторов и без уже имеющихся Знамений. */
+function packOptions(run: RunState, pack: PackKind): string[] {
+  if (pack === 'omen') {
+    const exclude = new Set(run.omens.map((o) => o.id));
+    return rollOmens(run, PACK_OPTIONS, exclude).map((i) => (i.kind === 'omen' ? i.omenId : ''));
+  }
+  if (pack === 'chart') {
+    const pool = COMBO_IDS.filter((c) => c !== 'scatter');
+    return shuffleCopy(run, pool).slice(0, PACK_OPTIONS);
+  }
+  const pool = RITUAL_LIST.filter((r) => r.available?.(run) ?? true).map((r) => r.id);
+  return shuffleCopy(run, pool).slice(0, PACK_OPTIONS);
+}
+
+function shuffleCopy<T>(run: RunState, items: readonly T[]): T[] {
+  return shuffle(run.rng, [...items]);
+}
+
+/** Покупка пакета: деньги списываются, варианты раскрываются, выбор — `choosePack`. */
+export function buyPack(run: RunState, slot: number): void {
+  const shop = requireShop(run);
+  const item = shop.packs[slot];
+  if (!item || item.kind !== 'pack' || item.sold) throw new RuleError('nothing');
+  if (shop.openPack) throw new RuleError('nothing');
+  if (item.pack === 'omen' && run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
+  pay(run, item.price);
+  item.sold = true;
+  shop.openPack = { pack: item.pack, options: packOptions(run, item.pack) };
+}
+
+/** Выбрать вариант открытого пакета. Ритуал из пакета бесплатен, но требует целей. */
+export function choosePack(run: RunState, index: number, targetIds: number[] = []): void {
+  const shop = requireShop(run);
+  const open = shop.openPack;
+  const choice = open?.options[index];
+  if (!open || !choice) throw new RuleError('nothing');
+  if (open.pack === 'omen') {
+    if (run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
+    run.omens.push(createOmen(run, choice));
+  } else if (open.pack === 'chart') {
+    run.comboLevels[choice as ComboId] += 1;
+  } else {
+    applyRitual(run, choice, targetIds);
+  }
+  shop.openPack = null;
+}
+
+export function skipPack(run: RunState): void {
+  requireShop(run).openPack = null;
 }
 
 function requireShop(run: RunState): ShopState {
@@ -110,23 +171,40 @@ export function buyItem(run: RunState, slot: number, targetIds: number[] = []): 
     pay(run, item.price);
     run.comboLevels[item.combo] += 1;
   } else if (item.kind === 'ritual') {
-    const def = ritualDef(item.ritualId);
-    const targets = targetIds.map((id) => run.deck.find((c) => c.id === id)).filter((c): c is Card => !!c);
-    if (targets.length !== new Set(targetIds).size || targets.length < def.minTargets || targets.length > def.maxTargets) {
-      throw new RuleError('badTargets');
-    }
-    if (def.canTarget && !targets.every(def.canTarget)) throw new RuleError('badTarget');
-    if (def.available && !def.available(run)) throw new RuleError('ritualUnavailable');
+    validateRitual(run, item.ritualId, targetIds);
     pay(run, item.price);
-    def.apply(run, targets);
+    applyRitual(run, item.ritualId, targetIds);
   } else {
     throw new RuleError('nothing');
   }
   item.sold = true;
 }
 
+/** Сколько карт ритуал реально может взять сейчас (Изгнание не опускает колоду ниже минимума). */
+export function ritualMaxTargets(run: RunState, ritualId: string): number {
+  const def = ritualDef(ritualId);
+  return def.maxTargetsFor ? Math.min(def.maxTargets, def.maxTargetsFor(run)) : def.maxTargets;
+}
+
+function validateRitual(run: RunState, ritualId: string, targetIds: number[]): Card[] {
+  const def = ritualDef(ritualId);
+  const targets = targetIds.map((id) => run.deck.find((c) => c.id === id)).filter((c): c is Card => !!c);
+  if (targets.length !== new Set(targetIds).size || targets.length < def.minTargets || targets.length > ritualMaxTargets(run, ritualId)) {
+    throw new RuleError('badTargets');
+  }
+  if (def.canTarget && !targets.every(def.canTarget)) throw new RuleError('badTarget');
+  if (def.available && !def.available(run)) throw new RuleError('ritualUnavailable');
+  return targets;
+}
+
+function applyRitual(run: RunState, ritualId: string, targetIds: number[]): void {
+  const targets = validateRitual(run, ritualId, targetIds);
+  ritualDef(ritualId).apply(run, targets);
+}
+
 export function reroll(run: RunState): void {
   const shop = requireShop(run);
+  if (shop.openPack) throw new RuleError('nothing');
   pay(run, shop.rerollCost);
   shop.rerollCost += 1;
   const owned = new Set([...run.omens.map((o) => o.id)]);
