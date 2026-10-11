@@ -12,7 +12,7 @@ import { RuleError } from './errors';
 
 function requireNight(run: RunState): NightState {
   if (run.phase !== 'night' || !run.night || run.night.result !== 'playing') {
-    throw new RuleError('Сейчас не идёт ночь');
+    throw new RuleError('notNight');
   }
   return run.night;
 }
@@ -40,7 +40,7 @@ function drawTo(run: RunState, night: NightState, count: number, events: GameEve
 
 /** Начинает ночь `run.nightIndex` текущего созвездия. */
 export function startNight(run: RunState): GameEvent[] {
-  if (run.phase !== 'map') throw new RuleError('Ночь начинается с карты созвездия');
+  if (run.phase !== 'map') throw new RuleError('notMap');
   const kind = NIGHT_KINDS[run.nightIndex]!;
   const bossId = kind === 'eclipse' ? (run.bosses[run.ante - 1] ?? null) : null;
   const rules = buildRules(run, bossId);
@@ -79,9 +79,9 @@ export function startNight(run: RunState): GameEvent[] {
 /** Выкладывает карту из руки в пустую клетку. */
 export function placeCard(run: RunState, handIndex: number, cell: number): GameEvent[] {
   const night = requireNight(run);
-  if (handIndex < 0 || handIndex >= night.hand.length) throw new RuleError('Нет такой карты в руке');
+  if (handIndex < 0 || handIndex >= night.hand.length) throw new RuleError('noCard');
   if (cell < 0 || cell >= night.grid.length || night.grid[cell] || night.sealed[cell]) {
-    throw new RuleError('Клетка занята');
+    throw new RuleError('cellTaken');
   }
   const events: GameEvent[] = [];
   const [card] = night.hand.splice(handIndex, 1);
@@ -142,8 +142,8 @@ export function placeCard(run: RunState, handIndex: number, cell: number): GameE
 /** Сжигает карту из руки и добирает новую. */
 export function burnCard(run: RunState, handIndex: number): GameEvent[] {
   const night = requireNight(run);
-  if (night.burnsLeft <= 0) throw new RuleError('Сжигания закончились');
-  if (handIndex < 0 || handIndex >= night.hand.length) throw new RuleError('Нет такой карты в руке');
+  if (night.burnsLeft <= 0) throw new RuleError('noBurns');
+  if (handIndex < 0 || handIndex >= night.hand.length) throw new RuleError('noCard');
   const [card] = night.hand.splice(handIndex, 1);
   night.burnsLeft -= 1;
   night.discard.push(card!);

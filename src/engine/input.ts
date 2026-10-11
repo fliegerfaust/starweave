@@ -31,8 +31,12 @@ export class PointerInput {
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  on(fn: (e: PointerEventData) => void): void {
+  /** Подписка; возвращает отписку. */
+  on(fn: (e: PointerEventData) => void): () => void {
     this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== fn);
+    };
   }
 
   private emit(kind: PointerKind, e: PointerEvent): void {

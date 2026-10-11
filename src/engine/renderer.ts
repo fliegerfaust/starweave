@@ -4,7 +4,7 @@ export class Renderer {
   width = 0;
   height = 0;
   dpr = 1;
-  private readonly resizeListeners: (() => void)[] = [];
+  private resizeListeners: (() => void)[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -15,8 +15,12 @@ export class Renderer {
     window.visualViewport?.addEventListener('resize', () => this.resize());
   }
 
-  onResize(fn: () => void): void {
+  /** Подписка на смену размера; возвращает отписку. */
+  onResize(fn: () => void): () => void {
     this.resizeListeners.push(fn);
+    return () => {
+      this.resizeListeners = this.resizeListeners.filter((l) => l !== fn);
+    };
   }
 
   resize(): void {

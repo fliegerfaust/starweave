@@ -56,12 +56,12 @@ export function generateShop(run: RunState): ShopState {
 }
 
 function requireShop(run: RunState): ShopState {
-  if (run.phase !== 'shop' || !run.shop) throw new RuleError('Мы не в Обсерватории');
+  if (run.phase !== 'shop' || !run.shop) throw new RuleError('notShop');
   return run.shop;
 }
 
 function pay(run: RunState, price: number): void {
-  if (run.gold < price) throw new RuleError('Не хватает золота');
+  if (run.gold < price) throw new RuleError('noGold');
   run.gold -= price;
 }
 
@@ -72,8 +72,8 @@ export function omenSlots(run: RunState): number {
 export function buyOmen(run: RunState, slot: number): void {
   const shop = requireShop(run);
   const item = shop.omens[slot];
-  if (!item || item.kind !== 'omen' || item.sold) throw new RuleError('Нечего покупать');
-  if (run.omens.length >= omenSlots(run)) throw new RuleError('Нет свободных слотов Знамений');
+  if (!item || item.kind !== 'omen' || item.sold) throw new RuleError('nothing');
+  if (run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
   pay(run, item.price);
   item.sold = true;
   run.omens.push(createOmen(run, item.omenId));
@@ -86,14 +86,14 @@ export function sellPrice(omenId: string): number {
 export function sellOmen(run: RunState, uid: number): void {
   requireShop(run);
   const index = run.omens.findIndex((o) => o.uid === uid);
-  if (index < 0) throw new RuleError('Нет такого Знамения');
+  if (index < 0) throw new RuleError('noOmen');
   run.gold += sellPrice(run.omens[index]!.id);
   run.omens.splice(index, 1);
 }
 
 /** Меняет местами Знамения — порядок влияет на подсчёт. */
 export function moveOmen(run: RunState, from: number, to: number): void {
-  if (from < 0 || to < 0 || from >= run.omens.length || to >= run.omens.length) throw new RuleError('Нет слота');
+  if (from < 0 || to < 0 || from >= run.omens.length || to >= run.omens.length) throw new RuleError('noSlot');
   const [omen] = run.omens.splice(from, 1);
   run.omens.splice(to, 0, omen!);
 }
@@ -105,7 +105,7 @@ export function moveOmen(run: RunState, from: number, to: number): void {
 export function buyItem(run: RunState, slot: number, targetIds: number[] = []): void {
   const shop = requireShop(run);
   const item = shop.items[slot];
-  if (!item || item.sold) throw new RuleError('Нечего покупать');
+  if (!item || item.sold) throw new RuleError('nothing');
   if (item.kind === 'chart') {
     pay(run, item.price);
     run.comboLevels[item.combo] += 1;
@@ -113,14 +113,14 @@ export function buyItem(run: RunState, slot: number, targetIds: number[] = []): 
     const def = ritualDef(item.ritualId);
     const targets = targetIds.map((id) => run.deck.find((c) => c.id === id)).filter((c): c is Card => !!c);
     if (targets.length !== new Set(targetIds).size || targets.length < def.minTargets || targets.length > def.maxTargets) {
-      throw new RuleError('Неверный выбор карт');
+      throw new RuleError('badTargets');
     }
-    if (def.canTarget && !targets.every(def.canTarget)) throw new RuleError('Карта не подходит');
-    if (def.available && !def.available(run)) throw new RuleError('Ритуал сейчас недоступен');
+    if (def.canTarget && !targets.every(def.canTarget)) throw new RuleError('badTarget');
+    if (def.available && !def.available(run)) throw new RuleError('ritualUnavailable');
     pay(run, item.price);
     def.apply(run, targets);
   } else {
-    throw new RuleError('Знамения покупаются через buyOmen');
+    throw new RuleError('nothing');
   }
   item.sold = true;
 }
