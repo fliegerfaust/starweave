@@ -2,7 +2,7 @@ import { cardFace } from '@/art/card';
 import { SKY_LIST } from '@/core/content/skies';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
-import { isUnlocked, todayKey } from '@/meta/profile';
+import { dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
@@ -37,7 +37,7 @@ export class MenuScreen implements Screen {
       img.style.setProperty('--i', String(i - 1));
       fan.append(img);
     });
-    const dailyDone = app.profile.daily?.date === todayKey() && app.profile.daily.finished;
+    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && app.hasSave);
     const buttons = h('div.menu-buttons', null, [
       app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
       button(t('menu.newRun'), () => this.guardSave(() => this.chooseSky()), { variant: app.hasSave ? 'secondary' : 'primary' }),

@@ -89,6 +89,7 @@ export function buyPack(run: RunState, slot: number): void {
   const item = shop.packs[slot];
   if (!item || item.kind !== 'pack' || item.sold) throw new RuleError('nothing');
   if (shop.openPack) throw new RuleError('nothing');
+  if (item.pack === 'omen' && run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
   pay(run, item.price);
   item.sold = true;
   shop.openPack = { pack: item.pack, options: packOptions(run, item.pack) };
@@ -179,10 +180,16 @@ export function buyItem(run: RunState, slot: number, targetIds: number[] = []): 
   item.sold = true;
 }
 
+/** Сколько карт ритуал реально может взять сейчас (Изгнание не опускает колоду ниже минимума). */
+export function ritualMaxTargets(run: RunState, ritualId: string): number {
+  const def = ritualDef(ritualId);
+  return def.maxTargetsFor ? Math.min(def.maxTargets, def.maxTargetsFor(run)) : def.maxTargets;
+}
+
 function validateRitual(run: RunState, ritualId: string, targetIds: number[]): Card[] {
   const def = ritualDef(ritualId);
   const targets = targetIds.map((id) => run.deck.find((c) => c.id === id)).filter((c): c is Card => !!c);
-  if (targets.length !== new Set(targetIds).size || targets.length < def.minTargets || targets.length > def.maxTargets) {
+  if (targets.length !== new Set(targetIds).size || targets.length < def.minTargets || targets.length > ritualMaxTargets(run, ritualId)) {
     throw new RuleError('badTargets');
   }
   if (def.canTarget && !targets.every(def.canTarget)) throw new RuleError('badTarget');

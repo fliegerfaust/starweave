@@ -2,7 +2,7 @@ import { chartIcon, omenSigil, packIcon, ritualIcon } from '@/art/sigil';
 import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
-import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, sellOmen, sellPrice, skipPack } from '@/core/shop';
+import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { markOmensSeen, saveProfile } from '@/meta/profile';
@@ -126,7 +126,7 @@ export class ShopScreen implements Screen {
       desc = info.desc;
     }
     const affordable = run.gold >= item.price;
-    const full = item.kind === 'omen' && run.omens.length >= omenSlots(run);
+    const full = (item.kind === 'omen' || (item.kind === 'pack' && item.pack === 'omen')) && run.omens.length >= omenSlots(run);
     const card = h(`div.shop-item${item.sold ? '.sold' : ''}`, null, [
       h('div.shop-icon', null, icon),
       h('div.shop-info', null, [
@@ -157,6 +157,7 @@ export class ShopScreen implements Screen {
   /** Выбор карт колоды для ритуала. */
   private pickTargets(ritualId: string, onApply: (ids: number[]) => void, onCancel?: () => void): void {
     const def = ritualDef(ritualId);
+    const max = ritualMaxTargets(this.run, ritualId);
     const selected = new Set<number>();
     let applied = false;
     const confirmBtn = button(t('shop.apply'), () => {
@@ -165,13 +166,13 @@ export class ShopScreen implements Screen {
       onApply([...selected]);
     }, { disabled: true });
     const update = () => {
-      confirmBtn.disabled = selected.size < def.minTargets || selected.size > def.maxTargets;
+      confirmBtn.disabled = selected.size < def.minTargets || selected.size > max;
     };
     const onToggle = (c: Card) => {
       if (selected.has(c.id)) selected.delete(c.id);
       else {
-        if (selected.size >= def.maxTargets) {
-          if (def.maxTargets === 1) {
+        if (selected.size >= max) {
+          if (max === 1) {
             selected.clear();
             grid.querySelectorAll('.deck-card.selected').forEach((el) => el.classList.remove('selected'));
           } else return;
@@ -186,7 +187,7 @@ export class ShopScreen implements Screen {
     const m = modal(
       [
         h('p.modal-text', null, info.desc),
-        h('p.hint', null, def.maxTargets === 1 ? t('shop.pickTarget') : t('shop.pickTargets', { min: def.minTargets, max: def.maxTargets })),
+        h('p.hint', null, max === 1 ? t('shop.pickTarget') : t('shop.pickTargets', { min: def.minTargets, max })),
         grid,
         h('div.row.between', null, [button(t('shop.cancel'), () => m.close(), { variant: 'secondary' }), confirmBtn]),
       ],

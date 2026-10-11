@@ -1,0 +1,68 @@
+import { describe, expect, it } from 'vitest';
+import { buildRules } from '../src/core/rules';
+import { newRun } from '../src/core/run';
+import { createOmen } from '../src/core/omen-instance';
+import { buyItem, buyPack } from '../src/core/shop';
+import { RuleError } from '../src/core/errors';
+import { emptyProfile, recordRunEnd } from '../src/meta/profile';
+import { placeCard } from '../src/core/night';
+import { nightRun, setGrid, setHand } from './helpers';
+
+describe('регрессии ревью', () => {
+  it('Безмолвие и Тяготение не отменяются Знамениями', () => {
+    const run = newRun({ seed: 1 });
+    run.omens.push(createOmen(run, 'pyre'), createOmen(run, 'diagonalSight'));
+    expect(buildRules(run, 'silence').burns).toBe(0);
+    const g = buildRules(run, 'gravity');
+    expect(g.rowsIgnite).toBe(false);
+    expect(g.diagonals).toBe(false);
+  });
+
+  it('пакет Знамений нельзя купить без свободного слота', () => {
+    const run = newRun({ seed: 2 });
+    run.phase = 'shop';
+    run.gold = 50;
+    for (const id of ['stardust', 'pyre', 'abacus', 'miser', 'horizon']) run.omens.push(createOmen(run, id));
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5, openPack: null };
+    expect(() => buyPack(run, 0)).toThrow(RuleError);
+    expect(run.gold).toBe(50);
+  });
+
+  it('Изгнание не берёт больше карт, чем можно убрать', () => {
+    const run = newRun({ seed: 3 });
+    run.deck = run.deck.slice(0, 21);
+    run.phase = 'shop';
+    run.gold = 10;
+    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'banish', price: 3, sold: false }], packs: [], rerollCost: 5, openPack: null };
+    expect(() => buyItem(run, 0, [run.deck[0]!.id, run.deck[1]!.id])).toThrow(RuleError);
+    expect(run.gold).toBe(10);
+    buyItem(run, 0, [run.deck[0]!.id]);
+    expect(run.deck).toHaveLength(20);
+  });
+
+  it('стекло на кресте бросает кубик один раз', () => {
+    let broke = 0;
+    const trials = 400;
+    for (let seed = 1; seed <= trials; seed++) {
+      const run = nightRun({ seed });
+      setGrid(run, { 0: '1s', 1: '4m', 2: '7t', 7: '2m', 11: '5t', 15: '8c' });
+      setHand(run, '9c*glass');
+      const events = placeCard(run, 0, 3);
+      if (events.some((e) => e.t === 'shatter')) broke++;
+    }
+    expect(broke / trials).toBeGreaterThan(0.17);
+    expect(broke / trials).toBeLessThan(0.33);
+  });
+
+  it('забег после победы не записывается в профиль дважды', () => {
+    const p = emptyProfile();
+    const run = newRun({ seed: 4 });
+    run.stats.linesIgnited = 100;
+    recordRunEnd(p, run, true);
+    run.stats.linesIgnited = 130;
+    recordRunEnd(p, run, false);
+    expect(p.runs).toBe(1);
+    expect(p.wins).toBe(1);
+    expect(p.totalLines).toBe(130);
+  });
+});
