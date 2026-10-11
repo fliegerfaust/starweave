@@ -220,6 +220,8 @@ export interface RunState {
   shop: ShopState | null;
   stats: RunStats;
   endless: boolean;
+  /** Звёздность (0 — обычная сложность). */
+  stake?: number;
   /** Сколько линий уже записано в профиль (забег после победы продолжается). */
   recordedLines?: number;
 }

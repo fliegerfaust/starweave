@@ -19,6 +19,8 @@ export const en: Dict = {
     back: 'Back',
     locked: 'Locked',
     overwrite: 'Start over? The current run will be lost.',
+    stake: 'Stardom',
+    stakes: ['Normal difficulty', 'Targets ×1.25', '−2 moves per night', '−1 gold per night', 'Prices +1', '−1 burn, targets ×1.5'],
     seed: 'Seed',
   },
   suit: { sun: 'Sun', moon: 'Moon', star: 'Star', comet: 'Comet' },

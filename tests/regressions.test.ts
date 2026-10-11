@@ -66,3 +66,23 @@ describe('регрессии ревью', () => {
     expect(p.totalLines).toBe(130);
   });
 });
+
+describe('звёздность', () => {
+  it('усложняет цели, ходы и цены, а победа открывает следующую', async () => {
+    const { startNight } = await import('../src/core/night');
+    const { generateShop } = await import('../src/core/shop');
+    const easy = newRun({ seed: 7 });
+    const hard = newRun({ seed: 7, stake: 5 });
+    startNight(easy);
+    startNight(hard);
+    expect(hard.night!.target).toBe(easy.night!.target * 1.5);
+    expect(hard.night!.movesLeft).toBe(easy.night!.movesLeft - 2);
+    expect(hard.night!.burnsLeft).toBe(easy.night!.burnsLeft - 1);
+    const s1 = generateShop(easy);
+    const s2 = generateShop(hard);
+    expect(s2.rerollCost).toBe(s1.rerollCost);
+    const p = emptyProfile();
+    recordRunEnd(p, newRun({ seed: 1, stake: 2 }), true);
+    expect(p.maxStake).toBe(3);
+  });
+});

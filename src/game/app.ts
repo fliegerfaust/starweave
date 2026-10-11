@@ -178,13 +178,13 @@ export class App {
 
   // ─── Забег ──────────────────────────────────────────────────────────────
 
-  startRun(skyId: string, daily = false): void {
+  startRun(skyId: string, daily = false, stake = 0): void {
     // Перезаписываемый забег засчитывается как сданный
     if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
     if (daily) markDailyStarted(this.profile);
     saveProfile(this.profile);
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
-    this.run = newRun({ seed, skyId, daily });
+    this.run = newRun({ seed, skyId, daily, stake: daily ? 0 : stake });
     this.save();
     void this.route();
   }

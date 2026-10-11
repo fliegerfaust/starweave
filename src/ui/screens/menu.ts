@@ -3,10 +3,17 @@ import { SKY_LIST } from '@/core/content/skies';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
-import { named, t } from '@/i18n';
+import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
+
+/** Накопленные эффекты звёздности списком. */
+function stakeText(stake: number): string {
+  const list = dict().menu.stakes;
+  if (stake === 0) return list[0]!;
+  return list.slice(1, stake + 1).join(' · ');
+}
 
 const DECOR: Pick<Card, 'suit' | 'rank'>[] = [
   { suit: 'moon', rank: 7 },
@@ -75,7 +82,7 @@ export class MenuScreen implements Screen {
 
   private chooseSky(): void {
     const app = this.app;
-    if (app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile))) {
+    if (app.profile.maxStake === 0 && app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile))) {
       app.startRun('classic');
       return;
     }
@@ -101,14 +108,34 @@ export class MenuScreen implements Screen {
       items.push(item);
       list.append(item);
     }
+    let stake = 0;
+    const stakeInfo = h('div.hint');
+    const stakeField = app.profile.maxStake > 0 ? h('div.field', null, [h('span.field-label', null, t('menu.stake')), (() => {
+      const wrap = h('div.segmented');
+      for (let i = 0; i <= app.profile.maxStake; i++) {
+        const b = h('button.seg', { type: 'button' }, i === 0 ? '—' : '✦'.repeat(i));
+        if (i === stake) b.classList.add('on');
+        b.addEventListener('click', () => {
+          stake = i;
+          wrap.querySelectorAll('.seg').forEach((x) => x.classList.remove('on'));
+          b.classList.add('on');
+          stakeInfo.textContent = stakeText(i);
+          app.svc.audio.click();
+        });
+        wrap.append(b);
+      }
+      return wrap;
+    })(), stakeInfo]) : null;
+    stakeInfo.textContent = stakeText(0);
     const m = modal(
       [
         list,
+        stakeField,
         h('div.row.between', null, [
           button(t('menu.back'), () => m.close(), { variant: 'secondary' }),
           button(t('menu.start'), () => {
             m.close();
-            app.startRun(chosen);
+            app.startRun(chosen, false, stake);
           }),
         ]),
       ],
