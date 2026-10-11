@@ -1,6 +1,7 @@
 import { CARD_PAD, cardBack, cardFace } from '@/art/card';
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
+import { activeCells, buildLines } from '@/core/grid';
 import type { Card, GameEvent, RunState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import type { PointerEventData } from '@/engine/input';
@@ -30,6 +31,9 @@ export interface CellState {
   /** 0..1 — линия вспыхнет при этом ходе. */
   ignite: number;
   igniteColor: string;
+  /** Сколько линий закроет карта в этой клетке (0, 1, 2+) — подсказка чтения поля. */
+  closes: number;
+  closesAnim: number;
 }
 
 const DRAG_THRESHOLD = 8;
@@ -111,6 +115,7 @@ export class NightScene {
       this.hand.push(card.id);
     }
     this.layoutHand(false);
+    this.refreshClosers();
     this.unsubscribers.push(this.svc.renderer.onResize(this.onResize), this.svc.input.on(this.onPointer));
   }
 
@@ -195,7 +200,7 @@ export class NightScene {
     const e = this.world.create();
     const p = this.layout.cells[index]!;
     const t = this.world.add(e, Transform, transform(p.x, p.y, { alpha: 0 }));
-    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b' };
+    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0 };
     this.world.add(e, Drawable, {
       layer: Layer.Board,
       z: 0,
@@ -242,6 +247,26 @@ export class NightScene {
     ctx.fillStyle = `rgba(200,190,255,${0.25 + s.avail * 0.3})`;
     for (const [cx, cy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + hgt - 6], [x + w - 6, y + hgt - 6]] as const) {
       ctx.fillRect(cx - 1, cy - 1, 2, 2);
+    }
+    if (s.closesAnim > 0.01) {
+      // Клетка закроет линию: золотой контур; крест — ярче и с меткой
+      const k = s.closesAnim;
+      const cross = s.closes >= 2;
+      ctx.save();
+      roundRect(ctx, x + 3, y + 3, w - 6, hgt - 6, r * 0.8);
+      ctx.strokeStyle = cross ? `rgba(255,214,120,${0.55 * k + pulse * 0.25 * k})` : `rgba(246,194,91,${0.28 * k})`;
+      ctx.lineWidth = cross ? 2 : 1.2;
+      ctx.stroke();
+      if (cross) {
+        ctx.font = `400 ${Math.round(w * 0.34)}px Forum, serif`;
+        ctx.shadowColor = 'rgba(255,214,120,0.9)';
+        ctx.shadowBlur = 12;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255,214,120,${0.8 * k})`;
+        ctx.fillText(`×${s.closes}`, t.x, t.y);
+      }
+      ctx.restore();
     }
     if (s.ignite > 0.01) {
       ctx.save();
@@ -487,6 +512,24 @@ export class NightScene {
     else this.hud.setPreview(this.preview.lines, this.preview.total);
   }
 
+  /** Пересчитывает, какие пустые клетки закрывают линии (и где крест). */
+  refreshClosers(): void {
+    const n = this.night;
+    const lines = buildLines(n.rules);
+    this.cells.forEach((state, cell) => {
+      let closes = 0;
+      if (!n.sealed[cell] && !n.grid[cell]) {
+        for (const line of lines) {
+          if (!line.cells.includes(cell)) continue;
+          const active = activeCells(line, n.sealed);
+          if (active.length >= 2 && active.every((c) => c === cell || n.grid[c])) closes++;
+        }
+      }
+      state.closes = closes;
+      void this.svc.tweens.to(state, { closesAnim: closes > 0 ? 1 : 0 }, { duration: 0.3 });
+    });
+  }
+
   // ─── Действия ───────────────────────────────────────────────────────────
 
   async place(handIndex: number, cell: number, dragged?: Entity): Promise<void> {
@@ -502,6 +545,7 @@ export class NightScene {
     this.setHover(null);
     for (const c of this.cells) void this.svc.tweens.to(c, { avail: 0, ignite: 0 }, { duration: 0.15 });
     await this.presenter.play(events, dragged);
+    this.refreshClosers();
     this.busy = false;
     if (!this.destroyed) this.hooks.onSettled(events);
   }

@@ -290,7 +290,7 @@ export const en: Dict = {
       'Each night, place cards from your hand onto the 4×4 sky.',
       'When a row or column fills up it ignites as a constellation: score = light × mult.',
       'Light is the constellation base plus the sum of ranks. Mult is the base plus bonuses.',
-      'One move lighting two lines is a cross: its total is multiplied by 2.',
+      'One move lighting two lines is a cross: its total is multiplied by 2. Cells that would close a line glow gold; cross points are marked “×2”.',
       'Reach the night’s target before moves run out. Burning discards a card from hand.',
       'Between nights, buy Omens, Star Charts and rituals in the Observatory.',
       'Three nights make a constellation. Clear eight to win.',
