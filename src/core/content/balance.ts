@@ -23,7 +23,7 @@ export const BASE_RULES: Readonly<Rules> = {
 export const FINAL_ANTE = 8;
 
 /** Базовая цель созвездия (Сумерки). */
-export const ANTE_TARGETS = [300, 700, 1600, 3500, 7500, 15000, 30000, 60000];
+export const ANTE_TARGETS = [200, 550, 1400, 3200, 7000, 14000, 28000, 56000];
 export const NIGHT_TARGET_SCALE: Record<NightKind, number> = { dusk: 1, midnight: 1.5, eclipse: 2 };
 /** Во время бесконечного режима цель растёт во столько раз за созвездие. */
 export const ENDLESS_GROWTH = 2.5;

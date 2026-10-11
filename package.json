@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "vitest run tests/balance.sim.test.ts --reporter=verbose"
+    "sim": "SIM=1 vitest run tests/balance.sim.test.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
