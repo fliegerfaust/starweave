@@ -1,0 +1,50 @@
+:root {
+  --night-0: #05061a;
+  --night-1: #0c0d2c;
+  --night-2: #191641;
+  --panel: rgba(16, 14, 44, 0.86);
+  --panel-solid: #121034;
+  --line: rgba(160, 150, 255, 0.22);
+  --ink: #eae6ff;
+  --ink-dim: #a5a0cf;
+  --gold: #f6c25b;
+  --light: #7fe0ff;
+  --mult: #ff6b8b;
+  --danger: #ff5370;
+  --ok: #7cf0b0;
+  --font-display: 'Forum', 'Times New Roman', serif;
+  --font-body: 'Manrope Variable', 'Manrope', system-ui, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--night-0);
+  color: var(--ink);
+  font-family: var(--font-body);
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
