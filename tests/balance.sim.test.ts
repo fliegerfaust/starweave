@@ -22,7 +22,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
           playNight(run);
           const key = `${run.ante}-${NIGHT_KINDS[run.nightIndex]}`;
           (ratios[key] ??= []).push(run.night!.score / run.night!.target);
-          if (run.phase === 'gameOver') deaths[key] = (deaths[key] ?? 0) + 1;
+          if ((run.phase as string) === 'gameOver') deaths[key] = (deaths[key] ?? 0) + 1;
         }
         if (run.phase === 'reward') collectReward(run);
         if (run.phase === 'shop') {
