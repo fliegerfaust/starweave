@@ -1,5 +1,5 @@
-import { MOVES_PER_GOLD, NIGHT_REWARD, nightTarget } from './content/balance';
-import { bossDef } from './content/bosses';
+import { MOVES_PER_GOLD } from './content/balance';
+import { runNightReward, runNightTarget } from './content/stakes';
 import { cloneCard } from './deck';
 import type { BaseCtx } from './effects';
 import { buildLines, ignitedLines, pickSealedCells } from './grid';
@@ -51,7 +51,7 @@ export function startNight(run: RunState): GameEvent[] {
   const night: NightState = {
     kind,
     bossId,
-    target: nightTarget(run.ante, kind, bossId ? (bossDef(bossId).targetScale ?? 1) : 1),
+    target: runNightTarget(run, kind, bossId),
     score: 0,
     rules,
     movesLeft: rules.moves,
@@ -174,7 +174,7 @@ function finishNight(run: RunState, won: boolean, events: GameEvent[], reason: '
     return;
   }
   run.stats.nightsWon += 1;
-  const base = NIGHT_REWARD[night.kind];
+  const base = runNightReward(run, night.kind);
   const moves = Math.floor(night.movesLeft / MOVES_PER_GOLD);
   const burns = night.burnsLeft;
   const interest = Math.min(Math.floor(run.gold / night.rules.interestStep), night.rules.interestCap);

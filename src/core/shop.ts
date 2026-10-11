@@ -1,6 +1,7 @@
 import { CHART_PRICE, PACK_OPTIONS, PACK_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS, SHOP_PACK_SLOTS } from './content/balance';
 import { OMEN_LIST, omenDef } from './content/omens';
 import { RITUAL_LIST, ritualDef } from './content/rituals';
+import { stakePrice } from './content/stakes';
 import { RuleError } from './errors';
 import { chance, pick, shuffle, weightedPick } from './rng';
 import { buildRules } from './rules';
@@ -14,7 +15,7 @@ function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem
     if (!pool.length) break;
     const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
     exclude.add(def.id);
-    items.push({ kind: 'omen', omenId: def.id, price: def.price, sold: false });
+    items.push({ kind: 'omen', omenId: def.id, price: stakePrice(run, def.price), sold: false });
   }
   return items;
 }
@@ -24,7 +25,7 @@ function rollChart(run: RunState): ShopItem {
   const combo = weightedPick(run.rng, COMBO_IDS.filter((c) => c !== 'scatter'), (c: ComboId) =>
     run.comboLevels[c] > 1 ? 3 : 1,
   );
-  return { kind: 'chart', combo, price: CHART_PRICE, sold: false };
+  return { kind: 'chart', combo, price: stakePrice(run, CHART_PRICE), sold: false };
 }
 
 function rollItems(run: RunState, count: number): ShopItem[] {
@@ -40,7 +41,7 @@ function rollItems(run: RunState, count: number): ShopItem[] {
       const pool = RITUAL_LIST.filter((r) => (r.available?.(run) ?? true) && !seen.has(r.id));
       const def = pick(run.rng, pool);
       seen.add(def.id);
-      items.push({ kind: 'ritual', ritualId: def.id, price: def.price, sold: false });
+      items.push({ kind: 'ritual', ritualId: def.id, price: stakePrice(run, def.price), sold: false });
     }
   }
   return items;
@@ -50,7 +51,7 @@ function rollPacks(run: RunState, count: number): ShopItem[] {
   const kinds: PackKind[] = ['omen', 'ritual', 'chart'];
   return Array.from({ length: count }, () => {
     const pack = weightedPick(run.rng, kinds, (k) => (k === 'omen' ? 2 : 1));
-    return { kind: 'pack', pack, price: PACK_PRICE[pack], sold: false };
+    return { kind: 'pack', pack, price: stakePrice(run, PACK_PRICE[pack]), sold: false };
   });
 }
 

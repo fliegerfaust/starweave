@@ -720,3 +720,5 @@ body.landscape .menu-foot { flex-basis: 100%; text-align: center; }
 body.landscape .boss-chip-name { display: none; }
 body.landscape .boss-chip { padding-right: 2px; }
 .hud-title { flex: 0 1 auto; min-width: 0; }
+
+.stake-chip { margin-left: 8px; font-size: 14px; color: var(--gold); letter-spacing: 0.1em; text-shadow: 0 0 8px var(--gold); vertical-align: middle; }

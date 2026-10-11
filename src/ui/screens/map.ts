@@ -1,6 +1,6 @@
 import { omenSigil } from '@/art/sigil';
-import { FINAL_ANTE, NIGHT_REWARD, nightTarget } from '@/core/content/balance';
-import { bossDef } from '@/core/content/bosses';
+import { FINAL_ANTE } from '@/core/content/balance';
+import { runNightReward, runNightTarget } from '@/core/content/stakes';
 import { NIGHT_KINDS, type RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { named, num, t } from '@/i18n';
@@ -26,7 +26,7 @@ export class MapScreen implements Screen {
     const nodes = h('div.map-nodes');
     NIGHT_KINDS.forEach((kind, i) => {
       const status = i < run.nightIndex ? 'beaten' : i === run.nightIndex ? 'current' : 'upcoming';
-      const target = nightTarget(run.ante, kind, kind === 'eclipse' ? (bossDef(bossId).targetScale ?? 1) : 1);
+      const target = runNightTarget(run, kind, kind === 'eclipse' ? bossId : null);
       const node = h(`div.map-node.${status}.${kind}`, null, [
         h('div.node-head', null, [h('div.node-name', null, t(`night.${kind}`)), h('div.node-status', null, t(`night.${status}`))]),
         kind === 'eclipse'
@@ -34,7 +34,7 @@ export class MapScreen implements Screen {
           : h('div.node-glyph', null, kind === 'dusk' ? '☾' : '✦'),
         h('div.node-foot', null, [
           h('div', null, [h('span.label', null, t('night.target')), h('b', null, num(target))]),
-          h('div', null, [h('span.label', null, t('night.reward')), h('b.gold-text', null, `+${NIGHT_REWARD[kind]}`)]),
+          h('div', null, [h('span.label', null, t('night.reward')), h('b.gold-text', null, `+${runNightReward(run, kind)}`)]),
         ]),
       ]);
       nodes.append(node);
@@ -51,7 +51,7 @@ export class MapScreen implements Screen {
     this.el = h('div.map', null, [
       h('div.map-top', null, [
         h('div.map-title', null, [
-          h('div.map-kicker', null, run.endless ? t('night.endless') : t('night.constellationOf', { n: run.ante, total })),
+          h('div.map-kicker', null, [run.endless ? t('night.endless') : t('night.constellationOf', { n: run.ante, total }), run.stake ? h('span.stake-chip', null, '✦'.repeat(run.stake)) : null]),
           h('div.progress-dots', null, Array.from({ length: Math.max(run.ante, FINAL_ANTE) }, (_, i) => h(`span.dot${i < run.ante - 1 ? '.done' : i === run.ante - 1 ? '.now' : ''}`))),
         ]),
         h('div.gold-pill', null, String(run.gold)),
