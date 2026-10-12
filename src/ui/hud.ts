@@ -327,6 +327,13 @@ export class Hud {
     this.burnBtn.disabled = !enabled;
   }
 
+  /** Карту тащат: «Сжечь» становится целью броска (ready) или карта уже над ней (hover). */
+  setBurnDrop(state: 'ready' | 'hover' | null): void {
+    this.burnBtn.classList.toggle('drop-ready', state !== null);
+    this.burnBtn.classList.toggle('drop-hover', state === 'hover');
+    if (state !== null) this.burnBtn.disabled = false;
+  }
+
   scoreAnchor(): { x: number; y: number } {
     const r = this.score.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
