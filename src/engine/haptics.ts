@@ -3,8 +3,10 @@
  * 1. Нативная обёртка (Capacitor Haptics) — настоящий Taptic Engine на iPhone и
  *    точные эффекты на Android, когда игра выйдет в сторы.
  * 2. Android в браузере — `navigator.vibrate` с узором.
- * 3. iPhone в Safari 17.4+ — у `<input type="checkbox" switch>` системный
- *    тактильный щелчок при переключении; щёлкаем скрытый переключатель.
+ * 3. iPhone в браузере (iOS 18+) — у `<input type="checkbox" switch>` системный
+ *    тактильный щелчок при переключении; щёлкаем скрытый переключатель. iOS даёт
+ *    щелчок только синхронно внутри касания, поэтому отклики после анимаций там
+ *    невозможны — для iPhone вызывающий код зовёт `touch()` прямо в обработчике.
  * Если ничего нет — молча ничего не делаем.
  */
 
@@ -57,6 +59,20 @@ export class Haptics {
     }
   }
 
+  /**
+   * Отклик в момент касания — только для iPhone в браузере, где позже он уже не сработает.
+   * На остальных устройствах ничего не делает: там тот же отклик придёт через `play()`
+   * точно в такт анимации, и двойной вибрации не будет.
+   */
+  touch(kind: HapticKind): void {
+    if (!this.enabled || !this.isIOS || nativeHaptics()) return;
+    try {
+      this.playIOS(kind);
+    } catch {
+      /* см. play() */
+    }
+  }
+
   private playNative(native: NativeHaptics, kind: HapticKind): void {
     switch (kind) {
       case 'success':
@@ -97,7 +113,11 @@ export class Haptics {
       document.body.append(input, label);
       this.iosLabel = label;
     }
+    // Вне касания iOS щелчок всё равно проглотит — не дёргаем переключатель зря
+    if (navigator.userActivation && !navigator.userActivation.isActive) return;
     const label = this.iosLabel;
-    for (let i = 0; i < IOS_TICKS[kind]; i++) window.setTimeout(() => label.click(), i * 70);
+    // Первый щелчок — синхронно, пока идёт касание; следующие iOS может и пропустить
+    label.click();
+    for (let i = 1; i < IOS_TICKS[kind]; i++) window.setTimeout(() => label.click(), i * 70);
   }
 }
