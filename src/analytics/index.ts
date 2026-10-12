@@ -1,4 +1,6 @@
 import type { EventMap, EventName } from './events';
+import { ServerSink } from './server-sink';
+export { forgetClientId } from './server-sink';
 
 export type { EventMap, EventName } from './events';
 
@@ -51,12 +53,17 @@ class MetrikaSink implements AnalyticsSink {
 let sinks: AnalyticsSink[] = [];
 const queue: [string, Params][] = [];
 
-/** Подключает приёмники событий. Без счётчика — только консоль в разработке. */
-export function initAnalytics(): void {
+/**
+ * Подключает приёмники событий: свой сервер (`VITE_EVENTS_URL`), Яндекс Метрику
+ * (`VITE_METRIKA_ID`), в разработке — консоль. Без настроек события никуда не уходят.
+ */
+export function initAnalytics(platform = 'web'): void {
   const id = Number(import.meta.env.VITE_METRIKA_ID ?? 0);
+  const eventsUrl = import.meta.env.VITE_EVENTS_URL;
   sinks = [];
   if (import.meta.env.DEV) sinks.push(new ConsoleSink());
   if (id > 0) sinks.push(new MetrikaSink(id));
+  if (eventsUrl) sinks.push(new ServerSink(eventsUrl, platform, __APP_VERSION__));
   for (const sink of sinks) sink.init?.();
   for (const [name, params] of queue.splice(0)) for (const sink of sinks) sink.send(name, params);
   window.addEventListener('error', (e) => track('js_error', { message: String(e.message).slice(0, 200) }));
