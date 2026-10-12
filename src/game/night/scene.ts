@@ -155,7 +155,7 @@ export class NightScene {
       card,
       width: this.layout.handW,
       faceUp: true,
-      hideRank: this.night.rules.hideRanks,
+      hideRank: this.night.rules.hideRanks && zone !== 'board',
       debuffed: this.night.rules.debuffSuit === card.suit,
       glow: 0,
       glowColor: SUIT_COLORS[card.suit].main,
