@@ -3,7 +3,9 @@ import { GLYPHS, type Card, type Glyph } from '@/core/types';
 import { dict, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, modal } from '../widgets';
+import { track } from '@/analytics';
 import { cardThumb } from './common';
+import { rich } from '../rich';
 
 /**
  * Справочник: каждый термин — короткая зацикленная анимация и пара фраз простым
@@ -80,11 +82,12 @@ function iconDemo(icon: HTMLCanvasElement): HTMLElement {
 }
 
 function entry(title: string, text: string, visual: HTMLElement, id?: string): HTMLElement {
-  return h('div.g-entry', { dataset: id ? { guide: id } : {} }, [visual, h('div.g-text', null, [h('div.g-title', null, title), h('div.g-desc', null, text)])]);
+  return h('div.g-entry', { dataset: id ? { guide: id } : {} }, [visual, h('div.g-text', null, [h('div.g-title', null, title), h('div.g-desc', null, rich(text))])]);
 }
 
 /** Открывает справочник; `focus` — id раздела, к которому прокрутить (например, `glyph-echo`). */
 export function showGuide(focus?: string): void {
+  track('guide_open', { focus: focus ?? '' });
   const g = dict().guide;
   const s = dpr();
   const entries: HTMLElement[] = [

@@ -192,7 +192,7 @@ export class NightScreen implements Screen {
           h('p.modal-text', null, t('tut.lost')),
           h('div.row.center.wrap', null, [
             button(t('tut.skip'), () => this.app.skipTutorial(), { variant: 'ghost' }),
-            button(t('tut.retry'), () => this.app.startTutorial()),
+            button(t('tut.retry'), () => this.app.startTutorial('retry')),
           ]),
         ],
         { title: t('over.lostTitle'), dismissable: false, className: 'narrow' },

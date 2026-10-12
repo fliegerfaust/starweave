@@ -16,12 +16,13 @@ import { dailySeed, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, rec
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
-import { setUiSound, toast } from '@/ui/widgets';
+import { hideTooltip, setUiSound, toast } from '@/ui/widgets';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
+import { initAnalytics, measureFps, track } from '@/analytics';
 import type { Platform } from '@/platform';
 import { TutorialDirector } from '@/tutorial/director';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
@@ -157,6 +158,7 @@ export class App {
   }
 
   show(screen: Screen): void {
+    hideTooltip();
     this.screen?.unmount();
     this.root.replaceChildren();
     this.screen = screen;
@@ -222,6 +224,7 @@ export class App {
     this.persistProfile();
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
     this.run = newRun({ seed, skyId, daily, stake: daily ? 0 : stake });
+    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily });
     this.save();
     void this.route();
   }
@@ -245,6 +248,7 @@ export class App {
     const run = this.run!;
     startNight(run);
     if (run.tutorial) applyTutorialNight(run, run.nightIndex);
+    else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '' });
     markSeen(this.profile, run);
     this.persistProfile();
     this.save();
@@ -270,11 +274,14 @@ export class App {
   private afterAction(events: GameEvent[]): void {
     const run = this.run!;
     const lost = events.some((e) => e.t === 'nightLost');
+    const won = events.some((e) => e.t === 'nightWon');
+    if ((lost || won) && !run.tutorial) this.trackNightEnd(won);
     if (run.tutorial) {
       // Учебную ночь проиграть почти нельзя, но если вышло — начинаем обучение заново
       return;
     }
     if (lost) {
+      this.trackRunEnd('lost');
       const fresh = recordRunEnd(this.profile, run, false);
       this.persistProfile();
       this.announceUnlocks(fresh);
@@ -282,6 +289,36 @@ export class App {
       return;
     }
     this.save();
+  }
+
+  private trackNightEnd(won: boolean): void {
+    const run = this.run!;
+    const n = run.night!;
+    track('night_end', {
+      ante: run.ante,
+      night: n.kind,
+      boss: n.bossId ?? '',
+      won,
+      score: n.score,
+      target: n.target,
+      ratio: Math.round((n.score / n.target) * 100) / 100,
+      moves_left: n.movesLeft,
+      burns_left: n.burnsLeft,
+      lines: n.linesIgnited,
+    });
+  }
+
+  private trackRunEnd(result: 'lost' | 'abandon' | 'victory'): void {
+    const run = this.run!;
+    track('run_end', {
+      result,
+      ante: run.ante,
+      nights: run.stats.nightsWon,
+      lines: run.stats.linesIgnited,
+      best: run.stats.bestPlacement,
+      crosses: run.stats.crosses,
+      omens: run.omens.map((o) => o.id).join(','),
+    });
   }
 
   collectReward(): void {
@@ -309,6 +346,7 @@ export class App {
       return;
     }
     if (run.phase === 'victory') {
+      this.trackRunEnd('victory');
       const fresh = recordRunEnd(this.profile, run, true);
       this.announceUnlocks(fresh);
     } else {
@@ -318,6 +356,7 @@ export class App {
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
     if (run.phase === 'map' && run.nightIndex === 0) {
+      track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
       void this.platform.showInterstitial().then(() => this.route());
       return;
     }
@@ -348,6 +387,7 @@ export class App {
   abandonRun(): void {
     if (this.run?.tutorial) return this.skipTutorial();
     if (this.run && this.run.phase !== 'gameOver' && this.run.phase !== 'victory') {
+      this.trackRunEnd('abandon');
       recordRunEnd(this.profile, this.run, false);
       this.persistProfile();
     }
@@ -388,11 +428,19 @@ export class App {
     void this.platform.cloudSave(data);
   }
 
+  /** Реклама за награду с учётом в аналитике. */
+  private async rewarded(placement: string): Promise<boolean> {
+    track('ad_request', { kind: 'rewarded', placement });
+    const ok = await this.platform.showRewarded().catch(() => false);
+    track('ad_result', { kind: 'rewarded', placement, result: ok ? 'rewarded' : 'closed' });
+    return ok;
+  }
+
   /** Второй шанс после поражения — за просмотр рекламы. */
   async revive(): Promise<boolean> {
     const run = this.run;
     if (!run || !canRevive(run)) return false;
-    const ok = await this.platform.showRewarded();
+    const ok = await this.rewarded('revive');
     if (!ok || !canRevive(run)) return false;
     reviveNight(run);
     // Поражение уже записали в профиль — забег продолжается, запись отменяем
@@ -407,7 +455,7 @@ export class App {
   async doubleReward(): Promise<boolean> {
     const run = this.run;
     if (!run || !canDoubleReward(run)) return false;
-    const ok = await this.platform.showRewarded();
+    const ok = await this.rewarded('double_reward');
     if (!ok || !canDoubleReward(run)) return false;
     doubleReward(run);
     this.save();
@@ -423,7 +471,8 @@ export class App {
   tutorial: TutorialDirector | null = null;
 
   /** Учебный забег не трогает сохранённый настоящий: тот вернётся после обучения. */
-  startTutorial(): void {
+  startTutorial(source: 'offer' | 'menu' | 'retry' = 'menu'): void {
+    track('tutorial_start', { source });
     this.tutorial?.stop();
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.run = newTutorialRun();
@@ -441,12 +490,16 @@ export class App {
   }
 
   skipTutorial(): void {
+    const at = this.tutorial?.progress ?? { step: '', index: 0 };
+    track('tutorial_skip', at);
     this.endTutorial();
     void this.goMenu();
   }
 
   /** Обучение пройдено: поздравление и старт настоящего забега. */
   finishTutorial(): void {
+    track('tutorial_complete', {});
+    this.profile.tutorialFinished = true;
     this.endTutorial();
     this.svc.audio.win();
     void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this));
@@ -492,8 +545,12 @@ async function restoreFromCloud(platform: Platform): Promise<void> {
 }
 
 export async function startGame(platform: Platform): Promise<void> {
+  initAnalytics();
   await restoreFromCloud(platform);
   const app = new App(platform);
   (window as unknown as { starweave: App }).starweave = app;
+  track('app_open', { platform: platform.id, lang: app.settings.lang, returning: app.profile.runs > 0 || app.profile.tutorialDone });
   app.start();
+  // FPS меряем, когда игрок уже в игре, а не на загрузке
+  window.setTimeout(() => measureFps(5), 30_000);
 }

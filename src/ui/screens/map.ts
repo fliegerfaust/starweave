@@ -4,6 +4,7 @@ import { NIGHT_KINDS, type RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
+import { rich } from '../rich';
 import { omenMedal, omenTooltip } from '../hud';
 import { coach } from '../tutorial';
 import { attachTooltip, button } from '../widgets';
@@ -42,7 +43,7 @@ export class MapScreen implements Screen {
       const node = h(`div.map-node.${status}.${kind}`, null, [
         h('div.node-head', null, [h('div.node-name', null, t(`night.${kind}`)), h('div.node-status', null, t(`night.${status}`))]),
         kind === 'eclipse' && bossId
-          ? h('div.node-boss', null, [NightScreen.bossIcon(bossId, 56), h('div', null, [h('div.boss-name', null, named('boss', bossId).name), h('div.boss-desc', null, named('boss', bossId).desc)])])
+          ? h('div.node-boss', null, [NightScreen.bossIcon(bossId, 56), h('div', null, [h('div.boss-name', null, named('boss', bossId).name), h('div.boss-desc', null, rich(named('boss', bossId).desc))])])
           : h('div.node-glyph', null, kind === 'dusk' ? '☾' : '✦'),
         h('div.node-foot', null, [
           h('div', null, [h('span.label', null, t('night.target')), h('b', null, num(target))]),

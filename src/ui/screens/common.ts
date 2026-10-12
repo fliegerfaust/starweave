@@ -119,6 +119,10 @@ export function showSettings(app: App, onChange?: () => void): void {
         if (v) app.svc.haptics.play('success');
       })),
       field(t('settings.reduceMotion'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.reduceMotion, (v) => (s.reduceMotion = v))),
+      h('div.row.gap.wrap.legal-links', null, [
+        button(t('settings.privacy'), () => void import('./legal').then(({ showLegal }) => showLegal('privacy')), { variant: 'ghost', className: 'small' }),
+        button(t('settings.terms'), () => void import('./legal').then(({ showLegal }) => showLegal('terms')), { variant: 'ghost', className: 'small' }),
+      ]),
       h('div.row.between', null, [
         button(t('settings.reset'), () => confirmDialog(t('settings.resetConfirm'), () => {
           m.close();
