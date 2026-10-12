@@ -31,14 +31,20 @@ export class Starfield {
   private paletteIndex = 0;
   private w = 0;
   private h = 0;
+  private dpr = 1;
   private meteorTimer = 4;
   parallaxX = 0;
   parallaxY = 0;
 
-  resize(w: number, h: number): void {
-    if (w === this.w && h === this.h) return;
+  resize(w: number, h: number, dpr = 1): void {
+    if (w === this.w && h === this.h && dpr === this.dpr) return;
+    const sameSize = w === this.w && h === this.h;
     this.w = w;
     this.h = h;
+    this.dpr = dpr;
+    this.nebula = renderNebula(w, h, 17 + this.paletteIndex, ANTE_NEBULAE[this.paletteIndex], dpr);
+    this.prevNebula = null;
+    if (sameSize) return;
     const count = Math.round((w * h) / 2600);
     this.stars = Array.from({ length: count }, () => ({
       x: Math.random(),
@@ -49,8 +55,6 @@ export class Starfield {
       depth: [0.2, 0.5, 1][Math.floor(Math.random() * 3)]!,
       hue: Math.random(),
     }));
-    this.nebula = renderNebula(w, h, 17 + this.paletteIndex, ANTE_NEBULAE[this.paletteIndex]);
-    this.prevNebula = null;
   }
 
   /** Плавно сменить туманность на палитру созвездия. */
@@ -59,7 +63,7 @@ export class Starfield {
     if (i === this.paletteIndex || !this.w) return;
     this.paletteIndex = i;
     this.prevNebula = this.nebula;
-    this.nebula = renderNebula(this.w, this.h, 17 + i, ANTE_NEBULAE[i]);
+    this.nebula = renderNebula(this.w, this.h, 17 + i, ANTE_NEBULAE[i], this.dpr);
     this.fade = 0;
   }
 

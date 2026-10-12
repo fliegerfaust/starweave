@@ -66,12 +66,12 @@ export class App {
     const world = new World(res);
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
     const starfield = new Starfield();
-    starfield.resize(renderer.width, renderer.height);
+    starfield.resize(renderer.width, renderer.height, renderer.dpr);
     const updateOrientation = () => document.body.classList.toggle('landscape', isLandscape(renderer.width, renderer.height));
     updateOrientation();
     renderer.onResize(() => {
       updateOrientation();
-      starfield.resize(renderer.width, renderer.height);
+      starfield.resize(renderer.width, renderer.height, renderer.dpr);
       if (res.dpr !== renderer.dpr) {
         res.dpr = renderer.dpr;
         clearCardCache();
@@ -139,8 +139,10 @@ export class App {
 
   start(): void {
     const frame = (now: number) => {
-      const dt = Math.min(0.05, (now - this.last) / 1000);
+      const raw = (now - this.last) / 1000;
+      const dt = Math.min(0.05, raw);
       this.last = now;
+      this.svc.renderer.observeFrame(raw);
       this.tick(dt);
       requestAnimationFrame(frame);
     };
