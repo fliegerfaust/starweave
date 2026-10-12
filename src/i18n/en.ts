@@ -83,7 +83,7 @@ export const en: Dict = {
     light: ['Light +', 'Adds light'],
     mult: ['Multiplier +', 'Adds to the multiplier'],
     xmult: ['Multiplier ×', 'Multiplies the multiplier — strongest when placed to the right'],
-    rule: ['Rule', 'Changes the night’s rules'],
+    rule: ['Special', 'Special effect — see the description'],
     gold: ['Gold', 'Earns gold'],
   },
   scoring: {

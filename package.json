@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "sim": "SIM=1 vitest run tests/balance.sim.test.ts",
     "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
-    "legal": "node scripts/build-legal.ts"
+    "legal": "node scripts/build-legal.ts",
+    "e2e": "playwright test",
+    "store-assets": "ASSETS=1 playwright test e2e/store-assets.spec.ts --project=desktop --workers=1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
