@@ -1,4 +1,4 @@
-# Starweave — Звездоплёт
+# Starweave — Звёздное плетение
 
 **Играть:** https://fliegerfaust.github.io/starweave/
 

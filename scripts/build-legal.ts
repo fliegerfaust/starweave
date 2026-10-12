@@ -36,7 +36,7 @@ mkdirSync('public/legal', { recursive: true });
 for (const doc of ['privacy', 'terms'] as const) {
   const ru = readFileSync(`legal/${doc}.ru.md`, 'utf8');
   const en = readFileSync(`legal/${doc}.en.md`, 'utf8');
-  const title = doc === 'privacy' ? 'Starweave — Политика конфиденциальности' : 'Starweave — Пользовательское соглашение';
+  const title = doc === 'privacy' ? 'Звёздное плетение — Политика конфиденциальности' : 'Звёздное плетение — Пользовательское соглашение';
   writeFileSync(`public/legal/${doc}.html`, page(title, ru, en));
 }
 const missing = Object.values(vars).filter((v) => v.startsWith('['));
