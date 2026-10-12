@@ -441,6 +441,7 @@ export class NightScene {
 
   private deny(): void {
     this.svc.audio.deny();
+    this.svc.haptics.play('error');
   }
 
   /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */
@@ -581,7 +582,10 @@ export class NightScene {
   }
 
   select(index: number | null, relayout = true): void {
-    if (index !== this.selected && index !== null) this.svc.audio.tick();
+    if (index !== this.selected && index !== null) {
+      this.svc.audio.tick();
+      this.svc.haptics.play('select');
+    }
     this.selected = index;
     this.hooks.onSelect?.(index);
     for (const c of this.cells) {
