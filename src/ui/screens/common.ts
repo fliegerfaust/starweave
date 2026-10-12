@@ -3,6 +3,7 @@ import { LANGS, dict, getLang, num, t, type Lang } from '@/i18n';
 import type { Card, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
+import { Haptics } from '@/engine/haptics';
 import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
 import { canvasImg, dpr, h } from '../dom';
@@ -129,7 +130,7 @@ export function showSettings(app: App, onChange?: () => void): void {
       field(t('settings.sfx'), slider(s.sfx, (v) => (s.sfx = v))),
       field(t('settings.music'), slider(s.music, (v) => (s.music = v))),
       field(t('settings.speed'), segmented(SPEEDS.map((_, i) => ({ value: i, label: dict().settings.speeds[i]! })), s.speed, (v) => (s.speed = v))),
-      field(t('settings.haptics'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.haptics, (v) => {
+      !Haptics.supported() ? null : field(t('settings.haptics'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.haptics, (v) => {
         s.haptics = v;
         if (v) app.svc.haptics.play('success');
       })),
