@@ -164,6 +164,10 @@ function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank
   ctx.fillStyle = col.light;
   const rankText = opts.hideRank ? '?' : String(card.rank);
   ctx.fillText(rankText, w * 0.21, w * 0.43);
+  // Чёткий слой поверх свечения: Safari растягивает shadowBlur вместе с масштабом холста,
+  // и на iPhone (3×) ореол размывал саму цифру
+  ctx.shadowColor = 'transparent';
+  ctx.fillText(rankText, w * 0.21, w * 0.43);
   ctx.restore();
 
   // Масть под рангом
@@ -172,6 +176,8 @@ function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank
   ctx.fillStyle = col.main;
   ctx.shadowColor = rgba(col.rgb, 0.8);
   ctx.shadowBlur = w * 0.04;
+  ctx.fill('evenodd');
+  ctx.shadowColor = 'transparent';
   ctx.fill('evenodd');
   ctx.restore();
 
