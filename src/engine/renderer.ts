@@ -4,6 +4,10 @@ export class Renderer {
   width = 0;
   height = 0;
   dpr = 1;
+  /** Потолок DPR: начинаем с полной чёткости (3× у iPhone), снижаем, если кадры не успевают. */
+  private maxDpr = 3;
+  private slowFrames = 0;
+  private sampled = 0;
   private resizeListeners: (() => void)[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
@@ -24,10 +28,15 @@ export class Renderer {
   }
 
   resize(): void {
-    // Ограничиваем DPR: на телефонах с 3x канвас во весь экран слишком дорог.
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    this.dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
+    // Видимая область, а не макет: в мобильных браузерах панели адреса и вкладок
+    // перекрывают низ страницы, и innerHeight бывает больше того, что видно.
+    const vv = window.visualViewport;
+    const w = Math.round(vv?.width ?? window.innerWidth);
+    const h = Math.round(Math.min(window.innerHeight, vv?.height ?? Infinity));
+    document.documentElement.style.setProperty('--app-h', `${h}px`);
+    // iOS иногда прокручивает документ при повороте или открытии клавиатуры — возвращаем.
+    if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
     if (w === this.width && h === this.height && this.canvas.width === Math.round(w * this.dpr)) return;
     this.width = w;
     this.height = h;
@@ -36,6 +45,22 @@ export class Renderer {
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
     for (const fn of this.resizeListeners) fn();
+  }
+
+  /**
+   * Учёт длительности кадра (сырой, до ограничения шага). Если устройство стабильно не
+   * держит ~45 FPS, снижаем потолок DPR на ступень: 3 → 2 → 1.5. Обратно не поднимаем —
+   * лучше ровная картинка, чем мигание чёткости.
+   */
+  observeFrame(dt: number): void {
+    if (dt > 0.25 || this.maxDpr <= 1.5) return; // вкладка была в фоне или ниже некуда
+    if (++this.sampled < 90) return; // первые кадры — загрузка, не показатель
+    this.slowFrames = dt > 1 / 45 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2);
+    if (this.slowFrames < 90 || this.dpr < this.maxDpr) return;
+    this.maxDpr = this.maxDpr > 2 ? 2 : 1.5;
+    this.slowFrames = 0;
+    this.sampled = 0;
+    this.resize();
   }
 
   /** Начало кадра: сброс трансформации с учётом DPR и смещения камеры. */

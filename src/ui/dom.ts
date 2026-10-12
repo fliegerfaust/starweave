@@ -59,5 +59,5 @@ export function canvasImg(canvas: HTMLCanvasElement, cssW: number, cssH = cssW, 
 }
 
 export function dpr(): number {
-  return Math.min(2, window.devicePixelRatio || 1);
+  return Math.min(3, window.devicePixelRatio || 1);
 }
