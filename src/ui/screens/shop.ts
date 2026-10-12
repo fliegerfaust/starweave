@@ -6,9 +6,10 @@ import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, rit
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { markOmensSeen, saveProfile } from '@/meta/profile';
-import { named, t } from '@/i18n';
+import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { omenTooltip } from '../hud';
+import { omenBadge, omenMedal, omenTooltip } from '../hud';
+import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
 import { attachTooltip, button, modal, type ModalHandle } from '../widgets';
 import { deckGrid, showDeck } from './common';
@@ -60,8 +61,9 @@ export class ShopScreen implements Screen {
 
     const owned = h('div.owned-omens');
     run.omens.forEach((o, i) => {
+      if (i > 0) owned.append(h('div.order-arrow', null, '→'));
       const chip = h('div.owned-omen', null, [
-        h('div.omen-slot', null, canvasImg(omenSigil(o.id, 44, dpr()), 44)),
+        h('div.omen-slot', null, omenMedal(o.id, 44)),
         h('div.owned-actions', null, [
           i > 0 ? h('button.mini', { type: 'button', onclick: () => this.act((r) => moveOmen(r, i, i - 1), 'click') }, '◀') : null,
           h('button.mini.sell', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid)) }, `${t('shop.sell', { n: sellPrice(o.id) })}`),
@@ -82,6 +84,7 @@ export class ShopScreen implements Screen {
         h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
         owned,
         run.omens.length > 1 ? h('p.hint', null, t('shop.dragHint')) : null,
+        button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
       ]),
       h('div.shop-actions', null, [
         button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click'), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
@@ -99,14 +102,16 @@ export class ShopScreen implements Screen {
     let desc: string;
     let tag = '';
     let tagClass = '';
+    let badge: HTMLElement | null = null;
     if (item.kind === 'omen') {
       const def = omenDef(item.omenId);
       icon = canvasImg(omenSigil(item.omenId, 72, dpr()), 72);
       const info = named('omen', item.omenId, def.vars?.(def.initialData?.() ?? {}) ?? {});
       title = info.name;
       desc = info.desc;
-      tag = t(`rarity.${def.rarity}`);
+      tag = `${t(`rarity.${def.rarity}`)} · ${dict().omenKind[def.kind][0]}`;
       tagClass = `r${def.rarity}`;
+      badge = omenBadge(def.kind);
     } else if (item.kind === 'chart') {
       icon = canvasImg(chartIcon(item.combo, 72, dpr()), 72);
       const level = run.comboLevels[item.combo];
@@ -131,7 +136,7 @@ export class ShopScreen implements Screen {
       h('div.shop-icon', null, icon),
       h('div.shop-info', null, [
         h('div.shop-name', null, title),
-        tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, tag) : null,
+        tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, [badge, tag]) : null,
         h('div.shop-desc', null, desc),
       ]),
       item.sold

@@ -1,13 +1,14 @@
 import { bossSigil, omenSigil } from '@/art/sigil';
-import { omenDef } from '@/core/content/omens';
+import { omenDef, type OmenKind } from '@/core/content/omens';
 import { omenSlots } from '@/core/shop';
-import type { ComboId, OmenInstance, RunState } from '@/core/types';
-import { named, num, t } from '@/i18n';
+import type { Card, ComboId, Glyph, OmenInstance, RunState } from '@/core/types';
+import { dict, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
 import { attachTooltip, button } from './widgets';
 
 export interface HudCallbacks {
   onMenu(): void;
+  onGuide(focus?: string): void;
   onBurn(): void;
   onDeck(): void;
 }
@@ -17,11 +18,26 @@ export function omenTooltip(omen: { id: string; data?: Record<string, number> })
   const def = omenDef(omen.id);
   const vars = def.vars?.(omen.data ?? def.initialData?.() ?? {}) ?? {};
   const { name, desc } = named('omen', omen.id, vars);
+  const [kindLabel, kindDesc] = dict().omenKind[def.kind];
   return h('div.tip-body', null, [
     h('div.tip-title', null, name),
     h(`div.tip-rarity.r${def.rarity}`, null, t(`rarity.${def.rarity}`)),
     h('div.tip-desc', null, desc),
+    h('div.tip-kind', null, [omenBadge(def.kind), h('span', null, `${kindLabel}: ${kindDesc}`)]),
   ]);
+}
+
+const BADGE_SYMBOL: Record<OmenKind, string> = { light: '+', mult: '+', xmult: '×', rule: '✦', gold: '◆' };
+
+/** Значок типа Знамения: цвет и символ показывают, что оно делает со счётом. */
+export function omenBadge(kind: OmenKind): HTMLElement {
+  return h(`span.omen-badge.k-${kind}`, { title: dict().omenKind[kind][0] }, BADGE_SYMBOL[kind]);
+}
+
+/** Медальон Знамения со значком типа. */
+export function omenMedal(id: string, size: number): HTMLElement {
+  const def = omenDef(id);
+  return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size), omenBadge(def.kind)]);
 }
 
 export function bossTooltip(bossId: string): HTMLElement {
@@ -48,7 +64,11 @@ export class Hud {
   private readonly calcCombo: HTMLElement;
   private readonly calcLight: HTMLElement;
   private readonly calcMult: HTMLElement;
+  private readonly calcTotal: HTMLElement;
+  private readonly calcCaption: HTMLElement;
   private readonly preview: HTMLElement;
+  private readonly cardInfo: HTMLElement;
+  private cardInfoGlyph: Glyph | null = null;
   readonly actions: HTMLElement;
   readonly burnBtn: HTMLButtonElement;
   readonly deckBtn: HTMLButtonElement;
@@ -68,12 +88,30 @@ export class Hud {
     this.calcCombo = h('div.calc-combo');
     this.calcLight = h('div.calc-light', null, '0');
     this.calcMult = h('div.calc-mult', null, '0');
-    this.calc = h('div.calc', null, [this.calcCombo, h('div.calc-row', null, [this.calcLight, h('span.calc-x', null, '×'), this.calcMult])]);
+    this.calcTotal = h('div.calc-total', null, '?');
+    this.calcCaption = h('div.calc-caption');
+    const cell = (box: HTMLElement, label: string) => h('div.calc-cell', null, [box, h('div.calc-label', null, label)]);
+    this.calc = h('div.calc', null, [
+      this.calcCombo,
+      h('div.calc-row', null, [
+        cell(this.calcLight, t('calc.light')),
+        h('span.calc-x', null, '×'),
+        cell(this.calcMult, t('calc.mult')),
+        h('span.calc-x', null, '='),
+        cell(this.calcTotal, t('calc.total')),
+      ]),
+      this.calcCaption,
+    ]);
     this.preview = h('div.preview');
 
     const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: 'menu', onclick: () => cb.onMenu() }, h('span.burger'));
+    const guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: 'guide', onclick: () => cb.onGuide() }, '?');
+    this.cardInfo = h('div.card-info');
+    this.cardInfo.addEventListener('click', () => {
+      if (this.cardInfoGlyph) cb.onGuide(`glyph-${this.cardInfoGlyph}`);
+    });
     this.el = h('div.hud', null, [
-      h('div.hud-row.top', null, [menuBtn, h('div.hud-title-wrap', null, [this.title, this.bossBadge]), this.gold]),
+      h('div.hud-row.top', null, [menuBtn, guideBtn, h('div.hud-title-wrap', null, [this.title, this.bossBadge]), this.gold]),
       h('div.hud-row.mid', null, [
         h('div.hud-score-wrap', null, [h('div.row.baseline', null, [this.score, this.target]), h('div.hud-bar', null, this.bar)]),
         h('div.stat', null, [h('div.stat-label', null, t('night.moves')), this.moves]),
@@ -88,13 +126,14 @@ export class Hud {
   }
 
   mount(root: HTMLElement): void {
-    root.append(this.el, this.calc, this.preview, this.actions);
+    root.append(this.el, this.calc, this.preview, this.cardInfo, this.actions);
   }
 
   unmount(): void {
     this.el.remove();
     this.calc.remove();
     this.preview.remove();
+    this.cardInfo.remove();
     this.actions.remove();
   }
 
@@ -130,7 +169,7 @@ export class Hud {
         this.omens.append(h('div.omen-slot.empty'));
         continue;
       }
-      const el = h('div.omen-slot', { dataset: { uid: String(omen.uid) } }, canvasImg(omenSigil(omen.id, 40, dpr()), 40));
+      const el = h('div.omen-slot', { dataset: { uid: String(omen.uid) } }, omenMedal(omen.id, 40));
       attachTooltip(el, () => omenTooltip(omen));
       this.omens.append(el);
     }
@@ -195,6 +234,9 @@ export class Hud {
 
   showCalc(combo: ComboId, light: number, mult: number): void {
     this.calcCombo.textContent = t(`combo.${combo}`);
+    this.calcTotal.textContent = '?';
+    this.calcTotal.classList.remove('done');
+    this.calcCaption.textContent = '';
     this.setCalc(light, mult);
     this.calc.classList.add('show');
   }
@@ -214,6 +256,22 @@ export class Hud {
     }
   }
 
+  /** Пояснение текущего шага подсчёта простыми словами. */
+  setCaption(text: string): void {
+    this.calcCaption.textContent = text;
+    this.calcCaption.classList.remove('flash');
+    void this.calcCaption.offsetWidth;
+    this.calcCaption.classList.add('flash');
+  }
+
+  setCalcTotal(total: number): void {
+    this.calcTotal.textContent = num(total);
+    this.calcTotal.classList.add('done');
+    this.calcTotal.classList.remove('bump');
+    void this.calcTotal.offsetWidth;
+    this.calcTotal.classList.add('bump');
+  }
+
   hideCalc(): void {
     this.calc.classList.remove('show');
   }
@@ -228,6 +286,23 @@ export class Hud {
     const names = lines.map((l) => t(`combo.${l.combo}`)).join(' + ');
     this.preview.append(h('span.preview-combo', null, names), h('span.preview-total', null, `≈ ${num(total)}`));
     this.preview.classList.add('show');
+  }
+
+  /** Подпись о выбранной карте: ранг, масть и глиф простыми словами. */
+  setCardInfo(card: Card | null, hideRank = false): void {
+    clear(this.cardInfo);
+    this.cardInfoGlyph = card?.glyph ?? null;
+    if (!card) {
+      this.cardInfo.classList.remove('show');
+      return;
+    }
+    const name = `${hideRank ? '?' : card.rank} · ${t(`suitPl.${card.suit}`)}`;
+    this.cardInfo.append(h('b', null, name));
+    if (card.glyph) {
+      this.cardInfo.append(h('span', null, ` · ${t(`glyph.${card.glyph}`)}: ${dict().glyphDesc[card.glyph]}`), h('span.more', null, ' ⓘ'));
+    }
+    this.cardInfo.classList.toggle('clickable', !!card.glyph);
+    this.cardInfo.classList.add('show');
   }
 
   setBurnEnabled(enabled: boolean): void {

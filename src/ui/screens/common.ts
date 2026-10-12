@@ -62,14 +62,9 @@ export function showDeck(run: RunState): void {
   });
 }
 
-export function showHelp(): void {
-  const m = modal(
-    [
-      h('ol.help-list', null, dict().help.body.map((line) => h('li', null, line))),
-      h('div.row.end', null, button(t('tutorial.gotIt'), () => m.close())),
-    ],
-    { title: t('help.title') },
-  );
+/** Правила и справочник терминов — одно окно. */
+export function showHelp(focus?: string): void {
+  void import('./guide').then(({ showGuide }) => showGuide(focus));
 }
 
 /** Окно настроек; изменения применяются сразу. */
