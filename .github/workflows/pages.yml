@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          # Ссылка на Mini App для «Поделиться» в Telegram: gh variable set TG_APP_LINK
+          VITE_TG_APP_LINK: ${{ vars.TG_APP_LINK }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
