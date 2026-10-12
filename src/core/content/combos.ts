@@ -1,4 +1,4 @@
-import type { ComboId } from '../types';
+import type { ComboId, Suit } from '../types';
 
 export interface ComboDef {
   id: ComboId;
@@ -37,4 +37,23 @@ export const COMBO_FAMILY = {
   runs: ['straight', 'cascade', 'starFlush', 'supernova'] as ComboId[],
   flushes: ['flush', 'starFlush', 'supernova'] as ComboId[],
   ordered: ['cascade', 'supernova'] as ComboId[],
+};
+
+/**
+ * Наглядный пример каждого созвездия — линия из четырёх карт [ранг, масть].
+ * Показывается в обучении и справочнике, чтобы правила читались без знания покера.
+ * Тест проверяет, что каждый пример действительно даёт своё созвездие.
+ */
+export const COMBO_EXAMPLES: Record<ComboId, [number, Suit][]> = {
+  scatter: [[2, 'sun'], [5, 'moon'], [9, 'star'], [7, 'comet']],
+  pair: [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet']],
+  twoPair: [[4, 'sun'], [8, 'moon'], [4, 'star'], [8, 'comet']],
+  mirror: [[2, 'sun'], [6, 'moon'], [6, 'star'], [2, 'comet']],
+  triple: [[7, 'sun'], [7, 'moon'], [2, 'star'], [7, 'comet']],
+  straight: [[5, 'sun'], [3, 'moon'], [6, 'star'], [4, 'comet']],
+  flush: [[2, 'sun'], [9, 'sun'], [4, 'sun'], [7, 'sun']],
+  cascade: [[3, 'sun'], [4, 'moon'], [5, 'star'], [6, 'comet']],
+  quartet: [[8, 'sun'], [8, 'moon'], [8, 'star'], [8, 'comet']],
+  starFlush: [[6, 'moon'], [4, 'moon'], [7, 'moon'], [5, 'moon']],
+  supernova: [[3, 'star'], [4, 'star'], [5, 'star'], [6, 'star']],
 };

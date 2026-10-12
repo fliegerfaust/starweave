@@ -16,7 +16,7 @@ import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
 import { attachTooltip, button, hideTooltip, modal, type ModalHandle } from '../widgets';
 import { makeReorderable } from '../reorder';
-import { cardThumb, deckGrid, menuButton, showDeck, showRunMenu } from './common';
+import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
 function tag<T extends HTMLElement>(el: T, name: string): T {
@@ -109,7 +109,10 @@ export class ShopScreen implements Screen {
         h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
         owned,
         run.omens.length > 1 ? h('p.hint', null, t('shop.dragHint')) : null,
-        button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
+        h('div.row.gap.wrap', null, [
+          button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
+          button(t('combos.yours'), () => showCombos(run), { variant: 'ghost', className: 'small' }),
+        ]),
       ]),
       h('div.shop-actions', null, [
         button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),

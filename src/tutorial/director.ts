@@ -1,9 +1,9 @@
-import { COMBOS } from '@/core/content/combos';
 import { TUTORIAL_CELLS, cardCode } from '@/core/tutorial';
-import type { ComboId, GameEvent } from '@/core/types';
+import type { GameEvent } from '@/core/types';
 import type { App } from '@/game/app';
 import type { NightScene } from '@/game/night/scene';
-import { dict, t } from '@/i18n';
+import { t } from '@/i18n';
+import { comboList } from '@/ui/combos';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
@@ -361,11 +361,6 @@ export class TutorialDirector {
 
   /** Короткая таблица: чем реже сочетание — тем больше множитель. */
   private comboTable(): HTMLElement {
-    const ids: ComboId[] = ['pair', 'twoPair', 'triple', 'straight', 'flush', 'quartet'];
-    return h(
-      'div.tut-combos',
-      null,
-      ids.map((id) => h('div.tut-combo', null, [h('span', null, t(`combo.${id}`)), h('span.tut-combo-desc', null, dict().comboDesc[id]), h('b.mult-text', null, `×${COMBOS[id].mult}`)])),
-    );
+    return h('div.tut-combos', null, comboList({ compact: true }));
   }
 }

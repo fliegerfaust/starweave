@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateCombo } from '../src/core/combos';
 import { cards } from './helpers';
+import { COMBO_EXAMPLES } from '../src/core/content/combos';
+import { COMBO_IDS } from '../src/core/types';
 
 const ev = (codes: string, flushSlack = 0, straightGaps = 0) =>
   evaluateCombo(cards(codes), { flushSlack, straightGaps });
@@ -47,5 +49,14 @@ describe('evaluateCombo', () => {
 
   it('зеркало из пяти', () => {
     expect(ev('1s 2m 5t 2c 1m')).toBe('mirror');
+  });
+});
+
+describe('примеры созвездий для справочника', () => {
+  it('каждый пример даёт своё созвездие', () => {
+    for (const id of COMBO_IDS) {
+      const cards = COMBO_EXAMPLES[id].map(([rank, suit], i) => ({ id: i, rank, suit }));
+      expect(evaluateCombo(cards), id).toBe(id);
+    }
   });
 });

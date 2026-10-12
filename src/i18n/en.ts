@@ -127,7 +127,7 @@ export const en: Dict = {
     formula: 'Two threes make a Pair. A Pair gives 10 light and multiplier 2. Each card adds its rank to light: 3 + 3 + 7 + 5 = 18.',
     formulaNote: 'Score = light × multiplier. Light is “how much”, multiplier is “how many times”.',
     target: 'Score adds up here. Reach the night’s target (150) before you run out of moves — they’re on the right.',
-    combos: 'The constellation depends on the cards in the line. The rarer the combination, the bigger the multiplier:',
+    combos: 'The constellation depends on the cards in the line. Here they all are, with examples — the rarer, the more it gives. This table is always behind the “?” button at the top.',
     burn: 'The 1 of Moon is useless right now. Drag it onto the “Burn” button below (or tap it, then the button) — you’ll draw a new card. It costs no move.',
     prepare: 'Now the key trick. Watch — I’ll place a few cards.',
     crossCell: 'See the cell marked “×2”? It closes both the top row and the right column. That’s a cross: both lines ignite and their score doubles!',
@@ -279,6 +279,13 @@ export const en: Dict = {
     quartet: 'Quartet',
     starFlush: 'Star Flush',
     supernova: 'Supernova',
+  },
+  combos: {
+    title: 'Constellations',
+    yours: 'My constellations',
+    level: 'lv {n}',
+    hint: 'A line of four cards forms one constellation — the most valuable one that fits. Star charts from the Observatory permanently level up a constellation: more light and mult.',
+    button: 'Constellations',
   },
   comboDesc: {
     scatter: 'Nothing matches',

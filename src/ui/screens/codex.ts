@@ -1,14 +1,13 @@
 import { bossSigil, omenSigil } from '@/art/sigil';
 import { BOSS_LIST } from '@/core/content/bosses';
-import { COMBOS } from '@/core/content/combos';
 import { OMEN_LIST } from '@/core/content/omens';
 import { SKY_LIST } from '@/core/content/skies';
-import { COMBO_IDS } from '@/core/types';
 import type { App } from '@/game/app';
 import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenTooltip, bossTooltip } from '../hud';
 import { attachTooltip, button, modal } from '../widgets';
+import { comboList } from '../combos';
 
 type Tab = 'omens' | 'combos' | 'bosses' | 'stats';
 
@@ -32,17 +31,7 @@ export function showCodex(app: App): void {
       }
       body.replaceChildren(h('p.hint', null, t('codex.found', { n: p.seenOmens.length, total: OMEN_LIST.length })), grid);
     } else if (tab === 'combos') {
-      const table = h('div.combo-table');
-      for (const id of [...COMBO_IDS].reverse()) {
-        const c = COMBOS[id];
-        table.append(
-          h('div.combo-row', null, [
-            h('div', null, [h('div.combo-name', null, t(`combo.${id}`)), h('div.combo-desc', null, t(`comboDesc.${id}`))]),
-            h('div.combo-base', null, [h('span.light-text', null, String(c.light)), ' × ', h('span.mult-text', null, String(c.mult))]),
-          ]),
-        );
-      }
-      body.replaceChildren(table);
+      body.replaceChildren(h('p.hint', null, t('combos.hint')), comboList({ levels: app.run?.comboLevels }));
     } else if (tab === 'bosses') {
       const grid = h('div.codex-grid');
       for (const b of BOSS_LIST) {
