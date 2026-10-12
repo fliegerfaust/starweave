@@ -1,6 +1,6 @@
-import { CHART_PRICE, PACK_OPTIONS, PACK_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS, SHOP_PACK_SLOTS } from './content/balance';
+import { BANISH_SERVICE_PRICE, CHART_PRICE, PACK_OPTIONS, PACK_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS, SHOP_PACK_SLOTS } from './content/balance';
 import { OMEN_LIST, omenDef } from './content/omens';
-import { RITUAL_LIST, ritualDef } from './content/rituals';
+import { MIN_DECK_SIZE, RITUAL_LIST, ritualDef } from './content/rituals';
 import { stakePrice } from './content/stakes';
 import { RuleError } from './errors';
 import { chance, pick, shuffle, weightedPick } from './rng';
@@ -201,6 +201,28 @@ function validateRitual(run: RunState, ritualId: string, targetIds: number[]): C
 function applyRitual(run: RunState, ritualId: string, targetIds: number[]): void {
   const targets = validateRitual(run, ritualId, targetIds);
   ritualDef(ritualId).apply(run, targets);
+}
+
+/** Цена услуги «Убрать карту» с учётом звёздности; null — сейчас недоступна. */
+export function banishServicePrice(run: RunState): number | null {
+  const shop = run.shop;
+  if (!shop || shop.banishUsed || run.deck.length <= MIN_DECK_SIZE) return null;
+  return stakePrice(run, BANISH_SERVICE_PRICE);
+}
+
+/**
+ * Постоянная услуга Обсерватории: убрать одну карту из колоды. В отличие от ритуала
+ * «Изгнание», есть в каждом визите — колоду можно чистить, а не только раздувать.
+ */
+export function banishCard(run: RunState, cardId: number): void {
+  const shop = requireShop(run);
+  if (shop.openPack) throw new RuleError('nothing');
+  const price = banishServicePrice(run);
+  if (price === null) throw new RuleError('ritualUnavailable');
+  if (!run.deck.some((c) => c.id === cardId)) throw new RuleError('badTarget');
+  pay(run, price);
+  run.deck = run.deck.filter((c) => c.id !== cardId);
+  shop.banishUsed = true;
 }
 
 export function reroll(run: RunState): void {

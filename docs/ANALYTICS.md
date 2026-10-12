@@ -31,6 +31,7 @@
 | `run_end` | конец забега | result, ante, nights, lines, best, crosses, omens | где умирают, сильные наборы Знамений |
 | `shop_buy` | покупка | kind, id, price, ante, gold_left | популярность Знамений и предметов, цены |
 | `shop_sell` | продажа Знамения | id, ante | «ловушки» — что покупают и сразу продают |
+| `shop_banish` | услуга «Убрать карту» | ante | чистят ли колоду и с какого созвездия |
 | `shop_reroll` | переброс | cost, ante | хватает ли выбора в магазине |
 | `pack_choose` | выбор из пакета | pack, id | что берут из трёх |
 | `ad_request` | запрос рекламы | kind, placement | частота показов |
