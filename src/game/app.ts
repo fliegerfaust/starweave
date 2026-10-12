@@ -2,7 +2,7 @@ import { clearCardCache } from '@/art/card';
 import { clearSigilCache } from '@/art/sigil';
 import { RuleError } from '@/core/errors';
 import { burnCard, placeCard, startNight } from '@/core/night';
-import { collectReward, continueEndless, leaveShop, newRun } from '@/core/run';
+import { canDoubleReward, canRevive, collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight } from '@/core/run';
 import { deserializeRun, serializeRun } from '@/core/save';
 import type { GameEvent, RunState } from '@/core/types';
 import { Synth } from '@/engine/audio';
@@ -22,6 +22,7 @@ import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
+import type { Platform } from '@/platform';
 import { TutorialDirector } from '@/tutorial/director';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import { cameraSystem } from './systems/camera';
@@ -43,8 +44,10 @@ export class App {
   private readonly root: HTMLElement;
   private last = performance.now();
 
-  constructor() {
+  constructor(readonly platform: Platform) {
     this.settings = loadSettings();
+    // Язык площадки важнее языка браузера, пока игрок сам его не выбрал
+    if (!storage.get(KEYS.settings) && platform.language()) this.settings.lang = platform.language()!;
     setLang(this.settings.lang);
     this.profile = loadProfile();
     const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -105,8 +108,16 @@ export class App {
     this.run = deserializeRun(storage.get(KEYS.run));
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.save();
+      // Требование порталов: без фокуса игра молчит
+      this.svc.audio.setMuted(document.hidden || this.adPlaying);
+    });
+    platform.onPauseChange((paused) => {
+      this.adPlaying = paused;
+      this.svc.audio.setMuted(paused || document.hidden);
     });
   }
+
+  private adPlaying = false;
 
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
@@ -130,7 +141,7 @@ export class App {
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
-    void this.goMenu();
+    void this.goMenu().then(() => this.platform.ready());
   }
 
   // ─── Экраны ─────────────────────────────────────────────────────────────
@@ -150,6 +161,7 @@ export class App {
   }
 
   async goMenu(): Promise<void> {
+    this.platform.gameplayStop();
     const token = ++this.navToken;
     const { MenuScreen } = await import('@/ui/screens/menu');
     this.svc.starfield.setPalette(0);
@@ -160,6 +172,8 @@ export class App {
   async route(): Promise<void> {
     const run = this.run;
     if (!run) return this.goMenu();
+    if (run.phase === 'night') this.platform.gameplayStart();
+    else this.platform.gameplayStop();
     const token = ++this.navToken;
     this.svc.starfield.setPalette(run.ante - 1);
     switch (run.phase) {
@@ -229,6 +243,11 @@ export class App {
     markSeen(this.profile, run);
     saveProfile(this.profile);
     this.save();
+    // Межстраничная реклама — только в паузе между созвездиями
+    if (run.phase === 'map' && run.nightIndex === 0) {
+      void this.platform.showInterstitial().then(() => this.route());
+      return;
+    }
     void this.route();
   }
 
@@ -336,6 +355,45 @@ export class App {
     const run = this.run;
     if (!run || run.phase === 'gameOver' || run.tutorial) return;
     storage.set(KEYS.run, serializeRun(run));
+    this.scheduleCloudSave();
+  }
+
+  private cloudTimer = 0;
+
+  /** Облачное сохранение площадки — не чаще раза в пару секунд. */
+  private scheduleCloudSave(): void {
+    window.clearTimeout(this.cloudTimer);
+    this.cloudTimer = window.setTimeout(() => {
+      const data: Record<string, string> = {};
+      for (const key of [KEYS.run, KEYS.profile, KEYS.settings]) {
+        const value = storage.get(key);
+        if (value) data[key] = value;
+      }
+      void this.platform.cloudSave(data);
+    }, 2000);
+  }
+
+  /** Второй шанс после поражения — за просмотр рекламы. */
+  async revive(): Promise<boolean> {
+    const run = this.run;
+    if (!run || !canRevive(run)) return false;
+    const ok = await this.platform.showRewarded();
+    if (!ok || !canRevive(run)) return false;
+    reviveNight(run);
+    this.save();
+    void this.route();
+    return true;
+  }
+
+  /** Удвоить награду ночи — за просмотр рекламы. */
+  async doubleReward(): Promise<boolean> {
+    const run = this.run;
+    if (!run || !canDoubleReward(run)) return false;
+    const ok = await this.platform.showRewarded();
+    if (!ok || !canDoubleReward(run)) return false;
+    doubleReward(run);
+    this.save();
+    return true;
   }
 
   get hasSave(): boolean {
@@ -405,8 +463,17 @@ export class App {
   }
 }
 
-export function startGame(): void {
-  const app = new App();
+/** Восстанавливает сохранения из облака площадки, если на устройстве их нет. */
+async function restoreFromCloud(platform: Platform): Promise<void> {
+  if (storage.get(KEYS.profile)) return;
+  const data = await platform.cloudLoad().catch(() => null);
+  if (!data) return;
+  for (const [key, value] of Object.entries(data)) if (typeof value === 'string') storage.set(key, value);
+}
+
+export async function startGame(platform: Platform): Promise<void> {
+  await restoreFromCloud(platform);
+  const app = new App(platform);
   (window as unknown as { starweave: App }).starweave = app;
   app.start();
 }

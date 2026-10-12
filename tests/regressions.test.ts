@@ -86,3 +86,28 @@ describe('звёздность', () => {
     expect(p.maxStake).toBe(3);
   });
 });
+
+describe('награды за рекламу', () => {
+  it('второй шанс: +3 хода один раз, удвоение награды раз за созвездие', async () => {
+    const { canRevive, reviveNight, canDoubleReward, doubleReward } = await import('../src/core/run');
+    const { startNight } = await import('../src/core/night');
+    const run = newRun({ seed: 8 });
+    startNight(run);
+    run.night!.movesLeft = 1;
+    run.night!.target = 1e9;
+    const free = run.night!.grid.findIndex((c) => !c);
+    placeCard(run, 0, free);
+    expect(run.phase).toBe('gameOver');
+    expect(canRevive(run)).toBe(true);
+    reviveNight(run);
+    expect(run.phase).toBe('night');
+    expect(run.night!.movesLeft).toBe(3);
+    expect(canRevive(run)).toBe(false);
+
+    run.phase = 'reward';
+    run.reward = { base: 3, moves: 1, burns: 0, interest: 2, total: 6 };
+    doubleReward(run);
+    expect(run.reward.total).toBe(12);
+    expect(canDoubleReward(run)).toBe(false);
+  });
+});
