@@ -1021,3 +1021,25 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
   background: linear-gradient(180deg, rgba(5, 6, 26, 0), rgba(5, 6, 26, 0.92) 30%);
   z-index: 3;
 }
+
+.hud-omens.none { display: none; }
+@media (max-height: 700px) {
+  .hud { gap: 4px; padding-top: calc(4px + var(--safe-top)); }
+  .hud-row.top { height: 36px; }
+  .icon-btn { width: 36px; height: 36px; }
+  .hud-row.mid { padding: 5px 10px; }
+  .hud-score { font-size: 26px; }
+  .stat-value { font-size: 22px; }
+  .hud-omens { height: 36px; }
+  .hud-omens .omen-slot { width: 36px; height: 36px; }
+  .actions { bottom: calc(6px + var(--safe-bottom)); }
+  .actions .btn { min-height: 40px; padding: 6px 14px; }
+  .calc { padding: 5px 8px; }
+  .calc-combo { font-size: 15px; margin-bottom: 3px; }
+  .calc-light, .calc-mult, .calc-total { font-size: 22px; padding: 4px 10px; min-width: 50px; }
+  .calc-label { font-size: 9px; }
+  .calc-x { margin-top: 5px; }
+  .calc-caption { margin-top: 4px; font-size: 12px; min-height: 18px; padding: 2px 10px; }
+}
+
+.calc.bottom { top: auto; bottom: calc(6px + var(--safe-bottom)); }
