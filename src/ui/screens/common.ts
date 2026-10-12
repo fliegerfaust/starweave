@@ -140,6 +140,8 @@ export function showSettings(app: App, onChange?: () => void): void {
             else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
           }))
         : null,
+      field(t('settings.quality'), segmented([{ value: 'auto' as const, label: t('settings.qualityAuto') }, { value: 'max' as const, label: t('settings.qualityMax') }], s.quality, (v) => (s.quality = v))),
+      h('p.hint', null, t('settings.qualityNow', { now: app.svc.renderer.dpr, max: Math.min(3, window.devicePixelRatio || 1) })),
       field(t('settings.reduceMotion'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.reduceMotion, (v) => (s.reduceMotion = v))),
       h('div.row.gap.wrap.legal-links', null, [
         button(t('settings.privacy'), () => void import('./legal').then(({ showLegal }) => showLegal('privacy')), { variant: 'ghost', className: 'small' }),

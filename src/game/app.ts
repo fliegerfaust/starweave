@@ -87,6 +87,7 @@ export class App {
     const input = new PointerInput(canvas);
     const haptics = new Haptics();
     haptics.enabled = this.settings.haptics;
+    renderer.adaptive = this.settings.quality !== 'max';
     this.svc = { world, renderer, tweens, audio, input, starfield, haptics };
 
     setUiSound((s) => {
@@ -139,11 +140,11 @@ export class App {
 
   start(): void {
     const frame = (now: number) => {
-      const raw = (now - this.last) / 1000;
-      const dt = Math.min(0.05, raw);
+      const dt = Math.min(0.05, (now - this.last) / 1000);
       this.last = now;
-      this.svc.renderer.observeFrame(raw);
+      const start = performance.now();
       this.tick(dt);
+      this.svc.renderer.observeFrame((performance.now() - start) / 1000);
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
@@ -524,6 +525,11 @@ export class App {
     this.svc.world.res.speed = SPEEDS[next.speed] ?? 1;
     this.svc.world.res.reduceMotion = next.reduceMotion;
     this.svc.haptics.enabled = next.haptics;
+    const adaptive = next.quality !== 'max';
+    if (adaptive !== this.svc.renderer.adaptive) {
+      this.svc.renderer.adaptive = adaptive;
+      if (!adaptive) this.svc.renderer.resetQuality();
+    }
     if (langChanged) clearSigilCache();
   }
 

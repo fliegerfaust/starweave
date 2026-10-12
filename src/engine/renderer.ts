@@ -7,6 +7,8 @@ export class Renderer {
   /** Потолок DPR: начинаем с полной чёткости (3× у iPhone), снижаем, если кадры не успевают. */
   private maxDpr = 3;
   private slowFrames = 0;
+  /** false — всегда полная чёткость, без автоснижения (настройка «Чёткость: максимум»). */
+  adaptive = true;
   private sampled = 0;
   private resizeListeners: (() => void)[] = [];
 
@@ -48,16 +50,26 @@ export class Renderer {
   }
 
   /**
-   * Учёт длительности кадра (сырой, до ограничения шага). Если устройство стабильно не
-   * держит ~45 FPS, снижаем потолок DPR на ступень: 3 → 2 → 1.5. Обратно не поднимаем —
-   * лучше ровная картинка, чем мигание чёткости.
+   * Учёт того, сколько времени заняла отрисовка кадра (в секундах). Меряем именно работу,
+   * а не интервал между кадрами: iOS в режиме энергосбережения сам ограничивает игру 30 FPS,
+   * и по интервалу это выглядело как «не тянет» — чёткость падала зря. Если сам кадр
+   * стабильно дольше ~16 мс, снижаем потолок DPR на ступень: 3 → 2 → 1.5. Обратно не
+   * поднимаем — лучше ровная картинка, чем мигание чёткости.
    */
-  observeFrame(dt: number): void {
-    if (dt > 0.25 || this.maxDpr <= 1.5) return; // вкладка была в фоне или ниже некуда
+  observeFrame(cost: number): void {
+    if (!this.adaptive || cost > 0.25 || this.maxDpr <= 1.5) return; // вкладка была в фоне или ниже некуда
     if (++this.sampled < 90) return; // первые кадры — загрузка, не показатель
-    this.slowFrames = dt > 1 / 45 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2);
+    this.slowFrames = cost > 0.016 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2);
     if (this.slowFrames < 90 || this.dpr < this.maxDpr) return;
     this.maxDpr = this.maxDpr > 2 ? 2 : 1.5;
+    this.slowFrames = 0;
+    this.sampled = 0;
+    this.resize();
+  }
+
+  /** Вернуть полную чёткость (после смены настройки). */
+  resetQuality(): void {
+    this.maxDpr = 3;
     this.slowFrames = 0;
     this.sampled = 0;
     this.resize();
