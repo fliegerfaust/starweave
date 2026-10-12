@@ -7,6 +7,7 @@ import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
+import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
 
 /** Накопленные эффекты звёздности списком. */
 function stakeText(stake: number): string {
@@ -63,6 +64,10 @@ export class MenuScreen implements Screen {
         button(t('menu.settings'), () => showSettings(app, () => this.rerender()), { variant: 'ghost' }),
       ]),
     ]);
+    // Любая кнопка меню — жест пользователя: в нём можно развернуть игру на весь экран
+    buttons.addEventListener('click', () => {
+      if (app.platform.id === 'web' && app.settings.fullscreen) enterFullscreen();
+    }, { capture: true });
     this.el.replaceChildren(
       h('div.menu-hero', null, [
         fan,
@@ -75,6 +80,8 @@ export class MenuScreen implements Screen {
       buttons,
       h('div.menu-foot', null, `v${__APP_VERSION__}`),
     );
+    const hint = this.homeHint();
+    if (hint) this.el.insertBefore(hint, this.el.lastChild);
   }
 
   /** Новичку перед первым забегом предлагаем обучение. */
@@ -105,6 +112,20 @@ export class MenuScreen implements Screen {
   private guardSave(next: () => void): void {
     if (!this.app.hasSave) return next();
     confirmDialog(t('menu.overwrite'), next, 'primary');
+  }
+
+  /** iPhone в браузере: подсказка, как играть без панелей браузера. Показывается, пока не закроют. */
+  private homeHint(): HTMLElement | null {
+    const app = this.app;
+    if (app.platform.id !== 'web' || app.settings.homeHintSeen || !suggestHomeScreen()) return null;
+    const el = h('div.home-hint', null, [
+      h('span', null, t('settings.homeHint')),
+      button(t('settings.homeHintOk'), () => {
+        app.applySettings({ ...app.settings, homeHintSeen: true });
+        el.remove();
+      }, { variant: 'ghost', className: 'small' }),
+    ]);
+    return el;
   }
 
   private rerender(): void {
