@@ -21,7 +21,8 @@ npm run build:yandex  # архив для Яндекс Игр: release/starweave
 ```
 
 Имитация рекламы в разработке: `http://localhost:5173/?fakeads`. Модель монетизации и путь в
-сторы и на порталы — в [docs/MONETIZATION.md](docs/MONETIZATION.md).
+сторы и на порталы — в [docs/MONETIZATION.md](docs/MONETIZATION.md), план выхода в сторы, бэкенд и развитие — в
+[docs/ROADMAP.md](docs/ROADMAP.md).
 
 Отладочная витрина графики: `http://localhost:5173/?gallery`.
 
