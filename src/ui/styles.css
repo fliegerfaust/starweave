@@ -38,6 +38,9 @@ body {
   font-family: var(--font-body);
   user-select: none;
   -webkit-user-select: none;
+  /* Долгое нажатие не вызывает меню «Скопировать / Поделиться» и лупу (требование порталов) */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
 

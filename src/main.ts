@@ -2,6 +2,11 @@ import '@fontsource/forum';
 import '@fontsource-variable/manrope';
 import './ui/styles.css';
 
+// Игра, а не страница: без контекстного меню по правой кнопке и долгому нажатию
+document.addEventListener('contextmenu', (e) => {
+  if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();
+});
+
 async function boot(): Promise<void> {
   await document.fonts.ready;
   await Promise.all([document.fonts.load("400 40px 'Forum'"), document.fonts.load("600 16px 'Manrope Variable'")]);
@@ -9,7 +14,8 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(location.search);
   if (params.has('promo')) {
     const { setLang } = await import('./i18n');
-    if (params.get('lang') === 'en') setLang('en');
+    const lang = params.get('lang');
+    if (lang === 'en' || lang === 'ru') setLang(lang);
     const { showPromo } = await import('./dev/promo');
     showPromo(ui);
     return;
