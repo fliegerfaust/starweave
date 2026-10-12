@@ -12,6 +12,17 @@ import { computeLayout, handPositions, isLandscape, type NightLayout, type PlayA
 import { Presenter } from './presenter';
 import { previewPlacement, type PlacementPreview } from './preview';
 
+/**
+ * Ограничение ходов для обучения: какую карту и куда можно положить, можно ли
+ * сжигать. Пустой объект — любые действия запрещены (идёт объяснение).
+ */
+export interface Guide {
+  card?: number;
+  cell?: number;
+  burn?: boolean;
+  free?: boolean;
+}
+
 export type NightAction = { kind: 'place'; handIndex: number; cell: number } | { kind: 'burn'; handIndex: number };
 
 export interface SceneHooks {
@@ -34,6 +45,8 @@ export interface CellState {
   /** Сколько линий закроет карта в этой клетке (0, 1, 2+) — подсказка чтения поля. */
   closes: number;
   closesAnim: number;
+  /** 0..1 — подсветка клетки обучением. */
+  tut: number;
 }
 
 const DRAG_THRESHOLD = 8;
@@ -96,6 +109,13 @@ export class NightScene {
     const root = document.documentElement.style;
     root.setProperty('--board-top', `${this.layout.board.y}px`);
     root.setProperty('--board-cx', `${this.layout.board.x + this.layout.board.w / 2}px`);
+    // Панель подсчёта ложится поверх строки счёта HUD — так она не закрывает карты
+    const mid = this.hud.el.querySelector('.hud-row.mid')?.getBoundingClientRect();
+    if (mid) {
+      root.setProperty('--calc-top', `${mid.top - 4}px`);
+      root.setProperty('--calc-cx', `${mid.left + mid.width / 2}px`);
+      root.setProperty('--calc-w', `${mid.width + 8}px`);
+    }
   }
 
   /** Создаёт клетки и карты по текущему стейту ночи (новая ночь или продолжение). */
@@ -201,7 +221,7 @@ export class NightScene {
     const e = this.world.create();
     const p = this.layout.cells[index]!;
     const t = this.world.add(e, Transform, transform(p.x, p.y, { alpha: 0 }));
-    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0 };
+    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0, tut: 0 };
     this.world.add(e, Drawable, {
       layer: Layer.Board,
       z: 0,
@@ -248,6 +268,18 @@ export class NightScene {
     ctx.fillStyle = `rgba(200,190,255,${0.25 + s.avail * 0.3})`;
     for (const [cx, cy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + hgt - 6], [x + w - 6, y + hgt - 6]] as const) {
       ctx.fillRect(cx - 1, cy - 1, 2, 2);
+    }
+    if (s.tut > 0.01) {
+      ctx.save();
+      roundRect(ctx, x, y, w, hgt, r);
+      ctx.fillStyle = `rgba(246,194,91,${(0.12 + pulse * 0.18) * s.tut})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,224,150,${(0.6 + pulse * 0.4) * s.tut})`;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#f6c25b';
+      ctx.shadowBlur = 16 * s.tut;
+      ctx.stroke();
+      ctx.restore();
     }
     if (s.closesAnim > 0.01) {
       // Клетка закроет линию: золотой контур; крест — ярче и с меткой
@@ -384,10 +416,73 @@ export class NightScene {
     return cell !== null && !this.night.sealed[cell] && this.board[cell] === null;
   }
 
+  /** Ограничение обучения (null — играем свободно). */
+  guide: Guide | null = null;
+
+  setGuide(guide: Guide | null): void {
+    this.guide = guide;
+    this.cells.forEach((c, i) => {
+      const on = guide?.cell === i ? 1 : 0;
+      void this.svc.tweens.to(c, { tut: on }, { duration: 0.25 });
+    });
+  }
+
+  private allowSelect(handIndex: number): boolean {
+    const g = this.guide;
+    if (!g || g.free) return true;
+    return g.card !== undefined && this.hand[handIndex] === g.card;
+  }
+
+  private allowPlace(handIndex: number, cell: number): boolean {
+    const g = this.guide;
+    if (!g || g.free) return true;
+    return g.card === this.hand[handIndex] && g.cell === cell;
+  }
+
+  private deny(): void {
+    this.svc.audio.deny();
+  }
+
+  /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */
+  setStepPause(k: number): void {
+    this.presenter.stepPause = k;
+  }
+
+  /** Прямоугольник клетки в CSS-пикселях. */
+  cellRect(cell: number): { x: number; y: number; w: number; h: number } {
+    const p = this.layout.cells[cell]!;
+    return { x: p.x - this.layout.cardW / 2, y: p.y - this.layout.cardH / 2, w: this.layout.cardW, h: this.layout.cardH };
+  }
+
+  /** Прямоугольник карты руки по id. */
+  handRect(cardId: number): { x: number; y: number; w: number; h: number } | null {
+    const i = this.hand.indexOf(cardId);
+    if (i < 0) return null;
+    const p = handPositions(this.layout, this.hand.length)[i]!;
+    return { x: p.x - this.layout.handW / 2, y: p.y - this.layout.handH / 2, w: this.layout.handW, h: this.layout.handH };
+  }
+
+  /** Общий прямоугольник нескольких клеток. */
+  cellsRect(cells: readonly number[]): { x: number; y: number; w: number; h: number } {
+    const rects = cells.map((c) => this.cellRect(c));
+    const x = Math.min(...rects.map((r) => r.x));
+    const y = Math.min(...rects.map((r) => r.y));
+    return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+  }
+
+  /** Прямоугольник всей руки. */
+  handAreaRect(): { x: number; y: number; w: number; h: number } {
+    const rects = this.hand.map((id) => this.handRect(id)!).filter(Boolean);
+    const x = Math.min(...rects.map((r) => r.x));
+    const y = Math.min(...rects.map((r) => r.y));
+    return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
+  }
+
   private onDown(x: number, y: number): void {
     if (this.busy || this.night.result !== 'playing') return;
     const index = this.handIndexAt(x, y);
     if (index !== null) {
+      if (!this.allowSelect(index)) return this.deny();
       const id = this.hand[index]!;
       const entity = this.cards.get(id)!;
       this.drag = { id, entity, startX: x, startY: y, active: false, offY: 0 };
@@ -559,6 +654,12 @@ export class NightScene {
 
   async place(handIndex: number, cell: number, dragged?: Entity): Promise<void> {
     if (this.busy) return;
+    if (!this.allowPlace(handIndex, cell)) {
+      this.deny();
+      this.setHover(null);
+      void this.layoutHand(true);
+      return;
+    }
     const events = this.hooks.act({ kind: 'place', handIndex, cell });
     if (!events) {
       this.select(handIndex);
@@ -577,6 +678,7 @@ export class NightScene {
 
   async burnSelected(): Promise<void> {
     if (this.busy || this.selected === null) return;
+    if (this.guide && !this.guide.free && !(this.guide.burn && this.hand[this.selected] === this.guide.card)) return this.deny();
     const handIndex = this.selected;
     const events = this.hooks.act({ kind: 'burn', handIndex });
     if (!events) return;

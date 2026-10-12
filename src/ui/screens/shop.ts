@@ -14,6 +14,12 @@ import { coach } from '../tutorial';
 import { attachTooltip, button, modal, type ModalHandle } from '../widgets';
 import { cardThumb, deckGrid, menuButton, showDeck, showRunMenu } from './common';
 
+/** Помечает элемент для обучения. */
+function tag<T extends HTMLElement>(el: T, name: string): T {
+  el.dataset.shop = name;
+  return el;
+}
+
 /** Обсерватория: витрина Знамений и предметов, свои Знамения, переброс. */
 export class ShopScreen implements Screen {
   private el!: HTMLElement;
@@ -27,6 +33,7 @@ export class ShopScreen implements Screen {
     this.el = h('div.shop');
     root.append(this.el);
     this.render();
+    this.app.tutorial?.emit({ type: 'shop', root: this.el });
     coach(this.app, 'shop');
     if (this.run.shop?.openPack) this.showPack();
   }
@@ -39,6 +46,7 @@ export class ShopScreen implements Screen {
     if (this.app.shopAction(fn)) {
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
+      this.app.tutorial?.emit({ type: 'shopChanged' });
     }
     return false;
   }
@@ -55,11 +63,11 @@ export class ShopScreen implements Screen {
     if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
 
-    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => this.itemCard(item, () => this.act((r) => buyOmen(r, i)))));
+    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i))), `omen-${i}`)));
     const itemCards = h('div.shop-row', null, shop.items.map((item, i) => this.itemCard(item, () => this.buyItem(item, i))));
     const packCards = h('div.shop-row', null, shop.packs.map((item, i) => this.itemCard(item, () => this.act((r) => buyPack(r, i)) || this.afterPackBuy())));
 
-    const owned = h('div.owned-omens');
+    const owned = h('div.owned-omens', { dataset: { shop: 'owned' } });
     run.omens.forEach((o, i) => {
       if (i > 0) owned.append(h('div.order-arrow', null, '→'));
       const chip = h('div.owned-omen', null, [
@@ -84,8 +92,8 @@ export class ShopScreen implements Screen {
         ]),
       ]),
       h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`),
-      h('section.shop-section', null, [h('h2', null, t('shop.omens')), omenCards]),
-      h('section.shop-section', null, [h('h2', null, t('shop.items')), itemCards]),
+      h('section.shop-section', { dataset: { shop: 'omens' } }, [h('h2', null, t('shop.omens')), omenCards]),
+      h('section.shop-section', { dataset: { shop: 'items' } }, [h('h2', null, t('shop.items')), itemCards]),
       shop.packs.length ? h('section.shop-section', null, [h('h2', null, t('shop.packs')), packCards]) : null,
       h('section.shop-section', null, [
         h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
@@ -96,7 +104,7 @@ export class ShopScreen implements Screen {
       h('div.shop-actions', null, [
         button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click'), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
         button(t('shop.yourDeck', { n: run.deck.length }), () => showDeck(run), { variant: 'secondary' }),
-        button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }),
+        tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
     this.el.replaceChildren(...sections.filter((x): x is HTMLElement => x !== null));

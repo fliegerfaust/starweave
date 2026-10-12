@@ -14,7 +14,7 @@ let current: HTMLElement | null = null;
  * Не блокирует игру — плашка у края экрана.
  */
 export function coach(app: App, step: TutorialStep, position: 'top' | 'bottom' = 'bottom'): void {
-  if (app.profile.tutorial.includes(step) || app.profile.runs >= 3 || current?.dataset.step === step) return;
+  if (app.run?.tutorial || app.profile.tutorial.includes(step) || app.profile.runs >= 3 || current?.dataset.step === step) return;
   if (current) {
     if (!queue.includes(step)) queue.push(step);
     return;

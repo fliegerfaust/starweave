@@ -44,10 +44,14 @@ export class NightScreen implements Screen {
         },
       });
       this.scene.build();
+      this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
       if (fresh) {
-        void this.scene.dealIn().then(() => this.introHints());
+        void this.scene.dealIn().then(() => {
+          this.app.tutorial?.emit({ type: 'dealt' });
+          if (!this.run.tutorial) this.introHints();
+        });
       }
     }
     this.checkPhase();
@@ -82,6 +86,7 @@ export class NightScreen implements Screen {
   }
 
   private settled(events: GameEvent[]): void {
+    this.app.tutorial?.emit({ type: 'settled', events });
     const n = this.run.night;
     if (n && n.result === 'playing') {
       if (events.some((e) => e.t === 'ignite')) {
@@ -161,6 +166,7 @@ export class NightScreen implements Screen {
       ],
       { title: t('reward.title'), dismissable: false, className: 'narrow reward' },
     );
+    this.app.tutorial?.emit({ type: 'reward', panel: this.overlay.el });
   }
 
   private showGameOver(): void {
