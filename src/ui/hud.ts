@@ -4,6 +4,7 @@ import { omenSlots } from '@/core/shop';
 import type { Card, ComboId, Glyph, OmenInstance, RunState } from '@/core/types';
 import { dict, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
+import { rich } from './rich';
 import { attachTooltip, button } from './widgets';
 
 export interface HudCallbacks {
@@ -18,12 +19,12 @@ export function omenTooltip(omen: { id: string; data?: Record<string, number> })
   const def = omenDef(omen.id);
   const vars = def.vars?.(omen.data ?? def.initialData?.() ?? {}) ?? {};
   const { name, desc } = named('omen', omen.id, vars);
-  const [kindLabel, kindDesc] = dict().omenKind[def.kind];
+  const kindDesc = dict().omenKind[def.kind][1];
   return h('div.tip-body', null, [
     h('div.tip-title', null, name),
     h(`div.tip-rarity.r${def.rarity}`, null, t(`rarity.${def.rarity}`)),
-    h('div.tip-desc', null, desc),
-    h('div.tip-kind', null, [omenBadge(def.kind), h('span', null, `${kindLabel}: ${kindDesc}`)]),
+    h('div.tip-desc', null, rich(desc)),
+    h('div.tip-kind', null, [omenBadge(def.kind), h('span', null, kindDesc)]),
   ]);
 }
 
@@ -42,7 +43,7 @@ export function omenMedal(id: string, size: number): HTMLElement {
 
 export function bossTooltip(bossId: string): HTMLElement {
   const { name, desc } = named('boss', bossId);
-  return h('div.tip-body', null, [h('div.tip-title.boss', null, name), h('div.tip-desc', null, desc)]);
+  return h('div.tip-body', null, [h('div.tip-title.boss', null, name), h('div.tip-desc', null, rich(desc))]);
 }
 
 /**
@@ -299,7 +300,7 @@ export class Hud {
     const name = `${hideRank ? '?' : card.rank} · ${t(`suitPl.${card.suit}`)}`;
     this.cardInfo.append(h('b', null, name));
     if (card.glyph) {
-      this.cardInfo.append(h('span', null, ` · ${t(`glyph.${card.glyph}`)}: ${dict().glyphDesc[card.glyph]}`), h('span.more', null, ' ⓘ'));
+      this.cardInfo.append(h('span', null, ` · ${t(`glyph.${card.glyph}`)}: `), rich(dict().glyphDesc[card.glyph]), h('span.more', null, ' ⓘ'));
     }
     this.cardInfo.classList.toggle('clickable', !!card.glyph);
     this.cardInfo.classList.add('show');
