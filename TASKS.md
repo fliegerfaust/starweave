@@ -204,7 +204,8 @@
 - ✅ T.3 Вибрация через Telegram — работает и на iPhone
 - ✅ T.4 «Поделиться» вызовом дня → выбор чата Telegram со ссылкой на игру
 - ✅ T.5 Инструкция для BotFather (`docs/TELEGRAM.md`), картинка 640×360
-- T.6 Бот и Mini App в @BotFather → прислать ссылку `t.me/<бот>/play` → Денис
+- ✅ T.6 Бот и Mini App: https://t.me/starweave_game_bot/play (ссылка для «Поделиться» — переменная репозитория `TG_APP_LINK`)
+- T.8 Проверить в настоящем Telegram по чек-листу `docs/TELEGRAM.md` → Денис
 - T.7 Позже: реклама (рекламные сети для Mini Apps) и покупки за Telegram Stars
 
 ### Релиз 0.3.8 — обложка ✅ (13.10.2026, `release/0.3.8`)
