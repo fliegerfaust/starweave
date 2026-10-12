@@ -232,6 +232,7 @@ export const en: Dict = {
     music: 'Music',
     speed: 'Animation speed',
     speeds: ['Calm', 'Normal', 'Fast', 'Lightning'],
+    haptics: 'Haptics',
     reduceMotion: 'Less shake',
     reset: 'Reset progress',
     resetConfirm: 'Delete all progress and the current run?',

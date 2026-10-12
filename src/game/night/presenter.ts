@@ -4,7 +4,7 @@ import type { Entity } from '@/engine/ecs';
 import { named, num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform, transform } from '../components';
-import { burst, flash, floatText, haptic, ring, shake } from '../fx';
+import { burst, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
 import type { NightScene } from './scene';
 
@@ -134,7 +134,7 @@ export class Presenter {
     d.layer = Layer.BoardCards;
     d.z = cell;
     this.audio.bell(view.card.rank);
-    haptic(8);
+    this.scene.svc.haptics.play('place');
     ring(this.world, p.x, p.y, SUIT_COLORS[view.card.suit].main, scene.layout.cardW * 0.8, 0.5);
     await this.tweens.to(tr, { scale: scene.boardScale }, { duration: 0.12 / this.speed, ease: 'outBack' });
     scene.hud.setMoves(scene.night.movesLeft, scene.night.burnsLeft);
@@ -149,6 +149,7 @@ export class Presenter {
     view.glowColor = '#ff7a3c';
     view.glow = 1;
     this.audio.burn();
+    this.scene.svc.haptics.play('ignite');
     burst(this.world, tr.x, tr.y, '#ff7a3c', { count: 30, speed: 180, gravity: -260, life: 1, colors: ['#ff7a3c', '#ffcf6b', '#ff3b5c'] });
     await this.tweens.to(tr, { alpha: 0, y: tr.y - 40, scale: 0.8 }, { duration: 0.35 / this.speed, ease: 'inQuad' });
     this.world.destroy(e);
@@ -329,11 +330,12 @@ export class Presenter {
     if (score.lines.length > 1 || score.xMult !== 1) {
       floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 44, display: true, color: UI.gold, life: 1.2 });
     }
+    await this.flyToScore(score.lines.flatMap((l) => l.cells));
     hud.setScore(scoreAfter, target);
     const power = Math.min(1, score.total / target);
     this.audio.impact(power);
     shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
-    haptic(score.lines.length > 1 ? [20, 40, 30] : 18 + Math.round(power * 30));
+    this.scene.svc.haptics.play(score.lines.length > 1 ? 'cross' : power > 0.5 ? 'heavy' : 'ignite');
     if (power >= 0.35 || score.lines.length > 1) flash(this.world, score.lines.length > 1 ? '255,214,140' : '200,230,255', 0.25 + power * 0.35);
     for (const line of score.lines) {
       for (const cell of line.cells) {
@@ -379,6 +381,52 @@ export class Presenter {
       default:
         return effect;
     }
+  }
+
+  /** Огоньки летят от карт созвездия к счёту — видно, куда ушли очки. */
+  private async flyToScore(cells: number[]): Promise<void> {
+    const target = this.scene.hud.scoreAnchor();
+    const jobs: Promise<void>[] = [];
+    const unique = [...new Set(cells)];
+    unique.forEach((cell, i) => {
+      const from = this.cellPos(cell);
+      const e = this.cardEntityAt(cell);
+      const color = e !== undefined ? SUIT_COLORS[this.world.req(e, CardView).card.suit].light : '#fff';
+      for (let k = 0; k < 2; k++) {
+        const orb = this.world.create();
+        const tr = this.world.add(orb, Transform, transform(from.x + (k - 0.5) * 12, from.y, { scale: 1 }));
+        this.world.add(orb, Drawable, {
+          layer: Layer.Popups,
+          z: 1,
+          visible: true,
+          draw: (ctx, t) => {
+            const r = 9 * t.scale;
+            const g = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, r * 2.2);
+            g.addColorStop(0, '#ffffff');
+            g.addColorStop(0.3, color);
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = t.alpha;
+            ctx.fillStyle = g;
+            ctx.fillRect(t.x - r * 2.2, t.y - r * 2.2, r * 4.4, r * 4.4);
+          },
+        });
+        const delay = (i * 0.04 + k * 0.05) / this.speed;
+        const dur = 0.45 / this.speed;
+        // Дуга: сначала чуть вверх-вбок, потом в счёт
+        const mid = { x: (from.x + target.x) / 2 + (Math.random() - 0.5) * 120, y: Math.min(from.y, target.y) - 30 };
+        jobs.push(
+          this.tweens
+            .to(tr, { x: mid.x, y: mid.y }, { duration: dur * 0.45, delay, ease: 'outQuad' })
+            .then(() => this.tweens.to(tr, { x: target.x, y: target.y, scale: 0.4 }, { duration: dur * 0.55, ease: 'inQuad' }))
+            .then(() => {
+              this.world.destroy(orb);
+              this.audio.tick();
+            }),
+        );
+      }
+    });
+    await Promise.race([Promise.all(jobs), this.wait(1.2)]);
   }
 
   private async showStep(step: ScoreStep, index: number, seenCells = new Set<number>()): Promise<void> {
@@ -447,6 +495,7 @@ export class Presenter {
   private async onWin(): Promise<void> {
     const { board } = this.scene.layout;
     this.audio.win();
+    this.scene.svc.haptics.play('success');
     const colors = Object.values(SUIT_COLORS).flatMap((c) => [c.main, c.light]);
     for (let i = 0; i < 4; i++) {
       window.setTimeout(() => {
@@ -458,6 +507,7 @@ export class Presenter {
 
   private async onLose(): Promise<void> {
     this.audio.lose();
+    this.scene.svc.haptics.play('error');
     for (const [, e] of this.scene.cards) {
       const tr = this.world.req(e, Transform);
       void this.tweens.to(tr, { alpha: 0.35 }, { duration: 0.8 });

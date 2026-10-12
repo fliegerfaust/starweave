@@ -8,6 +8,7 @@ export interface Settings {
   /** Индекс в SPEEDS. */
   speed: number;
   reduceMotion: boolean;
+  haptics: boolean;
 }
 
 export const SPEEDS = [0.75, 1, 1.6, 2.6];
@@ -18,6 +19,7 @@ export function loadSettings(): Settings {
     sfx: 0.8,
     music: 0.45,
     speed: 1,
+    haptics: true,
     reduceMotion: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   };
   try {
