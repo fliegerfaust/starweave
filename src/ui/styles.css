@@ -483,7 +483,10 @@ body {
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 18px rgba(246, 194, 91, 0.45));
+  text-transform: uppercase;
 }
+.logo-word { display: block; }
+.logo-word + .logo-word { margin-top: 0.06em; }
 .logo-sub {
   font: 400 18px/1 var(--font-display);
   letter-spacing: 0.5em;

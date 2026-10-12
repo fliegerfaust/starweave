@@ -14,7 +14,9 @@ export function detectLang(): Lang {
 
 export function setLang(lang: Lang): void {
   current = lang;
-  if (typeof document !== 'undefined') document.documentElement.lang = lang;
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = lang;
+  document.title = DICTS[lang].game.title;
 }
 
 export function getLang(): Lang {

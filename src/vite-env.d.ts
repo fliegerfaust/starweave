@@ -7,6 +7,9 @@ interface ImportMetaEnv {
   readonly VITE_METRIKA_ID?: string;
 }
 
+/** Версия из package.json, подставляет Vite. */
+declare const __APP_VERSION__: string;
+
 declare module '*.md?raw' {
   const text: string;
   export default text;

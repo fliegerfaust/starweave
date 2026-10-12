@@ -66,11 +66,14 @@ export class MenuScreen implements Screen {
     this.el.replaceChildren(
       h('div.menu-hero', null, [
         fan,
-        h('h1.logo', null, [h('span.logo-main', null, 'STARWEAVE'), h('span.logo-sub', null, t('game.subtitle'))]),
+        h('h1.logo', null, [
+          h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
+          t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
+        ]),
         h('p.tagline', null, t('game.tagline')),
       ]),
       buttons,
-      h('div.menu-foot', null, 'v0.1.0'),
+      h('div.menu-foot', null, `v${__APP_VERSION__}`),
     );
   }
 

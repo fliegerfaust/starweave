@@ -80,12 +80,12 @@ export function showPromo(root: HTMLElement): void {
   ctx.shadowBlur = 30;
   ctx.fillStyle = grad;
   ctx.letterSpacing = `${size * 0.12}px`;
-  ctx.fillText('STARWEAVE', lx, ly);
+  ctx.fillText(t('game.title').toUpperCase(), lx, ly, wide ? w * 0.48 : w * 0.92);
   ctx.shadowBlur = 0;
   ctx.letterSpacing = `${size * 0.35}px`;
   ctx.font = `400 ${size * 0.28}px ${DISPLAY_FONT}`;
   ctx.fillStyle = '#c9c3f0';
-  ctx.fillText(t('game.subtitle').toUpperCase(), lx, ly + size * 0.75);
+  if (t('game.subtitle')) ctx.fillText(t('game.subtitle').toUpperCase(), lx, ly + size * 0.75);
   ctx.letterSpacing = '0px';
   ctx.font = `600 ${size * (wide ? 0.27 : 0.24)}px ${BODY_FONT}`;
   ctx.fillStyle = '#eae6ff';
