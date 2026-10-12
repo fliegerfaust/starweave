@@ -68,9 +68,10 @@ function portraitLayout(width: number, height: number, gridSize: number, area: P
   const top = area.top + 10;
   const bottom = area.bottom - 6;
   const avail = bottom - top;
-  const handScale = 1.08;
+  // На низких экранах рука не крупнее неба — так влезает больше
+  const handScale = height < 700 ? 0.96 : 1.08;
   // gridSize рядов карт + рука + зазоры + воздух для подъёма выбранной карты
-  const byHeight = ((avail - gap * (gridSize + 2) - 22) * CARD_ASPECT) / (gridSize + handScale);
+  const byHeight = ((avail - gap * (gridSize + 1) - (height < 700 ? 10 : 22)) * CARD_ASPECT) / (gridSize + handScale);
   const byWidth = (colW - 28 - gap * (gridSize - 1)) / gridSize;
   const cardW = Math.floor(Math.max(36, Math.min(byHeight, byWidth, MAX_CARD_W)));
   const cardH = Math.round(cardW / CARD_ASPECT);
