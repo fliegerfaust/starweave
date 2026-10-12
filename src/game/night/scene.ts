@@ -505,7 +505,7 @@ export class NightScene {
     }
     const cell = this.cellAt(x, y);
     if (this.selected !== null && this.canPlaceAt(cell)) {
-      // Кладём на отпускании: для iOS только оно — «жест», и вибрация сработает только в нём
+      // Кладём на отпускании пальца: можно передумать и увести палец с клетки
       this.pendingCell = cell;
       return;
     }
@@ -715,8 +715,6 @@ export class NightScene {
       this.select(handIndex);
       return;
     }
-    // iPhone: отклик сразу, пока палец на экране; вспышку линий чувствуем сильнее
-    this.svc.haptics.touch(events.some((e) => e.t === 'ignite') ? 'ignite' : 'place');
     this.busy = true;
     this.selected = null;
     this.hooks.onSelect?.(null);
@@ -734,7 +732,6 @@ export class NightScene {
     const handIndex = this.selected;
     const events = this.hooks.act({ kind: 'burn', handIndex });
     if (!events) return;
-    this.svc.haptics.touch('ignite');
     this.busy = true;
     this.selected = null;
     this.hooks.onSelect?.(null);
