@@ -5,7 +5,7 @@ import type { Lang } from '@/i18n';
  * Игра знает только этот интерфейс; конкретный SDK живёт в адаптере.
  */
 export interface Platform {
-  readonly id: 'web' | 'yandex';
+  readonly id: 'web' | 'yandex' | 'telegram';
   /** Есть ли реклама за награду (кнопки «второй шанс» показываются только тогда). */
   readonly rewardedAvailable: boolean;
   init(): Promise<void>;
@@ -24,4 +24,6 @@ export interface Platform {
   cloudSave(data: Record<string, string>): Promise<void>;
   /** Площадка просит паузу (реклама, сворачивание) и разрешает продолжить. */
   onPauseChange(fn: (paused: boolean) => void): void;
+  /** Поделиться своими средствами площадки; false — площадка не умеет, игра делится сама. */
+  share?(text: string): boolean;
 }
