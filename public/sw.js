@@ -1,6 +1,6 @@
 // Сервис-воркер Starweave: игра работает офлайн после первого запуска.
 // Навигация — сначала сеть (свежая версия), ассеты с хэшем — сначала кэш.
-const CACHE = 'starweave-v3';
+const CACHE = 'starweave-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest'])));
