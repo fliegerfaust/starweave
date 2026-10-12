@@ -724,8 +724,17 @@ body {
 .codex-cell { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); cursor: help; }
 .codex-cell.unknown { filter: grayscale(1) brightness(0.35); cursor: default; }
 .codex-name { font-size: 11px; text-align: center; line-height: 1.2; }
-.combo-table { display: flex; flex-direction: column; gap: 6px; }
-.combo-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
+.combo-list { display: flex; flex-direction: column; gap: 6px; }
+.combo-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); }
+.combo-item.upgraded { background: rgba(246, 194, 91, 0.08); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.3) inset; }
+.combo-example { display: flex; gap: 3px; flex: none; }
+.combo-text { flex: 1; min-width: 0; }
+.combo-level { margin-left: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(246, 194, 91, 0.2); color: var(--gold); font: 800 10px/1 var(--font-body); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
+.combo-x { margin: 0 3px; color: var(--ink-dim); font-size: 0.8em; }
+.combo-list.compact { gap: 3px; max-height: min(46vh, 340px); overflow-y: auto; }
+.combo-list.compact .combo-item { padding: 4px 8px; gap: 8px; }
+.combo-list.compact .combo-name { font-size: 15px; }
+.combo-list.compact .combo-base { font-size: 15px; }
 .combo-name { font: 400 19px/1.1 var(--font-display); }
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
 .combo-base { font: 400 20px/1 var(--font-display); white-space: nowrap; }
@@ -1079,3 +1088,7 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 }
 
 .calc.bottom { top: auto; bottom: calc(6px + var(--safe-bottom)); }
+
+/* Подсказка о порядке Знамений */
+.order-warn { color: #ffcf6b; background: rgba(255, 170, 60, 0.1); border: 1px solid rgba(255, 170, 60, 0.35); border-radius: 12px; padding: 8px 12px; }
+.owned-omen.misplaced .omen-slot { box-shadow: 0 0 0 2px #ffb03c, 0 0 16px rgba(255, 176, 60, 0.55); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }

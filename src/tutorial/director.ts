@@ -1,9 +1,9 @@
-import { COMBOS } from '@/core/content/combos';
 import { TUTORIAL_CELLS, cardCode } from '@/core/tutorial';
-import type { ComboId, GameEvent } from '@/core/types';
+import type { GameEvent } from '@/core/types';
 import type { App } from '@/game/app';
 import type { NightScene } from '@/game/night/scene';
-import { dict, t } from '@/i18n';
+import { t } from '@/i18n';
+import { comboList } from '@/ui/combos';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
@@ -320,24 +320,30 @@ export class TutorialDirector {
     this.app.finishTutorial();
   }
 
-  /** Пока идёт подсчёт — подсвечиваем формулу и объясняем, на что смотреть. */
+  /** Пока идёт подсчёт — подсвечиваем формулу. */
   private formulaShown = false;
 
   private watchFormula(): void {
+    // Первый подсчёт стоит на паузе, пока игрок не прочитает объяснение и не нажмёт «Далее»
+    let gateOpen = false;
+    this.night.setScoringGate(async () => {
+      gateOpen = true;
+      this.overlay.point(null);
+      await this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') });
+      this.overlay.hideBubble();
+      gateOpen = false;
+    });
     this.every(120, () => {
       const calc = document.querySelector('.calc.show');
       if (calc) {
         // Панель появляется с анимацией — меряем на каждом тике
         this.overlay.spotlight(elementRect(calc), 6);
-        if (!this.formulaShown) {
-          this.formulaShown = true;
-          this.overlay.point(null);
-          void this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom' });
-        }
+        // Пузырь с прошлого шага не должен закрывать подсчёт
+        if (!this.formulaShown && !gateOpen) this.overlay.hideBubble();
+        this.formulaShown = true;
       } else if (this.formulaShown) {
         this.formulaShown = false;
         this.overlay.spotlight(null);
-        this.overlay.hideBubble();
       }
     });
   }
@@ -361,11 +367,6 @@ export class TutorialDirector {
 
   /** Короткая таблица: чем реже сочетание — тем больше множитель. */
   private comboTable(): HTMLElement {
-    const ids: ComboId[] = ['pair', 'twoPair', 'triple', 'straight', 'flush', 'quartet'];
-    return h(
-      'div.tut-combos',
-      null,
-      ids.map((id) => h('div.tut-combo', null, [h('span', null, t(`combo.${id}`)), h('span.tut-combo-desc', null, dict().comboDesc[id]), h('b.mult-text', null, `×${COMBOS[id].mult}`)])),
-    );
+    return h('div.tut-combos', null, comboList({ compact: true }));
   }
 }

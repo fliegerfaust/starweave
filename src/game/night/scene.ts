@@ -155,7 +155,7 @@ export class NightScene {
       card,
       width: this.layout.handW,
       faceUp: true,
-      hideRank: this.night.rules.hideRanks,
+      hideRank: this.night.rules.hideRanks && zone !== 'board',
       debuffed: this.night.rules.debuffSuit === card.suit,
       glow: 0,
       glowColor: SUIT_COLORS[card.suit].main,
@@ -442,6 +442,11 @@ export class NightScene {
   private deny(): void {
     this.svc.audio.deny();
     this.svc.haptics.play('error');
+  }
+
+  /** Обучение придерживает первый подсчёт на открытой формуле, пока игрок не нажмёт «Далее». */
+  setScoringGate(gate: (() => Promise<void>) | null): void {
+    this.presenter.scoringGate = gate;
   }
 
   /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */

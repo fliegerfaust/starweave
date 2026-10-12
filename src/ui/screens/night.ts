@@ -1,5 +1,6 @@
 import { bossSigil } from '@/art/sigil';
 import { canDoubleReward, canRevive } from '@/core/run';
+import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
@@ -9,7 +10,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { Hud } from '../hud';
 import { clearCoach, coach } from '../tutorial';
 import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle } from '../widgets';
-import { screenTitle, showDeck, showHelp, showSettings, statsGrid } from './common';
+import { screenTitle, showCodexFrom, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
 import { showScoringHelp } from './scoring-help';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
@@ -26,7 +27,7 @@ export class NightScreen implements Screen {
   mount(root: HTMLElement): void {
     this.hud = new Hud({
       onMenu: () => this.pause(),
-      onGuide: (focus) => showHelp(focus),
+      onGuide: (focus) => showHelp(focus, this.run.comboLevels),
       onBurn: () => this.burn(),
       onDeck: () => showDeck(this.run),
     });
@@ -69,6 +70,11 @@ export class NightScreen implements Screen {
   private introHints(): void {
     const n = this.run.night!;
     if (n.bossId) toast(named('boss', n.bossId).desc);
+    else {
+      // Первые созвездия: напомнить про порядок Знамений тем, кто пропустил обучение
+      const wrong = this.run.ante <= 2 ? misorderedOmens(this.run.omens) : null;
+      if (wrong) toast(t('night.orderWarn', { x: named('omen', wrong.xmult).name, a: named('omen', wrong.additive).name }), 'warn');
+    }
     coach(this.app, 'place');
     coach(this.app, 'target');
   }
@@ -122,8 +128,10 @@ export class NightScreen implements Screen {
         h('div.stack', null, [
           button(t('pause.resume'), () => m.close()),
           button(t('pause.deck'), () => showDeck(this.run), { variant: 'secondary' }),
-          button(t('pause.help'), () => showHelp(), { variant: 'secondary' }),
+          button(t('combos.yours'), () => showCombos(this.run), { variant: 'secondary' }),
+          button(t('pause.help'), () => showHelp(undefined, this.run.comboLevels), { variant: 'secondary' }),
           button(t('scoring.button'), () => showScoringHelp(), { variant: 'secondary' }),
+          button(t('menu.codex'), () => showCodexFrom(this.app), { variant: 'secondary' }),
           button(t('settings.title'), () => showSettings(this.app, () => this.hud.sync(this.run, { score: false })), { variant: 'secondary' }),
           button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
             m.close();

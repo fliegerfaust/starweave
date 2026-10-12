@@ -133,6 +133,11 @@ export class Presenter {
     await this.tweens.to(tr, { x: p.x, y: p.y, rot: 0, scale: scene.boardScale * 1.08 }, { duration: (dragged ? 0.12 : 0.22) / this.speed, ease: 'outCubic' });
     d.layer = Layer.BoardCards;
     d.z = cell;
+    if (view.hideRank) {
+      // «Туман»: ранг открывается, когда карта легла на небо, — дальше по полю можно планировать
+      view.hideRank = false;
+      floatText(this.world, p.x, p.y - scene.layout.cardH * 0.3, String(view.card.rank), { size: 28, display: true, color: '#fff', life: 0.8, rise: 20 });
+    }
     this.audio.bell(view.card.rank);
     this.scene.svc.haptics.play('place');
     ring(this.world, p.x, p.y, SUIT_COLORS[view.card.suit].main, scene.layout.cardW * 0.8, 0.5);
@@ -287,6 +292,12 @@ export class Presenter {
       hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
       floatText(this.world, center.x, center.y, t(`combo.${line.combo}`).toUpperCase(), { size: 26, display: true, color: '#fff', life: 1.1, rise: 24 });
       await this.wait(0.3);
+      // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
+      const gate = this.scoringGate;
+      if (gate) {
+        this.scoringGate = null;
+        await gate();
+      }
 
       const steps = line.steps.slice(1);
       const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
@@ -359,6 +370,8 @@ export class Presenter {
 
   /** Во сколько раз дольше держать каждый шаг (обучение замедляет подсчёт). */
   stepPause = 1;
+  /** Одноразовая пауза перед шагами первого подсчёта (обучение). */
+  scoringGate: (() => Promise<void>) | null = null;
 
   /** Что изменилось в шаге — словами. */
   private effectText(step: ScoreStep): string {
