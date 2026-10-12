@@ -51,8 +51,8 @@ export class App {
     if (!storage.get(KEYS.settings) && platform.language()) this.settings.lang = platform.language()!;
     setLang(this.settings.lang);
     this.profile = loadProfile();
-    const canvas = document.getElementById('stage') as HTMLCanvasElement;
-    const renderer = new Renderer(canvas);
+    const stage = document.getElementById('stage')!;
+    const renderer = new Renderer(stage);
     const tweens = new Tweener();
     const res: Resources = {
       renderer,
@@ -84,7 +84,7 @@ export class App {
 
     const audio = new Synth();
     audio.setVolumes(this.settings.sfx, this.settings.music);
-    const input = new PointerInput(canvas);
+    const input = new PointerInput(stage);
     const haptics = new Haptics();
     haptics.enabled = this.settings.haptics;
     renderer.adaptive = this.settings.quality !== 'max';
@@ -552,7 +552,7 @@ async function restoreFromCloud(platform: Platform): Promise<void> {
   for (const [key, value] of Object.entries(data)) if (typeof value === 'string') storage.set(key, value);
 }
 
-export async function startGame(platform: Platform): Promise<void> {
+export async function startGame(platform: Platform): Promise<App> {
   initAnalytics();
   await restoreFromCloud(platform);
   const app = new App(platform);
@@ -561,4 +561,5 @@ export async function startGame(platform: Platform): Promise<void> {
   app.start();
   // FPS меряем, когда игрок уже в игре, а не на загрузке
   window.setTimeout(() => measureFps(5), 30_000);
+  return app;
 }
