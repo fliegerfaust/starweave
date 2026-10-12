@@ -281,6 +281,9 @@ export class Presenter {
 
       const comboStep = line.steps[0]!;
       hud.showCalc(line.combo, comboStep.lightAfter, comboStep.multAfter);
+      // Линия в верхнем ряду и панель её закроет — панель уходит вниз
+      const topRow = line.cells.some((c) => c < scene.night.rules.gridSize);
+      hud.placeCalc(topRow ? scene.cellRect(line.cells[0]!).y : null);
       hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
       floatText(this.world, center.x, center.y, t(`combo.${line.combo}`).toUpperCase(), { size: 26, display: true, color: '#fff', life: 1.1, rise: 24 });
       await this.wait(0.3);

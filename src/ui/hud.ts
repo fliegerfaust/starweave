@@ -164,6 +164,8 @@ export class Hud {
 
   private renderOmens(omens: OmenInstance[], slots: number): void {
     clear(this.omens);
+    // Пока Знамений нет, пустой ряд только отнимает место у неба
+    this.omens.classList.toggle('none', omens.length === 0);
     for (let i = 0; i < slots; i++) {
       const omen = omens[i];
       if (!omen) {
@@ -256,6 +258,19 @@ export class Hud {
       void el.offsetWidth;
       el.classList.add('bump');
     }
+  }
+
+  /**
+   * Поставить панель подсчёта сверху или снизу. Снизу — когда сверху она закрыла бы
+   * вспыхнувшие карты (низкие экраны, линия в верхнем ряду).
+   */
+  placeCalc(avoidTop: number | null): void {
+    this.calc.classList.remove('bottom');
+    if (avoidTop === null) return;
+    const r = this.calc.getBoundingClientRect();
+    // Панель в момент показа ещё «выпрыгивает» — оцениваем по высоте без анимации
+    const bottom = r.top + this.calc.offsetHeight;
+    if (bottom > avoidTop + 4) this.calc.classList.add('bottom');
   }
 
   /** Пояснение текущего шага подсчёта простыми словами. */
