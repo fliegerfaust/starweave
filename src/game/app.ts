@@ -16,7 +16,7 @@ import { dailySeed, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, rec
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
-import { setUiSound, toast } from '@/ui/widgets';
+import { hideTooltip, setUiSound, toast } from '@/ui/widgets';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
@@ -158,6 +158,7 @@ export class App {
   }
 
   show(screen: Screen): void {
+    hideTooltip();
     this.screen?.unmount();
     this.root.replaceChildren();
     this.screen = screen;

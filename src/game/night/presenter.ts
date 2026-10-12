@@ -386,50 +386,45 @@ export class Presenter {
     }
   }
 
-  /** Огоньки летят от карт созвездия к счёту — видно, куда ушли очки. */
+  /**
+   * Огоньки летят от карт созвездия к счёту. Рисуются в DOM-слое поверх HUD —
+   * на канвасе они уходили бы под полоску очков.
+   */
   private async flyToScore(cells: number[]): Promise<void> {
     const target = this.scene.hud.scoreAnchor();
-    const jobs: Promise<void>[] = [];
+    const layer = document.getElementById('ui')!;
     const unique = [...new Set(cells)];
+    const dur = 520 / this.speed;
+    const jobs: Promise<void>[] = [];
     unique.forEach((cell, i) => {
       const from = this.cellPos(cell);
       const e = this.cardEntityAt(cell);
       const color = e !== undefined ? SUIT_COLORS[this.world.req(e, CardView).card.suit].light : '#fff';
       for (let k = 0; k < 2; k++) {
-        const orb = this.world.create();
-        const tr = this.world.add(orb, Transform, transform(from.x + (k - 0.5) * 12, from.y, { scale: 1 }));
-        this.world.add(orb, Drawable, {
-          layer: Layer.Popups,
-          z: 1,
-          visible: true,
-          draw: (ctx, t) => {
-            const r = 9 * t.scale;
-            const g = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, r * 2.2);
-            g.addColorStop(0, '#ffffff');
-            g.addColorStop(0.3, color);
-            g.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = t.alpha;
-            ctx.fillStyle = g;
-            ctx.fillRect(t.x - r * 2.2, t.y - r * 2.2, r * 4.4, r * 4.4);
-          },
-        });
-        const delay = (i * 0.04 + k * 0.05) / this.speed;
-        const dur = 0.45 / this.speed;
-        // Дуга: сначала чуть вверх-вбок, потом в счёт
-        const mid = { x: (from.x + target.x) / 2 + (Math.random() - 0.5) * 120, y: Math.min(from.y, target.y) - 30 };
+        const orb = document.createElement('div');
+        orb.className = 'score-orb';
+        orb.style.setProperty('--orb', color);
+        layer.append(orb);
+        const sx = from.x + (k - 0.5) * 14;
+        const mid = { x: (sx + target.x) / 2 + (Math.random() - 0.5) * 140, y: Math.min(from.y, target.y) + (from.y - target.y) * 0.35 };
+        const anim = orb.animate(
+          [
+            { transform: `translate(${sx}px, ${from.y}px) scale(0.6)`, opacity: 0 },
+            { transform: `translate(${sx}px, ${from.y}px) scale(1.2)`, opacity: 1, offset: 0.12 },
+            { transform: `translate(${mid.x}px, ${mid.y}px) scale(1)`, opacity: 1, offset: 0.5 },
+            { transform: `translate(${target.x}px, ${target.y}px) scale(0.5)`, opacity: 0.9 },
+          ],
+          { duration: dur, delay: (i * 45 + k * 60) / this.speed, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'both' },
+        );
         jobs.push(
-          this.tweens
-            .to(tr, { x: mid.x, y: mid.y }, { duration: dur * 0.45, delay, ease: 'outQuad' })
-            .then(() => this.tweens.to(tr, { x: target.x, y: target.y, scale: 0.4 }, { duration: dur * 0.55, ease: 'inQuad' }))
-            .then(() => {
-              this.world.destroy(orb);
-              this.audio.tick();
-            }),
+          anim.finished
+            .then(() => this.audio.tick())
+            .catch(() => undefined)
+            .finally(() => orb.remove()),
         );
       }
     });
-    await Promise.race([Promise.all(jobs), this.wait(1.2)]);
+    await Promise.race([Promise.all(jobs), this.wait(1.4)]);
   }
 
   private async showStep(step: ScoreStep, index: number, seenCells = new Set<number>()): Promise<void> {
