@@ -111,3 +111,19 @@ describe('награды за рекламу', () => {
     expect(canDoubleReward(run)).toBe(false);
   });
 });
+
+describe('второй шанс и профиль', () => {
+  it('поражение, затем второй шанс и победа — одна победа в профиле', async () => {
+    const { unrecordRunEnd } = await import('../src/meta/profile');
+    const p = emptyProfile();
+    const run = newRun({ seed: 3 });
+    run.stats.linesIgnited = 10;
+    recordRunEnd(p, run, false);
+    unrecordRunEnd(p, run);
+    run.stats.linesIgnited = 25;
+    recordRunEnd(p, run, true);
+    expect(p.runs).toBe(1);
+    expect(p.wins).toBe(1);
+    expect(p.totalLines).toBe(25);
+  });
+});

@@ -12,7 +12,7 @@ import { PointerInput } from '@/engine/input';
 import { Renderer } from '@/engine/renderer';
 import { Tweener } from '@/engine/tween';
 import { named, setLang, t } from '@/i18n';
-import { dailySeed, loadProfile, markDailyStarted, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
+import { dailySeed, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
@@ -107,7 +107,10 @@ export class App {
     document.getElementById('ui')!.append(this.root);
     this.run = deserializeRun(storage.get(KEYS.run));
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.save();
+      if (document.hidden) {
+        this.save();
+        this.flushCloudSave();
+      }
       // Требование порталов: без фокуса игра молчит
       this.svc.audio.setMuted(document.hidden || this.adPlaying);
     });
@@ -211,10 +214,12 @@ export class App {
   // ─── Забег ──────────────────────────────────────────────────────────────
 
   startRun(skyId: string, daily = false, stake = 0): void {
+    // Из обучения — сначала вернуть настоящее сохранение, чтобы его не затереть молча
+    if (this.run?.tutorial) this.endTutorial();
     // Перезаписываемый забег засчитывается как сданный
     if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
     if (daily) markDailyStarted(this.profile);
-    saveProfile(this.profile);
+    this.persistProfile();
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
     this.run = newRun({ seed, skyId, daily, stake: daily ? 0 : stake });
     this.save();
@@ -241,13 +246,8 @@ export class App {
     startNight(run);
     if (run.tutorial) applyTutorialNight(run, run.nightIndex);
     markSeen(this.profile, run);
-    saveProfile(this.profile);
+    this.persistProfile();
     this.save();
-    // Межстраничная реклама — только в паузе между созвездиями
-    if (run.phase === 'map' && run.nightIndex === 0) {
-      void this.platform.showInterstitial().then(() => this.route());
-      return;
-    }
     void this.route();
   }
 
@@ -272,12 +272,11 @@ export class App {
     const lost = events.some((e) => e.t === 'nightLost');
     if (run.tutorial) {
       // Учебную ночь проиграть почти нельзя, но если вышло — начинаем обучение заново
-      if (lost) window.setTimeout(() => this.startTutorial(), 1600);
       return;
     }
     if (lost) {
       const fresh = recordRunEnd(this.profile, run, false);
-      saveProfile(this.profile);
+      this.persistProfile();
       this.announceUnlocks(fresh);
       storage.remove(KEYS.run);
       return;
@@ -315,8 +314,13 @@ export class App {
     } else {
       this.announceUnlocks(recordProgress(this.profile, run));
     }
-    saveProfile(this.profile);
+    this.persistProfile();
     this.save();
+    // Межстраничная реклама — только в паузе между созвездиями
+    if (run.phase === 'map' && run.nightIndex === 0) {
+      void this.platform.showInterstitial().then(() => this.route());
+      return;
+    }
     void this.route();
   }
 
@@ -342,9 +346,10 @@ export class App {
   }
 
   abandonRun(): void {
+    if (this.run?.tutorial) return this.skipTutorial();
     if (this.run && this.run.phase !== 'gameOver' && this.run.phase !== 'victory') {
       recordRunEnd(this.profile, this.run, false);
-      saveProfile(this.profile);
+      this.persistProfile();
     }
     this.run = null;
     storage.remove(KEYS.run);
@@ -360,17 +365,27 @@ export class App {
 
   private cloudTimer = 0;
 
+  /** Профиль на устройство и (с задержкой) в облако площадки. */
+  persistProfile(): void {
+    saveProfile(this.profile);
+    this.scheduleCloudSave();
+  }
+
   /** Облачное сохранение площадки — не чаще раза в пару секунд. */
-  private scheduleCloudSave(): void {
+  scheduleCloudSave(): void {
     window.clearTimeout(this.cloudTimer);
-    this.cloudTimer = window.setTimeout(() => {
-      const data: Record<string, string> = {};
-      for (const key of [KEYS.run, KEYS.profile, KEYS.settings]) {
-        const value = storage.get(key);
-        if (value) data[key] = value;
-      }
-      void this.platform.cloudSave(data);
-    }, 2000);
+    this.cloudTimer = window.setTimeout(() => this.flushCloudSave(), 2000);
+  }
+
+  /** Отправить в облако сразу (вкладку сворачивают — таймер может не дожить). */
+  private flushCloudSave(): void {
+    window.clearTimeout(this.cloudTimer);
+    const data: Record<string, string> = {};
+    for (const key of [KEYS.run, KEYS.profile, KEYS.settings]) {
+      const value = storage.get(key);
+      if (value) data[key] = value;
+    }
+    void this.platform.cloudSave(data);
   }
 
   /** Второй шанс после поражения — за просмотр рекламы. */
@@ -380,6 +395,9 @@ export class App {
     const ok = await this.platform.showRewarded();
     if (!ok || !canRevive(run)) return false;
     reviveNight(run);
+    // Поражение уже записали в профиль — забег продолжается, запись отменяем
+    unrecordRunEnd(this.profile, run);
+    this.persistProfile();
     this.save();
     void this.route();
     return true;
@@ -418,7 +436,7 @@ export class App {
     this.tutorial?.stop();
     this.tutorial = null;
     this.profile.tutorialDone = true;
-    saveProfile(this.profile);
+    this.persistProfile();
     this.run = deserializeRun(storage.get(KEYS.run));
   }
 
@@ -457,6 +475,8 @@ export class App {
   resetProgress(): void {
     storage.remove(KEYS.run);
     storage.remove(KEYS.profile);
+    window.clearTimeout(this.cloudTimer);
+    void this.platform.cloudSave({});
     this.run = null;
     this.profile = loadProfile();
     void this.goMenu();
