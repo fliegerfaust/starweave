@@ -65,6 +65,8 @@ export class NightScene {
   selected: number | null = null;
   busy = false;
   private readonly presenter: Presenter;
+  /** Клетка, нажатая при выбранной карте: карта ляжет на отпускании пальца. */
+  private pendingCell: number | null = null;
   private drag: { id: number; entity: Entity; startX: number; startY: number; active: boolean; offY: number } | null = null;
   private hoverCell: number | null = null;
   private hoverHand: number | null = null;
@@ -203,7 +205,6 @@ export class NightScene {
       ctx.fill();
       ctx.restore();
     }
-    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, -w / 2 - pad, -hgt / 2 - pad, w + pad * 2, spriteH + pad * 2);
     if (v.debuffed && showFace) {
       roundRect(ctx, -w / 2, -hgt / 2, w, hgt, w * 0.09);
@@ -303,6 +304,8 @@ export class NightScene {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = `rgba(255,214,120,${0.8 * k})`;
+        ctx.fillText(`×${s.closes}`, t.x, t.y);
+        ctx.shadowColor = 'transparent';
         ctx.fillText(`×${s.closes}`, t.x, t.y);
       }
       ctx.restore();
@@ -498,12 +501,12 @@ export class NightScene {
       const id = this.hand[index]!;
       const entity = this.cards.get(id)!;
       this.drag = { id, entity, startX: x, startY: y, active: false, offY: 0 };
-      this.svc.haptics.touch('tap');
       return;
     }
     const cell = this.cellAt(x, y);
     if (this.selected !== null && this.canPlaceAt(cell)) {
-      void this.place(this.selected, cell);
+      // Кладём на отпускании: для iOS только оно — «жест», и вибрация сработает только в нём
+      this.pendingCell = cell;
       return;
     }
     if (cell === null && this.selected !== null) this.select(null);
@@ -566,6 +569,12 @@ export class NightScene {
   }
 
   private onUp(x: number, y: number): void {
+    const pending = this.pendingCell;
+    this.pendingCell = null;
+    if (pending !== null && this.selected !== null && !this.busy && this.cellAt(x, y) === pending) {
+      void this.place(this.selected, pending);
+      return;
+    }
     const d = this.drag;
     this.drag = null;
     if (!d || this.busy) return;
@@ -609,6 +618,7 @@ export class NightScene {
   }
 
   private cancelDrag(): void {
+    this.pendingCell = null;
     this.hud.setBurnDrop(null);
     if (this.drag?.active) {
       this.setHover(null);

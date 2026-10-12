@@ -1,6 +1,14 @@
-/** Обёртка над Canvas2D: размер в CSS-пикселях, чёткость на ретине, тряска камеры. */
+/**
+ * Обёртка над Canvas2D: размер в CSS-пикселях, чёткость на ретине, тряска камеры.
+ *
+ * Холст создаётся заново при каждой смене размера, уже нужного размера, и только потом
+ * попадает на страницу. Safari на iOS запоминает для холста детализацию слоя с первого
+ * показа: холст, показанный в размере по умолчанию 300×150 и растянутый позже, рисовался
+ * мыльно при буфере 3× (проверено в симуляторе iPhone).
+ */
 export class Renderer {
-  readonly ctx: CanvasRenderingContext2D;
+  canvas!: HTMLCanvasElement;
+  ctx!: CanvasRenderingContext2D;
   width = 0;
   height = 0;
   dpr = 1;
@@ -12,10 +20,8 @@ export class Renderer {
   private sampled = 0;
   private resizeListeners: (() => void)[] = [];
 
-  constructor(readonly canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) throw new Error('Canvas2D недоступен');
-    this.ctx = ctx;
+  /** `host` — контейнер холста; ввод тоже слушается на нём и переживает пересоздание холста. */
+  constructor(readonly host: HTMLElement) {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
@@ -39,13 +45,20 @@ export class Renderer {
     document.documentElement.style.setProperty('--app-h', `${h}px`);
     // iOS иногда прокручивает документ при повороте или открытии клавиатуры — возвращаем.
     if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
-    if (w === this.width && h === this.height && this.canvas.width === Math.round(w * this.dpr)) return;
+    if (this.canvas && w === this.width && h === this.height && this.canvas.width === Math.round(w * this.dpr)) return;
     this.width = w;
     this.height = h;
-    this.canvas.width = Math.round(w * this.dpr);
-    this.canvas.height = Math.round(h * this.dpr);
-    this.canvas.style.width = `${w}px`;
-    this.canvas.style.height = `${h}px`;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * this.dpr);
+    canvas.height = Math.round(h * this.dpr);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) throw new Error('Canvas2D недоступен');
+    if (this.canvas) this.canvas.replaceWith(canvas);
+    else this.host.append(canvas);
+    this.canvas = canvas;
+    this.ctx = ctx;
     for (const fn of this.resizeListeners) fn();
   }
 

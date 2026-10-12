@@ -91,6 +91,9 @@ export function floatText(world: GameWorld, x: number, y: number, text: string, 
       ctx.shadowBlur = size * 0.5;
       ctx.fillStyle = opts.color ?? '#fff';
       ctx.fillText(text, 0, 0);
+      // Чёткие буквы поверх свечения (Safari масштабирует shadowBlur вместе с DPR)
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(text, 0, 0);
     },
   });
   world.add(e, Lifetime, { left: life });

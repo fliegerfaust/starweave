@@ -45,9 +45,11 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  display: block;
+  right: 0;
+  height: var(--app-h, 100%);
   touch-action: none;
 }
+#stage canvas { display: block; }
 
 #ui {
   position: fixed;
