@@ -22,7 +22,8 @@ async function boot(): Promise<void> {
   const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
   const platform = await createPlatform();
   await platform.init();
-  await startGame(platform);
+  const app = await startGame(platform);
+  if (params.has('debug')) void import('./dev/diag').then(({ showDiagnostics }) => showDiagnostics(app));
 }
 
 void boot();
