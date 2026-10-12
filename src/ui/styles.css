@@ -877,3 +877,15 @@ body.landscape .boss-chip { padding-right: 2px; }
 .card-info .more { color: var(--gold); }
 body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--safe-bottom)); max-width: 280px; white-space: normal; border-radius: 12px; }
 .g-rules { margin-bottom: 6px; font-size: 14px; }
+
+.ritual-result { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.ritual-row { display: flex; align-items: center; gap: 10px; animation: rise-in 0.4s ease both; }
+.ritual-card { display: grid; place-items: center; }
+.ritual-card.flip { animation: ritual-flip 0.7s ease both; }
+.ritual-card.gone { animation: g-burn 1.2s ease-in both; }
+.ritual-note { font-size: 12px; color: var(--ink-dim); max-width: 150px; }
+@keyframes ritual-flip { 0% { transform: rotateY(90deg) scale(0.8); filter: brightness(3); } 60% { transform: rotateY(0) scale(1.12); filter: brightness(1.6); } 100% { transform: none; filter: none; } }
+
+.map-peek { pointer-events: auto; align-self: flex-start; border: 0; background: none; color: var(--ink-dim); font: 600 13px/1 var(--font-body); padding: 4px 0; cursor: pointer; margin-top: -6px; }
+.map-peek:hover { color: var(--gold); }
+.map-top .icon-btn { flex: none; }

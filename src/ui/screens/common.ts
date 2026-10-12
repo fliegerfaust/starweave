@@ -144,3 +144,34 @@ export function statsGrid(run: RunState): HTMLElement {
 export function screenTitle(text: string, sub?: string): HTMLElement {
   return h('div.screen-title', null, [h('div.title-ornament', null, '✦'), h('h1', null, text), sub ? h('div.screen-sub', null, sub) : null]);
 }
+
+/** Кнопка-бургер для экранов забега. */
+export function menuButton(onClick: () => void): HTMLElement {
+  const b = h('button.icon-btn', { type: 'button', ariaLabel: 'menu' }, h('span.burger'));
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+/** Меню забега вне ночи: справочник, настройки, выход в главное меню, сдаться. */
+export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
+  const m = modal(
+    [
+      h('div.stack', null, [
+        button(t('pause.resume'), () => m.close()),
+        ...extra,
+        button(t('guide.button'), () => showHelp(), { variant: 'secondary' }),
+        button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),
+        button(t('pause.toMenu'), () => {
+          m.close();
+          app.save();
+          void app.goMenu();
+        }, { variant: 'secondary' }),
+        button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
+          m.close();
+          app.abandonRun();
+        }), { variant: 'ghost' }),
+      ]),
+    ],
+    { title: t('pause.title'), className: 'narrow' },
+  );
+}

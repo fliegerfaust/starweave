@@ -12,7 +12,7 @@ import { omenBadge, omenMedal, omenTooltip } from '../hud';
 import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
 import { attachTooltip, button, modal, type ModalHandle } from '../widgets';
-import { deckGrid, showDeck } from './common';
+import { cardThumb, deckGrid, menuButton, showDeck, showRunMenu } from './common';
 
 /** Обсерватория: витрина Знамений и предметов, свои Знамения, переброс. */
 export class ShopScreen implements Screen {
@@ -76,7 +76,14 @@ export class ShopScreen implements Screen {
     for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen', null, h('div.omen-slot.empty')));
 
     const sections: (HTMLElement | null)[] = [
-      h('div.shop-top', null, [h('h1.shop-title', null, t('shop.title')), h('div.gold-pill', null, String(run.gold))]),
+      h('div.shop-top', null, [
+        h('h1.shop-title', null, t('shop.title')),
+        h('div.row.gap', null, [
+          h('div.gold-pill', null, String(run.gold)),
+          menuButton(() => showRunMenu(this.app, [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })])),
+        ]),
+      ]),
+      h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`),
       h('section.shop-section', null, [h('h2', null, t('shop.omens')), omenCards]),
       h('section.shop-section', null, [h('h2', null, t('shop.items')), itemCards]),
       shop.packs.length ? h('section.shop-section', null, [h('h2', null, t('shop.packs')), packCards]) : null,
@@ -156,7 +163,44 @@ export class ShopScreen implements Screen {
       this.act((r) => buyItem(r, slot));
       return;
     }
-    this.pickTargets(item.ritualId, (ids) => this.act((r) => buyItem(r, slot, ids)));
+    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act((r) => buyItem(r, slot, ids))));
+  }
+
+  /** Выполняет ритуал и показывает, что стало с картами: было → стало. */
+  private withRitualResult(ritualId: string, run: () => void): void {
+    const before = new Map(this.run.deck.map((c) => [c.id, { ...c }]));
+    run();
+    const after = new Map(this.run.deck.map((c) => [c.id, c]));
+    const rows: HTMLElement[] = [];
+    let i = 0;
+    for (const [id, old] of before) {
+      const now = after.get(id);
+      const delay = `${i * 0.15}s`;
+      if (!now) {
+        rows.push(h('div.ritual-row', { style: { animationDelay: delay } }, [h('div.ritual-card.gone', { style: { animationDelay: delay } }, cardThumb(old)), h('span.ritual-note', null, t('shop.removed'))]));
+        i++;
+      } else if (now.suit !== old.suit || now.rank !== old.rank || now.glyph !== old.glyph) {
+        rows.push(
+          h('div.ritual-row', { style: { animationDelay: delay } }, [
+            h('div.ritual-card', null, cardThumb(old)),
+            h('span.arrow', null, '→'),
+            h('div.ritual-card.flip', { style: { animationDelay: delay } }, cardThumb(now)),
+            now.glyph && now.glyph !== old.glyph ? h('span.ritual-note', null, `${t(`glyph.${now.glyph}`)}: ${dict().glyphDesc[now.glyph]}`) : null,
+          ]),
+        );
+        i++;
+      }
+    }
+    for (const [id, now] of after) {
+      if (before.has(id)) continue;
+      rows.push(h('div.ritual-row', null, [h('div.ritual-card.flip', null, cardThumb(now)), h('span.ritual-note', null, t('shop.added'))]));
+    }
+    if (rows.length === 0) return;
+    this.app.svc.audio.ignite(1);
+    const m = modal([h('div.ritual-result', null, rows), h('div.row.center', null, button(t('shop.great'), () => m.close()))], {
+      title: `${named('ritual', ritualId).name} · ${t('shop.ritualDone')}`,
+      className: 'narrow',
+    });
   }
 
   /** Выбор карт колоды для ритуала. */
@@ -254,7 +298,7 @@ export class ShopScreen implements Screen {
       this.pickTargets(
         id,
         (ids) => {
-          this.act((r) => choosePack(r, index, ids));
+          this.withRitualResult(id, () => this.act((r) => choosePack(r, index, ids)));
           if (this.run.shop?.openPack) this.showPack();
         },
         () => this.showPack(),
