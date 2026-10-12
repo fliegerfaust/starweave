@@ -524,8 +524,10 @@ export class NightScene {
         t.rot = 0;
         const cell = this.cellAt(t.x, t.y);
         const overBoard = cell !== null;
-        t.scale += ((overBoard ? this.boardScale : 1) - t.scale) * 0.35;
+        const overBurn = !overBoard && this.overBurn(x, y);
+        t.scale += ((overBoard ? this.boardScale : overBurn ? 0.8 : 1) - t.scale) * 0.35;
         this.setHover(this.canPlaceAt(cell) ? cell : null);
+        this.hud.setBurnDrop(this.canBurnCard(d.id) ? (overBurn ? 'hover' : 'ready') : null);
       }
       return;
     }
@@ -563,17 +565,39 @@ export class NightScene {
     const t = this.world.req(d.entity, Transform);
     const cell = this.cellAt(t.x, t.y);
     const index = this.hand.indexOf(d.id);
+    this.hud.setBurnDrop(null);
     if (this.canPlaceAt(cell)) {
       void this.place(index, cell, d.entity);
+    } else if (cell === null && this.overBurn(x, y)) {
+      // Карту бросили на «Сжечь» — то же, что выбрать и нажать кнопку
+      if (this.canBurnCard(d.id)) {
+        this.selected = index;
+        void this.burnSelected();
+      } else {
+        this.deny();
+        this.select(index);
+      }
     } else {
       this.setHover(null);
       this.select(index);
     }
-    void x;
-    void y;
+  }
+
+  /** Палец над кнопкой «Сжечь» (с запасом — по ней целятся на ходу). */
+  private overBurn(x: number, y: number): boolean {
+    const r = this.hud.burnBtn.getBoundingClientRect();
+    const slack = 14;
+    return x >= r.left - slack && x <= r.right + slack && y >= r.top - slack * 2 && y <= r.bottom + slack;
+  }
+
+  /** Можно ли сжечь карту перетаскиванием: остались сжигания и обучение не против. */
+  private canBurnCard(id: number): boolean {
+    if (this.night.burnsLeft <= 0) return false;
+    return !this.guide || this.guide.free || (!!this.guide.burn && id === this.guide.card);
   }
 
   private cancelDrag(): void {
+    this.hud.setBurnDrop(null);
     if (this.drag?.active) {
       this.setHover(null);
       void this.layoutHand(true);
