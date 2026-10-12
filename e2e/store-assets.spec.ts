@@ -53,9 +53,11 @@ for (const lang of ['ru', 'en'] as const) {
     test(`обложки ${lang}`, async ({ browser }) => {
       mkdirSync(`${OUT}/yandex`, { recursive: true });
       mkdirSync(`${OUT}/google-play`, { recursive: true });
+      mkdirSync(`${OUT}/telegram`, { recursive: true });
       for (const [w, h, file] of [
         [800, 470, `${OUT}/yandex/cover-800x470-${lang}.png`],
         [1024, 500, `${OUT}/google-play/feature-1024x500-${lang}.png`],
+        [640, 360, `${OUT}/telegram/app-640x360-${lang}.png`],
       ] as const) {
         const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
         await page.goto(`/?promo&lang=${lang}`);
