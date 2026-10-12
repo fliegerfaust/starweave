@@ -176,6 +176,16 @@ export class App {
     }
   }
 
+  /** Из Обсерватории — посмотреть следующую ночь на карте и вернуться. */
+  async peekMap(): Promise<void> {
+    const run = this.run;
+    if (!run) return;
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    const token = ++this.navToken;
+    const { MapScreen } = await import('@/ui/screens/map');
+    this.showIf(token, () => new MapScreen(this, run, true));
+  }
+
   // ─── Забег ──────────────────────────────────────────────────────────────
 
   startRun(skyId: string, daily = false, stake = 0): void {

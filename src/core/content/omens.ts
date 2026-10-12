@@ -6,10 +6,14 @@ import { COMBO_IDS, GLYPHS, type ComboId, type Suit } from '../types';
 
 export type Rarity = 1 | 2 | 3;
 
+/** Что Знамение делает со счётом — для значка и объяснения порядка. */
+export type OmenKind = 'light' | 'mult' | 'xmult' | 'rule' | 'gold';
+
 export interface OmenDef extends EffectHooks {
   id: string;
   rarity: Rarity;
   price: number;
+  kind: OmenKind;
   /** Начальное состояние накопительных Знамений. */
   initialData?(): Record<string, number>;
   /** Живые значения для подстановки в описание: `{x}` и т.п. */
@@ -24,6 +28,7 @@ const suitOmen = (id: string, suit: Suit, effect: 'mult' | 'light' | 'both' | 'r
   id,
   rarity: 1,
   price: 5,
+  kind: effect === 'light' || effect === 'rank' ? 'light' : 'mult',
   tags: { suit },
   onCardScored(ctx) {
     if (ctx.card.suit !== suit && ctx.card.glyph !== 'prism') return;
@@ -41,6 +46,7 @@ const comboOmen = (id: string, family: ComboId[], mult: number, price = 5, rarit
   id,
   rarity,
   price,
+  kind: 'mult',
   tags: { combo: family[0] as ComboId },
   onLineScored(ctx) {
     if (family.includes(ctx.combo)) ctx.mult(mult);
@@ -61,6 +67,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'lowTide',
     rarity: 1,
     price: 4,
+    kind: 'light',
     onCardScored(ctx) {
       if (ctx.card.rank <= 3) ctx.light(15);
     },
@@ -69,6 +76,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'highNoon',
     rarity: 1,
     price: 5,
+    kind: 'mult',
     onCardScored(ctx) {
       if (ctx.card.rank >= 7) ctx.mult(2);
     },
@@ -77,6 +85,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'horizon',
     rarity: 1,
     price: 4,
+    kind: 'mult',
     onLineScored(ctx) {
       if (ctx.line.kind === 'row') ctx.mult(6);
     },
@@ -85,6 +94,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'pillar',
     rarity: 1,
     price: 4,
+    kind: 'mult',
     onLineScored(ctx) {
       if (ctx.line.kind === 'col') ctx.mult(6);
     },
@@ -93,6 +103,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'stardust',
     rarity: 1,
     price: 4,
+    kind: 'mult',
     onLineScored(ctx) {
       ctx.mult(4);
     },
@@ -101,6 +112,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'scatterbrain',
     rarity: 1,
     price: 4,
+    kind: 'mult',
     onLineScored(ctx) {
       if (ctx.combo === 'scatter') {
         ctx.light(50);
@@ -112,6 +124,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'binary',
     rarity: 1,
     price: 5,
+    kind: 'mult',
     onLineScored(ctx) {
       if (new Set(ctx.cards.map((c) => c.suit)).size === 2) ctx.mult(7);
     },
@@ -120,6 +133,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'abacus',
     rarity: 1,
     price: 5,
+    kind: 'rule',
     modifyRules(rules) {
       rules.moves += 3;
     },
@@ -128,6 +142,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'pyre',
     rarity: 1,
     price: 4,
+    kind: 'rule',
     modifyRules(rules) {
       rules.burns += 2;
     },
@@ -136,6 +151,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'ember',
     rarity: 1,
     price: 5,
+    kind: 'mult',
     initialData: () => ({ burns: 0 }),
     vars: (d) => ({ x: (d.burns ?? 0) * 3 }),
     onNightStart(ctx) {
@@ -152,6 +168,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'miser',
     rarity: 1,
     price: 5,
+    kind: 'gold',
     modifyRules(rules) {
       rules.interestCap += 5;
     },
@@ -162,6 +179,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'evenKeel',
     rarity: 2,
     price: 6,
+    kind: 'xmult',
     onLineScored(ctx) {
       if (ctx.cards.every((c) => c.rank % 2 === 0)) ctx.xMult(2);
     },
@@ -170,6 +188,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'oddity',
     rarity: 2,
     price: 6,
+    kind: 'xmult',
     onLineScored(ctx) {
       if (ctx.cards.every((c) => c.rank % 2 === 1)) ctx.xMult(2);
     },
@@ -178,6 +197,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'crossroads',
     rarity: 2,
     price: 7,
+    kind: 'xmult',
     modifyRules(rules) {
       rules.chainBonus += 1;
     },
@@ -186,6 +206,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'diagonalSight',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     modifyRules(rules) {
       rules.diagonals = true;
     },
@@ -194,6 +215,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'cornerstone',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     retriggers(ctx) {
       return isCorner(ctx.cell, ctx.rules.gridSize) ? 1 : 0;
     },
@@ -202,6 +224,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'momentum',
     rarity: 2,
     price: 6,
+    kind: 'mult',
     initialData: () => ({ streak: 0 }),
     vars: (d) => ({ x: ((d.streak ?? 0) + 1) * 2 }),
     onNightStart(ctx) {
@@ -221,6 +244,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'patientSky',
     rarity: 2,
     price: 6,
+    kind: 'mult',
     onLineScored(ctx) {
       if (ctx.night.movesLeft > 0) ctx.mult(ctx.night.movesLeft);
     },
@@ -229,6 +253,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'nightOwl',
     rarity: 2,
     price: 6,
+    kind: 'xmult',
     onPlacementScored(ctx) {
       if (ctx.lastMove) ctx.xMult(3);
     },
@@ -237,6 +262,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'prismLens',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     modifyRules(rules) {
       rules.flushSlack += 1;
     },
@@ -245,6 +271,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'shortcut',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     modifyRules(rules) {
       rules.straightGaps += 1;
     },
@@ -253,6 +280,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'wideSky',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     modifyRules(rules) {
       rules.handSize += 1;
     },
@@ -261,6 +289,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'tithe',
     rarity: 2,
     price: 6,
+    kind: 'gold',
     onLineScored(ctx) {
       if (strength(ctx.combo) >= strength('straight')) ctx.gold(1);
     },
@@ -269,6 +298,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'constellationMap',
     rarity: 2,
     price: 7,
+    kind: 'mult',
     vars: () => ({}),
     onLineScored(ctx) {
       const levels = Object.values(ctx.run.comboLevels).reduce((s, l) => s + (l - 1), 0);
@@ -279,6 +309,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'echoChamber',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     retriggers(ctx) {
       return ctx.night.ignitions === 0 ? 1 : 0;
     },
@@ -287,6 +318,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'hoarder',
     rarity: 2,
     price: 6,
+    kind: 'mult',
     onLineScored(ctx) {
       const bonus = Math.floor(ctx.run.gold / 3);
       if (bonus > 0) ctx.mult(bonus);
@@ -296,6 +328,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'rainbow',
     rarity: 2,
     price: 6,
+    kind: 'xmult',
     onLineScored(ctx) {
       if (new Set(ctx.cards.map((c) => c.suit)).size >= 4) ctx.xMult(2);
     },
@@ -304,6 +337,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'alchemist',
     rarity: 2,
     price: 7,
+    kind: 'rule',
     onNightEnd(ctx) {
       if (!ctx.won) return;
       const plain = ctx.run.deck.filter((c) => !c.glyph);
@@ -315,6 +349,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'gambler',
     rarity: 2,
     price: 6,
+    kind: 'xmult',
     onCardScored(ctx) {
       if (ctx.card.rank === 7 && chance(ctx.rng, 0.5)) ctx.xMult(1.5);
     },
@@ -325,6 +360,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'glassCannon',
     rarity: 3,
     price: 10,
+    kind: 'xmult',
     modifyRules(rules) {
       rules.handSize -= 1;
     },
@@ -336,6 +372,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'supernovaSeed',
     rarity: 3,
     price: 10,
+    kind: 'xmult',
     onLineScored(ctx) {
       if (COMBO_FAMILY.runs.includes(ctx.combo)) ctx.xMult(3);
     },
@@ -344,6 +381,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'collapsar',
     rarity: 3,
     price: 10,
+    kind: 'xmult',
     initialData: () => ({ lines: 0 }),
     vars: (d) => ({ x: (1 + (d.lines ?? 0) * 0.05).toFixed(2) }),
     onLineScored(ctx) {
@@ -358,6 +396,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'corona',
     rarity: 3,
     price: 9,
+    kind: 'xmult',
     onLineScored(ctx) {
       if (ctx.night.kind === 'eclipse') ctx.xMult(2.5);
     },
@@ -366,6 +405,7 @@ export const OMEN_LIST: OmenDef[] = [
     id: 'doubleStar',
     rarity: 3,
     price: 10,
+    kind: 'xmult',
     onPlacementScored(ctx) {
       if (ctx.lines.length >= 2) ctx.xMult(2);
     },
