@@ -9,7 +9,14 @@ document.addEventListener('contextmenu', (e) => {
 
 async function boot(): Promise<void> {
   await document.fonts.ready;
-  await Promise.all([document.fonts.load("400 40px 'Forum'"), document.fonts.load("600 16px 'Manrope Variable'")]);
+  // Шрифты подключены частями (латиница и кириллица отдельно): без образца текста грузится
+  // только латиница, и холст рисует русские буквы запасным шрифтом
+  const sample = 'AaЯяЁё×2';
+  await Promise.all([
+    document.fonts.load("400 40px 'Forum'", sample),
+    document.fonts.load("600 16px 'Manrope Variable'", sample),
+    document.fonts.load("800 16px 'Manrope Variable'", sample),
+  ]);
   const ui = document.getElementById('ui')!;
   const params = new URLSearchParams(location.search);
   if (params.has('promo')) {

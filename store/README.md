@@ -8,6 +8,7 @@
 | Яндекс Игры | иконка 512×512 | `yandex/icon-512.png` |
 | | обложка 800×470 | `yandex/cover-800x470-ru.png`, `-en.png` |
 | | скриншоты | `screens/ru/*`, `screens/en/*` |
+| Telegram Mini App | картинка 640×360 | `telegram/app-640x360-ru.png`, `-en.png` |
 | Google Play / RuStore | баннер 1024×500 | `google-play/feature-1024x500-ru.png`, `-en.png` |
 | | скриншоты телефона 1080×1920 | `screens/*/portrait-*.png` |
 | | скриншоты ландшафт 1920×1080 | `screens/*/landscape-*.png` |
