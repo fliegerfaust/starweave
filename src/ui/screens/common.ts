@@ -134,7 +134,7 @@ export function showSettings(app: App, onChange?: () => void): void {
         s.haptics = v;
         if (v) app.svc.haptics.play('success');
       })),
-      canFullscreen()
+      app.platform.id === 'web' && canFullscreen()
         ? field(t('settings.fullscreen'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.fullscreen, (v) => {
             s.fullscreen = v;
             if (v) enterFullscreen();
