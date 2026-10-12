@@ -8,7 +8,7 @@ import { rich } from '../rich';
 import { omenMedal, omenTooltip } from '../hud';
 import { coach } from '../tutorial';
 import { attachTooltip, button } from '../widgets';
-import { menuButton, showDeck, showHelp, showRunMenu } from './common';
+import { menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 import { NightScreen } from './night';
 
 /** Карта созвездия: три ночи, цели, награды и Затмение впереди. */
@@ -73,7 +73,8 @@ export class MapScreen implements Screen {
       nodes,
       run.omens.length ? omens : null,
       h('div.map-actions', null, [
-        button(t('pause.help'), () => showHelp(), { variant: 'ghost' }),
+        button(t('pause.help'), () => showHelp(undefined, run.comboLevels), { variant: 'ghost' }),
+        button(t('combos.button'), () => showCombos(run), { variant: 'ghost' }),
         button(t('shop.yourDeck', { n: run.deck.length }), () => showDeck(run), { variant: 'secondary' }),
         this.peek
           ? button(`← ${t('pause.backToShop')}`, () => void this.app.route(), { className: 'grow' })

@@ -1,11 +1,12 @@
 import { chartIcon, omenSigil, ritualIcon, bossSigil } from '@/art/sigil';
-import { GLYPHS, type Card, type Glyph } from '@/core/types';
+import { GLYPHS, type Card, type ComboId, type Glyph } from '@/core/types';
 import { dict, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, modal } from '../widgets';
 import { track } from '@/analytics';
 import { cardThumb } from './common';
 import { rich } from '../rich';
+import { comboList } from '../combos';
 
 /**
  * Справочник: каждый термин — короткая зацикленная анимация и пара фраз простым
@@ -86,7 +87,7 @@ function entry(title: string, text: string, visual: HTMLElement, id?: string): H
 }
 
 /** Открывает справочник; `focus` — id раздела, к которому прокрутить (например, `glyph-echo`). */
-export function showGuide(focus?: string): void {
+export function showGuide(focus?: string, levels?: Record<ComboId, number>): void {
   track('guide_open', { focus: focus ?? '' });
   const g = dict().guide;
   const s = dpr();
@@ -94,6 +95,9 @@ export function showGuide(focus?: string): void {
     h('ol.help-list.g-rules', null, dict().help.body.map((line) => h('li', null, line))),
     entry(g.line[0], g.line[1], lineDemo(), 'line'),
     entry(g.formula[0], g.formula[1], formulaDemo(), 'formula'),
+    h('h3.g-section', { dataset: { guide: 'combos' } }, t('combos.title')),
+    h('p.hint', null, t('combos.hint')),
+    comboList({ levels }),
     entry(g.cross[0], g.cross[1], crossDemo(), 'cross'),
     entry(g.burn[0], g.burn[1], burnDemo(), 'burn'),
     entry(g.omens[0], g.omens[1], iconDemo(canvasImg(omenSigil('stardust', 56, s), 56)), 'omens'),

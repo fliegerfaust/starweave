@@ -7,6 +7,7 @@ import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
+import { comboList } from '../combos';
 
 export const CARD_THUMB = 46;
 
@@ -63,9 +64,22 @@ export function showDeck(run: RunState): void {
   });
 }
 
-/** Правила и справочник терминов — одно окно. */
-export function showHelp(focus?: string): void {
-  void import('./guide').then(({ showGuide }) => showGuide(focus));
+/** Правила и справочник терминов — одно окно. `levels` — уровни созвездий текущего забега. */
+export function showHelp(focus?: string, levels?: RunState['comboLevels']): void {
+  void import('./guide').then(({ showGuide }) => showGuide(focus, levels));
+}
+
+/** Все созвездия с примерами и уровнями забега: что прокачано звёздными картами. */
+export function showCombos(run: RunState): void {
+  const m = modal(
+    [h('p.hint', null, t('combos.hint')), comboList({ levels: run.comboLevels }), h('div.row.end', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))],
+    { title: t('combos.yours'), className: 'combos' },
+  );
+}
+
+/** Кодекс (Знамения, Затмения, созвездия) — доступен и посреди забега. */
+export function showCodexFrom(app: App): void {
+  void import('./codex').then(({ showCodex }) => showCodex(app));
 }
 
 /** Окно настроек; изменения применяются сразу. */
@@ -175,7 +189,9 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
       h('div.stack', null, [
         button(t('pause.resume'), () => m.close()),
         ...extra,
-        button(t('guide.button'), () => showHelp(), { variant: 'secondary' }),
+        app.run ? button(t('combos.yours'), () => showCombos(app.run!), { variant: 'secondary' }) : null,
+        button(t('guide.button'), () => showHelp(undefined, app.run?.comboLevels), { variant: 'secondary' }),
+        button(t('menu.codex'), () => showCodexFrom(app), { variant: 'secondary' }),
         button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),
         button(t('pause.toMenu'), () => {
           m.close();
