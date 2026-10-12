@@ -34,6 +34,8 @@ export interface EventMap {
   // ── Экономика ──────────────────────────────────────────────────────────
   shop_buy: { kind: string; id: string; price: number; ante: number; gold_left: number };
   shop_sell: { id: string; ante: number };
+  /** Услуга «Убрать карту» в Обсерватории. */
+  shop_banish: { ante: number };
   shop_reroll: { cost: number; ante: number };
   pack_choose: { pack: string; id: string };
 

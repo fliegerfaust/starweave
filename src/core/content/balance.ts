@@ -39,6 +39,8 @@ export const PACK_PRICE = { omen: 6, ritual: 4, chart: 4 } as const;
 export const PACK_OPTIONS = 3;
 export const REROLL_BASE = 5;
 export const CHART_PRICE = 3;
+/** Постоянная услуга Обсерватории: убрать одну карту из колоды, раз за визит. */
+export const BANISH_SERVICE_PRICE = 2;
 export const RARITY_WEIGHT = { 1: 70, 2: 25, 3: 5 } as const;
 
 export function anteTarget(ante: number): number {
