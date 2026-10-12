@@ -499,6 +499,7 @@ export class App {
   /** Обучение пройдено: поздравление и старт настоящего забега. */
   finishTutorial(): void {
     track('tutorial_complete', {});
+    this.profile.tutorialFinished = true;
     this.endTutorial();
     this.svc.audio.win();
     void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this));

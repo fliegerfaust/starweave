@@ -240,6 +240,7 @@ export class Hud {
     this.calcCaption.textContent = '';
     this.setCalc(light, mult);
     this.calc.classList.add('show');
+    document.body.classList.add('scoring');
   }
 
   setCalcLabel(text: string): void {
@@ -275,6 +276,7 @@ export class Hud {
 
   hideCalc(): void {
     this.calc.classList.remove('show');
+    document.body.classList.remove('scoring');
   }
 
   /** Превью хода: какие созвездия вспыхнут и примерно сколько дадут. */

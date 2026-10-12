@@ -26,6 +26,8 @@ export interface Profile {
   /** Наибольшая открытая звёздность. */
   maxStake: number;
   tutorialDone: boolean;
+  /** Обучение пройдено до конца (не пропущено) — короткие подсказки не нужны. */
+  tutorialFinished?: boolean;
 }
 
 export function emptyProfile(): Profile {

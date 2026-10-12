@@ -6,7 +6,15 @@ async function boot(): Promise<void> {
   await document.fonts.ready;
   await Promise.all([document.fonts.load("400 40px 'Forum'"), document.fonts.load("600 16px 'Manrope Variable'")]);
   const ui = document.getElementById('ui')!;
-  if (new URLSearchParams(location.search).has('gallery')) {
+  const params = new URLSearchParams(location.search);
+  if (params.has('promo')) {
+    const { setLang } = await import('./i18n');
+    if (params.get('lang') === 'en') setLang('en');
+    const { showPromo } = await import('./dev/promo');
+    showPromo(ui);
+    return;
+  }
+  if (params.has('gallery')) {
     const { showGallery } = await import('./dev/gallery');
     showGallery(ui);
     return;
