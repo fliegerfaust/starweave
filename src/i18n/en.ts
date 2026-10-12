@@ -368,7 +368,7 @@ export const en: Dict = {
     'eclipse-moon': ['Lunar Eclipse', 'Moon cards give no light or effects'],
     'eclipse-star': ['Stellar Eclipse', 'Star cards give no light or effects'],
     'eclipse-comet': ['Comet Eclipse', 'Comet cards give no light or effects'],
-    fog: ['The Fog', 'Card ranks are hidden'],
+    fog: ['The Fog', 'Ranks in your hand are hidden and revealed once a card lands on the sky. Suits stay visible — go for flushes, and check ranks on the board and in your deck'],
     drought: ['Drought', '−1 hand size'],
     shortNight: ['Short Night', '−5 moves'],
     silence: ['Silence', 'No burns'],

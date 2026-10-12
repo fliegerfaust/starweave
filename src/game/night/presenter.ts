@@ -133,6 +133,11 @@ export class Presenter {
     await this.tweens.to(tr, { x: p.x, y: p.y, rot: 0, scale: scene.boardScale * 1.08 }, { duration: (dragged ? 0.12 : 0.22) / this.speed, ease: 'outCubic' });
     d.layer = Layer.BoardCards;
     d.z = cell;
+    if (view.hideRank) {
+      // «Туман»: ранг открывается, когда карта легла на небо, — дальше по полю можно планировать
+      view.hideRank = false;
+      floatText(this.world, p.x, p.y - scene.layout.cardH * 0.3, String(view.card.rank), { size: 28, display: true, color: '#fff', life: 0.8, rise: 20 });
+    }
     this.audio.bell(view.card.rank);
     this.scene.svc.haptics.play('place');
     ring(this.world, p.x, p.y, SUIT_COLORS[view.card.suit].main, scene.layout.cardW * 0.8, 0.5);
