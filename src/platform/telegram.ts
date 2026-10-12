@@ -33,10 +33,13 @@ interface TelegramWebApp {
 declare global {
   interface Window {
     Telegram?: { WebApp?: TelegramWebApp };
+    telegramAnalytics?: { init(opts: { token: string; appName: string }): Promise<void> | void };
   }
 }
 
 const SDK_URL = 'https://telegram.org/js/telegram-web-app.js';
+/** Аналитика Telegram Mini Apps (TON Builders): запуски, удержание, место в каталоге. */
+const ANALYTICS_URL = 'https://tganalytics.xyz/index.js';
 const NIGHT = '#070818';
 
 /**
@@ -95,6 +98,24 @@ export class TelegramPlatform implements Platform {
     if (app.isVersionAtLeast('8.0') && (app.platform === 'ios' || app.platform === 'android')) app.requestFullscreen?.();
     app.onEvent('deactivated', () => this.emitPause(true));
     app.onEvent('activated', () => this.emitPause(false));
+    await this.initAnalytics();
+  }
+
+  /**
+   * Аналитика Telegram — до первой отрисовки, как требует SDK. Включается ключом из
+   * @DataChief_bot (переменные репозитория TG_ANALYTICS_TOKEN и TG_ANALYTICS_APP);
+   * без ключа или при сбое загрузки игра работает как обычно.
+   */
+  private async initAnalytics(): Promise<void> {
+    const token = import.meta.env.VITE_TG_ANALYTICS_TOKEN;
+    const appName = import.meta.env.VITE_TG_ANALYTICS_APP;
+    if (!token || !appName) return;
+    try {
+      await loadScript(ANALYTICS_URL);
+      await window.telegramAnalytics?.init({ token, appName });
+    } catch {
+      /* аналитика не должна мешать игре */
+    }
   }
 
   ready(): void {

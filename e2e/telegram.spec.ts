@@ -42,6 +42,10 @@ test('Telegram Mini App', async ({ page }) => {
       },
     };
   });
+  // Скрипт аналитики Telegram подменяем: проверяем, что игра его инициализирует ключом
+  await page.route('https://tganalytics.xyz/index.js', (route) =>
+    route.fulfill({ contentType: 'text/javascript', body: 'window.telegramAnalytics = { init: (o) => { window.__tga = o; } };' }),
+  );
   await page.goto('/#tgWebAppData=x&tgWebAppVersion=8.0&tgWebAppPlatform=ios');
   await page.waitForFunction(() => !!document.querySelector('.menu-buttons .btn'));
   const calls = () => page.evaluate(() => (window as unknown as { __tg: { calls: string[] } }).__tg.calls);
@@ -49,6 +53,13 @@ test('Telegram Mini App', async ({ page }) => {
   const started = await calls();
   expect(started).toEqual(expect.arrayContaining(['expand', 'fullscreen', 'noSwipes', 'header:#070818']));
   expect(await page.evaluate(() => document.documentElement.classList.contains('tg'))).toBe(true);
+  // С ключом (TG_ANALYTICS_* при сборке) аналитика Telegram получает токен и имя приложения
+  if (process.env.VITE_TG_ANALYTICS_TOKEN) {
+    expect(await page.evaluate(() => (window as unknown as { __tga?: unknown }).__tga)).toEqual({
+      token: process.env.VITE_TG_ANALYTICS_TOKEN,
+      appName: process.env.VITE_TG_ANALYTICS_APP,
+    });
+  }
   expect(await page.locator('.menu-buttons .btn').first().textContent()).toMatch(/Обучение|Новый забег|Продолжить/);
   // Подсказки «на весь экран» — только для своего сайта
   expect(await page.locator('.home-link').count()).toBe(0);

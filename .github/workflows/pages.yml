@@ -31,6 +31,9 @@ jobs:
           VITE_TG_APP_LINK: ${{ vars.TG_APP_LINK }}
           # Номер счётчика Яндекс Метрики (сайт и Telegram): gh variable set METRIKA_ID
           VITE_METRIKA_ID: ${{ vars.METRIKA_ID }}
+          # Аналитика Telegram Mini Apps: ключ и идентификатор из @DataChief_bot
+          VITE_TG_ANALYTICS_TOKEN: ${{ vars.TG_ANALYTICS_TOKEN }}
+          VITE_TG_ANALYTICS_APP: ${{ vars.TG_ANALYTICS_APP }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

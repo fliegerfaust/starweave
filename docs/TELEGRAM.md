@@ -45,6 +45,27 @@
 gh variable set TG_APP_LINK --body "https://t.me/starweave_game_bot/play" -R fliegerfaust/starweave
 ```
 
+## 2а. Аналитика Telegram (без сервера)
+
+Telegram считает запуски Mini App, аудиторию и удержание сам — нужен только ключ:
+
+1. Открыть [@DataChief_bot](https://t.me/DataChief_bot) (или раздел Analytics на
+   [builders.ton.org](https://builders.ton.org)) и зарегистрировать приложение: ссылка на бота
+   `https://t.me/starweave_game_bot`, домен `fliegerfaust.github.io`.
+2. Придумать идентификатор (например, `starweave`) — это `appName`; бот выдаст токен.
+3. Прислать оба значения мне или выполнить:
+
+```bash
+gh variable set TG_ANALYTICS_TOKEN --body "<токен>" -R fliegerfaust/starweave
+```
+
+```bash
+gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
+```
+
+Следующий деплой подключит аналитику (`src/platform/telegram.ts`). Наши подробные события
+(обучение, ночи, смерти, покупки) идут в Яндекс Метрику — она включится, когда будет счётчик.
+
 ## 3. Проверка
 
 - [ ] Ссылка `t.me/<бот>/play` открывает игру на весь экран, меню на русском.
