@@ -243,6 +243,8 @@ export const en: Dict = {
     speeds: ['Calm', 'Normal', 'Fast', 'Lightning'],
     haptics: 'Haptics',
     reduceMotion: 'Less shake',
+    privacy: 'Privacy',
+    terms: 'Terms of use',
     reset: 'Reset progress',
     resetConfirm: 'Delete all progress and the current run?',
     on: 'On',

@@ -971,3 +971,9 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-lock .btn:not(.tut-allow), .tut-lock .mini, .tut-lock .map-peek, .tut-lock .icon-btn { pointer-events: none !important; opacity: 0.45; }
 .btn.tut-allow { animation: tut-glow 1.4s ease-in-out infinite; }
 @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(246, 194, 91, 0.7); } 50% { box-shadow: 0 0 0 8px rgba(246, 194, 91, 0); } }
+
+.legal { font-size: 14px; line-height: 1.55; }
+.legal h1 { font: 400 26px/1.2 var(--font-display); color: var(--gold); margin: 0 0 8px; }
+.legal h2 { font-size: 16px; margin: 18px 0 6px; }
+.legal ul { padding-left: 20px; margin: 6px 0; }
+.legal-links { margin-top: 4px; }
