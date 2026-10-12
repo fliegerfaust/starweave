@@ -39,7 +39,6 @@ function nativeHaptics(): NativeHaptics | null {
 
 export class Haptics {
   enabled = true;
-  private iosLabel: HTMLLabelElement | null = null;
   private readonly isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   play(kind: HapticKind): void {
@@ -100,24 +99,28 @@ export class Haptics {
     }
   }
 
+  /**
+   * iOS 18+: щелчок системного переключателя `<input type="checkbox" switch>` даёт тактильный
+   * отклик. Как в проверенной библиотеке ios-haptics: каждый раз свежий переключатель внутри
+   * `<label>`, клик по метке и удаление. Работает только синхронно внутри завершённого касания
+   * (pointerup / click) — нажатие (pointerdown) для iOS ещё не «жест».
+   */
   private playIOS(kind: HapticKind): void {
-    if (!this.iosLabel) {
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.setAttribute('switch', '');
-      input.id = 'sw-haptic';
-      input.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;left:-10px';
-      const label = document.createElement('label');
-      label.htmlFor = 'sw-haptic';
-      label.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;left:-10px';
-      document.body.append(input, label);
-      this.iosLabel = label;
-    }
-    // Вне касания iOS щелчок всё равно проглотит — не дёргаем переключатель зря
     if (navigator.userActivation && !navigator.userActivation.isActive) return;
-    const label = this.iosLabel;
-    // Первый щелчок — синхронно, пока идёт касание; следующие iOS может и пропустить
+    this.tickIOS();
+    for (let i = 1; i < IOS_TICKS[kind]; i++) window.setTimeout(() => this.tickIOS(), i * 70);
+  }
+
+  private tickIOS(): void {
+    const label = document.createElement('label');
+    label.ariaHidden = 'true';
+    label.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.append(input);
+    document.head.append(label);
     label.click();
-    for (let i = 1; i < IOS_TICKS[kind]; i++) window.setTimeout(() => label.click(), i * 70);
+    label.remove();
   }
 }
