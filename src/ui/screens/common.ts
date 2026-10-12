@@ -4,6 +4,7 @@ import type { Card, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
 import { SPEEDS } from '@/meta/settings';
+import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
 
@@ -118,6 +119,13 @@ export function showSettings(app: App, onChange?: () => void): void {
         s.haptics = v;
         if (v) app.svc.haptics.play('success');
       })),
+      canFullscreen()
+        ? field(t('settings.fullscreen'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.fullscreen, (v) => {
+            s.fullscreen = v;
+            if (v) enterFullscreen();
+            else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+          }))
+        : null,
       field(t('settings.reduceMotion'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.reduceMotion, (v) => (s.reduceMotion = v))),
       h('div.row.gap.wrap.legal-links', null, [
         button(t('settings.privacy'), () => void import('./legal').then(({ showLegal }) => showLegal('privacy')), { variant: 'ghost', className: 'small' }),
