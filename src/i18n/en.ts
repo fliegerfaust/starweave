@@ -39,6 +39,7 @@ export const en: Dict = {
     light: 'light',
     mult: 'multiplier',
     burn: 'Burn',
+    orderWarn: 'Tip: “{x}” multiplies (×). In the Observatory move it right of “{a}” — you’ll score more.',
     burnHint: 'Drag a card here or select it to burn',
     deck: 'Deck',
     begin: 'Begin night',
@@ -197,6 +198,7 @@ export const en: Dict = {
     take: 'Take',
     skip: 'Skip',
     packTitle: 'Choose one',
+    orderWarn: '“{x}” multiplies (×) but sits left of “{a}”, which adds. Drag “{x}” to the right — you’ll score more.',
     dragHint: 'Omens fire left to right. Put the ones that multiply (×) to the right. Drag a medallion to change the order.',
   },
   over: {

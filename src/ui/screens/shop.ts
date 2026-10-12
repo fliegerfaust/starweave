@@ -3,6 +3,7 @@ import { FINAL_ANTE } from '@/core/content/balance';
 import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
+import { misorderedOmens } from '@/core/omen-order';
 import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
@@ -88,6 +89,8 @@ export class ShopScreen implements Screen {
       owned.append(chip);
     });
     for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
+    const misordered = misorderedOmens(run.omens);
+    if (misordered) owned.querySelector(`[data-omen="${run.omens.findIndex((o) => o.id === misordered.xmult)}"]`)?.classList.add('misplaced');
     makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
 
     const sections: (HTMLElement | null)[] = [
@@ -108,7 +111,9 @@ export class ShopScreen implements Screen {
       h('section.shop-section', null, [
         h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
         owned,
-        run.omens.length > 1 ? h('p.hint', null, t('shop.dragHint')) : null,
+        misordered
+          ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
+          : run.omens.length > 1 ? h('p.hint', null, t('shop.dragHint')) : null,
         h('div.row.gap.wrap', null, [
           button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
           button(t('combos.yours'), () => showCombos(run), { variant: 'ghost', className: 'small' }),
