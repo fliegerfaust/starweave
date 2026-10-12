@@ -122,6 +122,10 @@ export class TutorialDirector {
     this.overlay.destroy();
     this.scene?.setGuide(null);
     this.scene?.setStepPause(1);
+    // Пауза первого подсчёта не должна пережить обучение: иначе подсчёт после «Пропустить» зависнет
+    this.scene?.setScoringGate(null);
+    this.releaseGate?.();
+    this.releaseGate = null;
     this.shopRoot?.classList.remove('tut-lock');
   }
 
@@ -322,6 +326,8 @@ export class TutorialDirector {
 
   /** Пока идёт подсчёт — подсвечиваем формулу. */
   private formulaShown = false;
+  /** Отпускает подсчёт, ждущий «Далее», если обучение остановили посреди паузы. */
+  private releaseGate: (() => void) | null = null;
 
   private watchFormula(): void {
     // Первый подсчёт стоит на паузе, пока игрок не прочитает объяснение и не нажмёт «Далее»
@@ -329,7 +335,11 @@ export class TutorialDirector {
     this.night.setScoringGate(async () => {
       gateOpen = true;
       this.overlay.point(null);
-      await this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') });
+      await Promise.race([
+        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') }),
+        new Promise<void>((resolve) => (this.releaseGate = resolve)),
+      ]);
+      this.releaseGate = null;
       this.overlay.hideBubble();
       gateOpen = false;
     });
