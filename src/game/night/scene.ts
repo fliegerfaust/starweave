@@ -1,4 +1,4 @@
-import { CARD_PAD, cardBack, cardFace } from '@/art/card';
+import { CARD_ASPECT, CARD_PAD, cardBack, cardFace } from '@/art/card';
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
 import { activeCells, buildLines } from '@/core/grid';
@@ -181,9 +181,14 @@ export class NightScene {
     const dpr = this.svc.renderer.dpr;
     const w = v.width;
     const hgt = w / 0.7;
-    const pad = Math.ceil(w * CARD_PAD);
+    // Спрайт рисуем с запасом — по самому крупному размеру карты на экране (небо, рука,
+    // подъём при выкладке), — и только уменьшаем: растянутый спрайт мылит.
+    const spriteW = Math.ceil(Math.max(this.layout.handW, this.layout.cardW) * 1.12);
+    const k = w / spriteW;
+    const pad = Math.ceil(spriteW * CARD_PAD) * k;
+    const spriteH = Math.round(spriteW / CARD_ASPECT) * k;
     const showFace = v.faceUp && t.flip >= 0;
-    const img = showFace ? cardFace(v.card, w, dpr, { hideRank: v.hideRank }) : cardBack(w, dpr);
+    const img = showFace ? cardFace(v.card, spriteW, dpr, { hideRank: v.hideRank }) : cardBack(spriteW, dpr);
     ctx.globalAlpha = t.alpha;
     if (this.layout.mode === 'landscape') ctx.translate(t.x - v.lift, t.y);
     else ctx.translate(t.x, t.y - v.lift);
@@ -198,7 +203,8 @@ export class NightScene {
       ctx.fill();
       ctx.restore();
     }
-    ctx.drawImage(img, -w / 2 - pad, -hgt / 2 - pad, w + pad * 2, hgt + pad * 2);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, -w / 2 - pad, -hgt / 2 - pad, w + pad * 2, spriteH + pad * 2);
     if (v.debuffed && showFace) {
       roundRect(ctx, -w / 2, -hgt / 2, w, hgt, w * 0.09);
       ctx.fillStyle = 'rgba(4,3,12,0.62)';

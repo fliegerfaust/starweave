@@ -78,10 +78,8 @@ export class MenuScreen implements Screen {
         h('p.tagline', null, t('game.tagline')),
       ]),
       buttons,
-      h('div.menu-foot', null, `v${__APP_VERSION__}`),
+      h('div.menu-foot', null, [this.homeHint(), h('span', null, `v${__APP_VERSION__}`)]),
     );
-    const hint = this.homeHint();
-    if (hint) this.el.insertBefore(hint, this.el.lastChild);
   }
 
   /** Новичку перед первым забегом предлагаем обучение. */
@@ -114,18 +112,29 @@ export class MenuScreen implements Screen {
     confirmDialog(t('menu.overwrite'), next, 'primary');
   }
 
-  /** iPhone в браузере: подсказка, как играть без панелей браузера. Показывается, пока не закроют. */
+  /**
+   * iPhone в браузере: развернуть игру нельзя, но с экрана «Домой» она открывается без
+   * панелей браузера. Короткая ссылка внизу меню открывает пошаговую инструкцию.
+   */
   private homeHint(): HTMLElement | null {
     const app = this.app;
     if (app.platform.id !== 'web' || app.settings.homeHintSeen || !suggestHomeScreen()) return null;
-    const el = h('div.home-hint', null, [
-      h('span', null, t('settings.homeHint')),
-      button(t('settings.homeHintOk'), () => {
-        app.applySettings({ ...app.settings, homeHintSeen: true });
-        el.remove();
-      }, { variant: 'ghost', className: 'small' }),
-    ]);
-    return el;
+    const link = h('button.link-btn.home-link', { type: 'button' }, t('home.link'));
+    link.addEventListener('click', () => {
+      const m = modal(
+        [
+          h('p.modal-text', null, t('home.why')),
+          h('ol.home-steps', null, dict().home.steps.map((step) => h('li', null, step))),
+          h('div.row.center', null, button(t('home.ok'), () => {
+            app.applySettings({ ...app.settings, homeHintSeen: true });
+            m.close();
+            link.remove();
+          })),
+        ],
+        { title: t('home.title'), className: 'narrow' },
+      );
+    });
+    return link;
   }
 
   private rerender(): void {
