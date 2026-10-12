@@ -129,6 +129,15 @@ export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] 
   return refreshUnlocks(p);
 }
 
+/** Отмена записи поражения: забег продолжился после «второго шанса». */
+export function unrecordRunEnd(p: Profile, run: RunState): void {
+  if (run.recordedLines === undefined) return;
+  p.runs = Math.max(0, p.runs - 1);
+  p.totalLines = Math.max(0, p.totalLines - run.recordedLines);
+  delete run.recordedLines;
+  if (run.daily && p.daily) p.daily.finished = false;
+}
+
 /** Вызов дня начат: вторая попытка за день не даётся. */
 export function markDailyStarted(p: Profile): void {
   const date = todayKey();

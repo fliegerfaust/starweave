@@ -1,4 +1,5 @@
 import { chartIcon, omenSigil, packIcon, ritualIcon } from '@/art/sigil';
+import { FINAL_ANTE } from '@/core/content/balance';
 import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
@@ -88,10 +89,13 @@ export class ShopScreen implements Screen {
         h('h1.shop-title', null, t('shop.title')),
         h('div.row.gap', null, [
           h('div.gold-pill', null, String(run.gold)),
-          menuButton(() => showRunMenu(this.app, [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })])),
+          menuButton(() => showRunMenu(this.app, run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2 ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
         ]),
       ]),
-      h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`),
+      // После последней ночи финального созвездия впереди победа, а не карта
+      run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2
+        ? h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`)
+        : null,
       h('section.shop-section', { dataset: { shop: 'omens' } }, [h('h2', null, t('shop.omens')), omenCards]),
       h('section.shop-section', { dataset: { shop: 'items' } }, [h('h2', null, t('shop.items')), itemCards]),
       shop.packs.length ? h('section.shop-section', null, [h('h2', null, t('shop.packs')), packCards]) : null,

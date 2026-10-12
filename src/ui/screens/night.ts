@@ -185,6 +185,20 @@ export class NightScreen implements Screen {
 
   private showGameOver(): void {
     const run = this.run;
+    if (run.tutorial) {
+      // Учебную ночь можно переиграть или пропустить — настоящий забег не трогаем
+      this.overlay = modal(
+        [
+          h('p.modal-text', null, t('tut.lost')),
+          h('div.row.center.wrap', null, [
+            button(t('tut.skip'), () => this.app.skipTutorial(), { variant: 'ghost' }),
+            button(t('tut.retry'), () => this.app.startTutorial()),
+          ]),
+        ],
+        { title: t('over.lostTitle'), dismissable: false, className: 'narrow' },
+      );
+      return;
+    }
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
     const isRecord = run.stats.bestPlacement >= this.app.profile.bestPlacement && run.stats.bestPlacement > 0;

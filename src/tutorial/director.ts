@@ -44,8 +44,26 @@ export class TutorialDirector {
   private seq = 0;
   private cursor = 0;
 
+  /** Таймеры текущего шага — гасятся при остановке, чтобы не жили после пропуска. */
+  private timers = new Set<number>();
+  /** Пересчитать подсветку и палец текущего шага (после поворота экрана). */
+  private reposition: (() => void) | null = null;
+  private readonly onResize = () => window.setTimeout(() => this.reposition?.(), 60);
+
   constructor(private readonly app: App) {
     this.overlay = new TutorialOverlay(() => this.app.skipTutorial());
+    window.addEventListener('resize', this.onResize);
+  }
+
+  private every(ms: number, fn: () => void): number {
+    const id = window.setInterval(fn, ms);
+    this.timers.add(id);
+    return id;
+  }
+
+  private clear(id: number): void {
+    window.clearInterval(id);
+    this.timers.delete(id);
   }
 
   emit(e: TutorialEvent): void {
@@ -90,6 +108,9 @@ export class TutorialDirector {
   stop(): void {
     this.stopped = true;
     this.waiters = [];
+    for (const id of this.timers) window.clearInterval(id);
+    this.timers.clear();
+    window.removeEventListener('resize', this.onResize);
     this.overlay.destroy();
     this.scene?.setGuide(null);
     this.scene?.setStepPause(1);
@@ -109,6 +130,7 @@ export class TutorialDirector {
     this.step += 1;
     this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
     this.overlay.spotlight(opts.spot ?? null);
+    this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
     await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next') });
   }
@@ -129,22 +151,25 @@ export class TutorialDirector {
     const id = this.cardId(code);
     this.sync();
     scene.setGuide({ card: id, cell });
-    const from = scene.handRect(id)!;
-    const to = scene.cellRect(cell);
     this.step += 1;
     this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
     this.overlay.spotlight(null);
-    this.overlay.point(center(from), center(to));
+    this.reposition = () => {
+      const from = scene.handRect(id);
+      if (from && !scene.busy) this.overlay.point(center(from), center(scene.cellRect(cell)));
+    };
+    this.reposition();
     await this.overlay.say(t(`tut.${key}`), { place });
     // Как только карта легла — убираем пузырь, чтобы он не закрывал подсчёт
-    const watch = setInterval(() => {
+    const watch = this.every(50, () => {
       if (scene.busy) {
         this.overlay.hideBubble();
         this.overlay.point(null);
       }
-    }, 50);
+    });
     const { events } = await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'place'));
-    clearInterval(watch);
+    this.clear(watch);
+    this.reposition = null;
     this.overlay.point(null);
     scene.setGuide({});
     return events;
@@ -176,19 +201,23 @@ export class TutorialDirector {
     // Сжигание
     const bad = this.cardId('1m');
     scene.setGuide({ card: bad, burn: true });
-    const badRect = scene.handRect(bad)!;
-    this.overlay.point(center(badRect));
+    this.reposition = () => {
+      const r = scene.handRect(bad);
+      if (r) this.overlay.point(center(scene.selected !== null ? elementRect(this.hud!.burnBtn)! : r));
+    };
+    this.reposition();
     this.step += 1;
     this.overlay.setProgress(this.step, TOTAL_STEPS);
     this.overlay.spotlight(null);
     this.sync();
     await this.overlay.say(t('tut.burn'), { place: 'top' });
     const burnBtn = this.hud!.burnBtn;
-    const waitSelect = setInterval(() => {
-      if (scene.selected !== null) this.overlay.point(center(elementRect(burnBtn)!));
-    }, 200);
+    const waitSelect = this.every(200, () => {
+      this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
+    });
     await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'burn'));
-    clearInterval(waitSelect);
+    this.clear(waitSelect);
+    this.reposition = null;
     this.overlay.point(null);
     scene.setGuide({});
 
@@ -230,9 +259,9 @@ export class TutorialDirector {
     q('[data-shop="next"]')?.classList.add('tut-allow');
     await this.say('toNight', { spot: elementRect(q('[data-shop="next"]')), next: false });
 
-    // Ночь 2 — Знамение в деле
-    root.classList.remove('tut-lock');
+    // Ночь 2 — Знамение в деле (магазин заперт, пока игрок не ушёл из него)
     await this.waitFor('night');
+    root.classList.remove('tut-lock');
     await this.waitFor('dealt');
     const scene2 = this.night;
     scene2.setGuide({});

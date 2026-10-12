@@ -85,6 +85,7 @@ export class MenuScreen implements Screen {
           button(t('tut.offerSkip'), () => {
             m.close();
             app.profile.tutorialDone = true;
+            app.persistProfile();
             next();
           }, { variant: 'ghost' }),
           button(t('tut.menuButton'), () => {

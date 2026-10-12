@@ -148,6 +148,8 @@ export const en: Dict = {
     doneTip2: 'Unknown term? Tap “?” at the top of the screen.',
     doneTip3: 'The third night of each constellation is an Eclipse with its own rule.',
     startRun: 'Start a run',
+    lost: 'Out of moves — no worries, let’s try again.',
+    retry: 'Retry',
     menuButton: 'Tutorial',
     menuSub: '2 minutes',
     offer: 'Looks like you’re new here. Take a short tutorial? It takes 2 minutes and makes everything clear.',
