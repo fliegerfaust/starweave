@@ -25,6 +25,7 @@ export interface Profile {
   daily: DailyRecord | null;
   /** Наибольшая открытая звёздность. */
   maxStake: number;
+  tutorialDone: boolean;
 }
 
 export function emptyProfile(): Profile {
@@ -41,6 +42,7 @@ export function emptyProfile(): Profile {
     tutorial: [],
     daily: null,
     maxStake: 0,
+    tutorialDone: false,
   };
 }
 

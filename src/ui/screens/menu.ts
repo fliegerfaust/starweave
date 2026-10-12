@@ -47,13 +47,17 @@ export class MenuScreen implements Screen {
     const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && app.hasSave);
     const buttons = h('div.menu-buttons', null, [
       app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
-      button(t('menu.newRun'), () => this.guardSave(() => this.chooseSky()), { variant: app.hasSave ? 'secondary' : 'primary' }),
+      !app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { sub: t('tut.menuSub') }) : null,
+      button(t('menu.newRun'), () => this.guardSave(() => this.offerTutorial(() => this.chooseSky())), {
+        variant: app.hasSave || !app.profile.tutorialDone ? 'secondary' : 'primary',
+      }),
       button(dailyDone ? t('menu.dailyDone') : t('menu.daily'), () => this.guardSave(() => app.startRun('classic', true)), {
         variant: 'secondary',
         disabled: dailyDone,
         sub: todayKey(),
       }),
-      h('div.row.gap', null, [
+      h('div.menu-grid', null, [
+        app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { variant: 'ghost' }) : null,
         button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }),
         button(t('menu.howTo'), () => showHelp(), { variant: 'ghost' }),
         button(t('menu.settings'), () => showSettings(app, () => this.rerender()), { variant: 'ghost' }),
@@ -67,6 +71,29 @@ export class MenuScreen implements Screen {
       ]),
       buttons,
       h('div.menu-foot', null, 'v0.1.0'),
+    );
+  }
+
+  /** Новичку перед первым забегом предлагаем обучение. */
+  private offerTutorial(next: () => void): void {
+    const app = this.app;
+    if (app.profile.tutorialDone || app.profile.runs > 0) return next();
+    const m = modal(
+      [
+        h('p.modal-text', null, t('tut.offer')),
+        h('div.row.between', null, [
+          button(t('tut.offerSkip'), () => {
+            m.close();
+            app.profile.tutorialDone = true;
+            next();
+          }, { variant: 'ghost' }),
+          button(t('tut.menuButton'), () => {
+            m.close();
+            app.startTutorial();
+          }),
+        ]),
+      ],
+      { className: 'narrow' },
     );
   }
 

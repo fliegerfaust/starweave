@@ -344,8 +344,14 @@ body {
 
 .calc {
   position: absolute;
-  top: calc(var(--board-top, 170px) + 6px);
-  left: var(--board-cx, 50%);
+  top: var(--calc-top, 60px);
+  left: var(--calc-cx, 50%);
+  width: var(--calc-w, min(620px, 96vw));
+  padding: 8px 8px 8px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(34, 28, 86, 0.98), rgba(14, 12, 42, 0.98));
+  border: 1px solid rgba(246, 194, 91, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, -8px) scale(0.92);
   opacity: 0;
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -355,10 +361,10 @@ body {
 }
 .calc.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 .calc-combo {
-  font: 400 20px/1 var(--font-display);
+  font: 400 18px/1 var(--font-display);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   text-shadow: 0 0 14px rgba(255, 255, 255, 0.6), 0 2px 6px #000;
 }
 .calc-row { display: inline-flex; align-items: flex-start; gap: 6px; }
@@ -377,7 +383,7 @@ body {
 .calc-total.done { color: #2a1a04; background: linear-gradient(180deg, #ffe6a8, #f6c25b); border-style: solid; box-shadow: 0 0 22px rgba(246, 194, 91, 0.6); }
 .calc-total.bump { animation: bump 0.3s ease; }
 .calc-caption {
-  margin-top: 8px;
+  margin-top: 6px;
   min-height: 22px;
   display: inline-block;
   padding: 3px 12px;
@@ -489,6 +495,8 @@ body {
 .menu-buttons { pointer-events: auto; display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); }
 .menu-buttons > .btn { width: 100%; }
 .menu-buttons .row .btn { flex: 1; padding: 10px 8px; font-size: 13px; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.menu-grid .btn { padding: 10px 8px; font-size: 13px; min-height: 42px; }
 .menu-foot { color: rgba(165, 160, 207, 0.4); font-size: 11px; }
 
 .sky-list { display: flex; flex-direction: column; gap: 8px; }
@@ -889,3 +897,76 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .map-peek { pointer-events: auto; align-self: flex-start; border: 0; background: none; color: var(--ink-dim); font: 600 13px/1 var(--font-body); padding: 4px 0; cursor: pointer; margin-top: -6px; }
 .map-peek:hover { color: var(--gold); }
 .map-top .icon-btn { flex: none; }
+
+/* ─── Обучение ────────────────────────────────────────────────────────── */
+.tut-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+.tut-spot {
+  position: fixed;
+  border-radius: 16px;
+  box-shadow: 0 0 0 200vmax rgba(3, 3, 14, 0.62), 0 0 0 2px rgba(246, 194, 91, 0.9), 0 0 30px rgba(246, 194, 91, 0.5);
+  opacity: 0;
+  transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease, opacity 0.3s ease;
+}
+.tut-spot.on { opacity: 1; animation: tut-breathe 2s ease-in-out infinite; }
+@keyframes tut-breathe { 0%, 100% { box-shadow: 0 0 0 200vmax rgba(3, 3, 14, 0.62), 0 0 0 2px rgba(246, 194, 91, 0.9), 0 0 24px rgba(246, 194, 91, 0.4); } 50% { box-shadow: 0 0 0 200vmax rgba(3, 3, 14, 0.62), 0 0 0 3px rgba(255, 224, 150, 1), 0 0 40px rgba(246, 194, 91, 0.7); } }
+.tut-bubble {
+  position: fixed;
+  left: 50%;
+  width: min(440px, calc(100vw - 20px));
+  transform: translateX(-50%);
+  padding: 14px 16px 10px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(64, 44, 150, 0.98), rgba(22, 18, 64, 0.98));
+  border: 1px solid rgba(246, 194, 91, 0.6);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(246, 194, 91, 0.15);
+  pointer-events: auto;
+  font-size: 15px;
+  line-height: 1.45;
+  display: none;
+}
+.tut-bubble.on { display: block; }
+.tut-bubble.top { top: calc(10px + var(--safe-top)); }
+.tut-bubble.bottom { bottom: calc(10px + var(--safe-bottom)); }
+.tut-bubble.pop { animation: pop-in 0.3s cubic-bezier(0.2, 1.4, 0.4, 1); }
+.tut-bubble::before { content: '✦'; position: absolute; left: -9px; top: -11px; font-size: 22px; color: var(--gold); text-shadow: 0 0 12px var(--gold); }
+.tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.tut-progress { font-size: 11px; color: var(--ink-dim); }
+.tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
+.tut-actions .btn { margin-left: auto; }
+.tut-formula { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.tut-combos { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
+.tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
+.tut-finger {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  margin: -6px 0 0 -14px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 31;
+}
+.tut-finger::before {
+  content: '👆';
+  font-size: 38px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+  display: block;
+}
+.tut-finger-dot { position: absolute; left: 12px; top: 2px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--gold); opacity: 0; }
+.tut-finger.on { opacity: 1; animation: tut-tap 1.4s ease-in-out infinite; transform: translate(var(--x1), var(--y1)); }
+.tut-finger.on .tut-finger-dot { animation: tut-ripple 1.4s ease-out infinite; }
+.tut-finger.on.drag { animation: tut-drag 2.2s ease-in-out infinite; }
+.tut-finger.on.drag .tut-finger-dot { animation: none; }
+@keyframes tut-tap { 0%, 100% { transform: translate(var(--x1), var(--y1)) scale(1); } 40% { transform: translate(var(--x1), calc(var(--y1) + 6px)) scale(0.9); } }
+@keyframes tut-ripple { 0%, 30% { opacity: 0; transform: scale(0.5); } 45% { opacity: 1; } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes tut-drag {
+  0% { transform: translate(var(--x1), var(--y1)); opacity: 0; }
+  12% { opacity: 1; transform: translate(var(--x1), var(--y1)) scale(0.9); }
+  70% { transform: translate(var(--x2), var(--y2)) scale(0.9); opacity: 1; }
+  85%, 100% { transform: translate(var(--x2), var(--y2)); opacity: 0; }
+}
+.tut-lock .btn:not(.tut-allow), .tut-lock .mini, .tut-lock .map-peek, .tut-lock .icon-btn { pointer-events: none !important; opacity: 0.45; }
+.btn.tut-allow { animation: tut-glow 1.4s ease-in-out infinite; }
+@keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(246, 194, 91, 0.7); } 50% { box-shadow: 0 0 0 8px rgba(246, 194, 91, 0); } }
