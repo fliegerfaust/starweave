@@ -1,6 +1,6 @@
 # Starweave — Звёздное плетение
 
-**Играть:** https://fliegerfaust.github.io/starweave/
+**Играть:** https://fliegerfaust.github.io/starweave/ · в Telegram: https://t.me/starweave_game_bot/play
 
 Карточный рогалик-головоломка для мобильного и десктопного браузера. Выкладывай карты-звёзды
 на небо 4×4: заполненный ряд или столбец вспыхивает **созвездием** (пара, стрит, флеш,
