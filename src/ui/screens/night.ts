@@ -1,4 +1,5 @@
 import { bossSigil } from '@/art/sigil';
+import { canDoubleReward, canRevive } from '@/core/run';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
@@ -158,11 +159,24 @@ export class NightScreen implements Screen {
         h('div.reward-score', null, [h('span', null, t('night.score')), h('b', null, num(this.run.night!.score))]),
         list,
         h('div.reward-total', null, [h('span', null, t('night.gold')), total]),
-        h('div.row.center', null, button(t('reward.collect', { n: reward.total }), () => {
-          this.overlay?.close();
-          this.overlay = null;
-          this.app.collectReward();
-        })),
+        h('div.row.center.wrap', null, [
+          this.app.platform.rewardedAvailable && canDoubleReward(this.run)
+            ? this.adButton(t('ads.double'), async () => {
+                if (await this.app.doubleReward()) {
+                  this.overlay?.close();
+                  this.overlay = null;
+                  this.showReward();
+                  return true;
+                }
+                return false;
+              })
+            : null,
+          button(t('reward.collect', { n: reward.total }), () => {
+            this.overlay?.close();
+            this.overlay = null;
+            this.app.collectReward();
+          }),
+        ]),
       ],
       { title: t('reward.title'), dismissable: false, className: 'narrow reward' },
     );
@@ -180,6 +194,9 @@ export class NightScreen implements Screen {
         night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
         isRecord ? h('div.badge.record', null, t('over.newRecord')) : null,
         statsGrid(run),
+        this.app.platform.rewardedAvailable && canRevive(run)
+          ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
+          : null,
         h('div.row.gap.center.wrap', null, [
           run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
           button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
@@ -211,6 +228,19 @@ export class NightScreen implements Screen {
       ],
       { dismissable: false, className: 'over victory' },
     );
+  }
+
+  /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */
+  private adButton(label: string, action: () => Promise<boolean>, variant: 'primary' | 'secondary' = 'secondary'): HTMLButtonElement {
+    const btn = button(`▶ ${label}`, async () => {
+      btn.disabled = true;
+      const ok = await action();
+      if (!ok) {
+        btn.disabled = false;
+        toast(t('ads.failed'), 'warn');
+      }
+    }, { variant, sub: t('ads.watch'), className: 'ad-btn' });
+    return btn;
   }
 
   private share(): void {

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sim": "SIM=1 vitest run tests/balance.sim.test.ts"
+    "sim": "SIM=1 vitest run tests/balance.sim.test.ts",
+    "build:yandex": "tsc --noEmit && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

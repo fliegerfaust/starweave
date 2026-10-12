@@ -153,6 +153,12 @@ export const en: Dict = {
     offer: 'Looks like you’re new here. Take a short tutorial? It takes 2 minutes and makes everything clear.',
     offerSkip: 'Just play',
   },
+  ads: {
+    revive: 'Second chance: +3 moves',
+    double: 'Double the reward',
+    watch: 'ad',
+    failed: 'Ad not finished — no reward',
+  },
   reward: {
     title: 'Night cleared',
     base: 'Night reward',
