@@ -11,9 +11,11 @@ import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenBadge, omenMedal, omenTooltip } from '../hud';
+import { rich } from '../rich';
 import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
-import { attachTooltip, button, modal, type ModalHandle } from '../widgets';
+import { attachTooltip, button, hideTooltip, modal, type ModalHandle } from '../widgets';
+import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showDeck, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -77,19 +79,16 @@ export class ShopScreen implements Screen {
 
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' } });
     run.omens.forEach((o, i) => {
-      if (i > 0) owned.append(h('div.order-arrow', null, '→'));
-      const chip = h('div.owned-omen', null, [
-        h('div.omen-slot', null, omenMedal(o.id, 44)),
-        h('div.owned-actions', null, [
-          i > 0 ? h('button.mini', { type: 'button', onclick: () => this.act((r) => moveOmen(r, i, i - 1), 'click') }, '◀') : null,
-          h('button.mini.sell', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, `${t('shop.sell', { n: sellPrice(o.id) })}`),
-          i < run.omens.length - 1 ? h('button.mini', { type: 'button', onclick: () => this.act((r) => moveOmen(r, i, i + 1), 'click') }, '▶') : null,
-        ]),
+      const medal = h('div.omen-slot.draggable', { dataset: { dragHandle: '' } }, [h('span.order-num', null, String(i + 1)), omenMedal(o.id, 52)]);
+      const chip = h('div.owned-omen', { dataset: { omen: String(i) } }, [
+        medal,
+        h('button.btn.btn-secondary.small.sell-btn', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, t('shop.sell', { n: sellPrice(o.id) })),
       ]);
-      attachTooltip(chip.querySelector('.omen-slot') as HTMLElement, () => omenTooltip(o));
+      attachTooltip(medal, () => omenTooltip(o));
       owned.append(chip);
     });
-    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen', null, h('div.omen-slot.empty')));
+    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
+    makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
 
     const sections: (HTMLElement | null)[] = [
       h('div.shop-top', null, [
@@ -135,9 +134,9 @@ export class ShopScreen implements Screen {
       const info = named('omen', item.omenId, def.vars?.(def.initialData?.() ?? {}) ?? {});
       title = info.name;
       desc = info.desc;
-      tag = `${t(`rarity.${def.rarity}`)} · ${dict().omenKind[def.kind][0]}`;
+      tag = t(`rarity.${def.rarity}`);
       tagClass = `r${def.rarity}`;
-      badge = omenBadge(def.kind);
+      badge = h('div.shop-kind', null, [omenBadge(def.kind), dict().omenKind[def.kind][1]]);
     } else if (item.kind === 'chart') {
       icon = canvasImg(chartIcon(item.combo, 72, dpr()), 72);
       const level = run.comboLevels[item.combo];
@@ -162,8 +161,9 @@ export class ShopScreen implements Screen {
       h('div.shop-icon', null, icon),
       h('div.shop-info', null, [
         h('div.shop-name', null, title),
-        tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, [badge, tag]) : null,
-        h('div.shop-desc', null, desc),
+        tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, tag) : null,
+        h('div.shop-desc', null, rich(desc)),
+        badge,
       ]),
       item.sold
         ? h('div.sold-label', null, t('shop.sold'))
@@ -293,7 +293,7 @@ export class ShopScreen implements Screen {
       const full = open.pack === 'omen' && this.run.omens.length >= omenSlots(this.run);
       return h('div.shop-item.pack-option', { style: { animationDelay: `${i * 0.08}s` } }, [
         h('div.shop-icon', null, icon),
-        h('div.shop-info', null, [h('div.shop-name', null, info.name), tag, h('div.shop-desc', null, info.desc)]),
+        h('div.shop-info', null, [h('div.shop-name', null, info.name), tag, h('div.shop-desc', null, rich(info.desc))]),
         button(t('shop.take'), () => this.takeFromPack(i, id, handle!), { disabled: full, title: full ? t('shop.slotsFull') : '' }),
       ]);
     });
