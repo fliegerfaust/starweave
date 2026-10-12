@@ -6,6 +6,7 @@ import { ritualDef } from '@/core/content/rituals';
 import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
+import { track } from '@/analytics';
 import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
@@ -43,13 +44,19 @@ export class ShopScreen implements Screen {
     this.el.remove();
   }
 
-  private act(fn: (run: RunState) => void, sound: 'coin' | 'click' = 'coin'): false {
+  private act(fn: (run: RunState) => void, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
     if (this.app.shopAction(fn)) {
+      onSuccess?.();
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
       this.app.tutorial?.emit({ type: 'shopChanged' });
     }
     return false;
+  }
+
+  private trackBuy(item: ShopItem): void {
+    const id = item.kind === 'omen' ? item.omenId : item.kind === 'chart' ? item.combo : item.kind === 'ritual' ? item.ritualId : item.pack;
+    track('shop_buy', { kind: item.kind, id, price: item.price, ante: this.run.ante, gold_left: this.run.gold });
   }
 
   private afterPackBuy(): void {
@@ -64,9 +71,9 @@ export class ShopScreen implements Screen {
     if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
 
-    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i))), `omen-${i}`)));
+    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`)));
     const itemCards = h('div.shop-row', null, shop.items.map((item, i) => this.itemCard(item, () => this.buyItem(item, i))));
-    const packCards = h('div.shop-row', null, shop.packs.map((item, i) => this.itemCard(item, () => this.act((r) => buyPack(r, i)) || this.afterPackBuy())));
+    const packCards = h('div.shop-row', null, shop.packs.map((item, i) => this.itemCard(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy())));
 
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' } });
     run.omens.forEach((o, i) => {
@@ -75,7 +82,7 @@ export class ShopScreen implements Screen {
         h('div.omen-slot', null, omenMedal(o.id, 44)),
         h('div.owned-actions', null, [
           i > 0 ? h('button.mini', { type: 'button', onclick: () => this.act((r) => moveOmen(r, i, i - 1), 'click') }, '◀') : null,
-          h('button.mini.sell', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid)) }, `${t('shop.sell', { n: sellPrice(o.id) })}`),
+          h('button.mini.sell', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, `${t('shop.sell', { n: sellPrice(o.id) })}`),
           i < run.omens.length - 1 ? h('button.mini', { type: 'button', onclick: () => this.act((r) => moveOmen(r, i, i + 1), 'click') }, '▶') : null,
         ]),
       ]);
@@ -106,7 +113,7 @@ export class ShopScreen implements Screen {
         button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
       ]),
       h('div.shop-actions', null, [
-        button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click'), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
+        button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
         button(t('shop.yourDeck', { n: run.deck.length }), () => showDeck(run), { variant: 'secondary' }),
         tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
       ]),
@@ -172,10 +179,10 @@ export class ShopScreen implements Screen {
 
   private buyItem(item: ShopItem, slot: number): void {
     if (item.kind !== 'ritual') {
-      this.act((r) => buyItem(r, slot));
+      this.act((r) => buyItem(r, slot), 'coin', () => this.trackBuy(item));
       return;
     }
-    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act((r) => buyItem(r, slot, ids))));
+    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act((r) => buyItem(r, slot, ids), 'coin', () => this.trackBuy(item))));
   }
 
   /** Выполняет ритуал и показывает, что стало с картами: было → стало. */
@@ -310,7 +317,7 @@ export class ShopScreen implements Screen {
       this.pickTargets(
         id,
         (ids) => {
-          this.withRitualResult(id, () => this.act((r) => choosePack(r, index, ids)));
+          this.withRitualResult(id, () => this.act((r) => choosePack(r, index, ids), 'coin', () => track('pack_choose', { pack: open.pack, id })));
           if (this.run.shop?.openPack) this.showPack();
         },
         () => this.showPack(),
@@ -318,6 +325,6 @@ export class ShopScreen implements Screen {
       return;
     }
     handle.close();
-    this.act((r) => choosePack(r, index));
+    this.act((r) => choosePack(r, index), 'coin', () => track('pack_choose', { pack: open.pack, id }));
   }
 }
