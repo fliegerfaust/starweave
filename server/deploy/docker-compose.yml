@@ -1,0 +1,56 @@
+# Сервер игры «Звёздное плетение» на общем сервере с «ДенВал.Класс».
+#
+#   Caddy платформы  →  starweave-api:8080  →  /opt/starweave/data/events.db
+#
+# Отдельный проект compose (`starweave`) в /opt/starweave: платформа его не видит,
+# её деплой его не трогает. Общая только сеть `repo_default`, чтобы Caddy платформы
+# мог проксировать на этот контейнер по имени. Код не запечён в образ, а лежит рядом
+# (./app, только чтение) — Node 24 исполняет TypeScript сам, без сборки.
+name: starweave
+
+services:
+  api:
+    image: node:24-alpine
+    container_name: starweave-api
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "--disable-warning=ExperimentalWarning", "server/src/main.ts"]
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DB_PATH: /data/events.db
+      ALLOWED_ORIGINS: https://fliegerfaust.github.io
+    volumes:
+      - ./app:/app:ro
+      - ./data:/data
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Жёсткий потолок: что бы ни случилось с игрой, платформе останется её память и процессор
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - platform
+
+networks:
+  platform:
+    external: true
+    name: repo_default

@@ -1,0 +1,22 @@
+# Сайт сервера игры «Звёздное плетение» для Caddy платформы «ДенВал.Класс».
+# Лежит в томе Caddy (/data/sites/), а не в репозитории платформы: Caddyfile платформы
+# подключает все /data/sites/*.caddy строкой `import`. Источник — репозиторий
+# fliegerfaust/starweave, файл server/deploy/starweave.caddy; кладёт его server/deploy/deploy.sh.
+#
+# Журнал запросов не ведётся: игра обещает игрокам, что IP-адреса не сохраняются.
+game.denvalclass.ru {
+	encode gzip
+
+	request_body {
+		max_size 64KB
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Strict-Transport-Security "max-age=31536000;"
+		-Server
+	}
+
+	reverse_proxy starweave-api:8080
+}
