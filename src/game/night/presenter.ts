@@ -287,6 +287,12 @@ export class Presenter {
       hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
       floatText(this.world, center.x, center.y, t(`combo.${line.combo}`).toUpperCase(), { size: 26, display: true, color: '#fff', life: 1.1, rise: 24 });
       await this.wait(0.3);
+      // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
+      const gate = this.scoringGate;
+      if (gate) {
+        this.scoringGate = null;
+        await gate();
+      }
 
       const steps = line.steps.slice(1);
       const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
@@ -359,6 +365,8 @@ export class Presenter {
 
   /** Во сколько раз дольше держать каждый шаг (обучение замедляет подсчёт). */
   stepPause = 1;
+  /** Одноразовая пауза перед шагами первого подсчёта (обучение). */
+  scoringGate: (() => Promise<void>) | null = null;
 
   /** Что изменилось в шаге — словами. */
   private effectText(step: ScoreStep): string {

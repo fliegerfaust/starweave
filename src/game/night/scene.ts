@@ -444,6 +444,11 @@ export class NightScene {
     this.svc.haptics.play('error');
   }
 
+  /** Обучение придерживает первый подсчёт на открытой формуле, пока игрок не нажмёт «Далее». */
+  setScoringGate(gate: (() => Promise<void>) | null): void {
+    this.presenter.scoringGate = gate;
+  }
+
   /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */
   setStepPause(k: number): void {
     this.presenter.stepPause = k;
