@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_PLATFORM?: string;
   /** Номер счётчика Яндекс Метрики; без него аналитика выключена. */
   readonly VITE_METRIKA_ID?: string;
+  /** Прямая ссылка на Mini App (`https://t.me/<бот>/<приложение>`) — для «Поделиться» в Telegram. */
+  readonly VITE_TG_APP_LINK?: string;
 }
 
 /** Версия из package.json, подставляет Vite. */

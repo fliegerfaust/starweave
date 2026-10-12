@@ -18,6 +18,12 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
 }
+/* Telegram Mini App во весь экран: сверху системная зона и кнопки Telegram («Закрыть», «…»).
+   Значения подставляет telegram-web-app.js. */
+html.tg {
+  --safe-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
+  --safe-bottom: calc(var(--tg-safe-area-inset-bottom, 0px) + var(--tg-content-safe-area-inset-bottom, 0px));
+}
 
 * {
   box-sizing: border-box;

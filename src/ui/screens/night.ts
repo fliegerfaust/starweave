@@ -270,6 +270,7 @@ export class NightScreen implements Screen {
     const text = t('share.text', { date: `#${dailyNumber()}`, ante: run.ante, best: num(run.stats.bestPlacement) });
     const stars = '✦'.repeat(Math.min(8, run.ante)) + '·'.repeat(Math.max(0, 8 - run.ante));
     const full = `${text}\n${stars}`;
+    if (this.app.platform.share?.(full)) return;
     if (navigator.share) {
       void navigator.share({ text: full }).catch(() => undefined);
     } else {

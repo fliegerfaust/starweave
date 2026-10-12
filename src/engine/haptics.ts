@@ -1,7 +1,7 @@
 /**
  * Тактильные отклики. Два пути, по убыванию качества:
- * 1. Нативная обёртка (Capacitor Haptics) — настоящий Taptic Engine на iPhone и
- *    точные эффекты на Android, когда игра выйдет в сторы.
+ * 1. Нативная обёртка (Capacitor Haptics, когда игра выйдет в сторы) или клиент Telegram
+ *    (Mini App, HapticFeedback) — настоящий Taptic Engine на iPhone и точные эффекты на Android.
  * 2. Android в браузере — `navigator.vibrate` с узором.
  * На iPhone в браузере вибрации нет: `navigator.vibrate` там не существует, а трюк с системным
  * переключателем (iOS 18) в iOS 26 не срабатывает ни в Safari, ни в Chrome — проверено на
@@ -28,9 +28,24 @@ interface NativeHaptics {
   selectionChanged?(): Promise<void>;
 }
 
+interface TelegramHaptics {
+  impactOccurred(style: 'light' | 'medium' | 'heavy'): void;
+  notificationOccurred(type: 'error' | 'success' | 'warning'): void;
+  selectionChanged(): void;
+}
+
 function nativeHaptics(): NativeHaptics | null {
   const cap = (window as unknown as { Capacitor?: { Plugins?: { Haptics?: NativeHaptics } } }).Capacitor;
-  return cap?.Plugins?.Haptics ?? null;
+  if (cap?.Plugins?.Haptics) return cap.Plugins.Haptics;
+  // Telegram Mini App: отклик делает сам клиент Telegram — работает и на iPhone
+  const tg = (window as unknown as { Telegram?: { WebApp?: { HapticFeedback?: TelegramHaptics; isVersionAtLeast?(v: string): boolean } } }).Telegram?.WebApp;
+  const hf = tg?.isVersionAtLeast?.('6.1') ? tg.HapticFeedback : undefined;
+  if (!hf) return null;
+  return {
+    impact: async ({ style }) => hf.impactOccurred(style === 'LIGHT' ? 'light' : style === 'MEDIUM' ? 'medium' : 'heavy'),
+    notification: async ({ type }) => hf.notificationOccurred(type === 'SUCCESS' ? 'success' : type === 'ERROR' ? 'error' : 'warning'),
+    selectionChanged: async () => hf.selectionChanged(),
+  };
 }
 
 export class Haptics {
