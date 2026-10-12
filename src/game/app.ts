@@ -22,7 +22,7 @@ import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
-import { initAnalytics, measureFps, track } from '@/analytics';
+import { forgetClientId, initAnalytics, measureFps, track } from '@/analytics';
 import type { Platform } from '@/platform';
 import { TutorialDirector } from '@/tutorial/director';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
@@ -536,6 +536,7 @@ export class App {
   resetProgress(): void {
     storage.remove(KEYS.run);
     storage.remove(KEYS.profile);
+    forgetClientId();
     window.clearTimeout(this.cloudTimer);
     void this.platform.cloudSave({});
     this.run = null;
@@ -553,7 +554,7 @@ async function restoreFromCloud(platform: Platform): Promise<void> {
 }
 
 export async function startGame(platform: Platform): Promise<App> {
-  initAnalytics();
+  initAnalytics(platform.id);
   await restoreFromCloud(platform);
   const app = new App(platform);
   (window as unknown as { starweave: App }).starweave = app;
