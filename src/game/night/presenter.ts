@@ -1,7 +1,7 @@
 import { SUIT_COLORS, UI } from '@/art/palette';
 import type { GameEvent, LineScore, PlacementScore, ScoreStep } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
-import { num, t } from '@/i18n';
+import { named, num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform, transform } from '../components';
 import { burst, flash, floatText, haptic, ring, shake } from '../fx';
@@ -280,15 +280,19 @@ export class Presenter {
 
       const comboStep = line.steps[0]!;
       hud.showCalc(line.combo, comboStep.lightAfter, comboStep.multAfter);
+      hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
       floatText(this.world, center.x, center.y, t(`combo.${line.combo}`).toUpperCase(), { size: 26, display: true, color: '#fff', life: 1.1, rise: 24 });
       await this.wait(0.3);
 
       const steps = line.steps.slice(1);
-      const stepDelay = Math.min(0.22, Math.max(0.08, 0.22 - steps.length * 0.008));
+      const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
+      const seenCells = new Set<number>();
       for (let i = 0; i < steps.length; i++) {
-        await this.showStep(steps[i]!, i);
-        await this.wait(stepDelay);
+        await this.showStep(steps[i]!, i, seenCells);
+        await this.wait(stepDelay * this.stepPause);
       }
+      hud.setCalcTotal(line.total);
+      hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
       floatText(this.world, center.x, center.y + 4, num(line.total), { size: 30, display: true, color: UI.gold, life: 1, rise: 30 });
       this.audio.count(steps.length + 2, 'light');
       await this.wait(0.35);
@@ -308,6 +312,12 @@ export class Presenter {
         const label = step.source.kind === 'chain' ? t('night.chain', { n: step.xMult ?? 1 }) : `×${fmtX(step.xMult ?? 1)}`;
         floatText(this.world, anchor.x, anchor.y + (anchor === bc ? 0 : 30), label, { size: step.source.kind === 'chain' ? 40 : 30, display: true, color: UI.mult, life: 1.2 });
         hud.setCalc(sum, step.multAfter, 'mult');
+        hud.setCalcTotal(Math.floor(sum * step.multAfter));
+        hud.setCaption(
+          step.source.kind === 'chain'
+            ? t('calc.chain', { n: step.source.lines, x: fmtX(step.xMult ?? 1) })
+            : this.sourceCaption(step),
+        );
         this.audio.count(10 + i, 'xmult');
         shake(this.world, 0.25);
         await this.wait(0.45);
@@ -339,7 +349,45 @@ export class Presenter {
     hud.hideCalc();
   }
 
-  private async showStep(step: ScoreStep, index: number): Promise<void> {
+  /** Во сколько раз дольше держать каждый шаг (обучение замедляет подсчёт). */
+  stepPause = 1;
+
+  /** Что изменилось в шаге — словами. */
+  private effectText(step: ScoreStep): string {
+    if (step.light) return t(step.light > 0 ? 'fx.light' : 'fx.lightMinus', { n: num(step.light) });
+    if (step.mult) return t('fx.mult', { n: num(step.mult) });
+    if (step.xMult !== undefined) return t('fx.xmult', { n: fmtX(step.xMult) });
+    if (step.gold) return t(step.gold > 0 ? 'fx.gold' : 'fx.goldMinus', { n: step.gold });
+    return '';
+  }
+
+  /** Подпись шага: кто и что добавил. */
+  private sourceCaption(step: ScoreStep, again = false): string {
+    const src = step.source;
+    const effect = this.effectText(step);
+    switch (src.kind) {
+      case 'card': {
+        const text = t('calc.card', { n: num(step.light ?? 0), rank: step.light ?? 0 });
+        return again ? `${text} — ${t('calc.retrigger')}` : text;
+      }
+      case 'glyph':
+        return t('calc.glyph', { glyph: t(`glyph.${src.glyph}`), desc: effect });
+      case 'omen':
+        return t('calc.omen', { name: named('omen', src.omenId).name, effect });
+      case 'boss':
+        return t('calc.boss', { name: named('boss', src.bossId).name, effect });
+      default:
+        return effect;
+    }
+  }
+
+  private async showStep(step: ScoreStep, index: number, seenCells = new Set<number>()): Promise<void> {
+    let again = false;
+    if (step.source.kind === 'card') {
+      again = seenCells.has(step.source.cell);
+      seenCells.add(step.source.cell);
+    }
+    this.scene.hud.setCaption(this.sourceCaption(step, again));
     const scene = this.scene;
     const hud = scene.hud;
     let anchor: Pt | null = null;
