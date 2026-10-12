@@ -1092,3 +1092,4 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 /* Подсказка о порядке Знамений */
 .order-warn { color: #ffcf6b; background: rgba(255, 170, 60, 0.1); border: 1px solid rgba(255, 170, 60, 0.35); border-radius: 12px; padding: 8px 12px; }
 .owned-omen.misplaced .omen-slot { box-shadow: 0 0 0 2px #ffb03c, 0 0 16px rgba(255, 176, 60, 0.55); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }
+.link-btn { pointer-events: auto; border: 0; background: none; padding: 4px 0; color: var(--gold); font: 700 12px/1.2 var(--font-body); cursor: pointer; text-align: left; }

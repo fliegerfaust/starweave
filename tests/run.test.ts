@@ -3,7 +3,7 @@ import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
-import { buyItem, buyPack, choosePack, reroll, sellOmen } from '../src/core/shop';
+import { banishCard, banishServicePrice, buyItem, buyPack, choosePack, reroll, sellOmen } from '../src/core/shop';
 import { createOmen } from '../src/core/omen-instance';
 import { OMEN_LIST } from '../src/core/content/omens';
 import { BOSS_LIST } from '../src/core/content/bosses';
@@ -43,6 +43,23 @@ describe('забег', () => {
       expect(run.phase).toBe('map');
       expect(run.nightIndex).toBe(1);
     }
+  });
+
+  it('услуга «Убрать карту»: раз за визит и не ниже минимума колоды', () => {
+    const run = newRun({ seed: 3 });
+    run.phase = 'shop';
+    run.gold = 10;
+    run.shop = { omens: [], items: [], packs: [], rerollCost: 5, openPack: null };
+    const size = run.deck.length;
+    const price = banishServicePrice(run)!;
+    banishCard(run, run.deck[0]!.id);
+    expect(run.deck).toHaveLength(size - 1);
+    expect(run.gold).toBe(10 - price);
+    expect(banishServicePrice(run)).toBeNull();
+    expect(() => banishCard(run, run.deck[0]!.id)).toThrow();
+    run.shop.banishUsed = false;
+    run.deck = run.deck.slice(0, 20);
+    expect(banishServicePrice(run)).toBeNull();
   });
 
   it('продажа, переброс и ритуал в Обсерватории', () => {

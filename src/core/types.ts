@@ -186,6 +186,8 @@ export interface ShopState {
   packs: ShopItem[];
   rerollCost: number;
   openPack: OpenPack | null;
+  /** Услуга «Убрать карту» уже использована в этот визит (нет в старых сохранениях). */
+  banishUsed?: boolean;
 }
 
 export interface RunStats {

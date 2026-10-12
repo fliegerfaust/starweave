@@ -4,7 +4,7 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
+import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
@@ -17,7 +17,7 @@ import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
 import { attachTooltip, button, hideTooltip, modal, type ModalHandle } from '../widgets';
 import { makeReorderable } from '../reorder';
-import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showRunMenu } from './common';
+import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
 function tag<T extends HTMLElement>(el: T, name: string): T {
@@ -108,6 +108,7 @@ export class ShopScreen implements Screen {
       h('section.shop-section', { dataset: { shop: 'omens' } }, [h('h2', null, t('shop.omens')), omenCards]),
       h('section.shop-section', { dataset: { shop: 'items' } }, [h('h2', null, t('shop.items')), itemCards]),
       shop.packs.length ? h('section.shop-section', null, [h('h2', null, t('shop.packs')), packCards]) : null,
+      this.deckSection(),
       h('section.shop-section', null, [
         h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
         owned,
@@ -121,7 +122,6 @@ export class ShopScreen implements Screen {
       ]),
       h('div.shop-actions', null, [
         button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
-        button(t('shop.yourDeck', { n: run.deck.length }), () => showDeck(run), { variant: 'secondary' }),
         tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
@@ -162,6 +162,11 @@ export class ShopScreen implements Screen {
       const info = named('ritual', item.ritualId);
       title = info.name;
       desc = info.desc;
+      // Глиф: короткая анимация в справочнике и правило «один глиф на карту»
+      if (item.ritualId.startsWith('glyph-')) {
+        const glyph = item.ritualId.slice('glyph-'.length);
+        badge = h('button.link-btn', { type: 'button', onclick: () => showHelp(`glyph-${glyph}`) }, t('shop.glyphHow'));
+      }
     }
     const affordable = run.gold >= item.price;
     const full = (item.kind === 'omen' || (item.kind === 'pack' && item.pack === 'omen')) && run.omens.length >= omenSlots(run);
@@ -230,10 +235,27 @@ export class ShopScreen implements Screen {
     });
   }
 
-  /** Выбор карт колоды для ритуала. */
-  private pickTargets(ritualId: string, onApply: (ids: number[]) => void, onCancel?: () => void): void {
+  /** Колода: постоянная услуга «Убрать карту» — раз за визит, чтобы колоду можно было чистить. */
+  private deckSection(): HTMLElement {
+    const run = this.run;
+    const price = banishServicePrice(run);
+    const used = !!run.shop?.banishUsed;
+    return h('section.shop-section', null, [
+      h('h2', null, t('shop.deckTitle', { n: run.deck.length })),
+      h('div.row.gap.wrap', null, [
+        button(used ? t('shop.banishUsed') : t('shop.banish', { n: price ?? '—' }), () => {
+          this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1);
+        }, { variant: 'secondary', disabled: price === null || run.gold < price }),
+        button(t('shop.viewDeck'), () => showDeck(run), { variant: 'ghost' }),
+      ]),
+      h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
+    ]);
+  }
+
+  /** Выбор карт колоды для ритуала. `maxOverride` — для услуг с другим лимитом. */
+  private pickTargets(ritualId: string, onApply: (ids: number[]) => void, onCancel?: () => void, maxOverride?: number): void {
     const def = ritualDef(ritualId);
-    const max = ritualMaxTargets(this.run, ritualId);
+    const max = maxOverride ?? ritualMaxTargets(this.run, ritualId);
     const selected = new Set<number>();
     let applied = false;
     const confirmBtn = button(t('shop.apply'), () => {
@@ -264,6 +286,7 @@ export class ShopScreen implements Screen {
       [
         h('p.modal-text', null, info.desc),
         h('p.hint', null, max === 1 ? t('shop.pickTarget') : t('shop.pickTargets', { min: def.minTargets, max })),
+        ritualId.startsWith('glyph-') ? h('p.hint.order-warn', null, t('shop.glyphReplace')) : null,
         grid,
         h('div.row.between', null, [button(t('shop.cancel'), () => m.close(), { variant: 'secondary' }), confirmBtn]),
       ],
