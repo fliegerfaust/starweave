@@ -26,6 +26,14 @@ function tag<T extends HTMLElement>(el: T, name: string): T {
 }
 
 /** Обсерватория: витрина Знамений и предметов, свои Знамения, переброс. */
+/** Заголовок раздела: название слева, необязательная ссылка-подсказка справа. */
+function sectionHead(title: string, link?: string, onLink?: () => void): HTMLElement {
+  return h('div.section-head', null, [
+    h('h2', null, title),
+    link && onLink ? h('button.link-btn', { type: 'button', onclick: onLink }, `${link} ›`) : null,
+  ]);
+}
+
 export class ShopScreen implements Screen {
   private el!: HTMLElement;
 
@@ -78,17 +86,20 @@ export class ShopScreen implements Screen {
     const itemCards = h('div.shop-row', null, shop.items.map((item, i) => this.itemCard(item, () => this.buyItem(item, i))));
     const packCards = h('div.shop-row', null, shop.packs.map((item, i) => this.itemCard(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy())));
 
-    const owned = h('div.owned-omens', { dataset: { shop: 'owned' } });
+    const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
     run.omens.forEach((o, i) => {
       const medal = h('div.omen-slot.draggable', { dataset: { dragHandle: '' } }, [h('span.order-num', null, String(i + 1)), omenMedal(o.id, 52)]);
       const chip = h('div.owned-omen', { dataset: { omen: String(i) } }, [
         medal,
-        h('button.btn.btn-secondary.small.sell-btn', { type: 'button', onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, t('shop.sell', { n: sellPrice(o.id) })),
+        h('button.btn.btn-secondary.small.sell-btn', { type: 'button', title: t('shop.sell', { n: sellPrice(o.id) }), onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, [
+          h('span.sell-label', null, t('shop.sellShort')),
+          h('span.sell-price', null, `+${sellPrice(o.id)}`),
+        ]),
       ]);
       attachTooltip(medal, () => omenTooltip(o));
       owned.append(chip);
     });
-    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
+    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty', null, String(i + 1))));
     const misordered = misorderedOmens(run.omens);
     if (misordered) owned.querySelector(`[data-omen="${run.omens.findIndex((o) => o.id === misordered.xmult)}"]`)?.classList.add('misplaced');
     makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
@@ -105,20 +116,22 @@ export class ShopScreen implements Screen {
       run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2
         ? h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`)
         : null,
-      h('section.shop-section', { dataset: { shop: 'omens' } }, [h('h2', null, t('shop.omens')), omenCards]),
-      h('section.shop-section', { dataset: { shop: 'items' } }, [h('h2', null, t('shop.items')), itemCards]),
-      shop.packs.length ? h('section.shop-section', null, [h('h2', null, t('shop.packs')), packCards]) : null,
-      this.deckSection(),
-      h('section.shop-section', null, [
-        h('h2', null, `${t('shop.yourOmens')} · ${run.omens.length}/${slots}`),
-        owned,
-        misordered
-          ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
-          : run.omens.length > 1 ? h('p.hint', null, t('shop.dragHint')) : null,
-        h('div.row.gap.wrap', null, [
-          button(t('scoring.button'), () => showScoringHelp(), { variant: 'ghost', className: 'small' }),
-          button(t('combos.yours'), () => showCombos(run), { variant: 'ghost', className: 'small' }),
+      h('section.shop-section', { dataset: { shop: 'omens' } }, [sectionHead(t('shop.omens')), omenCards]),
+      h('section.shop-section', { dataset: { shop: 'items' } }, [
+        sectionHead(t('shop.items'), t('combos.yours'), () => showCombos(run)),
+        itemCards,
+      ]),
+      shop.packs.length ? h('section.shop-section', null, [sectionHead(t('shop.packs')), packCards]) : null,
+      // Своё — внизу одной панелью: Знамения (порядок важен) и колода
+      h('section.shop-section.inventory', null, [
+        h('div.inventory-part', null, [
+          sectionHead(`${t('shop.yourOmens')} · ${run.omens.length}/${slots}`, t('scoring.button'), () => showScoringHelp()),
+          owned,
+          misordered
+            ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
+            : h('p.hint', null, run.omens.length > 1 ? t('shop.dragHint') : t('shop.omensEmptyHint')),
         ]),
+        this.deckPart(),
       ]),
       h('div.shop-actions', null, [
         button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
@@ -236,19 +249,18 @@ export class ShopScreen implements Screen {
   }
 
   /** Колода: постоянная услуга «Убрать карту» — раз за визит, чтобы колоду можно было чистить. */
-  private deckSection(): HTMLElement {
+  private deckPart(): HTMLElement {
     const run = this.run;
     const price = banishServicePrice(run);
     const used = !!run.shop?.banishUsed;
-    return h('section.shop-section', null, [
-      h('h2', null, t('shop.deckTitle', { n: run.deck.length })),
-      h('div.row.gap.wrap', null, [
+    return h('div.inventory-part', null, [
+      sectionHead(t('shop.deckTitle', { n: run.deck.length }), t('shop.viewDeck'), () => showDeck(run)),
+      h('div.deck-service', null, [
         button(used ? t('shop.banishUsed') : t('shop.banish', { n: price ?? '—' }), () => {
           this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1);
-        }, { variant: 'secondary', disabled: price === null || run.gold < price }),
-        button(t('shop.viewDeck'), () => showDeck(run), { variant: 'ghost' }),
+        }, { variant: 'secondary', className: 'small', disabled: price === null || run.gold < price }),
+        h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
       ]),
-      h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
     ]);
   }
 
