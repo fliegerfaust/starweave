@@ -21,6 +21,8 @@ import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
+import { TutorialDirector } from '@/tutorial/director';
+import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
@@ -217,6 +219,7 @@ export class App {
   private doBeginNight(): void {
     const run = this.run!;
     startNight(run);
+    if (run.tutorial) applyTutorialNight(run, run.nightIndex);
     markSeen(this.profile, run);
     saveProfile(this.profile);
     this.save();
@@ -242,6 +245,11 @@ export class App {
   private afterAction(events: GameEvent[]): void {
     const run = this.run!;
     const lost = events.some((e) => e.t === 'nightLost');
+    if (run.tutorial) {
+      // Учебную ночь проиграть почти нельзя, но если вышло — начинаем обучение заново
+      if (lost) window.setTimeout(() => this.startTutorial(), 1600);
+      return;
+    }
     if (lost) {
       const fresh = recordRunEnd(this.profile, run, false);
       saveProfile(this.profile);
@@ -257,7 +265,9 @@ export class App {
   }
 
   private doCollectReward(): void {
-    collectReward(this.run!);
+    const run = this.run!;
+    collectReward(run);
+    if (run.tutorial) run.shop = tutorialShop();
     this.save();
     void this.route();
   }
@@ -269,6 +279,11 @@ export class App {
   private doLeaveShop(): void {
     const run = this.run!;
     leaveShop(run);
+    if (run.tutorial) {
+      // В обучении карту созвездия пропускаем — сразу вторая ночь
+      this.doBeginNight();
+      return;
+    }
     if (run.phase === 'victory') {
       const fresh = recordRunEnd(this.profile, run, true);
       this.announceUnlocks(fresh);
@@ -313,12 +328,46 @@ export class App {
 
   save(): void {
     const run = this.run;
-    if (!run || run.phase === 'gameOver') return;
+    if (!run || run.phase === 'gameOver' || run.tutorial) return;
     storage.set(KEYS.run, serializeRun(run));
   }
 
   get hasSave(): boolean {
-    return !!this.run && this.run.phase !== 'gameOver' && this.run.phase !== 'victory';
+    return !!this.run && !this.run.tutorial && this.run.phase !== 'gameOver' && this.run.phase !== 'victory';
+  }
+
+  // ─── Обучение ───────────────────────────────────────────────────────────
+
+  tutorial: TutorialDirector | null = null;
+
+  /** Учебный забег не трогает сохранённый настоящий: тот вернётся после обучения. */
+  startTutorial(): void {
+    this.tutorial?.stop();
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    this.run = newTutorialRun();
+    this.tutorial = new TutorialDirector(this);
+    this.tutorial.start();
+    this.doBeginNight();
+  }
+
+  private endTutorial(): void {
+    this.tutorial?.stop();
+    this.tutorial = null;
+    this.profile.tutorialDone = true;
+    saveProfile(this.profile);
+    this.run = deserializeRun(storage.get(KEYS.run));
+  }
+
+  skipTutorial(): void {
+    this.endTutorial();
+    void this.goMenu();
+  }
+
+  /** Обучение пройдено: поздравление и старт настоящего забега. */
+  finishTutorial(): void {
+    this.endTutorial();
+    this.svc.audio.win();
+    void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this));
   }
 
   private announceUnlocks(ids: string[]): void {

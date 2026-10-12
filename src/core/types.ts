@@ -222,6 +222,8 @@ export interface RunState {
   endless: boolean;
   /** Звёздность (0 — обычная сложность). */
   stake?: number;
+  /** Учебный забег: сценарная колода, без Затмений, две ночи. */
+  tutorial?: boolean;
   /** Сколько линий уже записано в профиль (забег после победы продолжается). */
   recordedLines?: number;
 }
