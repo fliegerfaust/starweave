@@ -1,4 +1,5 @@
 import type { Synth } from '@/engine/audio';
+import type { Haptics } from '@/engine/haptics';
 import type { World } from '@/engine/ecs';
 import type { PointerInput } from '@/engine/input';
 import type { Renderer } from '@/engine/renderer';
@@ -32,4 +33,5 @@ export interface Services {
   audio: Synth;
   input: PointerInput;
   starfield: Starfield;
+  haptics: Haptics;
 }

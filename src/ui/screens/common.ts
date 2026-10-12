@@ -114,6 +114,10 @@ export function showSettings(app: App, onChange?: () => void): void {
       field(t('settings.sfx'), slider(s.sfx, (v) => (s.sfx = v))),
       field(t('settings.music'), slider(s.music, (v) => (s.music = v))),
       field(t('settings.speed'), segmented(SPEEDS.map((_, i) => ({ value: i, label: dict().settings.speeds[i]! })), s.speed, (v) => (s.speed = v))),
+      field(t('settings.haptics'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.haptics, (v) => {
+        s.haptics = v;
+        if (v) app.svc.haptics.play('success');
+      })),
       field(t('settings.reduceMotion'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.reduceMotion, (v) => (s.reduceMotion = v))),
       h('div.row.between', null, [
         button(t('settings.reset'), () => confirmDialog(t('settings.resetConfirm'), () => {

@@ -6,6 +6,7 @@ import { collectReward, continueEndless, leaveShop, newRun } from '@/core/run';
 import { deserializeRun, serializeRun } from '@/core/save';
 import type { GameEvent, RunState } from '@/core/types';
 import { Synth } from '@/engine/audio';
+import { Haptics } from '@/engine/haptics';
 import { World } from '@/engine/ecs';
 import { PointerInput } from '@/engine/input';
 import { Renderer } from '@/engine/renderer';
@@ -80,11 +81,16 @@ export class App {
     const audio = new Synth();
     audio.setVolumes(this.settings.sfx, this.settings.music);
     const input = new PointerInput(canvas);
-    this.svc = { world, renderer, tweens, audio, input, starfield };
+    const haptics = new Haptics();
+    haptics.enabled = this.settings.haptics;
+    this.svc = { world, renderer, tweens, audio, input, starfield, haptics };
 
     setUiSound((s) => {
       audio.unlock();
-      if (s === 'click') audio.click();
+      if (s === 'click') {
+        audio.click();
+        haptics.play('tap');
+      }
       else if (s === 'deny') audio.deny();
       else audio.hover();
     });
@@ -386,6 +392,7 @@ export class App {
     this.svc.audio.setVolumes(next.sfx, next.music);
     this.svc.world.res.speed = SPEEDS[next.speed] ?? 1;
     this.svc.world.res.reduceMotion = next.reduceMotion;
+    this.svc.haptics.enabled = next.haptics;
     if (langChanged) clearSigilCache();
   }
 
