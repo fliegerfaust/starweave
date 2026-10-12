@@ -7,6 +7,7 @@ import { dict, t } from '@/i18n';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
+import { track } from '@/analytics';
 
 /** Что экраны сообщают режиссёру. */
 export type TutorialEvent =
@@ -132,9 +133,18 @@ export class TutorialDirector {
 
   // ─── Примитивы ──────────────────────────────────────────────────────────
 
+  /** Где сейчас игрок — для аналитики пропуска обучения. */
+  progress = { step: 'start', index: 0 };
+
+  private mark(step: string): void {
+    this.progress = { step, index: this.step };
+    track('tutorial_step', this.progress);
+  }
+
   private async say(key: string, opts: { spot?: Rect | null; next?: boolean; extra?: Node | null; vars?: Record<string, string | number> } = {}): Promise<void> {
     if (this.stopped) throw new Error('stopped');
     this.step += 1;
+    this.mark(key);
     this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
@@ -159,6 +169,7 @@ export class TutorialDirector {
     this.sync();
     scene.setGuide({ card: id, cell });
     this.step += 1;
+    this.mark(key);
     this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
     this.overlay.spotlight(null);
     this.reposition = () => {
@@ -217,6 +228,7 @@ export class TutorialDirector {
     this.reposition();
     this.step += 1;
     this.overlay.setProgress(this.step, TOTAL_STEPS);
+    this.mark('burn');
     this.overlay.spotlight(null);
     this.sync();
     await this.overlay.say(t('tut.burn'), { place: 'top' });

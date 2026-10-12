@@ -90,7 +90,7 @@ export class MenuScreen implements Screen {
           }, { variant: 'ghost' }),
           button(t('tut.menuButton'), () => {
             m.close();
-            app.startTutorial();
+            app.startTutorial('offer');
           }),
         ]),
       ],

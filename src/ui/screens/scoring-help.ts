@@ -2,9 +2,11 @@ import { t } from '@/i18n';
 import { h } from '../dom';
 import { omenBadge } from '../hud';
 import { button, modal } from '../widgets';
+import { track } from '@/analytics';
 
 /** Окно «Как считаются очки»: шаги подсчёта и пример, почему ×-Знамения ставят правее. */
 export function showScoringHelp(): void {
+  track('scoring_help_open', {});
   const step = (n: number, text: string, visual?: HTMLElement) =>
     h('div.score-step', { style: { animationDelay: `${n * 0.08}s` } }, [h('div.score-step-n', null, String(n)), h('div.score-step-body', null, [h('div', null, text), visual ?? null])]);
   const box = (cls: string, value: string, label: string) => h(`div.mini-box.${cls}`, null, [h('b', null, value), h('span', null, label)]);
