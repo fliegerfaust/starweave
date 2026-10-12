@@ -29,6 +29,8 @@ jobs:
         env:
           # Ссылка на Mini App для «Поделиться» в Telegram: gh variable set TG_APP_LINK
           VITE_TG_APP_LINK: ${{ vars.TG_APP_LINK }}
+          # Номер счётчика Яндекс Метрики (сайт и Telegram): gh variable set METRIKA_ID
+          VITE_METRIKA_ID: ${{ vars.METRIKA_ID }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
