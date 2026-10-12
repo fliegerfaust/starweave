@@ -99,3 +99,38 @@ function ensureBoss(run: RunState): void {
 export function isRunOver(run: RunState): boolean {
   return run.phase === 'gameOver';
 }
+
+/** Сколько ходов даёт второй шанс. */
+export const REVIVE_MOVES = 3;
+
+/** Можно ли продолжить проигранную ночь (кончились ходы, шанс не использован). */
+export function canRevive(run: RunState): boolean {
+  const night = run.night;
+  return run.phase === 'gameOver' && !run.revived && !!night && night.movesLeft <= 0 && night.hand.length > 0 && !run.tutorial;
+}
+
+/** Второй шанс: ночь продолжается с несколькими ходами. */
+export function reviveNight(run: RunState, moves = REVIVE_MOVES): void {
+  if (!canRevive(run)) throw new RuleError('nothing');
+  const night = run.night!;
+  night.movesLeft += moves;
+  night.result = 'playing';
+  run.revived = true;
+  run.phase = 'night';
+}
+
+export function canDoubleReward(run: RunState): boolean {
+  return run.phase === 'reward' && !!run.reward && run.doubledAnte !== run.ante && !run.tutorial;
+}
+
+/** Удвоить награду ночи — раз за созвездие. */
+export function doubleReward(run: RunState): void {
+  if (!canDoubleReward(run)) throw new RuleError('nothing');
+  const r = run.reward!;
+  r.base *= 2;
+  r.moves *= 2;
+  r.burns *= 2;
+  r.interest *= 2;
+  r.total *= 2;
+  run.doubledAnte = run.ante;
+}

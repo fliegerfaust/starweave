@@ -73,6 +73,14 @@ export class Synth {
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
   }
 
+  /** Временная тишина (реклама, свёрнутая вкладка) — громкости из настроек не трогает. */
+  setMuted(muted: boolean): void {
+    if (!this.ctx) return;
+    this.master.gain.setTargetAtTime(muted ? 0 : 0.7, this.ctx.currentTime, 0.05);
+    if (muted) void this.ctx.suspend().catch(() => undefined);
+    else void this.ctx.resume().catch(() => undefined);
+  }
+
   setVolumes(sfx: number, music: number): void {
     this.sfxVolume = sfx;
     this.musicVolume = music;

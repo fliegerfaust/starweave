@@ -11,12 +11,15 @@ async function boot(): Promise<void> {
     showGallery(ui);
     return;
   }
-  const { startGame } = await import('./game/app');
-  startGame();
+  const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
+  const platform = await createPlatform();
+  await platform.init();
+  await startGame(platform);
 }
 
 void boot();
 
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// Офлайн-кэш — только для своего сайта; порталы вроде Яндекс Игр раздают файлы сами
+if (import.meta.env.PROD && import.meta.env.VITE_PLATFORM !== 'yandex' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => undefined));
 }
