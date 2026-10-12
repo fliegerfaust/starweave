@@ -17,11 +17,13 @@ address, payment details or photos.
 ## 3. What data is processed
 
 - **Progress and settings** — your current run, stats, unlocked decks, volume, language. Stored
-  on your device. If you play on a platform with cloud saves (e.g. Yandex Games), a copy is
-  stored by the platform and linked to your account there.
+  on your device. If you play on a platform with cloud saves (e.g. Yandex Games or Telegram), a
+  copy is stored by the platform and linked to your account there.
 - **Anonymous gameplay statistics** — events such as "tutorial step completed", "night lost on
   constellation 3", "Omen bought", plus device type, screen size, language, frame rate and
-  technical errors. Collected by Yandex Metrica (Yandex LLC) using cookies and device identifiers.
+  technical errors. Collected by our server in Moscow (Russia) with a random device number — no
+  names, contacts or IP addresses. May also be collected by Yandex Metrica (Yandex LLC) using
+  cookies and device identifiers.
 - **Advertising** — if the Game shows ads, they are served by the platform's ad network (e.g.
   Yandex Advertising Network), which may use device identifiers and cookies under its own rules.
 - **Purchases** — processed by the platform (Yandex Games, App Store, Google Play, RuStore). We only
@@ -38,13 +40,13 @@ We do not sell data or use it for decisions that legally affect you.
 
 ## 5. Retention
 
-Data on your device is kept until you delete it. Metrica statistics are kept for the periods set by
-Yandex. Cloud saves follow the platform's rules.
+Data on your device is kept until you delete it. Statistics on our server are kept for 400 days,
+Metrica statistics for the periods set by Yandex. Cloud saves follow the platform's rules.
 
 ## 6. Your choices
 
-- **Delete progress:** Settings → Reset progress — removes the data on your device and the Game's
-  cloud save.
+- **Delete progress:** Settings → Reset progress — removes the data on your device, the Game's
+  cloud save and the random device number (new statistics are not linked to it).
 - **Opt out of statistics:** block cookies in your browser or use the
   [Metrica opt-out](https://yandex.com/support/metrica/general/opt-out.html).
 - **Ad personalization** can be turned off in your device or platform account settings.
