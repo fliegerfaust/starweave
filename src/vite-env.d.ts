@@ -6,3 +6,8 @@ interface ImportMetaEnv {
   /** Номер счётчика Яндекс Метрики; без него аналитика выключена. */
   readonly VITE_METRIKA_ID?: string;
 }
+
+declare module '*.md?raw' {
+  const text: string;
+  export default text;
+}
