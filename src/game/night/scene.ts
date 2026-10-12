@@ -498,6 +498,7 @@ export class NightScene {
       const id = this.hand[index]!;
       const entity = this.cards.get(id)!;
       this.drag = { id, entity, startX: x, startY: y, active: false, offY: 0 };
+      this.svc.haptics.touch('tap');
       return;
     }
     const cell = this.cellAt(x, y);
@@ -704,6 +705,8 @@ export class NightScene {
       this.select(handIndex);
       return;
     }
+    // iPhone: отклик сразу, пока палец на экране; вспышку линий чувствуем сильнее
+    this.svc.haptics.touch(events.some((e) => e.t === 'ignite') ? 'ignite' : 'place');
     this.busy = true;
     this.selected = null;
     this.hooks.onSelect?.(null);
@@ -721,6 +724,7 @@ export class NightScene {
     const handIndex = this.selected;
     const events = this.hooks.act({ kind: 'burn', handIndex });
     if (!events) return;
+    this.svc.haptics.touch('ignite');
     this.busy = true;
     this.selected = null;
     this.hooks.onSelect?.(null);
