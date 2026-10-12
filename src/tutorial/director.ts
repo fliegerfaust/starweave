@@ -21,6 +21,13 @@ type Waiter = { pred: (e: TutorialEvent) => boolean; resolve: (e: TutorialEvent,
 
 const TOTAL_STEPS = 24;
 
+/** Общий прямоугольник двух областей. */
+function union(a: Rect, b: Rect): Rect {
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y };
+}
+
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -165,6 +172,7 @@ export class TutorialDirector {
       if (scene.busy) {
         this.overlay.hideBubble();
         this.overlay.point(null);
+        this.clear(watch);
       }
     });
     const { events } = await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'place'));
@@ -181,6 +189,7 @@ export class TutorialDirector {
     // Ночь 1
     await this.waitFor('night');
     await this.waitFor('dealt');
+    this.watchFormula();
     const scene = this.night;
     scene.setGuide({});
     scene.setStepPause(2.4);
@@ -269,8 +278,23 @@ export class TutorialDirector {
     scene2.setGuide({ free: true });
     scene2.setStepPause(2.2);
     this.sync();
-    await this.say('freePlay', { next: false, spot: scene2.layout.board });
+    const playArea = () => union(scene2.layout.board, scene2.handAreaRect());
+    await this.say('freePlay', { next: false, spot: playArea() });
+    // Рука и стол подсвечены вместе, палец показывает: из руки — на небо
+    this.reposition = () => {
+      if (scene2.night.placements > 0 || this.formulaShown) return;
+      this.overlay.spotlight(playArea());
+      this.overlay.point(center(scene2.handAreaRect()), center(scene2.layout.board));
+    };
+    this.reposition();
+    const hideFinger = this.every(100, () => {
+      if (scene2.busy || scene2.night.placements > 0) {
+        this.overlay.point(null);
+        this.clear(hideFinger);
+      }
+    });
     await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'ignite'));
+    this.reposition = null;
     scene2.setStepPause(1);
     if (this.app.run?.phase === 'night') {
       scene2.setGuide({});
@@ -282,6 +306,28 @@ export class TutorialDirector {
     this.overlay.hideBubble();
     this.overlay.spotlight(null);
     this.app.finishTutorial();
+  }
+
+  /** Пока идёт подсчёт — подсвечиваем формулу и объясняем, на что смотреть. */
+  private formulaShown = false;
+
+  private watchFormula(): void {
+    this.every(120, () => {
+      const calc = document.querySelector('.calc.show');
+      if (calc) {
+        // Панель появляется с анимацией — меряем на каждом тике
+        this.overlay.spotlight(elementRect(calc), 6);
+        if (!this.formulaShown) {
+          this.formulaShown = true;
+          this.overlay.point(null);
+          void this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom' });
+        }
+      } else if (this.formulaShown) {
+        this.formulaShown = false;
+        this.overlay.spotlight(null);
+        this.overlay.hideBubble();
+      }
+    });
   }
 
   // ─── Наглядные вставки ─────────────────────────────────────────────────

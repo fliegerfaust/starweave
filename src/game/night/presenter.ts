@@ -330,6 +330,9 @@ export class Presenter {
     if (score.lines.length > 1 || score.xMult !== 1) {
       floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 44, display: true, color: UI.gold, life: 1.2 });
     }
+    // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
+    hud.hideCalc();
+    await this.tweens.wait(0.2); // панель растворяется 0,18 с — огоньки летят уже по чистому небу
     await this.flyToScore(score.lines.flatMap((l) => l.cells));
     hud.setScore(scoreAfter, target);
     const power = Math.min(1, score.total / target);

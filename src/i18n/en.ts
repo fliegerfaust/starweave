@@ -150,6 +150,7 @@ export const en: Dict = {
     startRun: 'Start a run',
     lost: 'Out of moves — no worries, let’s try again.',
     retry: 'Retry',
+    watchFormula: 'Watch the formula: each card and each Omen adds light or mult in turn — the line below says what happened. Total = light × mult.',
     menuButton: 'Tutorial',
     menuSub: '2 minutes',
     offer: 'Looks like you’re new here. Take a short tutorial? It takes 2 minutes and makes everything clear.',

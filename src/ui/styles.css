@@ -383,9 +383,10 @@ body {
 .calc-total.done { color: #2a1a04; background: linear-gradient(180deg, #ffe6a8, #f6c25b); border-style: solid; box-shadow: 0 0 22px rgba(246, 194, 91, 0.6); }
 .calc-total.bump { animation: bump 0.3s ease; }
 .calc-caption {
-  margin-top: 6px;
+  margin: 6px auto 0;
+  width: fit-content;
   min-height: 22px;
-  display: inline-block;
+  display: block;
   padding: 3px 12px;
   border-radius: 999px;
   background: rgba(10, 8, 30, 0.82);
