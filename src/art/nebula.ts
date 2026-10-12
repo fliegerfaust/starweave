@@ -3,11 +3,11 @@ import { makeCanvas } from '@/engine/renderer';
 
 /**
  * Статичный слой неба: градиент ночи, облака туманности, Млечный путь и виньетка.
- * Рисуется один раз на размер экрана в половинном разрешении — он мягкий, и
- * чёткость ему не нужна.
+ * Рисуется один раз на размер экрана. Облака мягкие, но пыль Млечного пути при
+ * растяжении превращается в квадратики, поэтому разрешение — до 2× от CSS-пикселя.
  */
-export function renderNebula(width: number, height: number, seed: number, palette: [number, number, number][] = DEFAULT_NEBULA): HTMLCanvasElement {
-  const scale = 0.5;
+export function renderNebula(width: number, height: number, seed: number, palette: [number, number, number][] = DEFAULT_NEBULA, dpr = 1): HTMLCanvasElement {
+  const scale = Math.min(2, Math.max(1, dpr));
   const canvas = makeCanvas(width, height, scale);
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
@@ -46,7 +46,9 @@ export function renderNebula(width: number, height: number, seed: number, palett
     const y = height * (1 - t + spread);
     const a = 0.08 + random(rng) * 0.25;
     ctx.fillStyle = `rgba(220,215,255,${a})`;
-    ctx.fillRect(x, y, 1.2, 1.2);
+    ctx.beginPath();
+    ctx.arc(x, y, 0.4 + random(rng) * 0.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   ctx.globalCompositeOperation = 'source-over';

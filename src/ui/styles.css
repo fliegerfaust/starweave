@@ -29,6 +29,10 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
+  /* Без «резинки» и прокрутки документа: игра всегда ровно в видимой области */
+  position: fixed;
+  inset: 0;
+  touch-action: manipulation;
   background: var(--night-0);
   color: var(--ink);
   font-family: var(--font-body);
@@ -39,13 +43,18 @@ body {
 
 #stage {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
   display: block;
+  touch-action: none;
 }
 
 #ui {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-h, 100%);
   pointer-events: none;
 }
 
@@ -142,7 +151,8 @@ body {
 
 .modal-backdrop {
   position: fixed;
-  inset: 0;
+  inset: 0 0 auto;
+  height: var(--app-h, 100%);
   pointer-events: auto;
   background: rgba(3, 3, 14, 0.62);
   backdrop-filter: blur(3px);
@@ -903,7 +913,7 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .map-top .icon-btn { flex: none; }
 
 /* ─── Обучение ────────────────────────────────────────────────────────── */
-.tut-layer { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+.tut-layer { position: fixed; inset: 0 0 auto; height: var(--app-h, 100%); pointer-events: none; z-index: 30; }
 .tut-spot {
   position: fixed;
   border-radius: 16px;
