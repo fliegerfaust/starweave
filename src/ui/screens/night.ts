@@ -1,5 +1,6 @@
 import { bossSigil } from '@/art/sigil';
 import { canDoubleReward, canRevive } from '@/core/run';
+import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
@@ -69,6 +70,11 @@ export class NightScreen implements Screen {
   private introHints(): void {
     const n = this.run.night!;
     if (n.bossId) toast(named('boss', n.bossId).desc);
+    else {
+      // Первые созвездия: напомнить про порядок Знамений тем, кто пропустил обучение
+      const wrong = this.run.ante <= 2 ? misorderedOmens(this.run.omens) : null;
+      if (wrong) toast(t('night.orderWarn', { x: named('omen', wrong.xmult).name, a: named('omen', wrong.additive).name }), 'warn');
+    }
     coach(this.app, 'place');
     coach(this.app, 'target');
   }
