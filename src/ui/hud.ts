@@ -69,6 +69,8 @@ export class Hud {
   private readonly calcCaption: HTMLElement;
   private readonly calcLightLabel: HTMLElement;
   private readonly preview: HTMLElement;
+  /** Невидимая строка для скринридера: выбор карты, клетка, итог хода. */
+  private readonly live: HTMLElement;
   private readonly cardInfo: HTMLElement;
   private cardInfoGlyph: Glyph | null = null;
   readonly actions: HTMLElement;
@@ -108,6 +110,7 @@ export class Hud {
       this.calcCaption,
     ]);
     this.preview = h('div.preview');
+    this.live = h('div.sr-only', { attrs: { 'aria-live': 'polite', 'aria-atomic': 'true' } });
 
     const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: t('pause.title'), onclick: () => cb.onMenu() }, h('span.burger'));
     const guideBtn = (this.guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: t('guide.title'), onclick: () => cb.onGuide() }, '?'));
@@ -131,7 +134,7 @@ export class Hud {
   }
 
   mount(root: HTMLElement): void {
-    root.append(this.el, this.calc, this.preview, this.cardInfo, this.actions);
+    root.append(this.el, this.calc, this.preview, this.cardInfo, this.actions, this.live);
   }
 
   unmount(): void {
@@ -140,6 +143,14 @@ export class Hud {
     this.preview.remove();
     this.cardInfo.remove();
     this.actions.remove();
+    this.live.remove();
+  }
+
+  /** Сказать скринридеру (вежливо, не перебивая). */
+  announce(text: string): void {
+    // Тот же текст подряд скринридер не повторит — пересоздаём содержимое
+    this.live.textContent = '';
+    window.setTimeout(() => (this.live.textContent = text), 30);
   }
 
   /** Полное обновление из стейта (кроме счёта — он анимируется отдельно). */

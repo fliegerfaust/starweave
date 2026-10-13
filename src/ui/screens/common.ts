@@ -39,9 +39,23 @@ export function deckGrid(cards: Card[], opts: { dimmed?: Set<number>; selectable
       if (!can) cell.classList.add('disabled');
       if (opts.selected?.has(card.id)) cell.classList.add('selected');
       if (opts.onToggle && can) {
-        cell.addEventListener('click', () => {
+        const toggle = () => {
           opts.onToggle!(card);
-          cell.classList.toggle('selected', opts.selected?.has(card.id) ?? false);
+          const on = opts.selected?.has(card.id) ?? false;
+          cell.classList.toggle('selected', on);
+          cell.setAttribute('aria-pressed', String(on));
+        };
+        // Выбор карт для ритуала — и с клавиатуры: Tab по картам, Enter/пробел
+        cell.tabIndex = 0;
+        cell.setAttribute('role', 'button');
+        cell.setAttribute('aria-pressed', String(opts.selected?.has(card.id) ?? false));
+        cell.setAttribute('aria-label', `${card.rank} · ${t(`suitPl.${card.suit}`)}${card.glyph ? ` · ${t(`glyph.${card.glyph}`)}` : ''}`);
+        cell.addEventListener('click', toggle);
+        cell.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+          }
         });
       }
       line.append(cell);
