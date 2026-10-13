@@ -1,5 +1,6 @@
 import type { Lang } from '@/i18n';
-import type { Platform } from './types';
+import { isPermanent } from '@/store/catalog';
+import type { Payments, Platform, PurchaseResult } from './types';
 
 /** Часть SDK Яндекс Игр, которой мы пользуемся. */
 interface YSDK {
@@ -12,8 +13,48 @@ interface YSDK {
     showRewardedVideo(opts: { callbacks: { onOpen?(): void; onRewarded?(): void; onClose?(): void; onError?(e: unknown): void } }): void;
   };
   environment: { i18n: { lang: string } };
+  getPayments?(opts?: { signed: boolean }): Promise<YPayments>;
   getPlayer(opts?: { scopes: boolean }): Promise<{ getData(keys?: string[]): Promise<Record<string, unknown>>; setData(data: Record<string, unknown>, flush?: boolean): Promise<void> }>;
   on?(event: 'game_api_pause' | 'game_api_resume', fn: () => void): void;
+}
+
+interface YPayments {
+  getCatalog(): Promise<{ id: string; price: string }[]>;
+  getPurchases(): Promise<{ productID: string; purchaseToken: string }[]>;
+  purchase(opts: { id: string }): Promise<{ productID: string; purchaseToken: string }>;
+  consumePurchase(token: string): Promise<void>;
+}
+
+/**
+ * Покупки Яндекс Игр. Товары заводятся в консоли с теми же id, что в каталоге игры.
+ * Навсегда купленное не «потребляется» и приходит в getPurchases при каждом входе;
+ * чаевые и прочие разовые — потребляются сразу (требование площадки).
+ */
+class YandexPayments implements Payments {
+  constructor(private readonly api: YPayments) {}
+
+  async prices(): Promise<Record<string, string>> {
+    const list = await this.api.getCatalog().catch(() => []);
+    return Object.fromEntries(list.map((p) => [p.id, p.price]));
+  }
+
+  async owned(): Promise<string[] | null> {
+    const list = await this.api.getPurchases().catch(() => null);
+    if (!list) return null;
+    for (const p of list) if (!isPermanent(p.productID)) void this.api.consumePurchase(p.purchaseToken).catch(() => undefined);
+    return list.map((p) => p.productID).filter(isPermanent);
+  }
+
+  async buy(productId: string): Promise<PurchaseResult> {
+    try {
+      const p = await this.api.purchase({ id: productId });
+      if (!isPermanent(p.productID)) await this.api.consumePurchase(p.purchaseToken).catch(() => undefined);
+      return 'paid';
+    } catch (e) {
+      // Игрок закрыл окно оплаты — SDK отклоняет промис; отличить отмену от сбоя надёжно нельзя
+      return String((e as { message?: string })?.message ?? e).toLowerCase().includes('cancel') ? 'cancelled' : 'failed';
+    }
+  }
 }
 
 declare global {
@@ -40,6 +81,7 @@ function loadScript(src: string): Promise<void> {
 export class YandexPlatform implements Platform {
   readonly id = 'yandex' as const;
   rewardedAvailable = false;
+  payments: Payments | null = null;
   private sdk: YSDK | null = null;
   private player: Awaited<ReturnType<YSDK['getPlayer']>> | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
@@ -53,6 +95,8 @@ export class YandexPlatform implements Platform {
       this.sdk?.on?.('game_api_pause', () => this.emitPause(true));
       this.sdk?.on?.('game_api_resume', () => this.emitPause(false));
       this.player = (await this.sdk?.getPlayer({ scopes: false }).catch(() => null)) ?? null;
+      const payments = await this.sdk?.getPayments?.({ signed: false }).catch(() => null);
+      if (payments) this.payments = new YandexPayments(payments);
     } catch {
       // Вне Яндекса (локальная проверка сборки) — работаем как обычный веб
       this.sdk = null;

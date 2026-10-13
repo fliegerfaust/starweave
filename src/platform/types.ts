@@ -1,5 +1,16 @@
 import type { Lang } from '@/i18n';
 
+export type PurchaseResult = 'paid' | 'cancelled' | 'failed';
+
+/** Покупки средствами площадки: Telegram Stars, Яндекс, позже сторы. */
+export interface Payments {
+  /** Подписи цен для показа: товар → «250 ⭐». Товара нет — на этой площадке он не продаётся. */
+  prices(): Promise<Record<string, string>>;
+  /** Купленное навсегда по данным площадки; null — узнать не удалось (сеть), верим кэшу. */
+  owned(): Promise<string[] | null>;
+  buy(productId: string): Promise<PurchaseResult>;
+}
+
 /**
  * Площадка, на которой запущена игра: веб, Яндекс Игры, позже — сторы.
  * Игра знает только этот интерфейс; конкретный SDK живёт в адаптере.
@@ -8,6 +19,8 @@ export interface Platform {
   readonly id: 'web' | 'yandex' | 'telegram';
   /** Есть ли реклама за награду (кнопки «второй шанс» показываются только тогда). */
   readonly rewardedAvailable: boolean;
+  /** Покупки; null — площадка их не поддерживает (обычный сайт). */
+  readonly payments: Payments | null;
   init(): Promise<void>;
   /** Игра загрузилась и готова к игре. */
   ready(): void;

@@ -162,6 +162,7 @@ export const en: Dict = {
     double: 'Double the reward',
     watch: 'ad',
     failed: 'Ad not finished — no reward',
+    atlasFree: 'with the Atlas, no ad',
   },
   reward: {
     title: 'Night cleared',

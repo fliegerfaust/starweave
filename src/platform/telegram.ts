@@ -1,6 +1,7 @@
 import type { Lang } from '@/i18n';
 import { chunkKeys, INDEX_KEY, pack, unpack } from './telegram-cloud';
-import type { Platform } from './types';
+import { StarsPayments, apiBase } from '@/store/stars-payments';
+import type { Payments, Platform } from './types';
 
 /** Часть Telegram Mini Apps API, которой пользуется игра (core.telegram.org/bots/webapps). */
 interface TelegramWebApp {
@@ -17,6 +18,7 @@ interface TelegramWebApp {
   setBackgroundColor?(color: string): void;
   setBottomBarColor?(color: string): void;
   openTelegramLink(url: string): void;
+  openInvoice?(url: string, callback: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void): void;
   onEvent(event: string, handler: () => void): void;
   HapticFeedback?: {
     impactOccurred(style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'): void;
@@ -66,13 +68,14 @@ function loadScript(src: string): Promise<void> {
 }
 
 /**
- * Telegram Mini App: игра открывается из бота прямо в Telegram. Без рекламы на старте
- * (позже — Telegram Stars и рекламные сети для Mini Apps). Даёт то, чего нет у браузера
- * на iPhone: тактильные отклики через HapticFeedback клиента Telegram.
+ * Telegram Mini App: игра открывается из бота прямо в Telegram. Покупки — за Telegram
+ * Stars через наш сервер (счета выставляет бот). Даёт то, чего нет у браузера на iPhone:
+ * тактильные отклики через HapticFeedback клиента Telegram.
  */
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
   readonly rewardedAvailable = false;
+  payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
 
@@ -96,6 +99,10 @@ export class TelegramPlatform implements Platform {
     if (app.isVersionAtLeast('7.10')) app.setBottomBarColor?.(NIGHT);
     // На телефонах — весь экран: полю нужна каждая строчка высоты
     if (app.isVersionAtLeast('8.0') && (app.platform === 'ios' || app.platform === 'android')) app.requestFullscreen?.();
+    const base = apiBase();
+    if (base && app.initData && app.isVersionAtLeast('6.1') && app.openInvoice) {
+      this.payments = new StarsPayments({ initData: app.initData, openInvoice: (url, cb) => app.openInvoice!(url, cb) }, base);
+    }
     app.onEvent('deactivated', () => this.emitPause(true));
     app.onEvent('activated', () => this.emitPause(false));
     await this.initAnalytics();

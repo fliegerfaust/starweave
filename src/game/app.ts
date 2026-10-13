@@ -23,7 +23,8 @@ import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { forgetClientId, initAnalytics, measureFps, track } from '@/analytics';
-import type { Platform } from '@/platform';
+import type { Platform, PurchaseResult } from '@/platform';
+import { Entitlements } from '@/store/entitlements';
 import { TutorialDirector } from '@/tutorial/director';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import { cameraSystem } from './systems/camera';
@@ -41,6 +42,8 @@ export class App {
   settings: Settings;
   profile: Profile;
   run: RunState | null = null;
+  /** Купленное на этой площадке: атлас, внешний вид. */
+  readonly purchases = new Entitlements();
   private screen: Screen | null = null;
   private readonly root: HTMLElement;
   private last = performance.now();
@@ -149,6 +152,36 @@ export class App {
     };
     requestAnimationFrame(frame);
     void this.goMenu().then(() => this.platform.ready());
+    void this.refreshPurchases();
+  }
+
+  /** Сверить купленное с площадкой (возвраты, покупки с другого устройства). */
+  async refreshPurchases(): Promise<void> {
+    const list = await this.platform.payments?.owned().catch(() => null);
+    if (list) this.purchases.replace(list);
+  }
+
+  /** Купить товар каталога средствами площадки. */
+  async purchase(productId: string): Promise<PurchaseResult | 'unavailable'> {
+    const payments = this.platform.payments;
+    if (!payments) {
+      track('purchase_result', { product: productId, result: 'unavailable' });
+      return 'unavailable';
+    }
+    track('purchase_start', { product: productId });
+    this.adPlaying = true;
+    this.svc.audio.setMuted(true);
+    const result = await payments.buy(productId).catch((): PurchaseResult => 'failed');
+    this.adPlaying = false;
+    this.svc.audio.setMuted(document.hidden);
+    track('purchase_result', { product: productId, result });
+    if (result === 'paid') this.purchases.add(productId);
+    return result;
+  }
+
+  /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
+  get adFree(): boolean {
+    return this.purchases.has('atlas');
   }
 
   // ─── Экраны ─────────────────────────────────────────────────────────────
@@ -369,7 +402,7 @@ export class App {
     this.persistProfile();
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
-    if (run.phase === 'map' && run.nightIndex === 0) {
+    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree) {
       track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
       void this.platform.showInterstitial().then(() => this.route());
       return;
@@ -454,7 +487,7 @@ export class App {
   async revive(): Promise<boolean> {
     const run = this.run;
     if (!run || !canRevive(run)) return false;
-    const ok = await this.rewarded('revive');
+    const ok = this.adFree || (await this.rewarded('revive'));
     if (!ok || !canRevive(run)) return false;
     reviveNight(run);
     // Поражение уже записали в профиль — забег продолжается, запись отменяем
