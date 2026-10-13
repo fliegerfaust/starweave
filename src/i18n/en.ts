@@ -7,6 +7,7 @@ export const en: Dict = {
     tagline: 'Weave constellations. Outlast the eclipses.',
   },
   menu: {
+    close: 'Close',
     continue: 'Continue',
     newRun: 'New run',
     daily: 'Daily challenge',

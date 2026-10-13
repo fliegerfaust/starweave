@@ -31,6 +31,8 @@ export function button(
   return btn;
 }
 
+let modalSeq = 0;
+
 export interface ModalHandle {
   el: HTMLElement;
   close(): void;
@@ -42,9 +44,22 @@ export function modal(
   opts: { onClose?: () => void; dismissable?: boolean; className?: string; title?: string } = {},
 ): ModalHandle {
   const root = document.getElementById('ui')!;
-  const panel = h('div.modal-panel', null, [opts.title ? h('h2.modal-title', null, opts.title) : null, ...(Array.isArray(content) ? content : [content])]);
+  const dismissable = opts.dismissable !== false;
+  const titleId = `modal-title-${++modalSeq}`;
+  // Шапка прилипает к верху окна: заголовок и крестик видны, даже если окно длинное
+  const closeBtn = dismissable
+    ? h('button.modal-close', { type: 'button', attrs: { 'aria-label': t('menu.close') } }, '×')
+    : null;
+  const head = opts.title || closeBtn
+    ? h(`div.modal-head${opts.title ? '' : '.bare'}`, null, [opts.title ? h('h2.modal-title', { id: titleId }, opts.title) : null, closeBtn])
+    : null;
+  const panel = h('div.modal-panel', { tabIndex: -1, attrs: { role: 'dialog', 'aria-modal': 'true', ...(opts.title ? { 'aria-labelledby': titleId } : {}) } }, [
+    head,
+    ...(Array.isArray(content) ? content : [content]),
+  ]);
   if (opts.className) panel.classList.add(...opts.className.split(' '));
   const backdrop = h('div.modal-backdrop', null, panel);
+  const returnFocus = document.activeElement as HTMLElement | null;
   let closed = false;
   const close = () => {
     if (closed) return;
@@ -52,8 +67,14 @@ export function modal(
     backdrop.classList.add('closing');
     window.removeEventListener('keydown', onKey);
     setTimeout(() => backdrop.remove(), 180);
+    // Фокус клавиатуры — туда, откуда окно открыли
+    if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
     opts.onClose?.();
   };
+  closeBtn?.addEventListener('click', () => {
+    playSound('click');
+    close();
+  });
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && opts.dismissable !== false) close();
   };
@@ -62,6 +83,7 @@ export function modal(
     if (e.target === backdrop && opts.dismissable !== false) close();
   });
   root.append(backdrop);
+  panel.focus({ preventScroll: true });
   document.dispatchEvent(new Event('starweave:modal'));
   return { el: panel, close };
 }
