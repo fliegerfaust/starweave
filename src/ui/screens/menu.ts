@@ -2,12 +2,18 @@ import { cardFace } from '@/art/card';
 import { SKY_LIST } from '@/core/content/skies';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
-import { dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
+import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
 import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
+
+/** «13 октября» — как люди называют дату. */
+function humanDate(key: string): string {
+  const [, m, d] = key.split('-').map(Number) as [number, number, number];
+  return `${d} ${dict().archive.monthsOf[m - 1]}`;
+}
 
 /** Накопленные эффекты звёздности списком. */
 function stakeText(stake: number): string {
@@ -55,7 +61,7 @@ export class MenuScreen implements Screen {
       button(dailyDone ? t('menu.dailyDone') : t('menu.daily'), () => this.guardSave(() => app.startRun('classic', true)), {
         variant: 'secondary',
         disabled: dailyDone,
-        sub: todayKey(),
+        sub: `№ ${dailyNumber()} · ${humanDate(todayKey())}`,
       }),
       button(t('atlas.menu'), () => void app.goAtlas('menu'), {
         variant: 'ghost',
@@ -63,9 +69,10 @@ export class MenuScreen implements Screen {
         sub: app.purchases.has('atlas') ? t('atlas.menuOwned') : t('atlas.menuSub'),
       }),
       h('div.menu-grid', null, [
-        button(t('archive.menu'), () => void app.goArchive(), { variant: 'ghost' }),
+        // Новичку — меньше выбора: архив и кодекс появятся после первого забега
+        app.profile.runs > 0 ? button(t('archive.menu'), () => void app.goArchive(), { variant: 'ghost' }) : null,
         app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { variant: 'ghost' }) : null,
-        button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }),
+        app.profile.runs > 0 ? button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }) : null,
         button(t('menu.howTo'), () => showHelp(), { variant: 'ghost' }),
         button(t('menu.settings'), () => showSettings(app, () => this.rerender()), { variant: 'ghost' }),
       ]),
@@ -186,13 +193,17 @@ export class MenuScreen implements Screen {
     let stake = 0;
     const stakeInfo = h('div.hint');
     const stakeField = app.profile.maxStake > 0 ? h('div.field', null, [h('span.field-label', null, t('menu.stake')), (() => {
-      const wrap = h('div.segmented');
+      const wrap = h('div.segmented', { attrs: { role: 'group', 'aria-label': t('menu.stake') } });
       for (let i = 0; i <= app.profile.maxStake; i++) {
-        const b = h('button.seg', { type: 'button' }, i === 0 ? '—' : '✦'.repeat(i));
+        const b = h('button.seg', { type: 'button', attrs: { 'aria-pressed': String(i === stake) } }, i === 0 ? t('menu.stakeNormal') : `✦${i}`);
         if (i === stake) b.classList.add('on');
         b.addEventListener('click', () => {
           stake = i;
-          wrap.querySelectorAll('.seg').forEach((x) => x.classList.remove('on'));
+          wrap.querySelectorAll('.seg').forEach((x) => {
+            x.classList.remove('on');
+            x.setAttribute('aria-pressed', 'false');
+          });
+          b.setAttribute('aria-pressed', 'true');
           b.classList.add('on');
           stakeInfo.textContent = stakeText(i);
           app.svc.audio.click();

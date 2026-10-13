@@ -99,13 +99,17 @@ export function showSettings(app: App, onChange?: () => void): void {
     return input;
   };
   const segmented = <T,>(options: { value: T; label: string }[], current: T, set: (v: T) => void) => {
-    const wrap = h('div.segmented');
+    const wrap = h('div.segmented', { attrs: { role: 'group' } });
     for (const o of options) {
-      const b = h('button.seg', { type: 'button' }, o.label);
+      const b = h('button.seg', { type: 'button', attrs: { 'aria-pressed': String(o.value === current) } }, o.label);
       if (o.value === current) b.classList.add('on');
       b.addEventListener('click', () => {
-        wrap.querySelectorAll('.seg').forEach((x) => x.classList.remove('on'));
+        wrap.querySelectorAll('.seg').forEach((x) => {
+          x.classList.remove('on');
+          x.setAttribute('aria-pressed', 'false');
+        });
         b.classList.add('on');
+        b.setAttribute('aria-pressed', 'true');
         set(o.value);
         apply();
       });

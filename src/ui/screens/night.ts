@@ -8,8 +8,8 @@ import { dailyNumber } from '@/meta/profile';
 import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { Hud } from '../hud';
-import { clearCoach, coach } from '../tutorial';
-import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle } from '../widgets';
+import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
+import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { screenTitle, showCodexFrom, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
 import { showScoringHelp } from './scoring-help';
 
@@ -46,6 +46,8 @@ export class NightScreen implements Screen {
         },
       });
       this.scene.build();
+      const scene = this.scene;
+      setCoachDock(() => (this.scene === scene ? scene.handAreaRect().y : null));
       this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
@@ -65,6 +67,7 @@ export class NightScreen implements Screen {
     this.hud.unmount();
     this.overlay?.close();
     clearCoach();
+    setCoachDock(null);
   }
 
   private introHints(): void {
@@ -97,11 +100,16 @@ export class NightScreen implements Screen {
     const n = this.run.night;
     if (n && n.result === 'playing') {
       if (events.some((e) => e.t === 'ignite')) {
+        // Линия уже вспыхнула — «заполни ряд» больше не нужна
+        dropCoach('fillLine');
         coach(this.app, 'combos');
         if (n.ignitions >= 2) coach(this.app, 'cross');
       } else if (n.placements >= 2) coach(this.app, 'fillLine');
       if (n.placements >= 7) coach(this.app, 'burn');
       if (n.movesLeft === 1) toast(t('night.lastMove'));
+    } else {
+      // Ночь закончилась — подсказки про ход больше ни к чему
+      clearCoach();
     }
     this.checkPhase();
   }
@@ -156,7 +164,7 @@ export class NightScreen implements Screen {
     const list = h('div.reward-list');
     rows.forEach(([label, value], i) => {
       if (value <= 0 && i > 0) return;
-      const row = h('div.reward-row', { style: { animationDelay: `${i * 0.12}s` } }, [h('span', null, label), h('span.gold-text', null, `+${value}`)]);
+      const row = h('div.reward-row', { style: { animationDelay: `${i * 0.12}s` } }, [h('span', null, label), h('span.gold-text', null, withCoin(`+${value}`))]);
       list.append(row);
       window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
     });
@@ -179,7 +187,7 @@ export class NightScreen implements Screen {
                 return false;
               })
             : null,
-          button(t('reward.collect', { n: reward.total }), () => {
+          button(withCoin(t('reward.collect', { n: reward.total })), () => {
             this.overlay?.close();
             this.overlay = null;
             this.app.collectReward();
@@ -209,12 +217,15 @@ export class NightScreen implements Screen {
     }
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
-    const isRecord = run.stats.bestPlacement >= this.app.profile.bestPlacement && run.stats.bestPlacement > 0;
+    const isRecord = run.stats.bestPlacement > this.app.bestBefore && run.stats.bestPlacement > 0;
+    const short = night ? Math.max(0, night.target - night.score) : 0;
     this.overlay = modal(
       [
         h('div.over-sub', null, reached),
         night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
-        isRecord ? h('div.badge.record', null, t('over.newRecord')) : null,
+        short ? h('p.over-short', null, t('over.short', { n: num(short) })) : null,
+        isRecord ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+        h('p.over-tip', null, lostTip(run)),
         statsGrid(run),
         canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable)
           ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
@@ -237,6 +248,8 @@ export class NightScreen implements Screen {
     this.overlay = modal(
       [
         screenTitle(t('over.winTitle')),
+        h('p.over-sub', null, t('over.winSub', { sky: named('sky', run.skyId).name, stake: (run.stake ?? 0) ? `✦${run.stake}` : t('menu.stakeNormal') })),
+        run.stats.bestPlacement > this.app.bestBefore ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
         statsGrid(run),
         h('div.row.gap.center.wrap', null, [
           run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
@@ -245,6 +258,11 @@ export class NightScreen implements Screen {
             this.overlay?.close();
             this.overlay = null;
             this.app.continueEndless();
+          }, { variant: 'secondary', sub: t('over.endlessSub') }),
+          // Главное после победы — следующий забег
+          button(t('over.again'), () => {
+            this.overlay?.close();
+            this.app.startRun(run.skyId, false, run.stake ?? 0);
           }),
         ].filter(Boolean) as HTMLElement[]),
       ],
@@ -284,4 +302,13 @@ export class NightScreen implements Screen {
   static bossIcon(id: string, size = 48): HTMLCanvasElement {
     return canvasImg(bossSigil(id, size, dpr()), size);
   }
+}
+
+/** Совет после поражения: что попробовать в следующий раз — по тому, как прошёл забег. */
+function lostTip(run: RunState): string {
+  const n = run.night;
+  if (n && n.burnsLeft > 0) return t('over.tipBurns', { n: n.burnsLeft });
+  if (run.stats.crosses === 0) return t('over.tipCross');
+  if (run.omens.length < 2) return t('over.tipOmens');
+  return t('over.tipOrder');
 }

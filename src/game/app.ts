@@ -18,6 +18,7 @@ import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settin
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
 import { hideTooltip, setUiSound, toast } from '@/ui/widgets';
+import { clearCoach } from '@/ui/tutorial';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
@@ -130,6 +131,8 @@ export class App {
   }
 
   private adPlaying = false;
+  /** Рекорд хода до записи итогов забега — окно итогов сравнивает с ним честно. */
+  bestBefore = 0;
 
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
@@ -364,6 +367,7 @@ export class App {
     }
     if (lost) {
       this.trackRunEnd('lost');
+      this.bestBefore = this.profile.bestPlacement;
       const fresh = recordRunEnd(this.profile, run, false);
       this.persistProfile();
       this.announceUnlocks(fresh);
@@ -429,6 +433,7 @@ export class App {
     }
     if (run.phase === 'victory') {
       this.trackRunEnd('victory');
+      this.bestBefore = this.profile.bestPlacement;
       const fresh = recordRunEnd(this.profile, run, true);
       this.announceUnlocks(fresh);
     } else {
@@ -555,6 +560,8 @@ export class App {
   /** Учебный забег не трогает сохранённый настоящий: тот вернётся после обучения. */
   startTutorial(source: 'offer' | 'menu' | 'retry' = 'menu'): void {
     track('tutorial_start', { source });
+    // Обучение ведёт сам режиссёр — плашки первых забегов ему мешают
+    clearCoach();
     this.tutorial?.stop();
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.run = newTutorialRun();
