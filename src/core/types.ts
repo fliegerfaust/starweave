@@ -152,6 +152,8 @@ export interface NightState {
   linesIgnited: number;
   bestPlacement: number;
   result: 'playing' | 'won' | 'lost';
+  /** Щедрая ночь новичка: добор подыгрывает, ходов и цели меньше. */
+  gentle?: boolean;
 }
 
 // ─── Забег ─────────────────────────────────────────────────────────────────
@@ -230,6 +232,8 @@ export interface RunState {
   stake?: number;
   /** Учебный забег: сценарная колода, без Затмений, две ночи. */
   tutorial?: boolean;
+  /** Первый забег новичка: первая ночь щедрая (см. `GENTLE_NIGHT`). */
+  gentle?: boolean;
   /** Второй шанс уже использован в этом забеге. */
   revived?: boolean;
   /** В каком созвездии награду уже удваивали. */
