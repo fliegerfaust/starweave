@@ -7,6 +7,7 @@ export const ru = {
     tagline: 'Сплетай созвездия. Переживи Затмения.',
   },
   menu: {
+    close: 'Закрыть',
     continue: 'Продолжить',
     newRun: 'Новый забег',
     daily: 'Вызов дня',
