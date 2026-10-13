@@ -217,12 +217,15 @@ export class NightScreen implements Screen {
     }
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
-    const isRecord = run.stats.bestPlacement >= this.app.profile.bestPlacement && run.stats.bestPlacement > 0;
+    const isRecord = run.stats.bestPlacement > this.app.bestBefore && run.stats.bestPlacement > 0;
+    const short = night ? Math.max(0, night.target - night.score) : 0;
     this.overlay = modal(
       [
         h('div.over-sub', null, reached),
         night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
-        isRecord ? h('div.badge.record', null, t('over.newRecord')) : null,
+        short ? h('p.over-short', null, t('over.short', { n: num(short) })) : null,
+        isRecord ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+        h('p.over-tip', null, lostTip(run)),
         statsGrid(run),
         canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable)
           ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
@@ -245,6 +248,8 @@ export class NightScreen implements Screen {
     this.overlay = modal(
       [
         screenTitle(t('over.winTitle')),
+        h('p.over-sub', null, t('over.winSub', { sky: named('sky', run.skyId).name, stake: (run.stake ?? 0) ? `✦${run.stake}` : t('menu.stakeNormal') })),
+        run.stats.bestPlacement > this.app.bestBefore ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
         statsGrid(run),
         h('div.row.gap.center.wrap', null, [
           run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
@@ -253,6 +258,11 @@ export class NightScreen implements Screen {
             this.overlay?.close();
             this.overlay = null;
             this.app.continueEndless();
+          }, { variant: 'secondary', sub: t('over.endlessSub') }),
+          // Главное после победы — следующий забег
+          button(t('over.again'), () => {
+            this.overlay?.close();
+            this.app.startRun(run.skyId, false, run.stake ?? 0);
           }),
         ].filter(Boolean) as HTMLElement[]),
       ],
@@ -292,4 +302,13 @@ export class NightScreen implements Screen {
   static bossIcon(id: string, size = 48): HTMLCanvasElement {
     return canvasImg(bossSigil(id, size, dpr()), size);
   }
+}
+
+/** Совет после поражения: что попробовать в следующий раз — по тому, как прошёл забег. */
+function lostTip(run: RunState): string {
+  const n = run.night;
+  if (n && n.burnsLeft > 0) return t('over.tipBurns', { n: n.burnsLeft });
+  if (run.stats.crosses === 0) return t('over.tipCross');
+  if (run.omens.length < 2) return t('over.tipOmens');
+  return t('over.tipOrder');
 }

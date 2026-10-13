@@ -131,6 +131,8 @@ export class App {
   }
 
   private adPlaying = false;
+  /** Рекорд хода до записи итогов забега — окно итогов сравнивает с ним честно. */
+  bestBefore = 0;
 
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
@@ -365,6 +367,7 @@ export class App {
     }
     if (lost) {
       this.trackRunEnd('lost');
+      this.bestBefore = this.profile.bestPlacement;
       const fresh = recordRunEnd(this.profile, run, false);
       this.persistProfile();
       this.announceUnlocks(fresh);
@@ -430,6 +433,7 @@ export class App {
     }
     if (run.phase === 'victory') {
       this.trackRunEnd('victory');
+      this.bestBefore = this.profile.bestPlacement;
       const fresh = recordRunEnd(this.profile, run, true);
       this.announceUnlocks(fresh);
     } else {
