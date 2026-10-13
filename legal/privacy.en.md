@@ -26,8 +26,12 @@ address, payment details or photos.
   cookies and device identifiers.
 - **Advertising** — if the Game shows ads, they are served by the platform's ad network (e.g.
   Yandex Advertising Network), which may use device identifiers and cookies under its own rules.
-- **Purchases** — processed by the platform (Yandex Games, App Store, Google Play, RuStore). We only
-  receive a purchase confirmation, never your payment details.
+- **Purchases** — processed by the platform (Telegram, Yandex Games, App Store, Google Play, RuStore).
+  We only receive a purchase confirmation, never your payment details. For Telegram purchases our
+  server keeps your numeric Telegram account ID, the item, the amount in Stars, the date and the
+  payment number — so the purchase unlocks on any of your devices and can be refunded.
+- **Support requests** — if you message the game's bot, the message with your Telegram ID and
+  username is forwarded to the game's author in Telegram so they can reply.
 
 ## 4. Why
 
@@ -40,7 +44,8 @@ We do not sell data or use it for decisions that legally affect you.
 
 ## 5. Retention
 
-Data on your device is kept until you delete it. Statistics on our server are kept for 400 days,
+Data on your device is kept until you delete it. Purchase records are kept while the purchase is
+in effect and as required by income accounting law. Statistics on our server are kept for 400 days,
 Metrica statistics for the periods set by Yandex. Cloud saves follow the platform's rules.
 
 ## 6. Your choices
