@@ -3,6 +3,14 @@
 События описаны в одном месте — `src/analytics/events.ts` (типизированы: опечатку поймает
 компилятор). Отправка — `track('имя', { параметры })`. Аналитика никогда не роняет игру.
 
+## Куда уходят события
+- **Свой сервер** — https://game.denvalclass.ru (`VITE_EVENTS_URL`, переменная репозитория
+  `EVENTS_URL`): события с сайта и из Telegram, сводка `/stats` под паролем
+  ([server/README.md](../server/README.md)). Работает с 0.3.10.
+- **Аналитика Telegram Mini Apps** — ключ из @DataChief_bot (`TG_ANALYTICS_TOKEN`,
+  `TG_ANALYTICS_APP`); запуски и удержание в каталоге Telegram.
+- **Яндекс Метрика** — ждёт номер счётчика (D.2), см. ниже.
+
 ## Подключение Яндекс Метрики
 1. Создать счётчик на [metrika.yandex.ru](https://metrika.yandex.ru) (адрес сайта — домен игры
    или адрес на Яндекс Играх).
@@ -25,7 +33,7 @@
 | `tutorial_step` | каждый шаг | step, index | **где бросают обучение** |
 | `tutorial_skip` | пропуск | step, index | на каком шаге пропускают |
 | `tutorial_complete` | конец обучения | — | конверсия обучения (цель ≥ 80%) |
-| `run_start` | новый забег | sky, stake, daily | популярность колод и сложности |
+| `run_start` | новый забег | sky, stake, daily, archive | популярность колод и сложности; archive — вызов из архива |
 | `night_start` | начало ночи | ante, night, boss | — |
 | `night_end` | конец ночи | ante, night, boss, won, score, target, ratio, moves_left, burns_left, lines | **баланс целей**: ratio около 1 — на грани, сильно больше — слишком легко |
 | `run_end` | конец забега | result, ante, nights, lines, best, crosses, omens | где умирают, сильные наборы Знамений |
@@ -36,6 +44,9 @@
 | `pack_choose` | выбор из пакета | pack, id | что берут из трёх |
 | `ad_request` | запрос рекламы | kind, placement | частота показов |
 | `ad_result` | итог рекламы за награду | kind, placement, result | досматриваемость |
+| `store_open` | открыт «Звёздный атлас» | from: menu / sky / archive … | откуда приходят в магазин |
+| `purchase_start` | нажата покупка | product | интерес к товарам |
+| `purchase_result` | итог покупки | product, result: paid / cancelled / failed / unavailable | **конверсия** и сбои оплаты |
 | `guide_open` | справочник | focus | какие термины непонятны |
 | `scoring_help_open` | «Как считаются очки» | — | понятна ли формула |
 | `perf` | через 30 с после запуска | fps, dpr, width, height | слабые устройства |
@@ -46,3 +57,7 @@
   run_start → night_end (won, ante 1) → night_end (boss ≠ '').
 - **Баланс:** night_end по ante и night: доля побед и медиана ratio; по boss — доля поражений.
 - **Знамения:** shop_buy по id против omens в run_end с result=victory — частота выбора и побед.
+- **Атлас:** store_open → purchase_start → purchase_result (paid) по product; откуда заходят (from).
+  Продажи Stars — также командой `/sales` в чате с ботом.
+
+Термины в событиях: `ante` — номер главы (1–8), `night` — dusk / midnight / eclipse.
