@@ -19,27 +19,27 @@ let fakeId = -1;
 const card = (suit: Card['suit'], rank: number, glyph?: Glyph): Card => ({ id: fakeId--, suit, rank, ...(glyph ? { glyph } : {}) });
 
 /** Всплывающая подпись, которая повторяется по кругу. */
-const pop = (text: string, cls: string, delay = 0) => h(`span.g-pop.${cls}`, { style: { animationDelay: `${delay}s` } }, text);
+export const pop = (text: string, cls: string, delay = 0) => h(`span.g-pop.${cls}`, { style: { animationDelay: `${delay}s` } }, text);
 
-const stage = (children: (Node | null)[], cls = '') => h(`div.g-stage${cls ? `.${cls}` : ''}`, null, children);
+export const stage = (children: (Node | null)[], cls = '') => h(`div.g-stage${cls ? `.${cls}` : ''}`, null, children);
 
 const thumb = (c: Card, cls = '') => {
   const wrap = h(`div.g-card${cls ? `.${cls}` : ''}`, null, cardThumb(c, W));
   return wrap;
 };
 
-function lineDemo(): HTMLElement {
+export function lineDemo(): HTMLElement {
   const cards = [card('sun', 3), card('moon', 3), card('star', 7), card('comet', 5)];
   return stage([h('div.g-line', null, cards.map((c, i) => thumb(c, `fill d${i}`))), h('div.g-glow')], 'line');
 }
 
-function formulaDemo(): HTMLElement {
+export function formulaDemo(): HTMLElement {
   return stage([
     h('div.g-formula', null, [h('span.g-box.light', null, '28'), h('span', null, '×'), h('span.g-box.mult', null, '2'), h('span', null, '='), h('span.g-box.total', null, '56')]),
   ]);
 }
 
-function crossDemo(): HTMLElement {
+export function crossDemo(): HTMLElement {
   const grid = h('div.g-grid');
   const filled = new Set([0, 1, 5, 8]);
   for (let i = 0; i < 9; i++) {
@@ -49,7 +49,7 @@ function crossDemo(): HTMLElement {
   return stage([grid, pop('×2', 'mult', 0.6)], 'cross');
 }
 
-function burnDemo(): HTMLElement {
+export function burnDemo(): HTMLElement {
   return stage([thumb(card('comet', 1), 'burn'), thumb(card('star', 8), 'fresh')], 'burn');
 }
 
@@ -61,7 +61,7 @@ function glyphDemo(glyph: Glyph): HTMLElement {
       parts.push(pop('+7', 'light', 0), pop('+7', 'light', 0.7));
       break;
     case 'glass':
-      parts.push(pop('×2', 'mult', 0), pop('1/4 💥', 'warn', 0.8));
+      parts.push(pop('×2', 'mult', 0), pop('1/4', 'warn', 0.8));
       break;
     case 'prism':
       parts.push(h('div.g-orbit', null, ['☀', '☾', '✦', '☄'].map((s, i) => h('span', { style: { animationDelay: `${-i * 0.5}s` } }, s))));

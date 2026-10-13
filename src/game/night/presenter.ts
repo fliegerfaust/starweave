@@ -31,8 +31,11 @@ export class Presenter {
     return this.scene.svc.audio;
   }
 
+  /** Касание во время подсчёта ускоряет его до конца хода (долгий крест не держит игрока). */
+  hurry = 1;
+
   private get speed() {
-    return this.world.res.speed;
+    return this.world.res.speed * this.hurry;
   }
 
   private wait(seconds: number): Promise<void> {
@@ -40,10 +43,12 @@ export class Presenter {
   }
 
   async play(events: GameEvent[], dragged?: Entity): Promise<void> {
+    this.hurry = 1;
     for (const ev of events) {
       if (this.scene.isDestroyed) return;
       await this.handle(ev, dragged);
     }
+    this.hurry = 1;
     if (!this.scene.isDestroyed) this.scene.hud.sync(this.scene.run, { score: false });
   }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { GENTLE_NIGHT } from '../src/core/content/balance';
 import { cardHelpfulness, startNight } from '../src/core/night';
-import { collectReward, leaveShop, newRun } from '../src/core/run';
+import { GIFT_GOLD_CAP, collectReward, leaveShop, newRun } from '../src/core/run';
 import { serializeRun } from '../src/core/save';
 import { COLLECTIBLE_COMBOS, emptyProfile, recordDiscoveries } from '../src/meta/profile';
 
@@ -66,5 +66,17 @@ describe('коллекция созвездий', () => {
     expect(recordDiscoveries(p, ['pair', 'pair', 'triple'], 2)).toEqual({ combos: ['triple'], cross: false });
     expect(p.combosFound).toEqual(['flush', 'pair', 'triple']);
     expect(COLLECTIBLE_COMBOS).toHaveLength(10);
+  });
+});
+
+describe('подарок обучения', () => {
+  it('золото и Знамения переходят в первый забег, но не в вызов дня', () => {
+    const run = newRun({ seed: 5, gentle: true, gift: { gold: 9, omens: ['stardust', 'nope'] } });
+    expect(run.gold).toBe(9);
+    expect(run.omens.map((o) => o.id)).toEqual(['stardust']);
+    const capped = newRun({ seed: 5, gift: { gold: 99, omens: [] } });
+    expect(capped.gold).toBe(GIFT_GOLD_CAP);
+    const daily = newRun({ seed: 5, daily: true, dailyDate: '2026-10-14', gift: { gold: 11, omens: ['stardust'] } });
+    expect(daily.omens).toHaveLength(0);
   });
 });

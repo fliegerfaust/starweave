@@ -13,6 +13,8 @@ export interface BubbleOptions {
   next?: string;
   /** Где показать пузырь: сверху, снизу или подальше от подсветки. */
   place?: 'top' | 'bottom' | 'auto';
+  /** Картинка шага слева от текста: суть видна, даже если текст не читают. */
+  pic?: HTMLElement | null;
 }
 
 /**
@@ -81,7 +83,8 @@ export class TutorialOverlay {
   /** Показать пузырь. Возвращает промис, который разрешится по кнопке «дальше». */
   say(content: Child | Child[], opts: BubbleOptions = {}): Promise<void> {
     return new Promise((resolve) => {
-      const body = h('div.tut-text', null, content);
+      const text = h('div.tut-text', null, content);
+      const body = opts.pic ? h('div.tut-say', null, [h('div.tut-pic-wrap', { attrs: { 'aria-hidden': 'true' } }, opts.pic), text]) : text;
       const skip = h('button.tut-skip', { type: 'button' }, t('tut.skip'));
       skip.addEventListener('click', () => this.onSkip());
       const actions = h('div.tut-actions', null, [this.progress, skip]);
