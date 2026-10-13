@@ -596,14 +596,11 @@ export class App {
   finishTutorial(): void {
     track('tutorial_complete', {});
     this.profile.tutorialFinished = true;
-    // Заработанное в обучении не пропадает: золото (с несобранной наградой) и Знамения
-    // ждут первого настоящего забега
+    // Золото обучения (с несобранной наградой) ждёт первого настоящего забега;
+    // Знамения игрок заработает там сам
     const tut = this.run;
     if (tut?.tutorial && this.profile.runs === 0) {
-      this.profile.tutorialGift = {
-        gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)),
-        omens: tut.omens.map((o) => o.id),
-      };
+      this.profile.tutorialGift = { gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)) };
     }
     this.endTutorial();
     this.svc.audio.win();

@@ -6,8 +6,6 @@ import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
 import { generateShop } from './shop';
-import { buildRules } from './rules';
-import { OMEN_LIST } from './content/omens';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
 export const SAVE_VERSION = 1;
@@ -25,10 +23,13 @@ export interface NewRunOptions {
   gift?: TutorialGift;
 }
 
-/** Итог обучения, который переходит в первый забег: золото и купленные Знамения. */
+/**
+ * Итог обучения, который переходит в первый забег, — только золото. Знамения игрок
+ * зарабатывает в забеге сам (решение Дениса 15.10.2026): с «Звёздной пылью» с первого
+ * хода 1-я глава проходилась почти без ходов.
+ */
 export interface TutorialGift {
   gold: number;
-  omens: string[];
 }
 
 /** Больше этого из обучения не переносится — подарок, а не преимущество. */
@@ -76,10 +77,6 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
   if (gentle && !daily) run.gentle = true;
   if (gift && !daily) {
     run.gold = Math.max(run.gold, Math.min(GIFT_GOLD_CAP, gift.gold));
-    // Сохранение могло пережить обновление игры — неизвестные Знамения пропускаем
-    for (const id of gift.omens.filter((x) => OMEN_LIST.some((o) => o.id === x))) {
-      if (run.omens.length < buildRules(run, null).omenSlots && !run.omens.some((o) => o.id === id)) run.omens.push(createOmen(run, id));
-    }
   }
   for (const id of sky.startOmens ?? []) run.omens.push(createOmen(run, id));
   return run;
