@@ -49,7 +49,7 @@ export interface CellState {
   /** 0..1 — подсветка клетки обучением. */
   tut: number;
   /** Что вспыхнет в этой клетке: созвездия выбранной карты или лучшей карты руки. */
-  forecast: string[];
+  forecast: { name: string; dir: 'row' | 'col' | 'diag' | null }[];
   /** Прогноз для выбранной карты (а не лучший из руки). */
   forecastPicked: boolean;
   /** Прогноз — только Россыпь: ход почти ничего не даст. */
@@ -335,6 +335,38 @@ export class NightScene {
     }
   }
 
+  /** Двусторонняя стрелка: ↔ ряд, ↕ столбец, ⤡ диагональ — линиями, в цвет подписи. */
+  private drawLineArrow(ctx: CanvasRenderingContext2D, dir: 'row' | 'col' | 'diag', cx: number, cy: number, len: number, color: string, k: number): void {
+    const [dx, dy] = dir === 'row' ? [1, 0] : dir === 'col' ? [0, 1] : [Math.SQRT1_2, -Math.SQRT1_2];
+    const half = len / 2;
+    const head = len * 0.32;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(cx - dx * half, cy - dy * half);
+      ctx.lineTo(cx + dx * half, cy + dy * half);
+      for (const sgn of [1, -1]) {
+        const tx = cx + sgn * dx * half;
+        const ty = cy + sgn * dy * half;
+        // Усы стрелки — под 45° к линии, назад от острия
+        ctx.moveTo(tx - sgn * head * (dx - dy) * Math.SQRT1_2, ty - sgn * head * (dy + dx) * Math.SQRT1_2);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(tx - sgn * head * (dx + dy) * Math.SQRT1_2, ty - sgn * head * (dy - dx) * Math.SQRT1_2);
+      }
+    };
+    path();
+    ctx.lineWidth = 3.4;
+    ctx.strokeStyle = `rgba(8,6,24,${0.75 * k})`;
+    ctx.stroke();
+    path();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   /**
    * Названия созвездий в клетке, которая закроет линию: игрок видит, что соберётся,
    * не зная покерных комбинаций. Длинные названия переносятся по словам.
@@ -343,34 +375,45 @@ export class NightScene {
     const cross = s.closes >= 2;
     const maxW = w - 8;
     const base = Math.max(12, Math.round(w * 0.17));
-    let names = s.forecast;
-    // Узкая клетка (экран 320 px): длинное слово не влезает — ужимаем шрифт, а не клетку;
-    // не хватает и мелкого — стрелки ряда и столбца уступают место названию
-    const fit = (list: string[]) => {
+    // Стрелка ряда или столбца рисуется линиями, а не символом шрифта: символ в другом
+    // шрифте (Telegram, Android) шире замера и вылезал за клетку
+    let arrows = s.forecast.some((f) => f.dir);
+    const arrowW = (size: number) => (arrows ? size * 0.9 : 0);
+    // Узкая клетка: длинное слово не влезает — ужимаем шрифт, а не клетку; не хватает и
+    // мелкого — стрелки уступают место названию
+    const fit = () => {
       ctx.font = `700 ${base}px Manrope, sans-serif`;
-      const widest = Math.max(...list.flatMap((name) => name.split(' ')).map((word) => ctx.measureText(word).width));
+      let widest = 0;
+      for (const f of s.forecast) {
+        f.name.split(' ').forEach((word, i) => {
+          widest = Math.max(widest, ctx.measureText(word).width + (i === 0 ? arrowW(base) : 0));
+        });
+      }
       return widest > maxW ? Math.floor((base * maxW) / widest) : base;
     };
-    let size = fit(names);
-    if (size < 9 && names.some((n) => n.includes('\u00A0'))) {
-      names = names.map((n) => n.slice(n.indexOf('\u00A0') + 1));
-      size = fit(names);
+    let size = fit();
+    if (size < 9 && arrows) {
+      arrows = false;
+      size = fit();
     }
     size = Math.max(8, size);
     ctx.font = `700 ${size}px Manrope, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const rows: string[] = [];
-    for (const name of names) {
+    const aw = arrowW(size);
+    const rows: { text: string; dir: 'row' | 'col' | 'diag' | null }[] = [];
+    for (const f of s.forecast) {
       let row = '';
-      for (const word of name.split(' ')) {
+      let dir = arrows ? f.dir : null;
+      for (const word of f.name.split(' ')) {
         const next = row ? `${row} ${word}` : word;
-        if (row && ctx.measureText(next).width > maxW) {
-          rows.push(row);
+        if (row && ctx.measureText(next).width + (dir ? aw : 0) > maxW) {
+          rows.push({ text: row, dir });
+          dir = null;
           row = word;
         } else row = next;
       }
-      if (row) rows.push(row);
+      if (row) rows.push({ text: row, dir });
     }
     const lh = size * 1.15;
     const mark = cross ? Math.round(w * 0.28) : 0;
@@ -397,12 +440,20 @@ export class NightScene {
     const color = s.forecastWeak ? `rgba(200,195,230,${alpha})` : s.forecastPicked ? `rgba(255,236,190,${alpha})` : `rgba(246,194,91,${alpha})`;
     shown.forEach((row, i) => {
       const ry = cursor + i * lh + lh / 2;
+      const iconW = row.dir ? aw : 0;
+      // Предел ширины у fillText — страховка: даже если шрифт шире замера, строка
+      // сожмётся по горизонтали, а не вылезет из клетки
+      const textMax = maxW - iconW;
+      const textW = Math.min(textMax, ctx.measureText(row.text).width);
+      const left = x - (iconW + textW) / 2;
+      const tx = left + iconW + textW / 2;
+      if (row.dir) this.drawLineArrow(ctx, row.dir, left + size * 0.35, ry, size * 0.62, color, k);
       // Тёмная подложка под буквами — читается и поверх туманности
       ctx.lineWidth = 3;
       ctx.strokeStyle = `rgba(8,6,24,${0.75 * k})`;
-      ctx.strokeText(row, x, ry);
+      ctx.strokeText(row.text, tx, ry, textMax);
       ctx.fillStyle = color;
-      ctx.fillText(row, x, ry);
+      ctx.fillText(row.text, tx, ry, textMax);
     });
     cursor += shown.length * lh;
     const card = s.forecastCard;
@@ -835,9 +886,8 @@ export class NightScene {
       }
       if (!best) continue;
       if (picked === null) state.forecastCard = n.hand[bestIndex] ?? null;
-      // На кресте две подписи: стрелка говорит, какая у ряда (↔), какая у столбца (↕)
-      const arrow = { row: '↔\uFE0E\u00A0', col: '↕\uFE0E\u00A0', diag: '⤡\uFE0E\u00A0' } as const;
-      state.forecast = best.lines.map((l) => (best!.lines.length > 1 ? arrow[l.kind] : '') + t(`combo.${l.combo}`));
+      // На кресте две подписи: стрелка говорит, какая у ряда, какая у столбца
+      state.forecast = best.lines.map((l) => ({ name: t(`combo.${l.combo}`), dir: best!.lines.length > 1 ? l.kind : null }));
       state.forecastWeak = best.lines.every((l) => l.combo === 'scatter');
     }
   }
