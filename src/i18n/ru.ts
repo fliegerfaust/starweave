@@ -230,6 +230,7 @@ export const ru = {
     nights: 'Пройдено ночей',
     goldEarned: 'Золота добыто',
     again: 'Ещё забег',
+    sameDeal: 'Тот же расклад',
     menu: 'В меню',
     endless: 'Бесконечный режим',
     share: 'Поделиться',

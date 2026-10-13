@@ -292,21 +292,22 @@ export class App {
 
   // ─── Забег ──────────────────────────────────────────────────────────────
 
-  startRun(skyId: string, daily = false, stake = 0): void {
+  /** `seed` — переиграть тот же расклад (после поражения); иначе случайный. */
+  startRun(skyId: string, daily = false, stake = 0, seed?: number): void {
     // Из обучения — сначала вернуть настоящее сохранение, чтобы его не затереть молча
     if (this.run?.tutorial) this.endTutorial();
     // Перезаписываемый забег засчитывается как сданный
     if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
     if (daily) markDailyStarted(this.profile);
     this.persistProfile();
-    const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
+    const runSeed = daily ? dailySeed() : (seed ?? (Math.random() * 2 ** 32) >>> 0);
     // Самый первый забег начинается со щедрой ночи и с тем, что заработано в обучении
     const gentle = !daily && this.profile.runs === 0;
     const gift = gentle ? this.profile.tutorialGift : undefined;
-    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
+    this.run = newRun({ seed: runSeed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
     // Подарок — один раз: в первый забег или никогда (первым сыгран вызов дня)
     if (!daily || this.profile.runs > 0) delete this.profile.tutorialGift;
-    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift });
+    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift, replay: seed !== undefined });
     this.save();
     void this.route();
   }

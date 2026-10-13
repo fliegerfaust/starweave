@@ -230,6 +230,7 @@ export const en: Dict = {
     nights: 'Nights cleared',
     goldEarned: 'Gold earned',
     again: 'Play again',
+    sameDeal: 'Same deal',
     menu: 'Main menu',
     endless: 'Endless mode',
     share: 'Share',
