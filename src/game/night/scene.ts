@@ -389,7 +389,9 @@ export class NightScene {
   private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, hgt: number, k: number): void {
     const cross = s.closes >= 2;
     const maxW = w - 8;
-    const base = Math.max(12, Math.round(w * 0.17));
+    // «Крупный текст» в настройках — подписи на небе тоже крупнее (сколько влезет в клетку)
+    const large = document.documentElement.classList.contains('large-text');
+    const base = Math.max(large ? 14 : 12, Math.round(w * (large ? 0.2 : 0.17)));
     // Стрелка ряда или столбца рисуется линиями, а не символом шрифта: символ в другом
     // шрифте (Telegram, Android) шире замера и вылезал за клетку
     let arrows = s.forecast.some((f) => f.dir);

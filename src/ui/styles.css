@@ -1803,3 +1803,13 @@ body.landscape .hud-chapter { display: none; }
 
 /* Холст поля фокусируется для клавиатуры и скринридера; фокус клетки рисуется на самом поле */
 #stage canvas:focus { outline: none; }
+
+/* Крупный текст (настройка): основной текст 17 px, второстепенный 15, подписи 13 */
+html.large-text body, html.large-text .modal-text, html.large-text .help-list, html.large-text .tut-bubble, html.large-text .toast,
+html.large-text .coach-text, html.large-text .tip-desc, html.large-text .over-tip, html.large-text .score-step { font-size: 17px; }
+html.large-text .hint, html.large-text .shop-desc, html.large-text .g-desc, html.large-text .calc-caption, html.large-text .card-info,
+html.large-text .preview, html.large-text .tut-memo-caption, html.large-text .reward-row { font-size: 15px; }
+html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label, html.large-text .shop-tag,
+html.large-text .sell-label, html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
+html.large-text .combo-name { font-size: 21px; }
+
