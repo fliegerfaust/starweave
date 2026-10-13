@@ -21,12 +21,12 @@
 прибавляют свет и множитель. Расставь их в верном порядке, прокачивай созвездия
 звёздными картами, меняй колоду ритуалами и убирай лишние карты.
 
-Третья ночь каждого созвездия — Затмение со своим подвохом: Туман прячет ранги, Засуха
-уменьшает руку. Восемь созвездий до победы, а дальше — бесконечный режим.
+Третья ночь каждой главы — Затмение со своим подвохом: Туман прячет ранги, Засуха
+уменьшает руку. Восемь глав до победы, а дальше — бесконечный режим.
 
 • Короткое обучение за 2 минуты — правила понятны без знания покера
 • Справочник с анимациями всегда под рукой
-• 40 Знамений, 13 Затмений, 5 колод неба, 5 уровней сложности
+• 40 Знамений, 13 Затмений, 5 колод неба (и шестая в «Звёздном атласе»), 5 уровней сложности
 • Вызов дня: один расклад для всех
 • Прогресс сохраняется в облаке Яндекса
 
@@ -42,7 +42,8 @@
 **Категории:** Карточные, Головоломки (если есть — «Стратегии» третьей)
 
 **Возраст:** 0+ — нет насилия, азарта на деньги и чатов. Внутриигровое золото не
-покупается за реальные деньги.
+покупается за реальные деньги; за деньги — только «Звёздный атлас» (архив вызовов, новая
+колода «вбок») и внешний вид.
 
 ## English
 
@@ -62,12 +63,12 @@ Between nights visit the Observatory. Collect Omens — special rules that add l
 multiplier. Put them in the right order, level up constellations with star charts,
 reshape your deck with rituals and trim the cards you don't need.
 
-The third night of every constellation is an Eclipse with its own twist: the Fog hides ranks, the Drought
-shrinks your hand. Eight constellations to victory, then endless mode.
+The third night of every chapter is an Eclipse with its own twist: the Fog hides ranks, the Drought
+shrinks your hand. Eight chapters to victory, then endless mode.
 
 • A 2-minute tutorial — no poker knowledge needed
 • An animated guide is always one tap away
-• 40 Omens, 13 Eclipses, 5 sky decks, 5 difficulty levels
+• 40 Omens, 13 Eclipses, 5 sky decks (plus a sixth in the Star Atlas), 5 difficulty levels
 • Daily challenge: one deal for everyone
 • Progress is saved to the Yandex cloud
 
