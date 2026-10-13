@@ -109,8 +109,8 @@ export class Hud {
     ]);
     this.preview = h('div.preview');
 
-    const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: 'menu', onclick: () => cb.onMenu() }, h('span.burger'));
-    const guideBtn = (this.guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: 'guide', onclick: () => cb.onGuide() }, '?'));
+    const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: t('pause.title'), onclick: () => cb.onMenu() }, h('span.burger'));
+    const guideBtn = (this.guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: t('guide.title'), onclick: () => cb.onGuide() }, '?'));
     this.cardInfo = h('div.card-info');
     this.cardInfo.addEventListener('click', () => {
       if (this.cardInfoGlyph) cb.onGuide(`glyph-${this.cardInfoGlyph}`);
@@ -151,7 +151,9 @@ export class Hud {
     clear(this.bossBadge);
     if (night?.bossId) {
       const icon = canvasImg(bossSigil(night.bossId, 28, dpr()), 28);
-      const badge = h('span.boss-chip', null, [icon, h('span.boss-chip-name', null, named('boss', night.bossId).name)]);
+      // Кнопка, а не подпись: правило Затмения можно открыть касанием в любой момент ночи
+      const boss = named('boss', night.bossId);
+      const badge = h('button.boss-chip', { type: 'button', ariaLabel: `${boss.name}: ${boss.desc}` }, [icon, h('span.boss-chip-name', null, boss.name)]);
       attachTooltip(badge, () => bossTooltip(night.bossId!));
       this.bossBadge.append(badge);
     }

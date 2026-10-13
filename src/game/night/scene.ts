@@ -484,8 +484,14 @@ export class NightScene {
 
   // ─── Ввод ───────────────────────────────────────────────────────────────
 
+  /** Палец, который тащит карту: второй палец не перехватывает перетаскивание. */
+  private dragPointer: number | null = null;
+
   private onPointer = (e: PointerEventData): void => {
     if (this.destroyed) return;
+    if (this.drag && this.dragPointer !== null && e.id !== this.dragPointer && e.kind !== 'cancel') return;
+    if (e.kind === 'down') this.dragPointer = e.id;
+    else if (e.kind === 'up' || e.kind === 'cancel') this.dragPointer = null;
     this.svc.audio.unlock();
     if (e.kind === 'down') this.onDown(e.x, e.y);
     else if (e.kind === 'move') this.onMove(e.x, e.y, e.pointerType === 'touch');

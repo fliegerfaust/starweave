@@ -52,6 +52,8 @@ export class App {
 
   constructor(readonly platform: Platform) {
     this.settings = loadSettings();
+    // «Меньше тряски» гасит и анимации интерфейса, а не только тряску поля
+    document.documentElement.classList.toggle('calm', this.settings.reduceMotion);
     // Язык площадки важнее языка браузера, пока игрок сам его не выбрал
     if (!storage.get(KEYS.settings) && platform.language()) this.settings.lang = platform.language()!;
     setLang(this.settings.lang);
@@ -612,6 +614,7 @@ export class App {
     this.svc.audio.setVolumes(next.sfx, next.music);
     this.svc.world.res.speed = SPEEDS[next.speed] ?? 1;
     this.svc.world.res.reduceMotion = next.reduceMotion;
+    document.documentElement.classList.toggle('calm', next.reduceMotion);
     this.svc.haptics.enabled = next.haptics;
     const adaptive = next.quality !== 'max';
     if (adaptive !== this.svc.renderer.adaptive) {

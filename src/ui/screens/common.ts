@@ -119,7 +119,14 @@ export function showSettings(app: App, onChange?: () => void): void {
     }
     return wrap;
   };
-  const field = (label: string, control: Node) => h('label.field', null, [h('span.field-label', null, label), control]);
+  // <label> только для ползунка: вокруг кнопок он «нажимал» первую при касании подписи
+  let fieldSeq = 0;
+  const field = (label: string, control: HTMLElement) => {
+    if (control instanceof HTMLInputElement) return h('label.field', null, [h('span.field-label', null, label), control]);
+    const id = `field-${++fieldSeq}`;
+    control.setAttribute('aria-labelledby', id);
+    return h('div.field', null, [h('span.field-label', { id }, label), control]);
+  };
   const langNames: Record<Lang, string> = { ru: 'Русский', en: 'English' };
   const m = modal(
     [
@@ -186,7 +193,7 @@ export function screenTitle(text: string, sub?: string): HTMLElement {
 
 /** Кнопка-бургер для экранов забега. */
 export function menuButton(onClick: () => void): HTMLElement {
-  const b = h('button.icon-btn', { type: 'button', ariaLabel: 'menu' }, h('span.burger'));
+  const b = h('button.icon-btn', { type: 'button', ariaLabel: t('pause.title') }, h('span.burger'));
   b.addEventListener('click', onClick);
   return b;
 }
@@ -209,7 +216,7 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
         button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
           m.close();
           app.abandonRun();
-        }), { variant: 'ghost' }),
+        }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
       ]),
     ],
     { title: t('pause.title'), className: 'narrow' },
