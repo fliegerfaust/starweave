@@ -652,6 +652,8 @@ export class NightScene {
   }
 
   private onDown(x: number, y: number): void {
+    // Идёт подсчёт: касание ускоряет его (кроме обучения — там подсчёт читают)
+    if (this.busy && !this.guide) this.presenter.hurry = 3;
     if (this.busy || this.night.result !== 'playing') return;
     const index = this.handIndexAt(x, y);
     if (index !== null) {

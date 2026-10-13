@@ -61,7 +61,7 @@ function glyphDemo(glyph: Glyph): HTMLElement {
       parts.push(pop('+7', 'light', 0), pop('+7', 'light', 0.7));
       break;
     case 'glass':
-      parts.push(pop('×2', 'mult', 0), pop('1/4 💥', 'warn', 0.8));
+      parts.push(pop('×2', 'mult', 0), pop('1/4', 'warn', 0.8));
       break;
     case 'prism':
       parts.push(h('div.g-orbit', null, ['☀', '☾', '✦', '☄'].map((s, i) => h('span', { style: { animationDelay: `${-i * 0.5}s` } }, s))));
