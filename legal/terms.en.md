@@ -4,7 +4,7 @@ Effective date: October 12, 2026.
 
 ## 1. General
 
-Starweave (the "Game") is provided by {{OPERATOR}} ("we"). By playing you agree to these terms.
+Starweave (the "Game") is provided by {{OPERATOR_EN}} ("we"). By playing you agree to these terms.
 If you do not agree, do not use the Game.
 
 ## 2. The Game
