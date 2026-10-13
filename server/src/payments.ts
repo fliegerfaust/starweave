@@ -66,8 +66,8 @@ const SUPPORT = {
   en: 'If something went wrong with a purchase, describe it in your next message — the author will read it and reply here. Stars can be refunded if the purchase did not unlock.',
 };
 const TERMS = {
-  ru: 'Покупки за Telegram Stars: «Звёздный атлас», набор поддержки и внешний вид открываются навсегда для твоего аккаунта Telegram в этой игре; чаевые ничего не открывают. Ничего из купленного не даёт преимущества в игре. Возврат — через /paysupport.',
-  en: 'Telegram Stars purchases: the Star Atlas, the Supporter Pack and cosmetics unlock forever for your Telegram account in this game; tips unlock nothing. Nothing you buy gives an in-game advantage. Refunds — via /paysupport.',
+  ru: 'Покупки за Telegram Stars: «Звёздный атлас», набор мецената и внешний вид открываются навсегда для твоего аккаунта Telegram в этой игре; чаевые ничего не открывают. Ничего из купленного не даёт преимущества в игре. Возврат — через /paysupport.',
+  en: 'Telegram Stars purchases: the Star Atlas, the Patron Pack and cosmetics unlock forever for your Telegram account in this game; tips unlock nothing. Nothing you buy gives an in-game advantage. Refunds — via /paysupport.',
 };
 const START = {
   ru: '✦ «Звёздное плетение» — карточная головоломка о созвездиях. Нажми «Играть».',

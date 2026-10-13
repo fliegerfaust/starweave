@@ -40,6 +40,8 @@ export class Starfield {
   private h = 0;
   private dpr = 1;
   private meteorTimer = 4;
+  /** Скорость смены туманности (доля в секунду); витрине примерки нужна быстрая. */
+  fadeRate = 0.5;
   parallaxX = 0;
   parallaxY = 0;
 
@@ -94,7 +96,7 @@ export class Starfield {
   }
 
   update(dt: number): void {
-    this.fade = Math.min(1, this.fade + dt * 0.5);
+    this.fade = Math.min(1, this.fade + dt * this.fadeRate);
     this.decor.update(dt);
     this.meteorTimer -= dt;
     if (this.meteorTimer <= 0) {
