@@ -117,6 +117,7 @@ export class NightScreen implements Screen {
 
   private settled(events: GameEvent[]): void {
     this.app.tutorial?.emit({ type: 'settled', events });
+    this.announceMove(events);
     this.discover(events);
     const n = this.run.night;
     if (n && n.result === 'playing') {
@@ -138,6 +139,17 @@ export class NightScreen implements Screen {
       return;
     }
     this.checkPhase();
+  }
+
+  /** Скринридеру — итог хода: что вспыхнуло, сколько очков, сколько осталось. */
+  private announceMove(events: GameEvent[]): void {
+    const n = this.run.night;
+    if (!n) return;
+    const ignite = events.find((e) => e.t === 'ignite');
+    const head = ignite && ignite.t === 'ignite'
+      ? t('a11y.ignite', { combos: ignite.score.lines.map((l) => t(`combo.${l.combo}`)).join(' + '), total: num(ignite.score.total) })
+      : '';
+    this.hud.announce(`${head} ${t('a11y.status', { score: num(n.score), target: num(n.target), moves: n.movesLeft })}`.trim());
   }
 
   /** Коллекция: впервые собранное созвездие и первый крест — маленький праздник. */

@@ -252,6 +252,20 @@ export const en: Dict = {
     all: 'Every constellation collected!',
     collected: 'Collected {n} of {total}',
   },
+  a11y: {
+    board: 'The 4×4 sky. Keys 1–4 pick a hand card, arrows move between cells, Enter places, B burns, Esc clears the selection.',
+    boardRole: 'game board',
+    pickCard: 'Pick a card first: keys 1–4.',
+    pickCell: 'Pick a cell with the arrows.',
+    deselected: 'Selection cleared.',
+    selected: 'Selected {card}.',
+    bestCell: 'Best at {cell}: {combo}.',
+    cell: 'row {row}, column {col}',
+    sealed: 'sealed',
+    empty: 'empty',
+    ignite: '{combos}: +{total}.',
+    status: 'Points {score} of {target}, {moves} moves left.',
+  },
   codex: {
     title: 'Codex',
     omens: 'Omens',
@@ -563,6 +577,7 @@ export const en: Dict = {
       'Reach the night’s target before moves run out. Burning discards a card from hand.',
       'Between nights, buy Omens, Star Charts and rituals in the Observatory.',
       'Three nights make a chapter. Clear eight chapters to win.',
+      'Keyboard: 1–4 pick a card, arrows pick a cell, Enter places, B burns, Esc clears the selection.',
     ],
   },
   errors: {
