@@ -5,6 +5,7 @@ import { activeCells, buildLines } from '@/core/grid';
 import type { Card, GameEvent, RunState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import type { PointerEventData } from '@/engine/input';
+import { t } from '@/i18n';
 import type { Hud } from '@/ui/hud';
 import { CardView, Drawable, Hit, Layer, Transform, transform } from '../components';
 import type { Services } from '../context';
@@ -47,6 +48,14 @@ export interface CellState {
   closesAnim: number;
   /** 0..1 — подсветка клетки обучением. */
   tut: number;
+  /** Что вспыхнет в этой клетке: созвездия выбранной карты или лучшей карты руки. */
+  forecast: string[];
+  /** Прогноз для выбранной карты (а не лучший из руки). */
+  forecastPicked: boolean;
+  /** Прогноз — только Россыпь: ход почти ничего не даст. */
+  forecastWeak: boolean;
+  /** Карта руки, которая даст прогноз (когда карта не выбрана). */
+  forecastCard: Card | null;
 }
 
 const DRAG_THRESHOLD = 8;
@@ -228,7 +237,7 @@ export class NightScene {
     const e = this.world.create();
     const p = this.layout.cells[index]!;
     const t = this.world.add(e, Transform, transform(p.x, p.y, { alpha: 0 }));
-    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0, tut: 0 };
+    const state: CellState = { entity: e, sealed, avail: 0, hover: 0, ignite: 0, igniteColor: '#f6c25b', closes: 0, closesAnim: 0, tut: 0, forecast: [], forecastPicked: false, forecastWeak: false, forecastCard: null };
     this.world.add(e, Drawable, {
       layer: Layer.Board,
       z: 0,
@@ -297,17 +306,21 @@ export class NightScene {
       ctx.strokeStyle = cross ? `rgba(255,214,120,${0.55 * k + pulse * 0.25 * k})` : `rgba(246,194,91,${0.28 * k})`;
       ctx.lineWidth = cross ? 2 : 1.2;
       ctx.stroke();
+      const named = s.forecast.length > 0;
       if (cross) {
-        ctx.font = `400 ${Math.round(w * 0.34)}px Forum, serif`;
+        // С подписью «×2» уходит наверх клетки, под ней — названия созвездий
+        const cy = named ? t.y - hgt * 0.2 : t.y;
+        ctx.font = `400 ${Math.round(w * (named ? 0.3 : 0.34))}px Forum, serif`;
         ctx.shadowColor = 'rgba(255,214,120,0.9)';
         ctx.shadowBlur = 12;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = `rgba(255,214,120,${0.8 * k})`;
-        ctx.fillText(`×${s.closes}`, t.x, t.y);
+        ctx.fillText(`×${s.closes}`, t.x, cy);
         ctx.shadowColor = 'transparent';
-        ctx.fillText(`×${s.closes}`, t.x, t.y);
+        ctx.fillText(`×${s.closes}`, t.x, cy);
       }
+      if (named) this.drawForecast(ctx, s, t.x, cross ? t.y + hgt * 0.1 : t.y, w, k);
       ctx.restore();
     }
     if (s.ignite > 0.01) {
@@ -320,6 +333,62 @@ export class NightScene {
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
+    }
+  }
+
+  /**
+   * Названия созвездий в клетке, которая закроет линию: игрок видит, что соберётся,
+   * не зная покерных комбинаций. Длинные названия переносятся по словам.
+   */
+  private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, k: number): void {
+    const size = Math.max(12, Math.round(w * 0.17));
+    ctx.font = `700 ${size}px Manrope, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const maxW = w - 8;
+    const rows: string[] = [];
+    for (const name of s.forecast) {
+      let row = '';
+      for (const word of name.split(' ')) {
+        const next = row ? `${row} ${word}` : word;
+        if (row && ctx.measureText(next).width > maxW) {
+          rows.push(row);
+          row = word;
+        } else row = next;
+      }
+      if (row) rows.push(row);
+    }
+    const shown = rows.slice(0, 3);
+    const lh = size * 1.15;
+    const chip = s.forecastCard && !s.forecastWeak ? size * 1.5 : 0;
+    const top = y - ((shown.length - 1) * lh + (chip ? chip * 0.9 : 0)) / 2;
+    const alpha = (s.forecastWeak ? 0.5 : 0.95) * k;
+    const color = s.forecastWeak ? `rgba(200,195,230,${alpha})` : s.forecastPicked ? `rgba(255,236,190,${alpha})` : `rgba(246,194,91,${alpha})`;
+    shown.forEach((row, i) => {
+      const ry = top + i * lh;
+      // Тёмная подложка под буквами — читается и поверх туманности
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = `rgba(8,6,24,${0.75 * k})`;
+      ctx.strokeText(row, x, ry);
+      ctx.fillStyle = color;
+      ctx.fillText(row, x, ry);
+    });
+    const card = s.forecastCard;
+    if (card && chip) {
+      // Мини-карта: какой картой руки собрать — ранг цветом масти
+      const cw = chip * 0.72;
+      const cy = top + (shown.length - 1) * lh + lh * 0.55 + chip / 2;
+      const c = SUIT_COLORS[card.suit];
+      roundRect(ctx, x - cw / 2, cy - chip / 2, cw, chip, cw * 0.16);
+      ctx.fillStyle = rgba(c.rgb, 0.18 * k);
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = rgba(c.rgb, 0.85 * k);
+      ctx.stroke();
+      ctx.font = `400 ${Math.round(chip * 0.62)}px Forum, serif`;
+      ctx.fillStyle = c.light;
+      ctx.globalAlpha *= k;
+      ctx.fillText(String(card.rank), x, cy + chip * 0.04);
     }
   }
 
@@ -640,6 +709,7 @@ export class NightScene {
     }
     if (index === null) this.setHover(null);
     else this.previewKey = '';
+    if (!this.busy) this.refreshForecast();
     if (relayout) void this.layoutHand(true);
   }
 
@@ -698,6 +768,38 @@ export class NightScene {
       state.closes = closes;
       void this.svc.tweens.to(state, { closesAnim: closes > 0 ? 1 : 0 }, { duration: 0.3 });
     });
+    this.refreshForecast();
+  }
+
+  /**
+   * Прогноз созвездий в клетках, закрывающих линию. Выбрана карта — что даст она;
+   * нет — лучшее, что даст какая-нибудь карта руки. В «Тумане» ранги в руке скрыты,
+   * поэтому прогноза нет.
+   */
+  refreshForecast(): void {
+    const n = this.night;
+    const picked = this.selected;
+    for (const [cell, state] of this.cells.entries()) {
+      state.forecast = [];
+      state.forecastPicked = picked !== null;
+      state.forecastWeak = false;
+      state.forecastCard = null;
+      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing') continue;
+      const indices = picked !== null ? [picked] : n.hand.map((_, i) => i);
+      let best: PlacementPreview | null = null;
+      let bestIndex = -1;
+      for (const i of indices) {
+        const p = previewPlacement(this.run, i, cell);
+        if (p && (!best || p.total > best.total)) {
+          best = p;
+          bestIndex = i;
+        }
+      }
+      if (!best) continue;
+      if (picked === null) state.forecastCard = n.hand[bestIndex] ?? null;
+      state.forecast = best.lines.map((l) => t(`combo.${l.combo}`));
+      state.forecastWeak = best.lines.every((l) => l.combo === 'scatter');
+    }
   }
 
   // ─── Действия ───────────────────────────────────────────────────────────
@@ -738,6 +840,7 @@ export class NightScene {
     this.setHover(null);
     for (const c of this.cells) void this.svc.tweens.to(c, { avail: 0 }, { duration: 0.15 });
     await this.presenter.play(events);
+    this.refreshForecast();
     this.busy = false;
     if (!this.destroyed) this.hooks.onSettled(events);
   }
