@@ -135,6 +135,7 @@ body {
 .btn-sub { font-size: 10px; font-weight: 600; opacity: 0.6; letter-spacing: 0.06em; }
 
 .icon-btn {
+  position: relative;
   pointer-events: auto;
   width: 40px;
   height: 40px;
@@ -258,6 +259,12 @@ body {
 .coach.out { opacity: 0; transition: opacity 0.2s; }
 .coach-icon { color: var(--gold); font-size: 22px; text-shadow: 0 0 12px var(--gold); }
 .coach-text { flex: 1; font-size: 14px; line-height: 1.4; }
+/* Невысокий экран: плашка компактнее, чтобы помещаться между небом и кнопками */
+@media (max-height: 620px) {
+  .coach { padding: 8px 12px; gap: 8px; }
+  .coach-text { font-size: 13px; line-height: 1.3; }
+  .coach-icon { font-size: 18px; }
+}
 
 /* ─── HUD ночи ────────────────────────────────────────────────────────── */
 
@@ -286,6 +293,10 @@ body {
 }
 .boss-chip {
   pointer-events: auto;
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -347,7 +358,7 @@ body {
 }
 .hud-bar-fill.done { background: linear-gradient(90deg, #f6c25b, #ffe6a8); }
 .stat { text-align: center; min-width: 52px; }
-.stat-label { font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-label { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
 .stat-value { font: 400 26px/1.05 var(--font-display); }
 .stat-value.low { color: var(--danger); text-shadow: 0 0 10px rgba(255, 83, 112, 0.6); }
 
@@ -394,7 +405,7 @@ body {
 }
 .calc-row { display: inline-flex; align-items: flex-start; gap: 6px; }
 .calc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.calc-label { font: 700 10px/1 var(--font-body); color: #fff; text-transform: uppercase; letter-spacing: 0.08em; text-shadow: 0 1px 4px #000; opacity: 0.85; }
+.calc-label { font: 700 11px/1 var(--font-body); color: #fff; text-transform: uppercase; letter-spacing: 0.08em; text-shadow: 0 1px 4px #000; }
 .calc-x { margin-top: 8px; }
 .calc-total {
   min-width: 64px;
@@ -430,6 +441,8 @@ body {
   color: #04131b;
 }
 .calc-light { background: linear-gradient(180deg, #b9f0ff, #4fc8f2); box-shadow: 0 0 20px rgba(127, 224, 255, 0.55); }
+/* Шаги всего хода: слева уже очки линий, а не свет — золото, как итог */
+.calc-light.points { background: linear-gradient(180deg, #ffe6a8, #f6c25b); color: #2a1a04; box-shadow: 0 0 20px rgba(246, 194, 91, 0.55); }
 .calc-mult { background: linear-gradient(180deg, #ffb3c4, #f0466e); color: #2a0510; box-shadow: 0 0 20px rgba(255, 107, 139, 0.55); }
 .calc-x { font: 800 22px/1 var(--font-body); color: #fff; text-shadow: 0 2px 6px #000; }
 .calc-light.bump, .calc-mult.bump { animation: bump 0.22s ease; }
@@ -467,7 +480,7 @@ body {
   justify-content: space-between;
   pointer-events: none;
 }
-.actions .btn { min-height: 44px; flex: 1; max-width: 220px; }
+.actions .btn { min-height: 44px; flex: 1; max-width: 220px; position: relative; }
 .burn-btn.drop-ready { border-style: dashed; animation: pulse 1.2s ease-in-out infinite; }
 .burn-btn.drop-hover {
   animation: none;
@@ -633,7 +646,7 @@ body {
 .shop-icon { flex: none; width: 72px; height: 72px; display: grid; place-items: center; }
 .shop-info { flex: 1; min-width: 0; }
 .shop-name { font: 400 20px/1.1 var(--font-display); }
-.shop-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin: 2px 0 4px; }
+.shop-tag { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin: 2px 0 4px; }
 .shop-tag.plain { color: var(--ink-dim); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
 .shop-desc { font-size: 13px; line-height: 1.35; color: var(--ink); }
 .btn.price { min-width: 64px; padding: 8px 14px; min-height: 40px; font-size: 17px; }
@@ -715,7 +728,13 @@ body {
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field-label { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
-.slider { width: 100%; accent-color: var(--gold); }
+/* Ползунок: дорожка тонкая, но цель касания по высоте 44 px, бегунок 26 px */
+.slider { width: 100%; height: 44px; margin: 0; accent-color: var(--gold); background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+.slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: rgba(170, 160, 255, 0.25); }
+.slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(170, 160, 255, 0.25); }
+.slider::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--gold); }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px rgba(246, 194, 91, 0.2); }
+.slider::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--gold); }
 .segmented { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
 .seg {
   flex: 1;
@@ -739,20 +758,19 @@ body {
 .combo-item.upgraded { background: rgba(246, 194, 91, 0.08); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.3) inset; }
 .combo-example { display: flex; gap: 3px; flex: none; }
 .combo-text { flex: 1; min-width: 0; }
-.combo-level { margin-left: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(246, 194, 91, 0.2); color: var(--gold); font: 800 10px/1 var(--font-body); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
+.combo-level { margin-left: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(246, 194, 91, 0.2); color: var(--gold); font: 800 11px/1 var(--font-body); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
 .combo-x { margin: 0 3px; color: var(--ink-dim); font-size: 0.8em; }
 .combo-name { font: 400 19px/1.1 var(--font-display); }
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
 .combo-got { margin-left: 6px; font: 800 13px/1 var(--font-body); color: var(--ok); vertical-align: 2px; }
 .combo-item.missing .combo-name { color: var(--ink-dim); }
-.combo-missing { font-size: 12px; color: var(--ink-dim); opacity: 0.75; font-style: italic; }
 .combo-collected { margin: -4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
 
 /* «Новое созвездие!» — плашка над небом, поверх окон (живёт 2,6 с, касание закрывает) */
 .discovery {
   position: fixed; left: 50%; top: calc(var(--board-top, 160px) + 12px); z-index: 60;
   transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 14px 16px 12px;
-  border-radius: 18px; text-align: center; cursor: pointer;
+  border-radius: 18px; text-align: center; cursor: pointer; pointer-events: auto;
   background: linear-gradient(180deg, rgba(44, 34, 98, 0.97), rgba(20, 16, 52, 0.97));
   box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.55) inset, 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgba(246, 194, 91, 0.25);
   animation: discovery-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -790,6 +808,12 @@ body {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .fan-card, .menu-fan, .tut-spot.on::after { animation: none !important; }
   .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery { animation-name: fade-in !important; }
+}
+/* То же по настройке игры «Меньше тряски» — для тех, у кого не включено в системе */
+html.calm *, html.calm *::before, html.calm *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+html.calm .fan-card, html.calm .menu-fan, html.calm .tut-spot.on::after { animation: none !important; }
+html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate, html.calm .reward-row, html.calm .discovery { animation-name: fade-in !important; }
+@media (prefers-reduced-motion: reduce) {
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
 
@@ -816,7 +840,8 @@ body.landscape .actions {
   width: 280px;
   padding: 0;
 }
-body.landscape .coach { left: auto; right: 16px; transform: none; width: min(420px, 50vw); }
+/* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
+body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
 body.landscape .menu { flex-direction: row; flex-wrap: wrap; gap: 28px 48px; }
 body.landscape .menu-hero { flex: 0 1 auto; }
 body.landscape .menu-foot { flex-basis: 100%; text-align: center; }
@@ -869,7 +894,7 @@ body.landscape .boss-chip { padding-right: 2px; }
 .mini-formula { display: flex; align-items: center; gap: 6px; font-weight: 800; }
 .mini-box { display: flex; flex-direction: column; align-items: center; padding: 4px 10px; border-radius: 10px; color: #04131b; }
 .mini-box b { font: 400 22px/1 var(--font-display); }
-.mini-box span { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; }
+.mini-box span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
 .mini-box.light { background: linear-gradient(180deg, #b9f0ff, #4fc8f2); }
 .mini-box.mult { background: linear-gradient(180deg, #ffb3c4, #f0466e); color: #2a0510; }
 .mini-box.total { background: linear-gradient(180deg, #ffe6a8, #f6c25b); color: #2a1a04; }
@@ -940,7 +965,9 @@ body.landscape .boss-chip { padding-right: 2px; }
 @keyframes g-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
 
 .icon-btn.q { font: 800 18px/1 var(--font-body); color: var(--ink); }
-.icon-btn.q.attn { color: var(--gold); border-color: rgba(246, 194, 91, 0.7); animation: tut-glow 1.8s ease-in-out infinite; }
+/* Пульс — отдельным кольцом: рамка кнопки (inset-тень) остаётся на месте */
+.icon-btn.q.attn { color: var(--gold); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.7) inset; }
+.icon-btn.q.attn::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: tut-glow 1.8s ease-in-out infinite; }
 .card-info {
   position: absolute;
   left: 50%;
@@ -1016,7 +1043,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-progress { font-size: 11px; color: var(--ink-dim); }
 .tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
 .tut-actions .btn { margin-left: auto; }
-.tut-formula { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
 .tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
 .tut-finger {
@@ -1065,8 +1091,7 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .fx-mult { background: rgba(255, 107, 139, 0.18); color: #ffb3c4; box-shadow: inset 0 0 0 1px rgba(255, 107, 139, 0.5); }
 .fx-xmult { background: linear-gradient(90deg, rgba(255, 107, 139, 0.25), rgba(255, 179, 71, 0.25)); color: #ffd0a8; box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.55); }
 .fx-gold { background: rgba(246, 194, 91, 0.18); color: #ffe6a8; box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.5); }
-.shop-kind { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; color: var(--ink-dim); }
-.shop-kind .omen-badge { position: static; box-shadow: none; }
+.shop-name .omen-badge { position: static; display: inline-grid; vertical-align: 2px; box-shadow: none; }
 
 /* Огоньки очков — поверх HUD */
 .score-orb {
@@ -1091,7 +1116,7 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .omen-slot.draggable { cursor: grab; border-radius: 50%; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
 .order-num { position: absolute; left: -4px; top: -4px; z-index: 1; width: 18px; height: 18px; border-radius: 50%; background: #0b0a22; color: var(--ink-dim); font: 800 10px/18px var(--font-body); text-align: center; box-shadow: 0 0 0 1px var(--line); }
 .sell-btn { width: 100%; min-height: 36px; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; }
-.sell-label { font-size: 10px; font-weight: 700; color: var(--ink-dim); }
+.sell-label { font-size: 11px; font-weight: 700; color: var(--ink-dim); }
 .sell-price { font-size: 13px; font-weight: 800; color: var(--gold); }
 .sell-price::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 3px; border-radius: 50%; vertical-align: -1px; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); }
 .owned-omen.reorder-dragging { z-index: 10; transition: none; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6)); }
@@ -1119,10 +1144,12 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
   .hud-omens .omen-slot { width: 36px; height: 36px; }
   .actions { bottom: calc(6px + var(--safe-bottom)); }
   .actions .btn { min-height: 40px; padding: 6px 14px; }
+  /* Компактно на вид, но цель касания — 44 px */
+  .actions .btn::after { content: ''; position: absolute; inset: -2px 0; }
   .calc { padding: 5px 8px; }
   .calc-combo { font-size: 15px; margin-bottom: 3px; }
   .calc-light, .calc-mult, .calc-total { font-size: 22px; padding: 4px 10px; min-width: 50px; }
-  .calc-label { font-size: 9px; }
+  .calc-label { font-size: 10px; }
   .calc-x { margin-top: 5px; }
   .calc-caption { margin-top: 4px; font-size: 12px; min-height: 18px; padding: 2px 10px; }
 }
@@ -1303,7 +1330,7 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .plate-days { display: grid; grid-template-columns: repeat(4, 22px); gap: 4px; }
 .plate-day { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 30px; border-radius: 7px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); line-height: 1; }
 .plate-day b { font-size: 11px; font-weight: 800; color: var(--ink-dim); }
-.plate-day small { font-size: 9px; color: var(--ink-dim); margin-top: 2px; }
+.plate-day small { font-size: 10px; color: var(--ink-dim); margin-top: 2px; }
 .plate-day.played { background: rgba(246, 194, 91, 0.12); box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.4); }
 .plate-day.played b, .plate-day.played small { color: #ffe2a3; }
 .plate-day.today { box-shadow: inset 0 0 0 1px rgba(127, 224, 255, 0.55); }
@@ -1399,7 +1426,7 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .archive-months { display: flex; flex-direction: column; gap: 22px; }
 .archive-month-name { margin: 0 0 10px; font: 400 22px/1 var(--font-display); letter-spacing: 0.04em; }
 .archive-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.archive-wd { text-align: center; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(165, 160, 207, 0.6); padding-bottom: 2px; }
+.archive-wd { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(165, 160, 207, 0.6); padding-bottom: 2px; }
 .archive-day {
   aspect-ratio: 1;
   min-width: 0;
@@ -1419,7 +1446,7 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 }
 button.archive-day:active { transform: scale(0.94); }
 .archive-day b { font-size: 15px; font-weight: 800; }
-.archive-day small { font-size: 10px; font-weight: 700; color: var(--ink-dim); min-height: 10px; }
+.archive-day small { font-size: 11px; font-weight: 700; color: var(--ink-dim); min-height: 10px; }
 .archive-day.out { background: none; box-shadow: none; color: rgba(165, 160, 207, 0.28); cursor: default; }
 .archive-day.played { background: rgba(246, 194, 91, 0.1); box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.35); }
 .archive-day.played small { color: #ffe2a3; }
@@ -1427,7 +1454,7 @@ button.archive-day:active { transform: scale(0.94); }
 .archive-day.won small { color: var(--gold); font-size: 12px; }
 .archive-day.today { background: none; box-shadow: inset 0 0 0 1px rgba(127, 224, 255, 0.5); cursor: default; }
 .archive-day.today b { color: var(--light); }
-.archive-day.today small { font-size: 8px; color: var(--light); text-transform: uppercase; letter-spacing: 0.04em; }
+.archive-day.today small { font-size: 10px; color: var(--light); text-transform: uppercase; letter-spacing: 0.04em; }
 .archive-day.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 16px rgba(246, 194, 91, 0.3); }
 .archive-day:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
@@ -1549,7 +1576,7 @@ button.archive-day:active { transform: scale(0.94); }
   gap: 2px;
   text-shadow: 0 1px 8px #05061a, 0 0 2px #05061a;
 }
-.look-kind { font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+.look-kind { font: 800 11px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
 .look-name { font: 400 24px/1.1 var(--font-display); color: #ffe2a3; }
 .look-action { margin-top: 12px; display: flex; justify-content: center; }
 .look-action .look-btn { width: 100%; min-height: 52px; font-size: 16px; }
@@ -1637,6 +1664,21 @@ button.archive-day:active { transform: scale(0.94); }
 }
 .modal-head:not(.bare)::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; background: linear-gradient(180deg, rgb(28, 24, 70), rgba(28, 24, 70, 0)); pointer-events: none; }
 .modal-head .modal-title { margin: 0; }
+.modal-head .head-extra { margin: 12px -44px 0; }
+.modal-head .head-extra .segmented.tabs { margin: 0; }
+.modal-head .head-extra .segmented.tabs .seg { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
+.modal-panel.sheet .modal-title { font-size: 24px; }
+
+/* Нижний лист: справка поверх ночи, доска над ним остаётся видна */
+.modal-backdrop.sheet { place-items: end center; padding-bottom: 0; background: rgba(3, 3, 14, 0.3); backdrop-filter: none; }
+.modal-panel.sheet {
+  max-height: min(64%, 640px);
+  border-radius: 22px 22px 0 0;
+  border-bottom: 0;
+  padding-bottom: calc(18px + var(--safe-bottom));
+  animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-head.bare { position: relative; top: 0; padding: 0; margin: 0; height: 0; background: none; }
 .modal-head.bare .modal-close { top: -18px; right: -16px; }
 /* Окно без заголовка: первый блок не залезает под крестик */
@@ -1667,6 +1709,7 @@ button.archive-day:active { transform: scale(0.94); }
    расширяет невидимая рамка, а не размер */
 .btn.small { min-height: 40px; position: relative; }
 .btn.small::after { content: ''; position: absolute; inset: -4px; }
+.icon-btn::after { content: ''; position: absolute; inset: -4px; }
 .btn.price { min-height: 44px; }
 .seg { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .segmented.tabs .seg { font-size: 13px; }
@@ -1679,7 +1722,6 @@ button.archive-day:active { transform: scale(0.94); }
 .tut-progress::before { content: ''; position: absolute; inset: 0; background: var(--gold); border-radius: 4px; transform: scaleX(var(--p, 0)); transform-origin: left center; transition: transform 0.3s ease; }
 .btn-sub { font-size: 12px; opacity: 0.8; }
 .shop-tag { font-size: 12px; }
-.shop-kind { font-size: 12px; }
 .wardrobe-status { font-size: 12px; }
 .archive-wd { font-size: 11px; }
 /* Закрытое небо: условие открытия — самая полезная строка, её не гасим */

@@ -9,7 +9,6 @@ import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
-import { comboList } from '../combos';
 
 export const CARD_THUMB = 46;
 
@@ -66,9 +65,9 @@ export function showDeck(run: RunState): void {
   });
 }
 
-/** Правила и справочник терминов — одно окно. `levels` — уровни созвездий текущего забега. */
-export function showHelp(focus?: string, levels?: RunState['comboLevels']): void {
-  void import('./guide').then(({ showGuide }) => showGuide(focus, levels));
+/** Справка — одно окно с вкладками (созвездия, ночь, Обсерватория, глифы). */
+export function showHelp(opts: import('./guide').GuideOptions = {}): void {
+  void import('./guide').then(({ showGuide }) => showGuide(opts));
 }
 
 /** «Собрано 4 из 10» — прогресс коллекции созвездий. */
@@ -76,26 +75,9 @@ export function collectedLine(found: readonly ComboId[]): HTMLElement {
   return h('p.combo-collected', null, t('discovery.collected', { n: found.length, total: COLLECTIBLE_COMBOS.length }));
 }
 
-/**
- * Все созвездия с примерами и уровнями забега: что прокачано звёздными картами.
- * Это же окно открывает «?» посреди ночи — созвездия нужны чаще остального справочника.
- */
-export function showCombos(run: RunState, found: readonly ComboId[] = []): void {
-  const m = modal(
-    [
-      h('p.hint', null, t('combos.hint')),
-      collectedLine(found),
-      comboList({ levels: run.comboLevels, found }),
-      h('div.row.between', null, [
-        button(t('guide.button'), () => {
-          m.close();
-          showHelp(undefined, run.comboLevels);
-        }, { variant: 'ghost' }),
-        button(t('menu.back'), () => m.close(), { variant: 'secondary' }),
-      ]),
-    ],
-    { title: t('combos.title'), className: 'combos' },
-  );
+/** Справка на вкладке созвездий: уровни забега и коллекция игрока. */
+export function showCombos(run: RunState, found: readonly ComboId[] = [], sheet = false): void {
+  showHelp({ tab: 'combos', levels: run.comboLevels, found, sheet });
 }
 
 /** Кодекс (Знамения, Затмения, созвездия) — доступен и посреди забега. */
@@ -137,7 +119,14 @@ export function showSettings(app: App, onChange?: () => void): void {
     }
     return wrap;
   };
-  const field = (label: string, control: Node) => h('label.field', null, [h('span.field-label', null, label), control]);
+  // <label> только для ползунка: вокруг кнопок он «нажимал» первую при касании подписи
+  let fieldSeq = 0;
+  const field = (label: string, control: HTMLElement) => {
+    if (control instanceof HTMLInputElement) return h('label.field', null, [h('span.field-label', null, label), control]);
+    const id = `field-${++fieldSeq}`;
+    control.setAttribute('aria-labelledby', id);
+    return h('div.field', null, [h('span.field-label', { id }, label), control]);
+  };
   const langNames: Record<Lang, string> = { ru: 'Русский', en: 'English' };
   const m = modal(
     [
@@ -204,7 +193,7 @@ export function screenTitle(text: string, sub?: string): HTMLElement {
 
 /** Кнопка-бургер для экранов забега. */
 export function menuButton(onClick: () => void): HTMLElement {
-  const b = h('button.icon-btn', { type: 'button', ariaLabel: 'menu' }, h('span.burger'));
+  const b = h('button.icon-btn', { type: 'button', ariaLabel: t('pause.title') }, h('span.burger'));
   b.addEventListener('click', onClick);
   return b;
 }
@@ -216,8 +205,7 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
       h('div.stack', null, [
         button(t('pause.resume'), () => m.close()),
         ...extra,
-        app.run ? button(t('combos.yours'), () => showCombos(app.run!, app.profile.combosFound), { variant: 'secondary' }) : null,
-        button(t('guide.button'), () => showHelp(undefined, app.run?.comboLevels), { variant: 'secondary' }),
+        button(t('guide.button'), () => showHelp({ levels: app.run?.comboLevels, found: app.profile.combosFound }), { variant: 'secondary' }),
         button(t('menu.codex'), () => showCodexFrom(app), { variant: 'secondary' }),
         button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),
         button(t('pause.toMenu'), () => {
@@ -228,7 +216,7 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
         button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
           m.close();
           app.abandonRun();
-        }), { variant: 'ghost' }),
+        }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
       ]),
     ],
     { title: t('pause.title'), className: 'narrow' },

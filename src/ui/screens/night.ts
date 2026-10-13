@@ -12,8 +12,7 @@ import { Hud } from '../hud';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
-import { screenTitle, showCodexFrom, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
-import { showScoringHelp } from './scoring-help';
+import { screenTitle, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
 export class NightScreen implements Screen {
@@ -52,7 +51,9 @@ export class NightScreen implements Screen {
       });
       this.scene.build();
       const scene = this.scene;
-      setCoachDock(() => (this.scene === scene ? scene.handAreaRect().y : null));
+      setCoachDock(() =>
+        this.scene === scene ? { handTop: scene.handAreaRect().y, boardBottom: scene.layout.board.y + scene.layout.board.h } : null,
+      );
       this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
@@ -91,8 +92,8 @@ export class NightScreen implements Screen {
 
   /** «?»: посреди ночи нужнее всего созвездия; подпись о глифе ведёт в справочник. */
   private guide(focus?: string): void {
-    if (focus) showHelp(focus, this.run.comboLevels);
-    else showCombos(this.run, this.app.profile.combosFound);
+    if (focus) showHelp({ focus, levels: this.run.comboLevels, found: this.app.profile.combosFound });
+    else showCombos(this.run, this.app.profile.combosFound, true);
     const p = this.app.profile;
     if (!p.tutorial.includes('guideSeen')) {
       p.tutorial.push('guideSeen');
@@ -185,16 +186,12 @@ export class NightScreen implements Screen {
       [
         h('div.stack', null, [
           button(t('pause.resume'), () => m.close()),
-          button(t('pause.deck'), () => showDeck(this.run), { variant: 'secondary' }),
-          button(t('combos.yours'), () => showCombos(this.run, this.app.profile.combosFound), { variant: 'secondary' }),
-          button(t('pause.help'), () => showHelp(undefined, this.run.comboLevels), { variant: 'secondary' }),
-          button(t('scoring.button'), () => showScoringHelp(), { variant: 'secondary' }),
-          button(t('menu.codex'), () => showCodexFrom(this.app), { variant: 'secondary' }),
+          button(t('pause.help'), () => showHelp({ levels: this.run.comboLevels, found: this.app.profile.combosFound }), { variant: 'secondary' }),
           button(t('settings.title'), () => showSettings(this.app, () => this.hud.sync(this.run, { score: false })), { variant: 'secondary' }),
           button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
             m.close();
             this.app.abandonRun();
-          }), { variant: 'ghost' }),
+          }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
         ]),
       ],
       { title: t('pause.title'), className: 'narrow' },
