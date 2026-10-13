@@ -1,7 +1,7 @@
 import { SKY_LIST, type Unlock } from '@/core/content/skies';
 import { MAX_STAKE } from '@/core/content/stakes';
 import { hashSeed } from '@/core/rng';
-import type { RunState } from '@/core/types';
+import { COMBO_IDS, type ComboId, type RunState } from '@/core/types';
 import { KEYS, storage } from './storage';
 
 export interface DailyRecord {
@@ -38,6 +38,10 @@ export interface Profile {
   tutorialDone: boolean;
   /** Обучение пройдено до конца (не пропущено) — короткие подсказки не нужны. */
   tutorialFinished?: boolean;
+  /** Коллекция: созвездия, которые игрок хоть раз собрал (кроме Россыпи). */
+  combosFound?: ComboId[];
+  /** Первый крест уже был. */
+  crossFound?: boolean;
 }
 
 export function emptyProfile(): Profile {
@@ -120,6 +124,28 @@ export function markOmensSeen(p: Profile, ids: string[]): boolean {
     }
   }
   return changed;
+}
+
+/** Созвездия коллекции — все, кроме Россыпи («ничего не совпало» нечего собирать). */
+export const COLLECTIBLE_COMBOS: readonly ComboId[] = COMBO_IDS.filter((id) => id !== 'scatter');
+
+/** Что впервые случилось за ход: новые созвездия коллекции и первый крест. */
+export interface Discovery {
+  combos: ComboId[];
+  cross: boolean;
+}
+
+/** Записывает вспыхнувшие созвездия в коллекцию; возвращает то, что открыто впервые. */
+export function recordDiscoveries(p: Profile, combos: readonly ComboId[], lines: number): Discovery {
+  const found = (p.combosFound ??= []);
+  const fresh: ComboId[] = [];
+  for (const id of combos) {
+    if (COLLECTIBLE_COMBOS.includes(id) && !found.includes(id) && !fresh.includes(id)) fresh.push(id);
+  }
+  found.push(...fresh);
+  const cross = lines >= 2 && !p.crossFound;
+  if (cross) p.crossFound = true;
+  return { combos: fresh, cross };
 }
 
 /** Итог забега в профиль. Возвращает открытые небеса. */

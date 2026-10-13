@@ -118,7 +118,7 @@ export class ShopScreen implements Screen {
         : null,
       h('section.shop-section', { dataset: { shop: 'omens' } }, [sectionHead(t('shop.omens')), omenCards]),
       h('section.shop-section', { dataset: { shop: 'items' } }, [
-        sectionHead(t('shop.items'), t('combos.yours'), () => showCombos(run)),
+        sectionHead(t('shop.items'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
         itemCards,
       ]),
       shop.packs.length ? h('section.shop-section', null, [sectionHead(t('shop.packs')), packCards]) : null,

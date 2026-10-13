@@ -24,7 +24,7 @@ export const BASE_RULES: Readonly<Rules> = {
  * нескольких верхних карт те, что складываются в созвездия. Новичок быстро собирает
  * пары и флеши и видит, как они работают (отзыв игрока 13.10.2026).
  */
-export const GENTLE_NIGHT = { moves: 12, target: 200, window: 6 } as const;
+export const GENTLE_NIGHT = { moves: 12, target: 240, window: 6 } as const;
 
 /** Сколько созвездий до победы. */
 export const FINAL_ANTE = 8;

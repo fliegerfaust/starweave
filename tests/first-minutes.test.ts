@@ -4,6 +4,7 @@ import { GENTLE_NIGHT } from '../src/core/content/balance';
 import { cardHelpfulness, startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { serializeRun } from '../src/core/save';
+import { COLLECTIBLE_COMBOS, emptyProfile, recordDiscoveries } from '../src/meta/profile';
 
 describe('щедрая первая ночь', () => {
   it('меньше ходов и цель ниже — только в первой ночи', () => {
@@ -54,5 +55,16 @@ describe('щедрая первая ночь', () => {
       return sum;
     };
     expect(score(true)).toBeGreaterThan(score(false) * 1.3);
+  });
+});
+
+describe('коллекция созвездий', () => {
+  it('новое — один раз, Россыпь не считается, первый крест отдельно', () => {
+    const p = emptyProfile();
+    expect(recordDiscoveries(p, ['scatter'], 1)).toEqual({ combos: [], cross: false });
+    expect(recordDiscoveries(p, ['flush', 'pair'], 2)).toEqual({ combos: ['flush', 'pair'], cross: true });
+    expect(recordDiscoveries(p, ['pair', 'pair', 'triple'], 2)).toEqual({ combos: ['triple'], cross: false });
+    expect(p.combosFound).toEqual(['flush', 'pair', 'triple']);
+    expect(COLLECTIBLE_COMBOS).toHaveLength(10);
   });
 });
