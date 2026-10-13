@@ -8,11 +8,15 @@ export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' 
 
 const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
-/** Верх свободной полосы над рукой (CSS px) — плашка встаёт над картами, не закрывая HUD. */
-let dock: (() => number | null) | null = null;
+/** Где рука и где кончается небо (CSS px) — плашка встаёт между ними, не закрывая HUD. */
+export interface CoachDock {
+  handTop: number;
+  boardBottom: number;
+}
+let dock: (() => CoachDock | null) | null = null;
 
-/** Экран ночи сообщает, где начинается рука; без него плашка — над нижними кнопками экрана. */
-export function setCoachDock(fn: (() => number | null) | null): void {
+/** Экран ночи сообщает, где рука и небо; без него плашка — над нижними кнопками экрана. */
+export function setCoachDock(fn: (() => CoachDock | null) | null): void {
   dock = fn;
 }
 
@@ -39,11 +43,25 @@ export function coach(app: App, step: TutorialStep): void {
   place(el);
 }
 
+/**
+ * Плашка — в просвет между небом и рукой. Если просвета нет (невысокий экран), она
+ * ложится на HUD, но не на небо и руку: там то, о чём она говорит. В ландшафте — в левой
+ * колонке под HUD (CSS), там пусто.
+ */
 function place(el: HTMLElement): void {
-  const top = dock?.();
-  if (top == null) return;
+  const d = dock?.();
+  if (!d || document.body.classList.contains('landscape')) return;
+  let top = d.handTop - el.offsetHeight - 8;
+  if (top < d.boardBottom + 4) {
+    // Просвета нет: подсказки про руку и небо закрывают HUD, а подсказка про цель
+    // (она о HUD) — нижние кнопки и край руки
+    const hud = document.querySelector('.hud')?.getBoundingClientRect();
+    const actions = document.querySelector('.actions')?.getBoundingClientRect();
+    if (el.dataset.step === 'target' && actions) top = actions.top - el.offsetHeight - 6;
+    else top = Math.max(4, (hud?.bottom ?? el.offsetHeight + 8) - el.offsetHeight);
+  }
   el.style.bottom = 'auto';
-  el.style.top = `${Math.max(8, top - el.offsetHeight - 8)}px`;
+  el.style.top = `${top}px`;
 }
 
 /** Подсказка устарела (игрок уже сделал то, о чём она) — убрать из очереди. */

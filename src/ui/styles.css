@@ -259,6 +259,12 @@ body {
 .coach.out { opacity: 0; transition: opacity 0.2s; }
 .coach-icon { color: var(--gold); font-size: 22px; text-shadow: 0 0 12px var(--gold); }
 .coach-text { flex: 1; font-size: 14px; line-height: 1.4; }
+/* Невысокий экран: плашка компактнее, чтобы помещаться между небом и кнопками */
+@media (max-height: 620px) {
+  .coach { padding: 8px 12px; gap: 8px; }
+  .coach-text { font-size: 13px; line-height: 1.3; }
+  .coach-icon { font-size: 18px; }
+}
 
 /* ─── HUD ночи ────────────────────────────────────────────────────────── */
 
@@ -834,7 +840,8 @@ body.landscape .actions {
   width: 280px;
   padding: 0;
 }
-body.landscape .coach { left: auto; right: 16px; transform: none; width: min(420px, 50vw); }
+/* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
+body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
 body.landscape .menu { flex-direction: row; flex-wrap: wrap; gap: 28px 48px; }
 body.landscape .menu-hero { flex: 0 1 auto; }
 body.landscape .menu-foot { flex-basis: 100%; text-align: center; }
