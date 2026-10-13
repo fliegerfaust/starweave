@@ -54,3 +54,26 @@ describe('архив вызовов дня', () => {
     expect(p.archive?.['2026-10-07']).toMatchObject({ ante: 3, won: true });
   });
 });
+
+describe('Астролябия', () => {
+  it('шесть карт с разными глифами, расклад зависит от сида', async () => {
+    const { GLYPHS } = await import('../src/core/types');
+    const a = newRun({ seed: 11, skyId: 'astrolabe' });
+    const glyphs = a.deck.filter((c) => c.glyph).map((c) => c.glyph).sort();
+    expect(glyphs).toEqual([...GLYPHS].sort());
+    expect(a.gold).toBe(0);
+    expect(newRun({ seed: 11, skyId: 'astrolabe' }).deck).toEqual(a.deck);
+  });
+
+  it('открывается только атласом', async () => {
+    const { skyDef } = await import('../src/core/content/skies');
+    const { isUnlocked, refreshUnlocks } = await import('../src/meta/profile');
+    const p = emptyProfile();
+    p.wins = 99;
+    p.bestAnte = 8;
+    p.totalLines = 9999;
+    expect(isUnlocked(skyDef('astrolabe').unlock, p)).toBe(false);
+    expect(isUnlocked(skyDef('astrolabe').unlock, p, new Set(['atlas']))).toBe(true);
+    expect(refreshUnlocks(p)).not.toContain('astrolabe');
+  });
+});

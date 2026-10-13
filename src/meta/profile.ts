@@ -72,8 +72,14 @@ export function saveProfile(p: Profile): void {
   storage.set(KEYS.profile, JSON.stringify(p));
 }
 
-export function isUnlocked(unlock: Unlock, p: Profile): boolean {
+/**
+ * Открыта ли колода неба. Колоды атласа открывает покупка (`owned` — купленное на этой
+ * площадке), остальные — достижения профиля.
+ */
+export function isUnlocked(unlock: Unlock, p: Profile, owned: ReadonlySet<string> = new Set()): boolean {
   switch (unlock.kind) {
+    case 'atlas':
+      return owned.has('atlas');
     case 'default':
       return true;
     case 'reachAnte':
@@ -89,7 +95,8 @@ export function isUnlocked(unlock: Unlock, p: Profile): boolean {
 export function refreshUnlocks(p: Profile): string[] {
   const fresh: string[] = [];
   for (const sky of SKY_LIST) {
-    if (!p.unlockedSkies.includes(sky.id) && isUnlocked(sky.unlock, p)) {
+    // Колоды атласа не записываются в профиль: они открыты, пока атлас куплен
+    if (sky.unlock.kind !== 'atlas' && !p.unlockedSkies.includes(sky.id) && isUnlocked(sky.unlock, p)) {
       p.unlockedSkies.push(sky.id);
       fresh.push(sky.id);
     }
