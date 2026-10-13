@@ -12,7 +12,8 @@
 - хранит прогресс в облаке Telegram (CloudStorage): тот же забег на телефоне и компьютере;
 - «Поделиться» результатом вызова дня открывает выбор чата Telegram.
 
-Рекламы и покупок пока нет — появятся позже (Telegram Stars, рекламные сети для Mini Apps).
+Покупки — за Telegram Stars: «Звёздный атлас», внешний вид, набор поддержки, чаевые. Счета
+выставляет наш сервер (раздел «Покупки за Stars» ниже). Рекламы пока нет (AdsGram — N.4).
 
 ## 1. Бот и Mini App (Денис, ~10 минут)
 
@@ -85,3 +86,30 @@ gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
 - Вызов дня — повод делиться каждый день: результат уходит в чат со ссылкой на игру.
 - Позже: каталог Mini Apps в Telegram (раздел «Приложения»), когда появятся отзывы и
   первые игроки.
+
+## Покупки за Stars (Денис, ~10 минут)
+
+Код готов (игра, сервер, бот). Чтобы включить:
+
+1. Токен бота: @BotFather → `/mybots` → @starweave_game_bot → **API Token**.
+2. Свой Telegram ID (куда бот будет присылать оплаты и обращения): написать @userinfobot.
+3. Дописать в `/opt/starweave/.env` на сервере:
+   ```
+   BOT_TOKEN=<токен>
+   TG_WEBHOOK_SECRET=<результат openssl rand -hex 24>
+   TG_ADMIN_CHAT_ID=<твой ID>
+   ```
+4. Перезапустить и подключить вебхук (меню команд /start, /paysupport, /terms ставится там же):
+   ```bash
+   ssh denval 'cd /opt/starweave && docker compose up -d && docker compose run --rm --no-deps api node server/scripts/set-webhook.ts'
+   ```
+5. Написать боту `/start` — придёт кнопка «Играть». В игре: меню → «Звёздный атлас» → цены в ⭐.
+6. Проверить оплату можно на тестовом сервере Telegram или купив чаевые за 25 ⭐ и вернув их
+   командой `/refund <id> <charge_id>` (бот пришлёт оба числа после оплаты).
+
+Команды автора в чате с ботом: `/sales` — сводка, `/reply <id> <текст>` — ответить игроку,
+`/refund <id> <charge_id>` — вернуть Stars. Обращения игроков (любое сообщение боту) бот
+пересылает автору. Вывод Stars — @BotFather → бот → Monetization (через Fragment).
+
+Требования Telegram к цифровым товарам выполнены: оплата только в Stars, команды `/paysupport`
+и `/terms`, ответ на `pre_checkout_query`, возвраты через `refundStarPayment`.
