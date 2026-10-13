@@ -81,7 +81,7 @@ test('атлас: созвездие, покупка, примерочная', a
   expect(await page.evaluate(() => (window as unknown as W).starweave.purchases.has('atlas'))).toBe(true);
   // Тост исчезает через ~2 с
   await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 5000 });
-  await expect(page.locator('.plate-actions .btn')).toHaveText(/Играть Астролябией/);
+  await expect(page.locator('.plate-actions .btn')).toHaveText(/Играть колодой/);
   await shot(page, '21-atlas-owned');
   expect(errors).toEqual([]);
 });

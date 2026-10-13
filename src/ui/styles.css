@@ -1440,3 +1440,30 @@ button.archive-day:active { transform: scale(0.94); }
 @media (max-height: 520px) {
   .atlas-offer:not(.owned) { position: static; background: none; padding-top: 0; }
 }
+
+/* Правки по ревью атласа */
+.atlas-hero .offer-promise { margin-top: 12px; }
+.atlas-offer.unavailable { position: static; background: none; padding-top: 0; }
+/* Кнопка покупки в ожидании (цена грузится, идёт оплата) не просвечивает табличку */
+.atlas-offer .offer-buy:disabled { opacity: 1; filter: none; background: linear-gradient(180deg, #b8a27a, #8f7a52); color: rgba(26, 18, 6, 0.85); box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.3) inset; }
+.atlas-offer .offer-buy.loading .btn-sub { display: inline-block; min-width: 4.5em; text-align: center; }
+.archive-wd { color: var(--ink-dim); }
+.archive-legend { margin: 8px auto 0; max-width: 36ch; font-size: 12px; line-height: 1.4; color: var(--ink-dim); text-align: center; }
+/* Невысокий телефон (iPhone SE): заголовок в строку, крест меньше — табличка видна над кнопкой */
+@media (max-height: 700px) and (min-height: 521px) {
+  .atlas { gap: 16px; }
+  .atlas-title { font-size: clamp(26px, 8.4vw, 44px); letter-spacing: 0.06em; padding-left: 0.06em; }
+  .atlas-lede { margin-top: 6px; font-size: 13px; }
+  .atlas-chart { width: min(250px, 66vw, 34svh); margin-top: 6px; }
+  .atlas-star-name { font-size: 11px; top: calc(50% + 14px); }
+  .atlas-plate { margin-top: 14px; }
+}
+/* Телефон лёжа: крест слева, табличка справа */
+@media (max-height: 520px) and (min-width: 600px) {
+  .atlas > * { width: min(760px, 100%); }
+  .atlas-hero { display: grid; grid-template-columns: auto 1fr; column-gap: 28px; align-items: center; margin-top: 0; }
+  .atlas-hero .atlas-title, .atlas-hero .atlas-lede { grid-column: 1 / -1; }
+  .atlas-hero .atlas-chart { grid-row: 3 / span 2; width: min(220px, 60vh); }
+  .atlas-hero .atlas-plate { margin-top: 10px; }
+  .atlas-hero .offer-promise { grid-column: 2; }
+}

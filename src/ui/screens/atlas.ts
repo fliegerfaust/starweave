@@ -18,7 +18,7 @@ import { skyMiniature } from '@/art/sky-miniature';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { dict, t } from '@/i18n';
-import { archiveDates, dailyNumber, todayKey } from '@/meta/profile';
+import { archiveDates, todayKey } from '@/meta/profile';
 import { PRODUCT_BY_ID, productForCosmetic } from '@/store/catalog';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, toast } from '../widgets';
@@ -91,6 +91,7 @@ export class AtlasScreen implements Screen {
         h('p.atlas-lede', null, t('atlas.lede')),
         this.chart(),
         this.plate(),
+        this.owned || !this.app.platform.payments ? null : h('p.offer-promise', null, t('atlas.promise')),
       ]),
       this.offer(),
       this.wardrobe(),
@@ -140,6 +141,7 @@ export class AtlasScreen implements Screen {
       const btn = h(`button.atlas-star${s.id === this.star ? '.on' : ''}`, {
         type: 'button',
         attrs: { role: 'tab', 'aria-selected': String(s.id === this.star), 'aria-controls': 'atlas-plate' },
+        tabIndex: s.id === this.star ? 0 : -1,
       }, [h('span.atlas-star-dot', null), h('span.atlas-star-name', null, name)]);
       btn.style.left = `${s.x * 100}%`;
       btn.style.top = `${s.y * 100}%`;
@@ -147,15 +149,26 @@ export class AtlasScreen implements Screen {
       btn.style.setProperty('--i', String(i));
       if (s.x > 0.7) btn.classList.add('label-left');
       if (s.x < 0.3) btn.classList.add('label-right');
-      btn.addEventListener('click', () => {
-        if (this.star === s.id) return;
-        this.star = s.id;
-        this.app.svc.audio.click();
-        this.render();
+      btn.addEventListener('click', () => this.select(s.id));
+      btn.addEventListener('keydown', (e) => {
+        const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (!step) return;
+        e.preventDefault();
+        this.select(STARS[(i + step + STARS.length) % STARS.length]!.id);
       });
       wrap.append(btn);
     });
     return wrap;
+  }
+
+  /** Выбрать звезду: табличка меняется и показывается над липкой кнопкой, фокус остаётся на звезде. */
+  private select(id: StarId): void {
+    if (this.star === id) return;
+    this.star = id;
+    this.app.svc.audio.click();
+    this.render();
+    this.el.querySelector<HTMLElement>('.atlas-star.on')?.focus({ preventScroll: true });
+    this.el.querySelector('#atlas-plate')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /** Табличка выбранной звезды: что это и как выглядит. */
@@ -183,7 +196,8 @@ export class AtlasScreen implements Screen {
         break;
       }
       case 'noads':
-        visual.append(h('div.plate-noads', null, [h('span', null, '▶'), h('i', null)]));
+        // U+FE0E — текстовый вариант значка: на iOS и в Telegram он не станет эмодзи
+        visual.append(h('div.plate-noads', null, [h('span', null, '\u25B6\uFE0E'), h('i', null)]));
         break;
       case 'look': {
         visual.append(
@@ -215,11 +229,11 @@ export class AtlasScreen implements Screen {
       strip.append(
         h(`span.plate-day${r ? '.played' : ''}${r?.won ? '.won' : ''}`, null, [
           h('b', null, String(Number(date.slice(8)))),
-          h('small', null, r ? (r.won ? '✦' : String(r.ante)) : '·'),
+          h('small', null, r ? (r.won ? '✦' : String(r.ante)) : ''),
         ]),
       );
     }
-    strip.append(h('span.plate-day.today', null, [h('b', null, String(Number(todayKey().slice(8)))), h('small', null, `#${dailyNumber()}`)]));
+    strip.append(h('span.plate-day.today', null, [h('b', null, String(Number(todayKey().slice(8)))), h('small', null, '')]));
     return strip;
   }
 
@@ -233,16 +247,26 @@ export class AtlasScreen implements Screen {
       return bar;
     }
     if (!this.app.platform.payments) {
+      bar.classList.add('unavailable');
       bar.append(h('p.offer-note', null, t('atlas.unavailable')));
       const link = import.meta.env.VITE_TG_APP_LINK;
       if (link) bar.append(button(t('atlas.openTelegram'), () => window.open(link, '_blank', 'noopener'), { variant: 'secondary' }));
       return bar;
     }
+    if (this.prices && !this.prices.atlas) {
+      // Площадка ответила, но атласа не продаёт (оплата ещё не включена)
+      bar.classList.add('unavailable');
+      bar.append(h('p.offer-note', null, t('atlas.soon')));
+      return bar;
+    }
     const price = this.price('atlas');
-    bar.append(
-      button(t('atlas.buy'), () => void this.buy('atlas'), { sub: price, disabled: this.busy || !this.prices?.atlas, className: 'offer-buy' }),
-      h('p.offer-promise', null, t('atlas.promise')),
-    );
+    const buy = button(this.busy ? t('atlas.paying') : t('atlas.buy'), () => void this.buy('atlas'), {
+      sub: this.busy ? undefined : price,
+      disabled: this.busy || !this.prices?.atlas,
+      className: `offer-buy${this.prices ? '' : ' loading'}`,
+    });
+    if (this.busy) buy.setAttribute('aria-busy', 'true');
+    bar.append(buy);
     return bar;
   }
 
@@ -258,6 +282,8 @@ export class AtlasScreen implements Screen {
     const result = await this.app.purchase(id);
     this.busy = false;
     if (result === 'paid') {
+      // Крест зажигается заново — уже целиком
+      if (id === 'atlas' || id === 'supporter') this.drawn = false;
       this.app.svc.audio.win();
       toast(PRODUCT_BY_ID[id]?.kind === 'tip' ? t('atlas.thanksTip') : t('atlas.thanks'));
     } else if (result === 'cancelled') toast(t('atlas.cancelled'));
@@ -305,7 +331,7 @@ export class AtlasScreen implements Screen {
     else if (wearable) status = id === 'classic' || id === 'night' ? t('atlas.free') : t('atlas.wear');
     else if (product?.id === 'atlas') status = t('atlas.inAtlas');
     else if (product?.id === 'supporter') status = t('atlas.inSupporter');
-    else status = product && app.platform.payments ? this.price(product.id) : '—';
+    else status = (product && app.platform.payments ? this.price(product.id) : '') || '—';
     const item = h(`button.wardrobe-item${wearing ? '.on' : ''}${wearable ? '' : '.locked'}`, {
       type: 'button',
       attrs: { role: 'listitem', 'aria-pressed': String(wearing) },
@@ -339,7 +365,8 @@ export class AtlasScreen implements Screen {
 
   private support(): HTMLElement | null {
     const payments = this.app.platform.payments;
-    if (!payments) return null;
+    // Нет оплаты на площадке (или она ещё не включена) — нечем поддержать
+    if (!payments || (this.prices && !this.prices.supporter)) return null;
     const [name, desc] = dict().atlas.supporter;
     const has = this.app.purchases.has('supporter');
     const supporter = h('div.support-pack', null, [

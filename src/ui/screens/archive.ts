@@ -27,7 +27,8 @@ export class ArchiveScreen implements Screen {
   }
 
   private render(): void {
-    const scroll = this.el.querySelector('.archive-months')?.scrollTop ?? 0;
+    // Прокручивается весь экран, а не список месяцев
+    const scroll = this.el.scrollTop;
     const dates = archiveDates();
     const months = h('div.archive-months');
     // Месяцы от свежего к первому
@@ -35,12 +36,15 @@ export class ArchiveScreen implements Screen {
     for (const key of keys) months.append(this.month(key, new Set(dates)));
     this.el.replaceChildren(
       h('div.atlas-top', null, [button(`‹ ${t('menu.back')}`, () => void this.app.goMenu(), { variant: 'ghost', className: 'small' })]),
-      h('header.archive-head', null, [h('h1.atlas-title', null, t('archive.title')), h('p.atlas-lede', null, dates.length ? t('archive.lede') : t('archive.empty'))]),
+      h('header.archive-head', null, [
+        h('h1.atlas-title', null, t('archive.title')),
+        h('p.atlas-lede', null, dates.length ? t('archive.lede') : t('archive.empty')),
+        dates.length ? h('p.archive-legend', null, t('archive.legend')) : null,
+      ]),
       months,
       ...[this.detail()].filter((x): x is HTMLElement => !!x),
     );
-    const m = this.el.querySelector('.archive-months');
-    if (m) m.scrollTop = scroll;
+    this.el.scrollTop = scroll;
   }
 
   private month(key: string, playable: Set<string>): HTMLElement {
@@ -49,7 +53,7 @@ export class ArchiveScreen implements Screen {
     const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
     // Неделя с понедельника
     const offset = (first.getUTCDay() + 6) % 7;
-    const grid = h('div.archive-grid', { attrs: { role: 'grid' } });
+    const grid = h('div.archive-grid');
     for (const wd of dict().archive.weekdays) grid.append(h('span.archive-wd', null, wd));
     for (let i = 0; i < offset; i++) grid.append(h('span.archive-pad', null));
     const results = this.app.profile.archive ?? {};
@@ -67,12 +71,17 @@ export class ArchiveScreen implements Screen {
       }
       const cell = h(`button.archive-day${r ? '.played' : ''}${r?.won ? '.won' : ''}${date === this.selected ? '.on' : ''}`, {
         type: 'button',
-        attrs: { 'aria-pressed': String(date === this.selected), 'aria-label': `${t('archive.day', { n: dailyNumber(date) })}` },
+        attrs: {
+          'aria-pressed': String(date === this.selected),
+          'aria-label': [t('archive.dayLabel', { date: this.dateText(date), n: dailyNumber(date) }), r ? (r.won ? t('archive.won') : t('archive.dayResult', { ante: r.ante })) : t('archive.notPlayed')].join(', '),
+        },
       }, [h('b', null, String(d)), h('small', null, r ? (r.won ? '✦' : `${r.ante}`) : '')]);
       cell.addEventListener('click', () => {
         this.selected = date;
         this.app.svc.audio.click();
         this.render();
+        // Кнопка пересоздана — возвращаем на неё фокус клавиатуры
+        this.el.querySelector<HTMLElement>('.archive-day.on')?.focus({ preventScroll: true });
       });
       grid.append(cell);
     }
@@ -83,13 +92,12 @@ export class ArchiveScreen implements Screen {
     const date = this.selected;
     if (!date) return null;
     const r = this.app.profile.archive?.[date];
-    const [y, m, d] = date.split('-').map(Number) as [number, number, number];
     const owned = this.app.purchases.has('atlas');
     const result = r ? t('archive.best', { ante: r.ante, best: num(r.best) }) : t('archive.notPlayed');
     return h('div.archive-detail', null, [
       h('div.archive-detail-head', null, [
         h('span.archive-detail-n', null, t('archive.day', { n: dailyNumber(date) })),
-        h('span.archive-detail-date', null, t('archive.date', { d, month: dict().archive.monthsOf[m - 1]!, y })),
+        h('span.archive-detail-date', null, this.dateText(date)),
       ]),
       h('p.archive-detail-result', null, r?.won ? `${result} · ${t('archive.won')}` : result),
       owned
@@ -99,6 +107,11 @@ export class ArchiveScreen implements Screen {
             button(t('archive.toAtlas'), () => void this.app.goAtlas('archive', 'archive'), { className: 'archive-play' }),
           ]),
     ]);
+  }
+
+  private dateText(date: string): string {
+    const [y, m, d] = date.split('-').map(Number) as [number, number, number];
+    return t('archive.date', { d, month: dict().archive.monthsOf[m - 1]!, y });
   }
 
   private play(date: string): void {
