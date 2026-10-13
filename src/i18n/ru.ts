@@ -240,6 +240,15 @@ export const ru = {
     winSub: 'Небо «{sky}» · сложность {stake}',
     endlessSub: 'играть дальше',
   },
+  discovery: {
+    newCombo: 'Новое созвездие · {n} из {total}',
+    firstKicker: 'Впервые',
+    cross: 'Крест!',
+    crossDesc: 'Одна карта закрыла две линии — очки удвоены',
+    all: 'Собраны все созвездия!',
+    collected: 'Собрано {n} из {total}',
+    notYet: 'ещё не собрано',
+  },
   codex: {
     title: 'Кодекс',
     omens: 'Знамения',

@@ -8,6 +8,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { omenTooltip, bossTooltip } from '../hud';
 import { attachTooltip, button, modal } from '../widgets';
 import { comboList } from '../combos';
+import { collectedLine } from './common';
 
 type Tab = 'omens' | 'combos' | 'bosses' | 'stats';
 
@@ -31,7 +32,8 @@ export function showCodex(app: App): void {
       }
       body.replaceChildren(h('p.hint', null, t('codex.found', { n: p.seenOmens.length, total: OMEN_LIST.length })), grid);
     } else if (tab === 'combos') {
-      body.replaceChildren(h('p.hint', null, t('combos.hint')), comboList({ levels: app.run?.comboLevels }));
+      const found = p.combosFound ?? [];
+      body.replaceChildren(h('p.hint', null, t('combos.hint')), collectedLine(found), comboList({ levels: app.run?.comboLevels, found }));
     } else if (tab === 'bosses') {
       const grid = h('div.codex-grid');
       for (const b of BOSS_LIST) {

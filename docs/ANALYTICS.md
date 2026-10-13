@@ -36,6 +36,7 @@
 | `run_start` | новый забег | sky, stake, daily, archive, gentle | популярность колод и сложности; archive — вызов из архива; gentle — первый забег со щедрой ночью |
 | `night_start` | начало ночи | ante, night, boss, gentle | gentle — щедрая первая ночь новичка |
 | `night_end` | конец ночи | ante, night, boss, won, score, target, ratio, moves_left, burns_left, lines | **баланс целей**: ratio около 1 — на грани, сильно больше — слишком легко |
+| `combo_found` | созвездие собрано впервые (коллекция) | combo (или `cross`), count, ante | когда новички открывают созвездия; дошли ли до редких |
 | `run_end` | конец забега | result, ante, nights, lines, best, crosses, omens | где умирают, сильные наборы Знамений |
 | `shop_buy` | покупка | kind, id, price, ante, gold_left | популярность Знамений и предметов, цены |
 | `shop_sell` | продажа Знамения | id, ante | «ловушки» — что покупают и сразу продают |

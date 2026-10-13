@@ -743,6 +743,27 @@ body {
 .combo-x { margin: 0 3px; color: var(--ink-dim); font-size: 0.8em; }
 .combo-name { font: 400 19px/1.1 var(--font-display); }
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
+.combo-got { margin-left: 6px; font: 800 13px/1 var(--font-body); color: var(--ok); vertical-align: 2px; }
+.combo-item.missing .combo-name { color: var(--ink-dim); }
+.combo-missing { font-size: 12px; color: var(--ink-dim); opacity: 0.75; font-style: italic; }
+.combo-collected { margin: -4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
+
+/* «Новое созвездие!» — плашка над небом, поверх окон (живёт 2,6 с, касание закрывает) */
+.discovery {
+  position: fixed; left: 50%; top: calc(var(--board-top, 160px) + 12px); z-index: 60;
+  transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 14px 16px 12px;
+  border-radius: 18px; text-align: center; cursor: pointer;
+  background: linear-gradient(180deg, rgba(44, 34, 98, 0.97), rgba(20, 16, 52, 0.97));
+  box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.55) inset, 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgba(246, 194, 91, 0.25);
+  animation: discovery-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.discovery.out { animation: fade-out 0.22s ease forwards; }
+.discovery-kicker { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.discovery-name { margin: 4px 0 8px; font: 400 30px/1.05 var(--font-display); color: var(--ink); text-shadow: 0 0 18px rgba(246, 194, 91, 0.55); }
+.discovery-cards { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+.discovery-desc { font-size: 13px; color: var(--ink-dim); }
+.discovery.cross .discovery-name { font-size: 36px; color: var(--gold); }
+@keyframes discovery-in { from { opacity: 0; transform: translate(-50%, -10px) scale(0.92); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .combo-base { font: 400 20px/1 var(--font-display); white-space: nowrap; }
 .help-list { padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px; line-height: 1.45; }
 
@@ -768,7 +789,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .fan-card, .menu-fan, .tut-spot.on::after { animation: none !important; }
-  .modal-panel, .toast, .coach, .atlas-plate, .reward-row { animation-name: fade-in !important; }
+  .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery { animation-name: fade-in !important; }
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
 

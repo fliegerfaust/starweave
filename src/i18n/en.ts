@@ -240,6 +240,15 @@ export const en: Dict = {
     winSub: '{sky} sky · difficulty {stake}',
     endlessSub: 'keep playing',
   },
+  discovery: {
+    newCombo: 'New constellation · {n} of {total}',
+    firstKicker: 'First time',
+    cross: 'Cross!',
+    crossDesc: 'One card closed two lines — score doubled',
+    all: 'Every constellation collected!',
+    collected: 'Collected {n} of {total}',
+    notYet: 'not yet collected',
+  },
   codex: {
     title: 'Codex',
     omens: 'Omens',
