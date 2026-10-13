@@ -293,6 +293,14 @@ export class NightScreen implements Screen {
         h('div.row.gap.center.wrap', null, [
           run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
           button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
+          // Тот же расклад: те же карты в том же порядке — понять, где можно было сыграть лучше.
+          // Вызов дня и так один на всех, у него своё «ещё раз» из архива
+          run.daily
+            ? null
+            : button(t('over.sameDeal'), () => {
+                this.overlay?.close();
+                this.app.startRun(run.skyId, false, run.stake ?? 0, run.seed);
+              }, { variant: 'secondary' }),
           button(t('over.again'), () => {
             this.overlay?.close();
             this.app.startRun(run.skyId);
