@@ -33,6 +33,11 @@ export function button(
 
 let modalSeq = 0;
 
+/** Текст с монетой в конце: «Забрать 9 ●». Один знак золота во всей игре. */
+export function withCoin(text: string): HTMLElement {
+  return h('span.with-coin', null, [text, h('span.coin', { attrs: { 'aria-hidden': 'true' } })]);
+}
+
 export interface ModalHandle {
   el: HTMLElement;
   close(): void;

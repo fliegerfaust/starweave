@@ -28,7 +28,7 @@ export function omenTooltip(omen: { id: string; data?: Record<string, number> })
   ]);
 }
 
-const BADGE_SYMBOL: Record<OmenKind, string> = { light: '+', mult: '+', xmult: '×', rule: '✦', gold: '◆' };
+const BADGE_SYMBOL: Record<OmenKind, string> = { light: '+', mult: '+', xmult: '×', rule: '✦', gold: '●' };
 
 /** Значок типа Знамения: цвет и символ показывают, что оно делает со счётом. */
 export function omenBadge(kind: OmenKind): HTMLElement {
