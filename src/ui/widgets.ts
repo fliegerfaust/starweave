@@ -198,6 +198,19 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
   el.addEventListener('pointerleave', (e) => {
     if (e.pointerType === 'mouse') hideTooltip();
   });
+  // Подсказка доступна и с клавиатуры: фокус на элементе, Enter/пробел — показать
+  if (el.tagName !== 'BUTTON') {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  }
+  el.addEventListener('focus', () => show());
+  el.addEventListener('blur', () => hideTooltip());
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (activeTip && activeTip.dataset.owner === String(el.dataset.tipId)) hideTooltip();

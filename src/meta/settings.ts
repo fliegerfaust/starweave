@@ -8,6 +8,8 @@ export interface Settings {
   /** Индекс в SPEEDS. */
   speed: number;
   reduceMotion: boolean;
+  /** Крупный текст в интерфейсе и в подписях на небе. */
+  largeText: boolean;
   haptics: boolean;
   /** Разворачивать на весь экран при старте забега (мобильный браузер). */
   fullscreen: boolean;
@@ -34,6 +36,7 @@ export function loadSettings(): Settings {
     homeHintSeen: false,
     cardBack: 'classic',
     skyTheme: 'night',
+    largeText: false,
     reduceMotion: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   };
   try {

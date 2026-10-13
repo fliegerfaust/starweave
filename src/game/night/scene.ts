@@ -149,6 +149,9 @@ export class NightScene {
     this.layoutHand(false);
     this.refreshClosers();
     this.unsubscribers.push(this.svc.renderer.onResize(this.onResize), this.svc.input.on(this.onPointer));
+    window.addEventListener('keydown', this.onKey);
+    this.unsubscribers.push(() => window.removeEventListener('keydown', this.onKey));
+    this.labelCanvas();
   }
 
   /** Насколько выдвигается выбранная карта: вверх в портрете, влево в ландшафте. */
@@ -285,6 +288,18 @@ export class NightScene {
     for (const [cx, cy] of [[x + 6, y + 6], [x + w - 6, y + 6], [x + 6, y + hgt - 6], [x + w - 6, y + hgt - 6]] as const) {
       ctx.fillRect(cx - 1, cy - 1, 2, 2);
     }
+    if (this.kbActive && this.kbCell === this.cells.indexOf(s)) {
+      // Фокус клавиатуры: светлая рамка поверх клетки, отличная от наведения и обучения
+      ctx.save();
+      roundRect(ctx, x - 2, y - 2, w + 4, hgt + 4, r * 1.1);
+      ctx.strokeStyle = 'rgba(255,248,220,0.95)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([]);
+      ctx.shadowColor = 'rgba(255,236,190,0.8)';
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.restore();
+    }
     if (s.tut > 0.01) {
       ctx.save();
       roundRect(ctx, x, y, w, hgt, r);
@@ -374,7 +389,9 @@ export class NightScene {
   private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, hgt: number, k: number): void {
     const cross = s.closes >= 2;
     const maxW = w - 8;
-    const base = Math.max(12, Math.round(w * 0.17));
+    // «Крупный текст» в настройках — подписи на небе тоже крупнее (сколько влезет в клетку)
+    const large = document.documentElement.classList.contains('large-text');
+    const base = Math.max(large ? 14 : 12, Math.round(w * (large ? 0.2 : 0.17)));
     // Стрелка ряда или столбца рисуется линиями, а не символом шрифта: символ в другом
     // шрифте (Telegram, Android) шире замера и вылезал за клетку
     let arrows = s.forecast.some((f) => f.dir);
@@ -480,6 +497,8 @@ export class NightScene {
   private onResize = (): void => {
     if (this.destroyed) return;
     this.computeLayout();
+    // Холст пересоздаётся при смене размера — подпись для скринридера ставим заново
+    this.labelCanvas();
     this.cells.forEach((c, i) => {
       const t = this.world.req(c.entity, Transform);
       const p = this.layout.cells[i]!;
@@ -540,6 +559,7 @@ export class NightScene {
 
   private onPointer = (e: PointerEventData): void => {
     if (this.destroyed) return;
+    if (e.kind === 'down') this.kbActive = false;
     if (this.drag && this.dragPointer !== null && e.id !== this.dragPointer && e.kind !== 'cancel') return;
     if (e.kind === 'down') this.dragPointer = e.id;
     else if (e.kind === 'up' || e.kind === 'cancel') this.dragPointer = null;
@@ -713,6 +733,107 @@ export class NightScene {
     if (!touch) this.setHandHover(this.handIndexAt(x, y));
   }
 
+  // ─── Клавиатура (десктоп, скринридер) ──────────────────────────────────
+
+  /** Клетка под фокусом клавиатуры. */
+  kbCell: number | null = null;
+  /** Рамку фокуса рисуем, только пока играют с клавиатуры: мышь и касание её гасят. */
+  private kbActive = false;
+
+  private labelCanvas(): void {
+    const c = this.svc.renderer.canvas;
+    c.setAttribute('role', 'application');
+    c.setAttribute('aria-roledescription', t('a11y.boardRole'));
+    c.setAttribute('aria-label', t('a11y.board'));
+    c.tabIndex = 0;
+  }
+
+  /**
+   * 1–9 — карта руки, стрелки — клетка неба, Enter/пробел — положить, B/Delete — сжечь,
+   * Esc — снять выбор. Те же ограничения обучения, что и у касаний. Пока открыто окно или
+   * фокус в поле ввода, клавиши не наши.
+   */
+  private onKey = (e: KeyboardEvent): void => {
+    if (this.destroyed || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.querySelector('.modal-backdrop')) return;
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON')) {
+      // На кнопке Enter/пробел — её нажатие; цифры и стрелки всё равно наши
+      if (e.key === 'Enter' || e.key === ' ') return;
+    }
+    const n = this.night.rules.gridSize;
+    const digit = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : -1;
+    let handled = true;
+    if (digit >= 0) {
+      if (digit < this.hand.length && !this.busy && this.night.result === 'playing') {
+        if (!this.allowSelect(digit)) this.deny();
+        else this.select(this.selected === digit ? null : digit);
+        this.announceSelection();
+      }
+    } else if (e.key.startsWith('Arrow')) {
+      this.kbActive = true;
+      const cur = this.kbCell ?? this.firstFreeCell();
+      let r = Math.floor(cur / n);
+      let c = cur % n;
+      if (this.kbCell !== null) {
+        if (e.key === 'ArrowUp') r = (r + n - 1) % n;
+        else if (e.key === 'ArrowDown') r = (r + 1) % n;
+        else if (e.key === 'ArrowLeft') c = (c + n - 1) % n;
+        else if (e.key === 'ArrowRight') c = (c + 1) % n;
+      }
+      this.kbCell = r * n + c;
+      if (this.selected !== null) this.setHover(this.canPlaceAt(this.kbCell) ? this.kbCell : null);
+      this.announceCell(this.kbCell);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      if (this.selected === null || this.kbCell === null || this.busy) {
+        this.deny();
+        this.hud.announce(t(this.selected === null ? 'a11y.pickCard' : 'a11y.pickCell'));
+      } else if (!this.canPlaceAt(this.kbCell)) this.deny();
+      else void this.place(this.selected, this.kbCell);
+    } else if (e.key === 'b' || e.key === 'B' || e.key === 'и' || e.key === 'И' || e.key === 'Delete') {
+      if (this.selected !== null && this.canBurnCard(this.hand[this.selected]!)) void this.burnSelected();
+      else this.deny();
+    } else if (e.key === 'Escape') {
+      if (this.selected !== null) this.select(null);
+      else handled = false;
+    } else handled = false;
+    if (handled) e.preventDefault();
+  };
+
+  private firstFreeCell(): number {
+    const i = this.night.grid.findIndex((c, k) => !c && !this.night.sealed[k]);
+    return i >= 0 ? i : 0;
+  }
+
+  /** Скринридеру: какая карта выбрана и где она даст больше всего. */
+  private announceSelection(): void {
+    const i = this.selected;
+    if (i === null) return this.hud.announce(t('a11y.deselected'));
+    const card = this.night.hand[i]!;
+    const name = this.night.rules.hideRanks ? t(`suitPl.${card.suit}`) : `${card.rank} · ${t(`suitPl.${card.suit}`)}`;
+    const best = this.cells.findIndex((c) => c.forecast.length > 0 && !c.forecastWeak);
+    const where = best >= 0 ? t('a11y.bestCell', { cell: this.cellName(best), combo: this.cells[best]!.forecast.map((f) => f.name).join(' + ') }) : '';
+    this.hud.announce(`${t('a11y.selected', { card: name })} ${where}`.trim());
+  }
+
+  /** Скринридеру: что в клетке и что даст выбранная карта. */
+  private announceCell(cell: number): void {
+    const placed = this.night.grid[cell];
+    const what = this.night.sealed[cell]
+      ? t('a11y.sealed')
+      : placed
+        ? `${placed.rank} · ${t(`suitPl.${placed.suit}`)}`
+        : this.preview
+          ? `${t('a11y.empty')}. ${this.preview.lines.map((l) => t(`combo.${l.combo}`)).join(' + ')} ≈ ${this.preview.total}`
+          : t('a11y.empty');
+    this.hud.announce(`${this.cellName(cell)}: ${what}`);
+  }
+
+  private cellName(cell: number): string {
+    const n = this.night.rules.gridSize;
+    return t('a11y.cell', { row: Math.floor(cell / n) + 1, col: (cell % n) + 1 });
+  }
+
   /** Наведение мышью на карту руки: лёгкий подъём. */
   private setHandHover(index: number | null): void {
     if (index === this.hoverHand) return;
@@ -828,7 +949,7 @@ export class NightScene {
       this.hud.setPreview(null);
       return;
     }
-    this.preview = previewPlacement(this.run, handIndex, cell);
+    this.preview = this.cachedPreview(handIndex, cell);
     if (!this.preview) {
       this.hud.setPreview(null);
       return;
@@ -867,6 +988,26 @@ export class NightScene {
    * нет — лучшее, что даст какая-нибудь карта руки. В «Тумане» ранги в руке скрыты,
    * поэтому прогноза нет.
    */
+  /** Прогнозы клеток на текущее состояние ночи: выбор карты не пересчитывает их заново. */
+  private forecastCache = new Map<string, PlacementPreview | null>();
+  private forecastState = '';
+  private forecastSeed = 0;
+
+  private cachedPreview(handIndex: number, cell: number): PlacementPreview | null {
+    // Новое состояние неба или руки — сбросить кэш; свой сид на состояние, чтобы случайные
+    // Знамения не меняли подсказку от выбора к выбору
+    const n = this.night;
+    const state = `${n.placements}|${n.burnsLeft}|${n.hand.map((c) => c.id).join(',')}|${n.grid.map((c) => c?.id ?? '').join(',')}`;
+    if (state !== this.forecastState) {
+      this.forecastState = state;
+      this.forecastCache.clear();
+      this.forecastSeed = (Math.random() * 2 ** 32) >>> 0;
+    }
+    const key = `${handIndex}:${cell}`;
+    if (!this.forecastCache.has(key)) this.forecastCache.set(key, previewPlacement(this.run, handIndex, cell, this.forecastSeed));
+    return this.forecastCache.get(key)!;
+  }
+
   refreshForecast(): void {
     const n = this.night;
     const picked = this.selected;
@@ -880,7 +1021,7 @@ export class NightScene {
       let best: PlacementPreview | null = null;
       let bestIndex = -1;
       for (const i of indices) {
-        const p = previewPlacement(this.run, i, cell);
+        const p = this.cachedPreview(i, cell);
         if (p && (!best || p.total > best.total)) {
           best = p;
           bestIndex = i;

@@ -39,9 +39,23 @@ export function deckGrid(cards: Card[], opts: { dimmed?: Set<number>; selectable
       if (!can) cell.classList.add('disabled');
       if (opts.selected?.has(card.id)) cell.classList.add('selected');
       if (opts.onToggle && can) {
-        cell.addEventListener('click', () => {
+        const toggle = () => {
           opts.onToggle!(card);
-          cell.classList.toggle('selected', opts.selected?.has(card.id) ?? false);
+          const on = opts.selected?.has(card.id) ?? false;
+          cell.classList.toggle('selected', on);
+          cell.setAttribute('aria-pressed', String(on));
+        };
+        // Выбор карт для ритуала — и с клавиатуры: Tab по картам, Enter/пробел
+        cell.tabIndex = 0;
+        cell.setAttribute('role', 'button');
+        cell.setAttribute('aria-pressed', String(opts.selected?.has(card.id) ?? false));
+        cell.setAttribute('aria-label', `${card.rank} · ${t(`suitPl.${card.suit}`)}${card.glyph ? ` · ${t(`glyph.${card.glyph}`)}` : ''}`);
+        cell.addEventListener('click', toggle);
+        cell.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+          }
         });
       }
       line.append(cell);
@@ -156,6 +170,7 @@ export function showSettings(app: App, onChange?: () => void): void {
         : null,
       field(t('settings.quality'), segmented([{ value: 'auto' as const, label: t('settings.qualityAuto') }, { value: 'max' as const, label: t('settings.qualityMax') }], s.quality, (v) => (s.quality = v))),
       h('p.hint', null, t('settings.qualityNow', { now: app.svc.renderer.dpr, max: Math.min(3, window.devicePixelRatio || 1) })),
+      field(t('settings.largeText'), segmented([{ value: false, label: t('settings.textNormal') }, { value: true, label: t('settings.textLarge') }], s.largeText, (v) => (s.largeText = v))),
       field(t('settings.reduceMotion'), segmented([{ value: false, label: t('settings.off') }, { value: true, label: t('settings.on') }], s.reduceMotion, (v) => (s.reduceMotion = v))),
       h('div.row.gap.wrap.legal-links', null, [
         button(t('settings.privacy'), () => void import('./legal').then(({ showLegal }) => showLegal('privacy')), { variant: 'ghost', className: 'small' }),
