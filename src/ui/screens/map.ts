@@ -74,7 +74,7 @@ export class MapScreen implements Screen {
       run.omens.length ? omens : null,
       h('div.map-actions', null, [
         button(t('pause.help'), () => showHelp(undefined, run.comboLevels), { variant: 'ghost' }),
-        button(t('combos.button'), () => showCombos(run), { variant: 'ghost' }),
+        button(t('combos.button'), () => showCombos(run, this.app.profile.combosFound), { variant: 'ghost' }),
         button(t('shop.yourDeck', { n: run.deck.length }), () => showDeck(run), { variant: 'secondary' }),
         this.peek
           ? button(`← ${t('pause.backToShop')}`, () => void this.app.route(), { className: 'grow' })

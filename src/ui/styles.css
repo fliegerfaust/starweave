@@ -741,12 +741,29 @@ body {
 .combo-text { flex: 1; min-width: 0; }
 .combo-level { margin-left: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(246, 194, 91, 0.2); color: var(--gold); font: 800 10px/1 var(--font-body); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
 .combo-x { margin: 0 3px; color: var(--ink-dim); font-size: 0.8em; }
-.combo-list.compact { gap: 3px; max-height: min(46vh, 340px); overflow-y: auto; }
-.combo-list.compact .combo-item { padding: 4px 8px; gap: 8px; }
-.combo-list.compact .combo-name { font-size: 15px; }
-.combo-list.compact .combo-base { font-size: 15px; }
 .combo-name { font: 400 19px/1.1 var(--font-display); }
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
+.combo-got { margin-left: 6px; font: 800 13px/1 var(--font-body); color: var(--ok); vertical-align: 2px; }
+.combo-item.missing .combo-name { color: var(--ink-dim); }
+.combo-missing { font-size: 12px; color: var(--ink-dim); opacity: 0.75; font-style: italic; }
+.combo-collected { margin: -4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
+
+/* «Новое созвездие!» — плашка над небом, поверх окон (живёт 2,6 с, касание закрывает) */
+.discovery {
+  position: fixed; left: 50%; top: calc(var(--board-top, 160px) + 12px); z-index: 60;
+  transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 14px 16px 12px;
+  border-radius: 18px; text-align: center; cursor: pointer;
+  background: linear-gradient(180deg, rgba(44, 34, 98, 0.97), rgba(20, 16, 52, 0.97));
+  box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.55) inset, 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgba(246, 194, 91, 0.25);
+  animation: discovery-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.discovery.out { animation: fade-out 0.22s ease forwards; }
+.discovery-kicker { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.discovery-name { margin: 4px 0 8px; font: 400 30px/1.05 var(--font-display); color: var(--ink); text-shadow: 0 0 18px rgba(246, 194, 91, 0.55); }
+.discovery-cards { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
+.discovery-desc { font-size: 13px; color: var(--ink-dim); }
+.discovery.cross .discovery-name { font-size: 36px; color: var(--gold); }
+@keyframes discovery-in { from { opacity: 0; transform: translate(-50%, -10px) scale(0.92); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .combo-base { font: 400 20px/1 var(--font-display); white-space: nowrap; }
 .help-list { padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px; line-height: 1.45; }
 
@@ -772,7 +789,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .fan-card, .menu-fan, .tut-spot.on::after { animation: none !important; }
-  .modal-panel, .toast, .coach, .atlas-plate, .reward-row { animation-name: fade-in !important; }
+  .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery { animation-name: fade-in !important; }
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
 
@@ -923,6 +940,7 @@ body.landscape .boss-chip { padding-right: 2px; }
 @keyframes g-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
 
 .icon-btn.q { font: 800 18px/1 var(--font-body); color: var(--ink); }
+.icon-btn.q.attn { color: var(--gold); border-color: rgba(246, 194, 91, 0.7); animation: tut-glow 1.8s ease-in-out infinite; }
 .card-info {
   position: absolute;
   left: 50%;
@@ -999,7 +1017,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
 .tut-actions .btn { margin-left: auto; }
 .tut-formula { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.tut-combos { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
 .tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
 .tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
 .tut-finger {

@@ -1,8 +1,9 @@
 import { cardFace } from '@/art/card';
 import { LANGS, dict, getLang, num, t, type Lang } from '@/i18n';
-import type { Card, RunState } from '@/core/types';
+import type { Card, ComboId, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
+import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { Haptics } from '@/engine/haptics';
 import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
@@ -70,11 +71,30 @@ export function showHelp(focus?: string, levels?: RunState['comboLevels']): void
   void import('./guide').then(({ showGuide }) => showGuide(focus, levels));
 }
 
-/** Все созвездия с примерами и уровнями забега: что прокачано звёздными картами. */
-export function showCombos(run: RunState): void {
+/** «Собрано 4 из 10» — прогресс коллекции созвездий. */
+export function collectedLine(found: readonly ComboId[]): HTMLElement {
+  return h('p.combo-collected', null, t('discovery.collected', { n: found.length, total: COLLECTIBLE_COMBOS.length }));
+}
+
+/**
+ * Все созвездия с примерами и уровнями забега: что прокачано звёздными картами.
+ * Это же окно открывает «?» посреди ночи — созвездия нужны чаще остального справочника.
+ */
+export function showCombos(run: RunState, found: readonly ComboId[] = []): void {
   const m = modal(
-    [h('p.hint', null, t('combos.hint')), comboList({ levels: run.comboLevels }), h('div.row.end', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))],
-    { title: t('combos.yours'), className: 'combos' },
+    [
+      h('p.hint', null, t('combos.hint')),
+      collectedLine(found),
+      comboList({ levels: run.comboLevels, found }),
+      h('div.row.between', null, [
+        button(t('guide.button'), () => {
+          m.close();
+          showHelp(undefined, run.comboLevels);
+        }, { variant: 'ghost' }),
+        button(t('menu.back'), () => m.close(), { variant: 'secondary' }),
+      ]),
+    ],
+    { title: t('combos.title'), className: 'combos' },
   );
 }
 
@@ -196,7 +216,7 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
       h('div.stack', null, [
         button(t('pause.resume'), () => m.close()),
         ...extra,
-        app.run ? button(t('combos.yours'), () => showCombos(app.run!), { variant: 'secondary' }) : null,
+        app.run ? button(t('combos.yours'), () => showCombos(app.run!, app.profile.combosFound), { variant: 'secondary' }) : null,
         button(t('guide.button'), () => showHelp(undefined, app.run?.comboLevels), { variant: 'secondary' }),
         button(t('menu.codex'), () => showCodexFrom(app), { variant: 'secondary' }),
         button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),

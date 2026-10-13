@@ -17,6 +17,8 @@ export interface NewRunOptions {
   dailyDate?: string;
   archive?: boolean;
   stake?: number;
+  /** Первый забег новичка — щедрая первая ночь. */
+  gentle?: boolean;
 }
 
 export function rollBoss(rng: RngState, ante: number, previous: readonly string[]): string {
@@ -24,7 +26,7 @@ export function rollBoss(rng: RngState, ante: number, previous: readonly string[
   return pick(rng, pool.length ? pool : BOSS_LIST).id;
 }
 
-export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0 }: NewRunOptions): RunState {
+export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false }: NewRunOptions): RunState {
   const sky = skyDef(skyId);
   const rng = createRng(seed);
   const { cards, nextId } = buildDeck(sky.deck, 1);
@@ -57,6 +59,8 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
   };
   if (daily && dailyDate) run.dailyDate = dailyDate;
   if (daily && archive) run.archive = true;
+  // Вызов дня у всех одинаковый — подыгрывать нельзя
+  if (gentle && !daily) run.gentle = true;
   for (const id of sky.startOmens ?? []) run.omens.push(createOmen(run, id));
   return run;
 }

@@ -71,6 +71,7 @@ export class Hud {
   private readonly cardInfo: HTMLElement;
   private cardInfoGlyph: Glyph | null = null;
   readonly actions: HTMLElement;
+  readonly guideBtn: HTMLButtonElement;
   readonly burnBtn: HTMLButtonElement;
   readonly deckBtn: HTMLButtonElement;
   private shownScore = 0;
@@ -106,7 +107,7 @@ export class Hud {
     this.preview = h('div.preview');
 
     const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: 'menu', onclick: () => cb.onMenu() }, h('span.burger'));
-    const guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: 'guide', onclick: () => cb.onGuide() }, '?');
+    const guideBtn = (this.guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: 'guide', onclick: () => cb.onGuide() }, '?'));
     this.cardInfo = h('div.card-info');
     this.cardInfo.addEventListener('click', () => {
       if (this.cardInfoGlyph) cb.onGuide(`glyph-${this.cardInfoGlyph}`);
@@ -322,6 +323,11 @@ export class Hud {
     }
     this.cardInfo.classList.toggle('clickable', !!card.glyph);
     this.cardInfo.classList.add('show');
+  }
+
+  /** Подсветить «?», пока новичок её ни разу не открыл. */
+  setGuideAttention(on: boolean): void {
+    this.guideBtn.classList.toggle('attn', on);
   }
 
   setBurnEnabled(enabled: boolean): void {

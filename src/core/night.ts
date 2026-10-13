@@ -1,12 +1,13 @@
-import { MOVES_PER_GOLD } from './content/balance';
+import { GENTLE_NIGHT, MOVES_PER_GOLD } from './content/balance';
+import { evaluateCombo } from './combos';
 import { runNightReward, runNightTarget } from './content/stakes';
 import { cloneCard } from './deck';
 import type { BaseCtx } from './effects';
-import { buildLines, ignitedLines, pickSealedCells } from './grid';
-import { shuffle } from './rng';
+import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
+import { shuffle, weightedPick } from './rng';
 import { buildRules } from './rules';
 import { activeEffects, scorePlacement } from './scoring';
-import { COMBO_IDS, NIGHT_KINDS, type GameEvent, type NightState, type RunState } from './types';
+import { COMBO_IDS, NIGHT_KINDS, type Card, type GameEvent, type NightState, type RunState } from './types';
 
 import { RuleError } from './errors';
 
@@ -31,11 +32,52 @@ function drawTo(run: RunState, night: NightState, count: number, events: GameEve
       night.discard = [];
       events.push({ t: 'reshuffle', count: night.drawPile.length });
     }
-    const card = night.drawPile.pop()!;
+    const card = night.gentle ? drawGentle(run, night) : night.drawPile.pop()!;
     night.hand.push(card);
     drawn.push(card);
   }
   if (drawn.length) events.push({ t: 'draw', cards: drawn });
+}
+
+/**
+ * Насколько карта поможет собрать созвездие: лучшее созвездие, которое она закроет на
+ * небе, плюс совпадения рангов и мастей с незаконченными линиями и с рукой.
+ */
+export function cardHelpfulness(night: NightState, card: Card): number {
+  const lines = buildLines(night.rules);
+  let board = 0;
+  night.grid.forEach((placed, cell) => {
+    if (placed || night.sealed[cell]) return;
+    let here = 0;
+    for (const line of lines) {
+      if (!line.cells.includes(cell)) continue;
+      const active = activeCells(line, night.sealed);
+      const others = active.filter((c) => c !== cell && night.grid[c]).map((c) => night.grid[c]!);
+      if (others.length === active.length - 1 && others.length >= 1) {
+        const cards = active.map((c) => (c === cell ? card : night.grid[c]!));
+        here += COMBO_IDS.indexOf(evaluateCombo(cards, night.rules)) * 3;
+      } else if (others.length > 0) {
+        if (others.every((o) => o.suit === card.suit)) here += 2 * others.length;
+        if (others.some((o) => o.rank === card.rank)) here += 2 * others.length;
+      }
+    }
+    board = Math.max(board, here);
+  });
+  let hand = 0;
+  for (const h of night.hand) {
+    if (h.rank === card.rank) hand += 2;
+    if (h.suit === card.suit) hand += 1;
+  }
+  return board + hand;
+}
+
+/** Щедрый добор: из нескольких верхних карт чаще выпадает та, что сложится в созвездие. */
+function drawGentle(run: RunState, night: NightState): Card {
+  const pile = night.drawPile;
+  const window = pile.slice(-GENTLE_NIGHT.window);
+  const card = weightedPick(run.rng, window, (c) => (1 + cardHelpfulness(night, c)) ** 2);
+  pile.splice(pile.lastIndexOf(card), 1);
+  return card;
 }
 
 /** Начинает ночь `run.nightIndex` текущего созвездия. */
@@ -67,6 +109,12 @@ export function startNight(run: RunState): GameEvent[] {
     bestPlacement: 0,
     result: 'playing',
   };
+  if (run.gentle && run.ante === 1 && run.nightIndex === 0 && !bossId) {
+    night.gentle = true;
+    night.rules.moves = Math.min(night.rules.moves, GENTLE_NIGHT.moves);
+    night.movesLeft = night.rules.moves;
+    night.target = Math.min(night.target, GENTLE_NIGHT.target);
+  }
   run.night = night;
   run.phase = 'night';
 

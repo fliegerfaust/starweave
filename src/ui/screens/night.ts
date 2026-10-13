@@ -4,10 +4,12 @@ import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
-import { dailyNumber } from '@/meta/profile';
+import { COLLECTIBLE_COMBOS, dailyNumber, recordDiscoveries } from '@/meta/profile';
+import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { Hud } from '../hud';
+import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { screenTitle, showCodexFrom, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
@@ -27,12 +29,15 @@ export class NightScreen implements Screen {
   mount(root: HTMLElement): void {
     this.hud = new Hud({
       onMenu: () => this.pause(),
-      onGuide: (focus) => showHelp(focus, this.run.comboLevels),
+      onGuide: (focus) => this.guide(focus),
       onBurn: () => this.burn(),
       onDeck: () => showDeck(this.run),
     });
     this.hud.mount(root);
     this.hud.sync(this.run);
+    // Новичку «?» мягко пульсирует, пока он её не нажмёт: там все созвездия
+    const p = this.app.profile;
+    this.hud.setGuideAttention(!this.run.tutorial && p.runs < 3 && !p.tutorial.includes('guideSeen'));
     this.hud.setBurnEnabled(false);
 
     if (this.run.night) {
@@ -67,12 +72,14 @@ export class NightScreen implements Screen {
     this.hud.unmount();
     this.overlay?.close();
     clearCoach();
+    clearDiscovery();
     setCoachDock(null);
   }
 
   private introHints(): void {
     const n = this.run.night!;
-    if (n.bossId) toast(named('boss', n.bossId).desc);
+    if (n.gentle) toast(t('night.gentle', { n: n.movesLeft }));
+    else if (n.bossId) toast(named('boss', n.bossId).desc);
     else {
       // Первые созвездия: напомнить про порядок Знамений тем, кто пропустил обучение
       const wrong = this.run.ante <= 2 ? misorderedOmens(this.run.omens) : null;
@@ -80,6 +87,18 @@ export class NightScreen implements Screen {
     }
     coach(this.app, 'place');
     coach(this.app, 'target');
+  }
+
+  /** «?»: посреди ночи нужнее всего созвездия; подпись о глифе ведёт в справочник. */
+  private guide(focus?: string): void {
+    if (focus) showHelp(focus, this.run.comboLevels);
+    else showCombos(this.run, this.app.profile.combosFound);
+    const p = this.app.profile;
+    if (!p.tutorial.includes('guideSeen')) {
+      p.tutorial.push('guideSeen');
+      this.app.persistProfile();
+    }
+    this.hud.setGuideAttention(false);
   }
 
   private burn(): void {
@@ -97,6 +116,7 @@ export class NightScreen implements Screen {
 
   private settled(events: GameEvent[]): void {
     this.app.tutorial?.emit({ type: 'settled', events });
+    this.discover(events);
     const n = this.run.night;
     if (n && n.result === 'playing') {
       if (events.some((e) => e.t === 'ignite')) {
@@ -110,8 +130,38 @@ export class NightScreen implements Screen {
     } else {
       // Ночь закончилась — подсказки про ход больше ни к чему
       clearCoach();
+      // Итоговое окно — после праздника «Новое созвездие», а не поверх него
+      void whenDiscoveryDone().then(() => {
+        if (this.scene && !this.scene.isDestroyed) this.checkPhase();
+      });
+      return;
     }
     this.checkPhase();
+  }
+
+  /** Коллекция: впервые собранное созвездие и первый крест — маленький праздник. */
+  private discover(events: GameEvent[]): void {
+    if (this.run.tutorial) return;
+    const p = this.app.profile;
+    const banners: Parameters<typeof announceDiscovery>[0] = [];
+    for (const e of events) {
+      if (e.t !== 'ignite') continue;
+      const found = recordDiscoveries(p, e.score.lines.map((l) => l.combo), e.score.lines.length);
+      for (const id of found.combos) {
+        const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
+        banners.push({ kind: 'combo', id, count });
+        track('combo_found', { combo: id, count, ante: this.run.ante });
+      }
+      if (found.cross) {
+        banners.push({ kind: 'cross' });
+        track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
+      }
+    }
+    if (!banners.length) return;
+    this.app.persistProfile();
+    announceDiscovery(banners, () => this.app.svc.audio.win());
+    const completed = banners.some((b) => b.kind === 'combo' && b.count === COLLECTIBLE_COMBOS.length);
+    if (completed) toast(t('discovery.all'));
   }
 
   private checkPhase(): void {
@@ -136,7 +186,7 @@ export class NightScreen implements Screen {
         h('div.stack', null, [
           button(t('pause.resume'), () => m.close()),
           button(t('pause.deck'), () => showDeck(this.run), { variant: 'secondary' }),
-          button(t('combos.yours'), () => showCombos(this.run), { variant: 'secondary' }),
+          button(t('combos.yours'), () => showCombos(this.run, this.app.profile.combosFound), { variant: 'secondary' }),
           button(t('pause.help'), () => showHelp(undefined, this.run.comboLevels), { variant: 'secondary' }),
           button(t('scoring.button'), () => showScoringHelp(), { variant: 'secondary' }),
           button(t('menu.codex'), () => showCodexFrom(this.app), { variant: 'secondary' }),
