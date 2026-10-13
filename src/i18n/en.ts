@@ -106,6 +106,7 @@ export const en: Dict = {
   },
   guide: {
     title: 'Guide',
+    tabs: { combos: 'Constellations', night: 'Night', shop: 'Observatory', glyphs: 'Glyphs' },
     button: 'Guide',
     line: ['Constellation', 'Fill a whole row or column — it ignites and scores. The line’s cards are discarded and the cells free up.'] as [string, string],
     formula: ['Light and multiplier', 'Every constellation scores light times multiplier. Light grows from card ranks, multiplier from the constellation and Omens.'] as [string, string],

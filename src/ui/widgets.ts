@@ -46,7 +46,7 @@ export interface ModalHandle {
 /** Модальное окно поверх всего. Закрывается по кнопке, фону (если разрешено) или Escape. */
 export function modal(
   content: Child | Child[],
-  opts: { onClose?: () => void; dismissable?: boolean; className?: string; title?: string } = {},
+  opts: { onClose?: () => void; dismissable?: boolean; className?: string; title?: string; sheet?: boolean; headExtra?: HTMLElement } = {},
 ): ModalHandle {
   const root = document.getElementById('ui')!;
   const dismissable = opts.dismissable !== false;
@@ -56,14 +56,20 @@ export function modal(
     ? h('button.modal-close', { type: 'button', attrs: { 'aria-label': t('menu.close') } }, '×')
     : null;
   const head = opts.title || closeBtn
-    ? h(`div.modal-head${opts.title ? '' : '.bare'}`, null, [opts.title ? h('h2.modal-title', { id: titleId }, opts.title) : null, closeBtn])
+    ? h(`div.modal-head${opts.title ? '' : '.bare'}`, null, [
+        opts.title ? h('h2.modal-title', { id: titleId }, opts.title) : null,
+        closeBtn,
+        // Вкладки и прочее, что должно оставаться под заголовком при прокрутке
+        opts.headExtra ? h('div.head-extra', null, opts.headExtra) : null,
+      ])
     : null;
   const panel = h('div.modal-panel', { tabIndex: -1, attrs: { role: 'dialog', 'aria-modal': 'true', ...(opts.title ? { 'aria-labelledby': titleId } : {}) } }, [
     head,
     ...(Array.isArray(content) ? content : [content]),
   ]);
   if (opts.className) panel.classList.add(...opts.className.split(' '));
-  const backdrop = h('div.modal-backdrop', null, panel);
+  if (opts.sheet) panel.classList.add('sheet');
+  const backdrop = h(`div.modal-backdrop${opts.sheet ? '.sheet' : ''}`, null, panel);
   const returnFocus = document.activeElement as HTMLElement | null;
   let closed = false;
   const close = () => {

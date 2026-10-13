@@ -2,11 +2,12 @@ import { chartIcon, omenSigil, ritualIcon, bossSigil } from '@/art/sigil';
 import { GLYPHS, type Card, type ComboId, type Glyph } from '@/core/types';
 import { dict, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { button, modal } from '../widgets';
+import { modal } from '../widgets';
 import { track } from '@/analytics';
-import { cardThumb } from './common';
+import { cardThumb, collectedLine } from './common';
 import { rich } from '../rich';
 import { comboList } from '../combos';
+import { omenOrder, scoringSteps } from './scoring-help';
 
 /**
  * Справочник: каждый термин — короткая зацикленная анимация и пара фраз простым
@@ -86,37 +87,88 @@ function entry(title: string, text: string, visual: HTMLElement, id?: string): H
   return h('div.g-entry', { dataset: id ? { guide: id } : {} }, [visual, h('div.g-text', null, [h('div.g-title', null, title), h('div.g-desc', null, rich(text))])]);
 }
 
-/** Открывает справочник; `focus` — id раздела, к которому прокрутить (например, `glyph-echo`). */
-export function showGuide(focus?: string, levels?: Record<ComboId, number>): void {
-  track('guide_open', { focus: focus ?? '' });
+export type GuideTab = 'combos' | 'night' | 'shop' | 'glyphs';
+
+export interface GuideOptions {
+  /** id раздела, к которому прокрутить (например, `glyph-echo`); вкладка подберётся сама. */
+  focus?: string;
+  tab?: GuideTab;
+  /** Уровни созвездий текущего забега. */
+  levels?: Record<ComboId, number>;
+  /** Коллекция игрока: «Собрано N из 10» и отметки. */
+  found?: readonly ComboId[];
+  /** Нижним листом поверх ночи: доска остаётся видна. */
+  sheet?: boolean;
+}
+
+const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs'];
+
+/** На какой вкладке живёт раздел. */
+function tabOf(focus: string): GuideTab {
+  if (focus === 'combos') return 'combos';
+  if (focus.startsWith('glyph')) return 'glyphs';
+  if (['omens', 'charts', 'rituals', 'gold', 'order'].includes(focus)) return 'shop';
+  return 'night';
+}
+
+/**
+ * Справка — одно окно с вкладками вместо пяти разных: созвездия (с уровнями забега и
+ * коллекцией), правила ночи с подсчётом, Обсерватория с порядком Знамений, глифы.
+ * Каждый термин — короткая анимация и пара фраз.
+ */
+export function showGuide(opts: GuideOptions = {}): void {
+  const tab0 = opts.tab ?? (opts.focus ? tabOf(opts.focus) : 'combos');
+  track('guide_open', { focus: opts.focus ?? tab0 });
   const g = dict().guide;
   const s = dpr();
-  const entries: HTMLElement[] = [
-    h('ol.help-list.g-rules', null, dict().help.body.map((line) => h('li', null, line))),
-    entry(g.line[0], g.line[1], lineDemo(), 'line'),
-    entry(g.formula[0], g.formula[1], formulaDemo(), 'formula'),
-    h('h3.g-section', { dataset: { guide: 'combos' } }, t('combos.title')),
-    h('p.hint', null, t('combos.hint')),
-    comboList({ levels }),
-    entry(g.cross[0], g.cross[1], crossDemo(), 'cross'),
-    entry(g.burn[0], g.burn[1], burnDemo(), 'burn'),
-    entry(g.omens[0], g.omens[1], iconDemo(canvasImg(omenSigil('stardust', 56, s), 56)), 'omens'),
-    entry(g.charts[0], g.charts[1], iconDemo(canvasImg(chartIcon('pair', 56, s), 56)), 'charts'),
-    entry(g.rituals[0], g.rituals[1], iconDemo(canvasImg(ritualIcon('transmute-star', 56, s), 56)), 'rituals'),
-    h('h3.g-section', null, g.glyphs[0]),
-    h('p.hint', null, g.glyphs[1]),
-    ...GLYPHS.map((gl) => entry(t(`glyph.${gl}`), dict().glyphDesc[gl], glyphDemo(gl), `glyph-${gl}`)),
-    h('h3.g-section', null, '✦'),
-    entry(g.eclipse[0], g.eclipse[1], iconDemo(canvasImg(bossSigil('eclipse-moon', 56, s), 56)), 'eclipse'),
-    entry(g.gold[0], g.gold[1], stage([h('div.g-coin'), pop('+1', 'gold', 0.3)]), 'gold'),
-  ];
-  const m = modal([h('div.g-list', null, entries), h('div.row.end', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))], {
-    title: g.title,
-    className: 'guide',
-  });
-  if (focus) {
-    const target = m.el.querySelector<HTMLElement>(`[data-guide="${focus}"]`);
-    if (target) {
+  const build: Record<GuideTab, () => HTMLElement[]> = {
+    combos: () => [
+      h('p.hint', { dataset: { guide: 'combos' } }, t('combos.hint')),
+      opts.found ? collectedLine(opts.found) : null,
+      comboList({ levels: opts.levels, found: opts.found }),
+    ].filter(Boolean) as HTMLElement[],
+    night: () => [
+      h('ol.help-list.g-rules', null, dict().help.body.map((line) => h('li', null, line))),
+      entry(g.line[0], g.line[1], lineDemo(), 'line'),
+      entry(g.cross[0], g.cross[1], crossDemo(), 'cross'),
+      entry(g.burn[0], g.burn[1], burnDemo(), 'burn'),
+      entry(g.formula[0], g.formula[1], formulaDemo(), 'formula'),
+      scoringSteps(),
+      entry(g.eclipse[0], g.eclipse[1], iconDemo(canvasImg(bossSigil('eclipse-moon', 56, s), 56)), 'eclipse'),
+    ],
+    shop: () => [
+      entry(g.omens[0], g.omens[1], iconDemo(canvasImg(omenSigil('stardust', 56, s), 56)), 'omens'),
+      omenOrder(),
+      entry(g.charts[0], g.charts[1], iconDemo(canvasImg(chartIcon('pair', 56, s), 56)), 'charts'),
+      entry(g.rituals[0], g.rituals[1], iconDemo(canvasImg(ritualIcon('transmute-star', 56, s), 56)), 'rituals'),
+      entry(g.gold[0], g.gold[1], stage([h('div.g-coin'), pop('+1', 'gold', 0.3)]), 'gold'),
+    ],
+    glyphs: () => [h('p.hint', null, g.glyphs[1]), ...GLYPHS.map((gl) => entry(t(`glyph.${gl}`), dict().glyphDesc[gl], glyphDemo(gl), `glyph-${gl}`))],
+  };
+  const body = h('div.g-list');
+  const tabs = h('div.segmented.tabs', { attrs: { role: 'tablist' } });
+  const show = (tab: GuideTab) => {
+    tabs.querySelectorAll<HTMLElement>('.seg').forEach((el) => {
+      const on = el.dataset.tab === tab;
+      el.classList.toggle('on', on);
+      el.setAttribute('aria-selected', String(on));
+    });
+    body.replaceChildren(...build[tab]());
+    body.scrollTop = 0;
+  };
+  for (const tab of TABS) {
+    const b = h('button.seg', { type: 'button', dataset: { tab }, attrs: { role: 'tab' } }, t(`guide.tabs.${tab}`));
+    b.addEventListener('click', () => {
+      show(tab);
+      m.el.scrollTo({ top: 0 });
+    });
+    tabs.append(b);
+  }
+  const m = modal(body, { title: g.title, className: 'guide', sheet: opts.sheet, headExtra: tabs });
+  show(tab0);
+  if (opts.focus) {
+    const target = m.el.querySelector<HTMLElement>(`[data-guide="${opts.focus}"]`);
+    if (target && opts.focus !== 'combos') {
       target.classList.add('focus');
       requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
     }

@@ -48,8 +48,7 @@
 | `store_open` | открыт «Звёздный атлас» | from: menu / sky / archive … | откуда приходят в магазин |
 | `purchase_start` | нажата покупка | product | интерес к товарам |
 | `purchase_result` | итог покупки | product, result: paid / cancelled / failed / unavailable | **конверсия** и сбои оплаты |
-| `guide_open` | справочник | focus | какие термины непонятны |
-| `scoring_help_open` | «Как считаются очки» | — | понятна ли формула |
+| `guide_open` | справочник | focus — раздел или вкладка (combos, night, shop, glyphs) | какие термины непонятны; «Как считаются очки» теперь вкладка «Ночь» |
 | `perf` | через 30 с после запуска | fps, dpr, width, height | слабые устройства |
 | `js_error` | ошибка JavaScript | message | стабильность |
 

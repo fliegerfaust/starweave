@@ -50,7 +50,6 @@ export interface EventMap {
 
   // ── Понятность ─────────────────────────────────────────────────────────
   guide_open: { focus: string };
-  scoring_help_open: Record<string, never>;
 
   // ── Техника ────────────────────────────────────────────────────────────
   perf: { fps: number; dpr: number; width: number; height: number };
