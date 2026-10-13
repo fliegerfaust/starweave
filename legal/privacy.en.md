@@ -7,7 +7,7 @@ you can control it.
 
 ## 1. Who is responsible
 
-Operator: {{OPERATOR}}. Contact for data questions: {{EMAIL}}.
+Operator: {{OPERATOR_EN}}. Contact for data questions: {{EMAIL}}.
 
 ## 2. What we do not collect
 
