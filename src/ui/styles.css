@@ -741,10 +741,6 @@ body {
 .combo-text { flex: 1; min-width: 0; }
 .combo-level { margin-left: 6px; padding: 2px 6px; border-radius: 8px; background: rgba(246, 194, 91, 0.2); color: var(--gold); font: 800 10px/1 var(--font-body); vertical-align: middle; text-transform: uppercase; letter-spacing: 0.05em; }
 .combo-x { margin: 0 3px; color: var(--ink-dim); font-size: 0.8em; }
-.combo-list.compact { gap: 3px; max-height: min(46vh, 340px); overflow-y: auto; }
-.combo-list.compact .combo-item { padding: 4px 8px; gap: 8px; }
-.combo-list.compact .combo-name { font-size: 15px; }
-.combo-list.compact .combo-base { font-size: 15px; }
 .combo-name { font: 400 19px/1.1 var(--font-display); }
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
 .combo-base { font: 400 20px/1 var(--font-display); white-space: nowrap; }
@@ -1000,7 +996,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
 .tut-actions .btn { margin-left: auto; }
 .tut-formula { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-.tut-combos { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
 .tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
 .tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
 .tut-finger {
