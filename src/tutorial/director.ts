@@ -3,7 +3,6 @@ import type { GameEvent } from '@/core/types';
 import type { App } from '@/game/app';
 import type { NightScene } from '@/game/night/scene';
 import { t } from '@/i18n';
-import { comboList } from '@/ui/combos';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
@@ -20,7 +19,7 @@ export type TutorialEvent =
 
 type Waiter = { pred: (e: TutorialEvent) => boolean; resolve: (e: TutorialEvent, seq: number) => void };
 
-const TOTAL_STEPS = 24;
+const TOTAL_STEPS = 22;
 
 /** Общий прямоугольник двух областей. */
 function union(a: Rect, b: Rect): Rect {
@@ -209,8 +208,7 @@ export class TutorialDirector {
     scene.setGuide({});
     scene.setStepPause(2.4);
 
-    await this.say('board', { spot: scene.layout.board });
-    await this.say('hand', { spot: scene.handAreaRect() });
+    await this.say('board', { spot: union(scene.layout.board, scene.handAreaRect()) });
     await this.guidePlace('place1', '3s', TUTORIAL_CELLS.pairRow[0]);
     await this.guidePlace('place2', '3m', TUTORIAL_CELLS.pairRow[1]);
     await this.guidePlace('place3', '7t', TUTORIAL_CELLS.pairRow[2]);
@@ -220,7 +218,7 @@ export class TutorialDirector {
 
     await this.say('formula', { extra: this.formulaCard() });
     await this.say('target', { spot: elementRect(document.querySelector('.hud-row.mid')) });
-    await this.say('combos', { extra: this.comboTable() });
+    await this.say('combos', { spot: elementRect(this.hud!.guideBtn) });
 
     // Сжигание
     const bad = this.cardId('1m');
@@ -280,7 +278,6 @@ export class TutorialDirector {
     await this.say('buyOmen', { spot: elementRect(q('[data-shop="omen-0"]')), next: false });
     await this.waitFor('shopChanged', () => this.app.run!.omens.length > 0);
     await this.say('omenSlot', { spot: elementRect(q('[data-shop="owned"]')) });
-    await this.say('items', { spot: elementRect(q('[data-shop="items"]')) });
     q('[data-shop="next"]')?.classList.add('tut-allow');
     await this.say('toNight', { spot: elementRect(q('[data-shop="next"]')), next: false });
 
@@ -375,8 +372,4 @@ export class TutorialDirector {
     ]);
   }
 
-  /** Короткая таблица: чем реже сочетание — тем больше множитель. */
-  private comboTable(): HTMLElement {
-    return h('div.tut-combos', null, comboList({ compact: true }));
-  }
 }
