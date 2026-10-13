@@ -9,7 +9,7 @@ import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { Hud } from '../hud';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
-import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle } from '../widgets';
+import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { screenTitle, showCodexFrom, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
 import { showScoringHelp } from './scoring-help';
 
@@ -164,7 +164,7 @@ export class NightScreen implements Screen {
     const list = h('div.reward-list');
     rows.forEach(([label, value], i) => {
       if (value <= 0 && i > 0) return;
-      const row = h('div.reward-row', { style: { animationDelay: `${i * 0.12}s` } }, [h('span', null, label), h('span.gold-text', null, `+${value}`)]);
+      const row = h('div.reward-row', { style: { animationDelay: `${i * 0.12}s` } }, [h('span', null, label), h('span.gold-text', null, withCoin(`+${value}`))]);
       list.append(row);
       window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
     });
@@ -187,7 +187,7 @@ export class NightScreen implements Screen {
                 return false;
               })
             : null,
-          button(t('reward.collect', { n: reward.total }), () => {
+          button(withCoin(t('reward.collect', { n: reward.total })), () => {
             this.overlay?.close();
             this.overlay = null;
             this.app.collectReward();

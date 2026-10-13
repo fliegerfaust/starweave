@@ -15,7 +15,7 @@ import { omenBadge, omenMedal, omenTooltip } from '../hud';
 import { rich } from '../rich';
 import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
-import { attachTooltip, button, hideTooltip, modal, type ModalHandle } from '../widgets';
+import { attachTooltip, button, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
@@ -134,7 +134,7 @@ export class ShopScreen implements Screen {
         this.deckPart(),
       ]),
       h('div.shop-actions', null, [
-        button(t('shop.reroll', { n: shop.rerollCost }), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
+        button(withCoin(t('shop.reroll', { n: shop.rerollCost })), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
         tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
@@ -193,8 +193,9 @@ export class ShopScreen implements Screen {
       ]),
       item.sold
         ? h('div.sold-label', null, t('shop.sold'))
-        : button(String(item.price), onBuy, {
-            variant: 'primary',
+        : button(withCoin(String(item.price)), onBuy, {
+            // Цена — второстепенная кнопка: главная на экране одна, «Следующая ночь»
+            variant: 'secondary',
             className: 'price',
             disabled: !affordable || full,
             title: full ? t('shop.slotsFull') : !affordable ? t('shop.noGold') : '',
@@ -256,7 +257,7 @@ export class ShopScreen implements Screen {
     return h('div.inventory-part', null, [
       sectionHead(t('shop.deckTitle', { n: run.deck.length }), t('shop.viewDeck'), () => showDeck(run)),
       h('div.deck-service', null, [
-        button(used ? t('shop.banishUsed') : t('shop.banish', { n: price ?? '—' }), () => {
+        button(used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' })), () => {
           this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1);
         }, { variant: 'secondary', className: 'small', disabled: price === null || run.gold < price }),
         h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
