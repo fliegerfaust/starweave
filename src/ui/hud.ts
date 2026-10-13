@@ -67,6 +67,7 @@ export class Hud {
   private readonly calcMult: HTMLElement;
   private readonly calcTotal: HTMLElement;
   private readonly calcCaption: HTMLElement;
+  private readonly calcLightLabel: HTMLElement;
   private readonly preview: HTMLElement;
   private readonly cardInfo: HTMLElement;
   private cardInfoGlyph: Glyph | null = null;
@@ -92,11 +93,13 @@ export class Hud {
     this.calcMult = h('div.calc-mult', null, '0');
     this.calcTotal = h('div.calc-total', null, '?');
     this.calcCaption = h('div.calc-caption');
-    const cell = (box: HTMLElement, label: string) => h('div.calc-cell', null, [box, h('div.calc-label', null, label)]);
+    this.calcLightLabel = h('div.calc-label', null, t('calc.light'));
+    const cell = (box: HTMLElement, label: string | HTMLElement) =>
+      h('div.calc-cell', null, [box, typeof label === 'string' ? h('div.calc-label', null, label) : label]);
     this.calc = h('div.calc', null, [
       this.calcCombo,
       h('div.calc-row', null, [
-        cell(this.calcLight, t('calc.light')),
+        cell(this.calcLight, this.calcLightLabel),
         h('span.calc-x', null, '×'),
         cell(this.calcMult, t('calc.mult')),
         h('span.calc-x', null, '='),
@@ -239,6 +242,7 @@ export class Hud {
 
   showCalc(combo: ComboId, light: number, mult: number): void {
     this.calcCombo.textContent = t(`combo.${combo}`);
+    this.setCalcMode('line');
     this.calcTotal.textContent = '?';
     this.calcTotal.classList.remove('done');
     this.calcCaption.textContent = '';
@@ -249,6 +253,16 @@ export class Hud {
 
   setCalcLabel(text: string): void {
     this.calcCombo.textContent = text;
+  }
+
+  /**
+   * Что стоит в левой ячейке формулы: свет линии или — на шагах всего хода (крест,
+   * Знамения «×» хода) — уже посчитанные очки линий. Подпись и цвет меняются вместе,
+   * чтобы «очки = свет × множитель» не путалось в самый яркий момент.
+   */
+  setCalcMode(mode: 'line' | 'move'): void {
+    this.calcLight.classList.toggle('points', mode === 'move');
+    this.calcLightLabel.textContent = t(mode === 'move' ? 'calc.total' : 'calc.light');
   }
 
   setCalc(light: number, mult: number, flash?: 'light' | 'mult'): void {

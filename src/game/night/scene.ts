@@ -307,10 +307,10 @@ export class NightScene {
       ctx.lineWidth = cross ? 2 : 1.2;
       ctx.stroke();
       const named = s.forecast.length > 0;
-      if (cross) {
-        // С подписью «×2» уходит наверх клетки, под ней — названия созвездий
-        const cy = named ? t.y - hgt * 0.2 : t.y;
-        ctx.font = `400 ${Math.round(w * (named ? 0.3 : 0.34))}px Forum, serif`;
+      if (named) this.drawForecast(ctx, s, t.x, t.y, w, hgt, k);
+      else if (cross) {
+        const cy = t.y;
+        ctx.font = `400 ${Math.round(w * 0.34)}px Forum, serif`;
         ctx.shadowColor = 'rgba(255,214,120,0.9)';
         ctx.shadowBlur = 12;
         ctx.textAlign = 'center';
@@ -320,7 +320,6 @@ export class NightScene {
         ctx.shadowColor = 'transparent';
         ctx.fillText(`×${s.closes}`, t.x, cy);
       }
-      if (named) this.drawForecast(ctx, s, t.x, cross ? t.y + hgt * 0.1 : t.y, w, k);
       ctx.restore();
     }
     if (s.ignite > 0.01) {
@@ -340,14 +339,29 @@ export class NightScene {
    * Названия созвездий в клетке, которая закроет линию: игрок видит, что соберётся,
    * не зная покерных комбинаций. Длинные названия переносятся по словам.
    */
-  private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, k: number): void {
-    const size = Math.max(12, Math.round(w * 0.17));
+  private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, hgt: number, k: number): void {
+    const cross = s.closes >= 2;
+    const maxW = w - 8;
+    const base = Math.max(12, Math.round(w * 0.17));
+    let names = s.forecast;
+    // Узкая клетка (экран 320 px): длинное слово не влезает — ужимаем шрифт, а не клетку;
+    // не хватает и мелкого — стрелки ряда и столбца уступают место названию
+    const fit = (list: string[]) => {
+      ctx.font = `700 ${base}px Manrope, sans-serif`;
+      const widest = Math.max(...list.flatMap((name) => name.split(' ')).map((word) => ctx.measureText(word).width));
+      return widest > maxW ? Math.floor((base * maxW) / widest) : base;
+    };
+    let size = fit(names);
+    if (size < 9 && names.some((n) => n.includes('\u00A0'))) {
+      names = names.map((n) => n.slice(n.indexOf('\u00A0') + 1));
+      size = fit(names);
+    }
+    size = Math.max(8, size);
     ctx.font = `700 ${size}px Manrope, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const maxW = w - 8;
     const rows: string[] = [];
-    for (const name of s.forecast) {
+    for (const name of names) {
       let row = '';
       for (const word of name.split(' ')) {
         const next = row ? `${row} ${word}` : word;
@@ -358,14 +372,31 @@ export class NightScene {
       }
       if (row) rows.push(row);
     }
-    const shown = rows.slice(0, 3);
     const lh = size * 1.15;
-    const chip = s.forecastCard && !s.forecastWeak ? size * 1.5 : 0;
-    const top = y - ((shown.length - 1) * lh + (chip ? chip * 0.9 : 0)) / 2;
-    const alpha = (s.forecastWeak ? 0.5 : 0.95) * k;
+    const mark = cross ? Math.round(w * 0.28) : 0;
+    let chip = s.forecastCard && !s.forecastWeak ? size * 1.5 : 0;
+    let shown = rows.slice(0, 3);
+    // Блок целиком: «×2», строки названий, мини-карта — по центру клетки и не выше неё
+    const height = () => (mark ? mark * 1.05 : 0) + shown.length * lh + (chip ? chip + lh * 0.3 : 0);
+    if (height() > hgt - 6) chip = 0;
+    if (height() > hgt - 6) shown = shown.slice(0, 2);
+    let cursor = y - height() / 2;
+    if (mark) {
+      ctx.save();
+      ctx.font = `400 ${mark}px Forum, serif`;
+      ctx.shadowColor = 'rgba(255,214,120,0.9)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = `rgba(255,214,120,${0.8 * k})`;
+      ctx.fillText(`×${s.closes}`, x, cursor + mark / 2);
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(`×${s.closes}`, x, cursor + mark / 2);
+      ctx.restore();
+      cursor += mark * 1.05;
+    }
+    const alpha = (s.forecastWeak ? 0.78 : 0.95) * k;
     const color = s.forecastWeak ? `rgba(200,195,230,${alpha})` : s.forecastPicked ? `rgba(255,236,190,${alpha})` : `rgba(246,194,91,${alpha})`;
     shown.forEach((row, i) => {
-      const ry = top + i * lh;
+      const ry = cursor + i * lh + lh / 2;
       // Тёмная подложка под буквами — читается и поверх туманности
       ctx.lineWidth = 3;
       ctx.strokeStyle = `rgba(8,6,24,${0.75 * k})`;
@@ -373,11 +404,12 @@ export class NightScene {
       ctx.fillStyle = color;
       ctx.fillText(row, x, ry);
     });
+    cursor += shown.length * lh;
     const card = s.forecastCard;
     if (card && chip) {
       // Мини-карта: какой картой руки собрать — ранг цветом масти
       const cw = chip * 0.72;
-      const cy = top + (shown.length - 1) * lh + lh * 0.55 + chip / 2;
+      const cy = cursor + lh * 0.3 + chip / 2;
       const c = SUIT_COLORS[card.suit];
       roundRect(ctx, x - cw / 2, cy - chip / 2, cw, chip, cw * 0.16);
       ctx.fillStyle = rgba(c.rgb, 0.18 * k);
@@ -797,7 +829,9 @@ export class NightScene {
       }
       if (!best) continue;
       if (picked === null) state.forecastCard = n.hand[bestIndex] ?? null;
-      state.forecast = best.lines.map((l) => t(`combo.${l.combo}`));
+      // На кресте две подписи: стрелка говорит, какая у ряда (↔), какая у столбца (↕)
+      const arrow = { row: '↔\uFE0E\u00A0', col: '↕\uFE0E\u00A0', diag: '⤡\uFE0E\u00A0' } as const;
+      state.forecast = best.lines.map((l) => (best!.lines.length > 1 ? arrow[l.kind] : '') + t(`combo.${l.combo}`));
       state.forecastWeak = best.lines.every((l) => l.combo === 'scatter');
     }
   }

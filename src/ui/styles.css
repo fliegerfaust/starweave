@@ -430,6 +430,8 @@ body {
   color: #04131b;
 }
 .calc-light { background: linear-gradient(180deg, #b9f0ff, #4fc8f2); box-shadow: 0 0 20px rgba(127, 224, 255, 0.55); }
+/* Шаги всего хода: слева уже очки линий, а не свет — золото, как итог */
+.calc-light.points { background: linear-gradient(180deg, #ffe6a8, #f6c25b); color: #2a1a04; box-shadow: 0 0 20px rgba(246, 194, 91, 0.55); }
 .calc-mult { background: linear-gradient(180deg, #ffb3c4, #f0466e); color: #2a0510; box-shadow: 0 0 20px rgba(255, 107, 139, 0.55); }
 .calc-x { font: 800 22px/1 var(--font-body); color: #fff; text-shadow: 0 2px 6px #000; }
 .calc-light.bump, .calc-mult.bump { animation: bump 0.22s ease; }
@@ -745,14 +747,13 @@ body {
 .combo-desc { font-size: 12px; color: var(--ink-dim); }
 .combo-got { margin-left: 6px; font: 800 13px/1 var(--font-body); color: var(--ok); vertical-align: 2px; }
 .combo-item.missing .combo-name { color: var(--ink-dim); }
-.combo-missing { font-size: 12px; color: var(--ink-dim); opacity: 0.75; font-style: italic; }
 .combo-collected { margin: -4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
 
 /* «Новое созвездие!» — плашка над небом, поверх окон (живёт 2,6 с, касание закрывает) */
 .discovery {
   position: fixed; left: 50%; top: calc(var(--board-top, 160px) + 12px); z-index: 60;
   transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 14px 16px 12px;
-  border-radius: 18px; text-align: center; cursor: pointer;
+  border-radius: 18px; text-align: center; cursor: pointer; pointer-events: auto;
   background: linear-gradient(180deg, rgba(44, 34, 98, 0.97), rgba(20, 16, 52, 0.97));
   box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.55) inset, 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgba(246, 194, 91, 0.25);
   animation: discovery-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -940,7 +941,10 @@ body.landscape .boss-chip { padding-right: 2px; }
 @keyframes g-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
 
 .icon-btn.q { font: 800 18px/1 var(--font-body); color: var(--ink); }
-.icon-btn.q.attn { color: var(--gold); border-color: rgba(246, 194, 91, 0.7); animation: tut-glow 1.8s ease-in-out infinite; }
+/* Пульс — отдельным кольцом: рамка кнопки (inset-тень) остаётся на месте */
+.icon-btn.q { position: relative; }
+.icon-btn.q.attn { color: var(--gold); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.7) inset; }
+.icon-btn.q.attn::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: tut-glow 1.8s ease-in-out infinite; }
 .card-info {
   position: absolute;
   left: 50%;
