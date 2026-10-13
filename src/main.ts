@@ -3,6 +3,21 @@ import '@fontsource-variable/manrope';
 import './ui/styles.css';
 
 // Игра, а не страница: без контекстного меню по правой кнопке и долгому нажатию
+// Новая версия выложена, пока игра открыта: старая страница просит кусок кода, которого
+// на сервере уже нет, — переход обрывается и игра «замирает». Перезагружаемся на новую
+// версию (сохранение забега в хранилище), но не чаще раза в минуту — без петли.
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    const last = Number(sessionStorage.getItem('starweave.reloadAt') ?? 0);
+    if (Date.now() - last < 60_000) return;
+    sessionStorage.setItem('starweave.reloadAt', String(Date.now()));
+  } catch {
+    return; // без хранилища не можем защититься от петли — лучше не перезагружать
+  }
+  e.preventDefault();
+  window.location.reload();
+});
+
 document.addEventListener('contextmenu', (e) => {
   if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();
 });
