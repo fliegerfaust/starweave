@@ -11,6 +11,34 @@
   `https://fliegerfaust.github.io` (сайт и Telegram Mini App).
 - **Проверка:** https://game.denvalclass.ru/health → `ok`.
 
+## Покупки за Telegram Stars
+
+Сервер выставляет счета и принимает оплаты бота @starweave_game_bot. Включаются токеном бота
+в `/opt/starweave/.env` (без него игра просто не показывает оплату в Telegram):
+
+```
+BOT_TOKEN=<токен от @BotFather>
+TG_WEBHOOK_SECRET=<случайная строка от 16 символов: openssl rand -hex 24>
+TG_ADMIN_CHAT_ID=<твой Telegram ID — сюда приходят оплаты и обращения /paysupport>
+```
+
+Затем перезапустить контейнер и один раз подключить вебхук и меню команд:
+
+```bash
+ssh denval 'cd /opt/starweave && docker compose up -d && docker compose run --rm --no-deps api node server/scripts/set-webhook.ts'
+```
+
+- `POST /v1/pay/invoice` — игра просит счёт (`initData` + товар), сервер проверяет подпись
+  Telegram и вызывает `createInvoiceLink` (валюта `XTR`). Уже купленное второй раз не продаётся.
+- `POST /v1/pay/owned` — что игрок купил навсегда.
+- `POST /tg/webhook` — обновления бота (только с секретом): `pre_checkout_query` (проверка суммы,
+  товара и игрока), `successful_payment` (запись в `purchases`), `refunded_payment`, команды
+  `/start`, `/paysupport`, `/terms`. Любое другое сообщение игрока пересылается автору.
+- Команды автора в чате с ботом: `/sales` — сводка, `/reply <id> <текст>` — ответ игроку,
+  `/refund <id> <charge_id>` — вернуть Stars.
+- Цены — `server/src/catalog.ts`, совпадают с `src/store/catalog.ts` игры (тест сверяет).
+- Вывод Stars — в @BotFather → бот → Monetization (Fragment).
+
 ## Устройство
 
 ```
