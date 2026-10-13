@@ -1,4 +1,5 @@
 import { cardBack, cardFace } from '@/art/card';
+import { BACKS } from '@/art/cosmetics';
 import { renderNebula } from '@/art/nebula';
 import { bossSigil, chartIcon, omenSigil, ritualIcon } from '@/art/sigil';
 import { BOSS_LIST, OMEN_LIST, RITUAL_LIST } from '@/core';
@@ -27,6 +28,7 @@ export function showGallery(root: HTMLElement): void {
   for (const suit of SUITS) row(suit, [1, 2, 3, 4, 5, 6, 7, 8, 9].map((rank) => cardFace({ suit, rank }, W, dpr)), W * 1.24);
   row('глифы', GLYPHS.map((glyph, i) => cardFace({ suit: SUITS[i % 4]!, rank: 7, glyph }, W, dpr)), W * 1.24);
   row('рубашка и туман', [cardBack(W, dpr), cardFace({ suit: 'moon', rank: 5 }, W, dpr, { hideRank: true })], W * 1.24);
+  row('рубашки атласа', BACKS.map((b) => cardBack(W, dpr, b.id)), W * 1.24);
   row('Знамения', OMEN_LIST.map((o) => omenSigil(o.id, 64, dpr)), 64);
   row('Затмения', BOSS_LIST.map((b) => bossSigil(b.id, 64, dpr)), 64);
   row('ритуалы и карты', [...RITUAL_LIST.map((r) => ritualIcon(r.id, 56, dpr)), chartIcon('flush', 56, dpr)], 56);

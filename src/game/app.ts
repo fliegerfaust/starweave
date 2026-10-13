@@ -1,4 +1,5 @@
-import { clearCardCache } from '@/art/card';
+import { clearCardCache, setCardBack } from '@/art/card';
+import { SKY_THEMES, isFreeCosmetic, skyTheme } from '@/art/cosmetics';
 import { clearSigilCache } from '@/art/sigil';
 import { RuleError } from '@/core/errors';
 import { burnCard, placeCard, startNight } from '@/core/night';
@@ -92,6 +93,9 @@ export class App {
     haptics.enabled = this.settings.haptics;
     renderer.adaptive = this.settings.quality !== 'max';
     this.svc = { world, renderer, tweens, audio, input, starfield, haptics };
+    this.applyCosmetics();
+    // Покупка или возврат меняют, что можно носить
+    this.purchases.onChange(() => this.applyCosmetics());
 
     setUiSound((s) => {
       audio.unlock();
@@ -177,6 +181,19 @@ export class App {
     track('purchase_result', { product: productId, result });
     if (result === 'paid') this.purchases.add(productId);
     return result;
+  }
+
+  /** Можно ли носить предмет внешнего вида: бесплатный или куплен. */
+  canWear(slot: 'back' | 'sky', id: string): boolean {
+    return isFreeCosmetic(slot, id) || this.purchases.has(`${slot}:${id}`);
+  }
+
+  /** Выбранные рубашка и небо — если куплены, иначе обычные. */
+  applyCosmetics(): void {
+    const back = this.canWear('back', this.settings.cardBack) ? this.settings.cardBack : 'classic';
+    setCardBack(back);
+    const sky = this.canWear('sky', this.settings.skyTheme) ? this.settings.skyTheme : 'night';
+    this.svc.starfield.setTheme(skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
   }
 
   /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
@@ -575,6 +592,7 @@ export class App {
       if (!adaptive) this.svc.renderer.resetQuality();
     }
     if (langChanged) clearSigilCache();
+    this.applyCosmetics();
   }
 
   resetProgress(): void {

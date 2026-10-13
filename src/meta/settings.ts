@@ -15,6 +15,9 @@ export interface Settings {
   quality: 'auto' | 'max';
   /** Подсказка «добавь на экран Домой» уже закрыта. */
   homeHintSeen: boolean;
+  /** Выбранный внешний вид (если он куплен на этой площадке). */
+  cardBack: string;
+  skyTheme: string;
 }
 
 export const SPEEDS = [0.75, 1, 1.6, 2.6];
@@ -29,6 +32,8 @@ export function loadSettings(): Settings {
     fullscreen: true,
     quality: 'auto',
     homeHintSeen: false,
+    cardBack: 'classic',
+    skyTheme: 'night',
     reduceMotion: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   };
   try {
