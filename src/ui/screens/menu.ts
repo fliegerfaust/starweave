@@ -45,7 +45,7 @@ export class MenuScreen implements Screen {
       img.style.setProperty('--i', String(i - 1));
       fan.append(img);
     });
-    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && app.hasSave);
+    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
     const buttons = h('div.menu-buttons', null, [
       app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
       !app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { sub: t('tut.menuSub') }) : null,
@@ -57,7 +57,13 @@ export class MenuScreen implements Screen {
         disabled: dailyDone,
         sub: todayKey(),
       }),
+      button(t('atlas.menu'), () => void app.goAtlas('menu'), {
+        variant: 'ghost',
+        className: 'atlas-entry',
+        sub: app.purchases.has('atlas') ? t('atlas.menuOwned') : t('atlas.menuSub'),
+      }),
       h('div.menu-grid', null, [
+        button(t('archive.menu'), () => void app.goArchive(), { variant: 'ghost' }),
         app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { variant: 'ghost' }) : null,
         button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }),
         button(t('menu.howTo'), () => showHelp(), { variant: 'ghost' }),
@@ -143,7 +149,9 @@ export class MenuScreen implements Screen {
 
   private chooseSky(): void {
     const app = this.app;
-    if (app.profile.maxStake === 0 && app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile))) {
+    const owned = app.purchases.owned;
+    // Первый забег — сразу классика; колоды атласа видны в списке, когда открыто что-то ещё
+    if (app.profile.maxStake === 0 && app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile, owned))) {
       app.startRun('classic');
       return;
     }
@@ -151,15 +159,21 @@ export class MenuScreen implements Screen {
     const list = h('div.sky-list');
     const items: HTMLElement[] = [];
     for (const sky of SKY_LIST) {
-      const unlocked = app.profile.unlockedSkies.includes(sky.id) || isUnlocked(sky.unlock, app.profile);
+      const unlocked = app.profile.unlockedSkies.includes(sky.id) || isUnlocked(sky.unlock, app.profile, owned);
+      const atlasLocked = !unlocked && sky.unlock.kind === 'atlas';
       const { name, desc } = named('sky', sky.id);
       const lockText = sky.unlock.kind === 'default' ? '' : t(`unlock.${sky.unlock.kind}`, { n: 'ante' in sky.unlock ? sky.unlock.ante : 'lines' in sky.unlock ? sky.unlock.lines : '' });
-      const item = h(`button.sky-item${unlocked ? '' : '.locked'}`, { type: 'button' }, [
-        h('div.sky-name', null, unlocked ? name : `🔒 ${name}`),
-        h('div.sky-desc', null, unlocked ? desc : lockText),
+      const item = h(`button.sky-item${unlocked ? '' : '.locked'}${atlasLocked ? '.atlas-sky' : ''}`, { type: 'button' }, [
+        h('div.sky-name', null, unlocked ? name : atlasLocked ? `✦ ${name}` : `🔒 ${name}`),
+        h('div.sky-desc', null, unlocked ? desc : atlasLocked ? `${desc}. ${lockText} ›` : lockText),
       ]);
       if (sky.id === chosen) item.classList.add('on');
       item.addEventListener('click', () => {
+        if (atlasLocked) {
+          m.close();
+          void app.goAtlas('sky', 'astrolabe');
+          return;
+        }
         if (!unlocked) return;
         chosen = sky.id;
         items.forEach((x) => x.classList.remove('on'));

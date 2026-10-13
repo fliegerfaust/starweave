@@ -35,7 +35,10 @@ export class StarsPayments implements Payments {
     private readonly base: string,
   ) {}
 
+  /** Цены — только если сервер принимает оплату (без токена бота он отвечает 503). */
   async prices(): Promise<Record<string, string>> {
+    const res = await this.post('/v1/pay/owned', {});
+    if (!res?.ok) return {};
     return Object.fromEntries(productsFor('telegram').map((p) => [p.id, `${p.stars} ⭐`]));
   }
 

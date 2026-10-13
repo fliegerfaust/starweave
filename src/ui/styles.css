@@ -1115,3 +1115,355 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .deck-service { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .deck-service .btn { flex: none; }
 .deck-service .hint { margin: 0; flex: 1 1 200px; }
+
+/* ─── Звёздный атлас ──────────────────────────────────────────────────── */
+
+.atlas, .archive {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: calc(10px + var(--safe-top)) 16px 0;
+  animation: fade-in 0.35s ease;
+}
+.atlas > *, .archive > * { width: min(460px, 100%); flex: none; }
+.atlas-top { display: flex; }
+.atlas-top .btn { padding-left: 10px; padding-right: 14px; }
+.atlas-title {
+  margin: 0;
+  text-align: center;
+  font: 400 clamp(32px, 10vw, 44px)/1 var(--font-display);
+  letter-spacing: 0.1em;
+  padding-left: 0.1em;
+  text-transform: uppercase;
+  color: #ffe2a3;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 22px rgba(246, 194, 91, 0.4);
+  text-wrap: balance;
+}
+.atlas-lede { margin: 10px auto 0; max-width: 34ch; text-align: center; color: var(--ink-dim); font-size: 14px; line-height: 1.45; text-wrap: pretty; }
+.atlas-hero { display: flex; flex-direction: column; align-items: center; margin-top: -12px; }
+
+/* Созвездие-оглавление: крест из четырёх звёзд */
+.atlas-chart {
+  position: relative;
+  width: min(250px, 66vw);
+  aspect-ratio: 1 / 1.05;
+  margin: 14px 0 4px;
+}
+.atlas-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.atlas-lines line {
+  stroke: rgba(246, 194, 91, 0.32);
+  stroke-width: 0.6;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke 0.4s ease, stroke-width 0.4s ease;
+}
+.atlas-lines line.lit { stroke: rgba(255, 220, 140, 0.85); stroke-width: 0.8; filter: drop-shadow(0 0 1.5px rgba(246, 194, 91, 0.8)); }
+.atlas-chart.igniting .atlas-lines line { animation: atlas-draw 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(0.25s + var(--i) * 0.35s); }
+.atlas-chart.igniting .atlas-star { animation: atlas-star-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--i) * 0.12s); }
+@keyframes atlas-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes atlas-star-in { from { opacity: 0; scale: 0.4; filter: blur(4px); } to { opacity: 1; scale: 1; filter: none; } }
+
+.atlas-eps {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #fff4d6;
+  box-shadow: 0 0 8px 2px rgba(246, 194, 91, 0.55);
+  opacity: 0.7;
+}
+.atlas-star {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.atlas-star-dot {
+  position: relative;
+  width: calc(12px + var(--mag) * 8px);
+  height: calc(12px + var(--mag) * 8px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0 22%, #ffe2a3 34%, rgba(246, 194, 91, 0.55) 52%, rgba(246, 194, 91, 0) 72%);
+  box-shadow: 0 0 18px 4px rgba(246, 194, 91, 0.25);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
+}
+/* Лучи звезды — как вспышка на картах */
+.atlas-star-dot::before, .atlas-star-dot::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: calc(44px + var(--mag) * 16px);
+  translate: -50% -50%;
+  scale: 1 0.7;
+  background: linear-gradient(180deg, transparent, rgba(255, 236, 190, 0.85), transparent);
+  border-radius: 2px;
+  opacity: 0.55;
+  transition: opacity 0.35s ease, scale 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.atlas-star-dot::after { rotate: 90deg; }
+.atlas-star-name {
+  position: absolute;
+  top: calc(50% + 18px);
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
+  font: 700 12px/1.1 var(--font-body);
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+  /* Подпись поверх линии креста читается за счёт тёмной обводки цвета неба */
+  text-shadow: 0 0 3px #05061a, 0 0 8px #05061a, 0 1px 0 #05061a;
+  transition: color 0.25s ease;
+}
+.atlas-star.label-left .atlas-star-name { left: auto; right: 50%; translate: 12px 0; }
+.atlas-star.label-right .atlas-star-name { left: 50%; translate: -12px 0; }
+.atlas-star:hover .atlas-star-name { color: var(--ink); }
+.atlas-star.on .atlas-star-dot { transform: scale(1.35); box-shadow: 0 0 26px 8px rgba(246, 194, 91, 0.45); }
+.atlas-star.on .atlas-star-dot::before, .atlas-star.on .atlas-star-dot::after { opacity: 1; scale: 1 1; }
+.atlas-star.on .atlas-star-name { color: var(--gold); }
+.atlas-star:focus-visible { outline: none; }
+.atlas-star:focus-visible .atlas-star-dot { outline: 2px solid var(--gold); outline-offset: 6px; }
+
+/* Табличка выбранной звезды — как подпись к гравюре в атласе */
+.atlas-plate {
+  width: 100%;
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(28, 24, 70, 0.9), rgba(14, 12, 40, 0.92));
+  border: 1px solid rgba(246, 194, 91, 0.28);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  animation: plate-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes plate-in { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.plate-visual { display: grid; place-items: center; min-width: 96px; }
+.plate-name { margin: 0 0 6px; font: 400 24px/1.05 var(--font-display); color: #ffe2a3; letter-spacing: 0.02em; }
+.plate-desc { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: pretty; }
+.plate-note { margin: 8px 0 0; font-size: 12px; color: var(--ink-dim); }
+.plate-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.plate-fan { position: relative; width: 104px; height: 112px; }
+.plate-card { filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5)); }
+.plate-fan .plate-card { position: absolute; left: 50%; top: 4px; margin-left: -40px; transform-origin: 50% 115%; transform: rotate(calc(var(--i) * 14deg)) scale(0.82); }
+.plate-look { display: flex; gap: 6px; align-items: center; }
+.plate-look .plate-card { width: 60px !important; height: auto !important; }
+.plate-look .sky-swatch { width: 52px !important; height: 74px !important; }
+.plate-noads { position: relative; width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px rgba(246, 194, 91, 0.55); color: rgba(246, 194, 91, 0.7); font-size: 26px; }
+.plate-noads i { position: absolute; width: 74px; height: 2px; background: var(--gold); rotate: -45deg; border-radius: 2px; box-shadow: 0 0 8px rgba(246, 194, 91, 0.7); }
+.plate-days { display: grid; grid-template-columns: repeat(4, 22px); gap: 4px; }
+.plate-day { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 30px; border-radius: 7px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); line-height: 1; }
+.plate-day b { font-size: 11px; font-weight: 800; color: var(--ink-dim); }
+.plate-day small { font-size: 9px; color: var(--ink-dim); margin-top: 2px; }
+.plate-day.played { background: rgba(246, 194, 91, 0.12); box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.4); }
+.plate-day.played b, .plate-day.played small { color: #ffe2a3; }
+.plate-day.today { box-shadow: inset 0 0 0 1px rgba(127, 224, 255, 0.55); }
+.plate-day.today b { color: var(--light); }
+
+/* Предложение прилипает к низу экрана */
+.atlas-offer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin-top: -6px;
+  padding: 18px 0 calc(12px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(5, 6, 26, 0), rgba(5, 6, 26, 0.97) 30%);
+}
+.atlas-offer .offer-buy { width: 100%; min-height: 56px; font-size: 17px; }
+.atlas-offer .offer-buy .btn-sub { font-size: 13px; opacity: 0.75; letter-spacing: 0.02em; }
+.offer-promise, .offer-note { margin: 0; font-size: 12px; line-height: 1.4; color: var(--ink-dim); text-align: center; max-width: 40ch; text-wrap: pretty; }
+.offer-note { font-size: 13px; color: var(--ink); }
+.atlas-offer.owned { position: static; padding: 0; background: none; margin-top: -8px; }
+.offer-owned { margin: 0; font: 400 20px/1.2 var(--font-display); color: var(--gold); text-align: center; }
+
+.atlas-section { display: flex; flex-direction: column; }
+.atlas-h2 { margin: 0 0 4px; font: 400 26px/1.1 var(--font-display); letter-spacing: 0.04em; color: var(--ink); }
+.atlas-h3 { margin: 16px 0 8px; font: 700 12px/1 var(--font-body); color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.12em; }
+.atlas-section .atlas-lede { text-align: left; margin: 2px 0 12px; max-width: none; }
+
+/* Примерочная: ряд с горизонтальной прокруткой */
+.wardrobe-row { display: flex; gap: 10px; overflow-x: auto; margin: 0 -16px; padding: 4px 16px 10px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.wardrobe-row::-webkit-scrollbar { display: none; }
+.wardrobe-item {
+  flex: none;
+  width: 92px;
+  scroll-snap-align: start;
+  border: 0;
+  padding: 8px 6px 8px;
+  border-radius: 14px;
+  background: rgba(18, 16, 50, 0.78);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: box-shadow 0.2s ease, transform 0.12s ease;
+}
+.wardrobe-item:active { transform: scale(0.96); }
+.wardrobe-item canvas { border-radius: 8px; }
+.wardrobe-item.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 18px rgba(246, 194, 91, 0.22); }
+.wardrobe-item.locked canvas { opacity: 0.72; }
+.wardrobe-name { font: 700 12px/1.15 var(--font-body); text-align: center; }
+.wardrobe-status { font-size: 11px; font-weight: 700; color: var(--ink-dim); }
+.wardrobe-item.on .wardrobe-status { color: var(--gold); }
+.wardrobe-item.locked .wardrobe-status { color: #ffe2a3; }
+.sky-swatch { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+
+/* Поддержка */
+.support-pack {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(60, 40, 10, 0.55), rgba(18, 16, 50, 0.85));
+  border: 1px solid rgba(246, 194, 91, 0.3);
+}
+.support-art { display: flex; gap: 4px; }
+.support-art canvas { border-radius: 6px; }
+.support-name { font: 400 22px/1.1 var(--font-display); color: #ffe2a3; }
+.support-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink); }
+.support-pack > .btn, .support-owned { grid-column: 1 / -1; justify-self: stretch; }
+.support-owned { text-align: center; color: var(--gold); font-size: 20px; }
+.tip-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tip-row .btn { padding: 8px 6px; font-size: 13px; }
+.tip-row .btn .btn-sub { font-size: 12px; opacity: 0.85; color: var(--gold); }
+.atlas-foot { display: flex; justify-content: center; padding-bottom: calc(24px + var(--safe-bottom)); }
+
+/* Вход в атлас из меню */
+.menu-buttons .atlas-entry { width: 100%; color: #ffe2a3; box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.4) inset; background: linear-gradient(180deg, rgba(60, 40, 10, 0.25), rgba(18, 16, 50, 0.35)); }
+.menu-buttons .atlas-entry .btn-label::before { content: '✦ '; }
+.sky-item.atlas-sky { opacity: 1; cursor: pointer; border-color: rgba(246, 194, 91, 0.35); }
+.sky-item.atlas-sky .sky-name { color: #ffe2a3; }
+
+/* ─── Архив вызовов ───────────────────────────────────────────────────── */
+
+.archive { gap: 18px; }
+.archive-head { text-align: center; }
+.archive-months { display: flex; flex-direction: column; gap: 22px; }
+.archive-month-name { margin: 0 0 10px; font: 400 22px/1 var(--font-display); letter-spacing: 0.04em; }
+.archive-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.archive-wd { text-align: center; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(165, 160, 207, 0.6); padding-bottom: 2px; }
+.archive-day {
+  aspect-ratio: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(18, 16, 50, 0.78);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  line-height: 1;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.12s ease, background 0.2s ease;
+}
+button.archive-day:active { transform: scale(0.94); }
+.archive-day b { font-size: 15px; font-weight: 800; }
+.archive-day small { font-size: 10px; font-weight: 700; color: var(--ink-dim); min-height: 10px; }
+.archive-day.out { background: none; box-shadow: none; color: rgba(165, 160, 207, 0.28); cursor: default; }
+.archive-day.played { background: rgba(246, 194, 91, 0.1); box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.35); }
+.archive-day.played small { color: #ffe2a3; }
+.archive-day.won { background: radial-gradient(circle at 50% 30%, rgba(246, 194, 91, 0.35), rgba(246, 194, 91, 0.08) 70%); }
+.archive-day.won small { color: var(--gold); font-size: 12px; }
+.archive-day.today { background: none; box-shadow: inset 0 0 0 1px rgba(127, 224, 255, 0.5); cursor: default; }
+.archive-day.today b { color: var(--light); }
+.archive-day.today small { font-size: 8px; color: var(--light); text-transform: uppercase; letter-spacing: 0.04em; }
+.archive-day.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 16px rgba(246, 194, 91, 0.3); }
+.archive-day:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+@media (max-width: 359px) {
+  .archive-grid { gap: 4px; }
+  .archive-day { border-radius: 9px; }
+  .archive-day b { font-size: 13px; }
+}
+.archive-detail {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 16px 16px calc(12px + var(--safe-bottom));
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(180deg, rgba(28, 24, 70, 0.97), rgba(12, 11, 34, 0.98));
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 3;
+}
+.archive-detail-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.archive-detail-n { font: 400 24px/1 var(--font-display); color: #ffe2a3; }
+.archive-detail-date { font-size: 13px; color: var(--ink-dim); }
+.archive-detail-result { margin: 0; font-size: 14px; color: var(--ink); }
+.archive-play { width: 100%; }
+.archive-locked p { margin: 0 0 8px; font-size: 13px; color: var(--ink-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-chart.igniting .atlas-lines line, .atlas-chart.igniting .atlas-star, .atlas-plate { animation: none; }
+}
+/* Узкий телефон: табличка в одну колонку */
+@media (max-width: 359px) {
+  .atlas-plate { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .plate-actions { justify-content: center; }
+}
+/* Невысокий экран (телефон лёжа): кнопка покупки не прилипает — иначе закрывает созвездие */
+@media (max-height: 520px) {
+  .atlas-offer:not(.owned) { position: static; background: none; padding-top: 0; }
+}
+
+/* Правки по ревью атласа */
+.atlas-hero .offer-promise { margin-top: 12px; }
+.atlas-offer.unavailable { position: static; background: none; padding-top: 0; }
+/* Кнопка покупки в ожидании (цена грузится, идёт оплата) не просвечивает табличку */
+.atlas-offer .offer-buy:disabled { opacity: 1; filter: none; background: linear-gradient(180deg, #b8a27a, #8f7a52); color: rgba(26, 18, 6, 0.85); box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.3) inset; }
+.atlas-offer .offer-buy.loading .btn-sub { display: inline-block; min-width: 4.5em; text-align: center; }
+.archive-wd { color: var(--ink-dim); }
+.archive-legend { margin: 8px auto 0; max-width: 36ch; font-size: 12px; line-height: 1.4; color: var(--ink-dim); text-align: center; }
+/* Невысокий телефон (iPhone SE): заголовок в строку, крест меньше — табличка видна над кнопкой */
+@media (max-height: 700px) and (min-height: 521px) {
+  .atlas { gap: 16px; }
+  .atlas-title { font-size: clamp(26px, 8.4vw, 44px); letter-spacing: 0.06em; padding-left: 0.06em; }
+  .atlas-lede { margin-top: 6px; font-size: 13px; }
+  .atlas-chart { width: min(250px, 66vw, 34svh); margin-top: 6px; }
+  .atlas-star-name { font-size: 11px; top: calc(50% + 14px); }
+  .atlas-plate { margin-top: 14px; }
+}
+/* Телефон лёжа: крест слева, табличка справа */
+@media (max-height: 520px) and (min-width: 600px) {
+  .atlas > * { width: min(760px, 100%); }
+  .atlas-hero { display: grid; grid-template-columns: auto 1fr; column-gap: 28px; align-items: center; margin-top: 0; }
+  .atlas-hero .atlas-title, .atlas-hero .atlas-lede { grid-column: 1 / -1; }
+  .atlas-hero .atlas-chart { grid-row: 3 / span 2; width: min(220px, 60vh); }
+  .atlas-hero .atlas-plate { margin-top: 10px; }
+  .atlas-hero .offer-promise { grid-column: 2; }
+}

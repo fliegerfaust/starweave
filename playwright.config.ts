@@ -19,6 +19,7 @@ export default defineConfig({
   },
   projects: [
     { name: 'iphone-se', use: { ...devices['iPhone SE'], browserName: 'webkit' } },
+    { name: 'iphone-x', use: { ...devices['iPhone X'], browserName: 'webkit' } },
     { name: 'iphone-15', use: { ...devices['iPhone 15 Pro Max'], browserName: 'webkit' } },
     { name: 'pixel-7', use: { ...devices['Pixel 7'], channel: 'chrome' } },
     { name: 'galaxy-a', use: { ...devices['Galaxy S9+'], channel: 'chrome' } },

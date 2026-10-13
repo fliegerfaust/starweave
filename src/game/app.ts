@@ -226,6 +226,24 @@ export class App {
     this.showIf(token, () => new MenuScreen(this));
   }
 
+  /** «Звёздный атлас»: что внутри, покупка, примерочная, поддержка. */
+  async goAtlas(from: string, focus?: string): Promise<void> {
+    this.platform.gameplayStop();
+    track('store_open', { from });
+    const token = ++this.navToken;
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    const { AtlasScreen } = await import('@/ui/screens/atlas');
+    this.showIf(token, () => new AtlasScreen(this, focus));
+  }
+
+  /** Архив вызовов дня (входит в атлас). */
+  async goArchive(): Promise<void> {
+    this.platform.gameplayStop();
+    const token = ++this.navToken;
+    const { ArchiveScreen } = await import('@/ui/screens/archive');
+    this.showIf(token, () => new ArchiveScreen(this));
+  }
+
   /** Экран по фазе забега — единственное место, где решается «что показывать». */
   async route(): Promise<void> {
     const run = this.run;
