@@ -317,6 +317,7 @@ export class Presenter {
     const sum = score.lines.reduce((s, l) => s + l.total, 0);
     if (score.steps.length > 0) {
       hud.setCalcLabel(score.lines.length >= 2 ? t('night.cross') : t('night.score'));
+      hud.setCalcMode('move');
       hud.setCalc(sum, 1);
       for (let i = 0; i < score.steps.length; i++) {
         const step = score.steps[i]!;

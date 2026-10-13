@@ -43,13 +43,13 @@ function next(onShow?: () => void): void {
   if (!b) return settle();
   const el =
     b.kind === 'combo'
-      ? h('div.discovery', null, [
+      ? h('div.discovery', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
           h('div.discovery-kicker', null, t('discovery.newCombo', { n: b.count, total: COLLECTIBLE_COMBOS.length })),
           h('div.discovery-name', null, t(`combo.${b.id}`)),
           h('div.discovery-cards', null, COMBO_EXAMPLES[b.id].map(([rank, suit]) => cardThumb({ id: fakeId--, rank, suit }, 30))),
           h('div.discovery-desc', null, dict().comboDesc[b.id]),
         ])
-      : h('div.discovery.cross', null, [
+      : h('div.discovery.cross', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
           h('div.discovery-kicker', null, t('discovery.firstKicker')),
           h('div.discovery-name', null, t('discovery.cross')),
           h('div.discovery-desc', null, t('discovery.crossDesc')),

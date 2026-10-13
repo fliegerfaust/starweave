@@ -32,6 +32,7 @@ export function comboList(opts: ComboListOptions = {}): HTMLElement {
         COMBO_EXAMPLES[id].map(([rank, suit]) => cardThumb({ id: exampleId--, rank, suit }, width)),
       );
       // Россыпь не собирают — у неё нет отметки
+      // Несобранное — приглушённым названием; «Собрано N из 10» стоит над списком
       const missing = !!opts.found && id !== 'scatter' && !opts.found.includes(id);
       const got = !!opts.found && id !== 'scatter' && !missing;
       return h(`div.combo-item${level > 1 ? '.upgraded' : ''}${missing ? '.missing' : ''}`, null, [
@@ -43,7 +44,6 @@ export function comboList(opts: ComboListOptions = {}): HTMLElement {
             got ? h('span.combo-got', null, '✓') : null,
           ]),
           h('div.combo-desc', null, dict().comboDesc[id]),
-          missing ? h('div.combo-missing', null, t('discovery.notYet')) : null,
         ]),
         h('div.combo-base', null, [h('span.light-text', null, String(base.light)), h('span.combo-x', null, '×'), h('span.mult-text', null, String(base.mult))]),
       ]);

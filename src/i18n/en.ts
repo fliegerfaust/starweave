@@ -247,7 +247,6 @@ export const en: Dict = {
     crossDesc: 'One card closed two lines — score doubled',
     all: 'Every constellation collected!',
     collected: 'Collected {n} of {total}',
-    notYet: 'not yet collected',
   },
   codex: {
     title: 'Codex',
