@@ -70,11 +70,24 @@ export function showHelp(focus?: string, levels?: RunState['comboLevels']): void
   void import('./guide').then(({ showGuide }) => showGuide(focus, levels));
 }
 
-/** Все созвездия с примерами и уровнями забега: что прокачано звёздными картами. */
+/**
+ * Все созвездия с примерами и уровнями забега: что прокачано звёздными картами.
+ * Это же окно открывает «?» посреди ночи — созвездия нужны чаще остального справочника.
+ */
 export function showCombos(run: RunState): void {
   const m = modal(
-    [h('p.hint', null, t('combos.hint')), comboList({ levels: run.comboLevels }), h('div.row.end', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))],
-    { title: t('combos.yours'), className: 'combos' },
+    [
+      h('p.hint', null, t('combos.hint')),
+      comboList({ levels: run.comboLevels }),
+      h('div.row.between', null, [
+        button(t('guide.button'), () => {
+          m.close();
+          showHelp(undefined, run.comboLevels);
+        }, { variant: 'ghost' }),
+        button(t('menu.back'), () => m.close(), { variant: 'secondary' }),
+      ]),
+    ],
+    { title: t('combos.title'), className: 'combos' },
   );
 }
 

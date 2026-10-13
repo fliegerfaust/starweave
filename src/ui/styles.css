@@ -923,6 +923,7 @@ body.landscape .boss-chip { padding-right: 2px; }
 @keyframes g-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
 
 .icon-btn.q { font: 800 18px/1 var(--font-body); color: var(--ink); }
+.icon-btn.q.attn { color: var(--gold); border-color: rgba(246, 194, 91, 0.7); animation: tut-glow 1.8s ease-in-out infinite; }
 .card-info {
   position: absolute;
   left: 50%;

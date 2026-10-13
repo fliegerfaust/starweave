@@ -320,7 +320,7 @@ export const en: Dict = {
     title: 'Constellations',
     yours: 'My constellations',
     level: 'lv {n}',
-    hint: 'A line of four cards forms one constellation — the most valuable one that fits. Star charts from the Observatory permanently level up a constellation: more light and mult.',
+    hint: 'A line scores the most valuable constellation that fits. The rarer, the more points. Star charts from the Observatory level them up.',
     button: 'Constellations',
   },
   comboDesc: {
@@ -533,7 +533,7 @@ export const en: Dict = {
     welcome: 'This is the sky. Place cards from your hand into its cells.',
     place: 'Tap a card in your hand, then a sky cell. Or drag it.',
     fillLine: 'Fill a row or a column — it ignites as a constellation and scores light.',
-    combos: 'Pairs, straights, flushes… The constellation depends on ranks, suits and order.',
+    combos: 'Golden cells are labelled with the constellation they will make. All constellations are under “?” at the top.',
     cross: 'Place a card where two almost-full lines cross: both ignite, score ×2!',
     target: 'Reach the target before you run out of moves.',
     burn: 'Bad card? Drag it onto “Burn”.',
