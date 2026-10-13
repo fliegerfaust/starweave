@@ -14,7 +14,7 @@ export interface EventMap {
   tutorial_complete: Record<string, never>;
 
   // ── Забег и ночи ───────────────────────────────────────────────────────
-  run_start: { sky: string; stake: number; daily: boolean };
+  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean };
   night_start: { ante: number; night: string; boss: string };
   night_end: {
     ante: number;
@@ -42,6 +42,10 @@ export interface EventMap {
   // ── Монетизация ────────────────────────────────────────────────────────
   ad_request: { kind: 'rewarded' | 'interstitial'; placement: string };
   ad_result: { kind: 'rewarded' | 'interstitial'; placement: string; result: 'rewarded' | 'closed' | 'error' };
+  /** Открыт экран атласа (магазина): откуда пришли. */
+  store_open: { from: string };
+  purchase_start: { product: string };
+  purchase_result: { product: string; result: 'paid' | 'cancelled' | 'failed' | 'unavailable' };
 
   // ── Понятность ─────────────────────────────────────────────────────────
   guide_open: { focus: string };

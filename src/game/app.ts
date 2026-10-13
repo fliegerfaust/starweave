@@ -12,7 +12,7 @@ import { PointerInput } from '@/engine/input';
 import { Renderer } from '@/engine/renderer';
 import { Tweener } from '@/engine/tween';
 import { named, setLang, t } from '@/i18n';
-import { dailySeed, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
+import { dailySeed, todayKey, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, recordProgress, recordRunEnd, saveProfile, type Profile } from '@/meta/profile';
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
@@ -226,8 +226,19 @@ export class App {
     if (daily) markDailyStarted(this.profile);
     this.persistProfile();
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
-    this.run = newRun({ seed, skyId, daily, stake: daily ? 0 : stake });
+    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake });
     track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily });
+    this.save();
+    void this.route();
+  }
+
+  /** Вызов прошедшего дня из архива атласа: тот же сид, что был в тот день. */
+  startArchive(date: string): void {
+    if (this.run?.tutorial) this.endTutorial();
+    if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
+    this.persistProfile();
+    this.run = newRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true });
+    track('run_start', { sky: 'classic', stake: 0, daily: true, archive: true });
     this.save();
     void this.route();
   }

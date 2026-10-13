@@ -267,7 +267,7 @@ export class NightScreen implements Screen {
 
   private share(): void {
     const run = this.run;
-    const text = t('share.text', { date: `#${dailyNumber()}`, ante: run.ante, best: num(run.stats.bestPlacement) });
+    const text = t('share.text', { date: `#${dailyNumber(run.dailyDate ?? new Date())}`, ante: run.ante, best: num(run.stats.bestPlacement) });
     const stars = '✦'.repeat(Math.min(8, run.ante)) + '·'.repeat(Math.max(0, 8 - run.ante));
     const full = `${text}\n${stars}`;
     if (this.app.platform.share?.(full)) return;

@@ -11,6 +11,14 @@ export interface DailyRecord {
   finished: boolean;
 }
 
+/** Лучший итог вызова за день — для архива атласа. */
+export interface ArchiveRecord {
+  ante: number;
+  best: number;
+  /** Прошёл все восемь созвездий. */
+  won?: boolean;
+}
+
 export interface Profile {
   version: 1;
   runs: number;
@@ -23,6 +31,8 @@ export interface Profile {
   unlockedSkies: string[];
   tutorial: string[];
   daily: DailyRecord | null;
+  /** Итоги вызовов по датам: и сыгранных в свой день, и из архива. */
+  archive?: Record<string, ArchiveRecord>;
   /** Наибольшая открытая звёздность. */
   maxStake: number;
   tutorialDone: boolean;
@@ -62,8 +72,14 @@ export function saveProfile(p: Profile): void {
   storage.set(KEYS.profile, JSON.stringify(p));
 }
 
-export function isUnlocked(unlock: Unlock, p: Profile): boolean {
+/**
+ * Открыта ли колода неба. Колоды атласа открывает покупка (`owned` — купленное на этой
+ * площадке), остальные — достижения профиля.
+ */
+export function isUnlocked(unlock: Unlock, p: Profile, owned: ReadonlySet<string> = new Set()): boolean {
   switch (unlock.kind) {
+    case 'atlas':
+      return owned.has('atlas');
     case 'default':
       return true;
     case 'reachAnte':
@@ -79,7 +95,8 @@ export function isUnlocked(unlock: Unlock, p: Profile): boolean {
 export function refreshUnlocks(p: Profile): string[] {
   const fresh: string[] = [];
   for (const sky of SKY_LIST) {
-    if (!p.unlockedSkies.includes(sky.id) && isUnlocked(sky.unlock, p)) {
+    // Колоды атласа не записываются в профиль: они открыты, пока атлас куплен
+    if (sky.unlock.kind !== 'atlas' && !p.unlockedSkies.includes(sky.id) && isUnlocked(sky.unlock, p)) {
       p.unlockedSkies.push(sky.id);
       fresh.push(sky.id);
     }
@@ -119,16 +136,29 @@ export function recordRunEnd(p: Profile, run: RunState, won: boolean): string[] 
   p.totalLines += run.stats.linesIgnited - (run.recordedLines ?? 0);
   run.recordedLines = run.stats.linesIgnited;
   if (run.daily) {
-    const date = todayKey();
-    const prev = p.daily?.date === date ? p.daily : null;
-    p.daily = {
-      date,
-      ante: Math.max(prev?.ante ?? 0, run.ante),
-      best: Math.max(prev?.best ?? 0, run.stats.bestPlacement),
-      finished: true,
-    };
+    const date = run.dailyDate ?? todayKey();
+    if (!run.archive) {
+      const prev = p.daily?.date === date ? p.daily : null;
+      p.daily = {
+        date,
+        ante: Math.max(prev?.ante ?? 0, run.ante),
+        best: Math.max(prev?.best ?? 0, run.stats.bestPlacement),
+        finished: true,
+      };
+    }
+    recordArchive(p, date, run.ante, run.stats.bestPlacement, won);
   }
   return refreshUnlocks(p);
+}
+
+function recordArchive(p: Profile, date: string, ante: number, best: number, won: boolean): void {
+  const archive = (p.archive ??= {});
+  const prev = archive[date];
+  archive[date] = {
+    ante: Math.max(prev?.ante ?? 0, ante),
+    best: Math.max(prev?.best ?? 0, best),
+    ...(won || prev?.won ? { won: true } : {}),
+  };
 }
 
 /** Отмена записи поражения: забег продолжился после «второго шанса». */
@@ -137,7 +167,7 @@ export function unrecordRunEnd(p: Profile, run: RunState): void {
   p.runs = Math.max(0, p.runs - 1);
   p.totalLines = Math.max(0, p.totalLines - run.recordedLines);
   delete run.recordedLines;
-  if (run.daily && p.daily) p.daily.finished = false;
+  if (run.daily && !run.archive && p.daily) p.daily.finished = false;
 }
 
 /** Вызов дня начат: вторая попытка за день не даётся. */
@@ -168,8 +198,24 @@ export function dailySeed(date = todayKey()): number {
   return hashSeed(`starweave-daily-${date}`);
 }
 
+/** Первый вызов дня — с него начинается архив. */
+export const FIRST_DAILY = '2026-10-01';
+
+function keyToUtc(key: string): number {
+  const [y, m, d] = key.split('-').map(Number);
+  return Date.UTC(y!, m! - 1, d!);
+}
+
 /** Номер дня с запуска — для строки шеринга. */
-export function dailyNumber(date = new Date()): number {
-  const start = Date.UTC(2026, 9, 1);
-  return Math.max(1, Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - start) / 86400000) + 1);
+export function dailyNumber(date: Date | string = new Date()): number {
+  const key = typeof date === 'string' ? date : todayKey(date);
+  return Math.max(1, Math.round((keyToUtc(key) - keyToUtc(FIRST_DAILY)) / 86400000) + 1);
+}
+
+/** Прошедшие вызовы дня, от вчерашнего к первому. */
+export function archiveDates(today = todayKey()): string[] {
+  const out: string[] = [];
+  const first = keyToUtc(FIRST_DAILY);
+  for (let at = keyToUtc(today) - 86400000; at >= first; at -= 86400000) out.push(new Date(at).toISOString().slice(0, 10));
+  return out;
 }
