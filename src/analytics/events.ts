@@ -14,8 +14,8 @@ export interface EventMap {
   tutorial_complete: Record<string, never>;
 
   // ── Забег и ночи ───────────────────────────────────────────────────────
-  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean };
-  night_start: { ante: number; night: string; boss: string };
+  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean };
+  night_start: { ante: number; night: string; boss: string; gentle?: boolean };
   night_end: {
     ante: number;
     night: string;

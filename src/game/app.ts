@@ -297,8 +297,10 @@ export class App {
     if (daily) markDailyStarted(this.profile);
     this.persistProfile();
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
-    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake });
-    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily });
+    // Самый первый забег начинается со щедрой ночи
+    const gentle = !daily && this.profile.runs === 0;
+    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle });
+    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle });
     this.save();
     void this.route();
   }
@@ -333,7 +335,7 @@ export class App {
     const run = this.run!;
     startNight(run);
     if (run.tutorial) applyTutorialNight(run, run.nightIndex);
-    else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '' });
+    else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
     markSeen(this.profile, run);
     this.persistProfile();
     this.save();

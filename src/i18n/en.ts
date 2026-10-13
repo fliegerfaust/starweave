@@ -56,6 +56,7 @@ export const en: Dict = {
     noBurns: 'No burns left',
     pickCard: 'Pick a card from your hand',
     lastMove: 'Last move!',
+    gentle: 'First night: the stars are on your side — cards fall into constellations easily. {n} moves.',
     movesLeft: '{n} moves left',
     willIgnite: 'ignites',
     endless: 'Endless night',

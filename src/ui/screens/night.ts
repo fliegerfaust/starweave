@@ -75,7 +75,8 @@ export class NightScreen implements Screen {
 
   private introHints(): void {
     const n = this.run.night!;
-    if (n.bossId) toast(named('boss', n.bossId).desc);
+    if (n.gentle) toast(t('night.gentle', { n: n.movesLeft }));
+    else if (n.bossId) toast(named('boss', n.bossId).desc);
     else {
       // Первые созвездия: напомнить про порядок Знамений тем, кто пропустил обучение
       const wrong = this.run.ante <= 2 ? misorderedOmens(this.run.omens) : null;
