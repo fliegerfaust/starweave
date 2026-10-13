@@ -149,6 +149,7 @@ export class Hud {
     // Глава — отдельным кусочком: в тесном заголовке (ландшафт) остаётся только ночь
     this.title.replaceChildren(h('span.hud-chapter', null, `${t('night.constellation', { n: run.ante })} · `), t(`night.${kind}`));
     clear(this.bossBadge);
+    this.title.parentElement?.classList.toggle('boss', !!night?.bossId);
     if (night?.bossId) {
       const icon = canvasImg(bossSigil(night.bossId, 28, dpr()), 28);
       // Кнопка, а не подпись: правило Затмения можно открыть касанием в любой момент ночи

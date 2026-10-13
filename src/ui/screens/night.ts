@@ -11,7 +11,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { Hud } from '../hud';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
-import { animateNumber, button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
+import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { screenTitle, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
@@ -216,7 +216,8 @@ export class NightScreen implements Screen {
       window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
     });
     const total = h('span.gold-text.big', null, '0');
-    animateNumber(total, 0, reward.total, 700, (n) => String(Math.round(n)));
+    // Итог сразу: кнопка «Забрать N» рядом уже называет его — «0» рядом с ней путал
+    total.textContent = String(reward.total);
     this.overlay = modal(
       [
         h('div.reward-score', null, [h('span', null, t('night.score')), h('b', null, num(this.run.night!.score))]),
