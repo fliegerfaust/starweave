@@ -1,7 +1,7 @@
 import type { Platform } from './types';
 import { WebPlatform } from './web';
 
-export type { Platform } from './types';
+export type { Payments, Platform, PurchaseResult } from './types';
 
 /**
  * Яндекс выбирается при сборке (`VITE_PLATFORM=yandex npm run build`): у портала свой архив.

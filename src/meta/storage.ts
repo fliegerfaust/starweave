@@ -27,4 +27,6 @@ export const KEYS = {
   run: 'starweave.run.v1',
   profile: 'starweave.profile.v1',
   settings: 'starweave.settings.v1',
+  /** Копия купленного на площадке (правда — у площадки). */
+  owned: 'starweave.owned.v1',
 };

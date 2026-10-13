@@ -1,17 +1,21 @@
 import type { Lang } from '@/i18n';
-import type { Platform } from './types';
+import { FakePayments } from '@/store/fake-payments';
+import type { Payments, Platform } from './types';
 
 /**
- * Обычный веб и PWA: рекламы нет. Для проверки интерфейса в разработке можно
- * включить имитацию рекламы параметром `?fakeads`.
+ * Обычный веб и PWA: ни рекламы, ни покупок. Для проверки интерфейса в разработке можно
+ * включить имитацию рекламы (`?fakeads`) и покупок (`?fakepay`).
  */
 export class WebPlatform implements Platform {
   readonly id = 'web' as const;
   readonly rewardedAvailable: boolean;
+  readonly payments: Payments | null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
 
   constructor() {
-    this.rewardedAvailable = import.meta.env.DEV && new URLSearchParams(location.search).has('fakeads');
+    const params = new URLSearchParams(location.search);
+    this.rewardedAvailable = import.meta.env.DEV && params.has('fakeads');
+    this.payments = import.meta.env.DEV && params.has('fakepay') ? new FakePayments() : null;
   }
 
   async init(): Promise<void> {}
