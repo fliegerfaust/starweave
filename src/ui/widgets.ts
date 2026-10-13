@@ -14,13 +14,14 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export function button(
   label: string | Node,
   onClick: () => void,
-  opts: { variant?: ButtonVariant; disabled?: boolean; className?: string; title?: string; sub?: string } = {},
+  opts: { variant?: ButtonVariant; disabled?: boolean; className?: string; title?: string; sub?: string; ariaLabel?: string } = {},
 ): HTMLButtonElement {
   const btn = h(`button.btn.btn-${opts.variant ?? 'primary'}`, { type: 'button', title: opts.title ?? '' }, [
     h('span.btn-label', null, label),
     opts.sub ? h('span.btn-sub', null, opts.sub) : null,
   ]);
   if (opts.className) btn.classList.add(...opts.className.split(' '));
+  if (opts.ariaLabel) btn.setAttribute('aria-label', opts.ariaLabel);
   btn.disabled = !!opts.disabled;
   btn.addEventListener('click', (e) => {
     e.stopPropagation();

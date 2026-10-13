@@ -4,7 +4,7 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
+import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, isFirstChapter, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
@@ -14,7 +14,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { omenBadge, omenMedal, omenTooltip } from '../hud';
 import { rich } from '../rich';
 import { coach } from '../tutorial';
-import { attachTooltip, button, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
+import { attachTooltip, button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
@@ -90,7 +90,18 @@ export class ShopScreen implements Screen {
       const medal = h('div.omen-slot.draggable', { dataset: { dragHandle: '' } }, [h('span.order-num', null, String(i + 1)), omenMedal(o.id, 52)]);
       const chip = h('div.owned-omen', { dataset: { omen: String(i) } }, [
         medal,
-        h('button.btn.btn-secondary.small.sell-btn', { type: 'button', title: t('shop.sell', { n: sellPrice(o.id) }), onclick: () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })) }, [
+        h('button.btn.btn-secondary.small.sell-btn', {
+          type: 'button',
+          title: t('shop.sell', { n: sellPrice(o.id) }),
+          // Продажа — с подтверждением: кнопка под пальцем, когда Знамения переставляют
+          onclick: () =>
+            confirmDialog(
+              t('shop.sellConfirm', { name: named('omen', o.id).name, n: sellPrice(o.id) }),
+              () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })),
+              'danger',
+              { yes: t('shop.sell', { n: sellPrice(o.id) }), no: t('shop.keep') },
+            ),
+        }, [
           h('span.sell-label', null, t('shop.sellShort')),
           h('span.sell-price', null, `+${sellPrice(o.id)}`),
         ]),
@@ -117,7 +128,7 @@ export class ShopScreen implements Screen {
         : null,
       h('section.shop-section', { dataset: { shop: 'omens' } }, [sectionHead(t('shop.omens')), omenCards]),
       h('section.shop-section', { dataset: { shop: 'items' } }, [
-        sectionHead(t('shop.items'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
+        sectionHead(t(isFirstChapter(run) ? 'shop.itemsCharts' : 'shop.items'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
         itemCards,
       ]),
       shop.packs.length ? h('section.shop-section', null, [sectionHead(t('shop.packs')), packCards]) : null,
@@ -148,6 +159,7 @@ export class ShopScreen implements Screen {
     let tag = '';
     let tagClass = '';
     let badge: HTMLElement | null = null;
+    let kindBadge: HTMLElement | null = null;
     if (item.kind === 'omen') {
       const def = omenDef(item.omenId);
       icon = canvasImg(omenSigil(item.omenId, 72, dpr()), 72);
@@ -156,7 +168,8 @@ export class ShopScreen implements Screen {
       desc = info.desc;
       tag = t(`rarity.${def.rarity}`);
       tagClass = `r${def.rarity}`;
-      badge = h('div.shop-kind', null, [omenBadge(def.kind), dict().omenKind[def.kind][1]]);
+      // Значок «+ / ×» у названия; словами — в описании, второй строкой не повторяем
+      kindBadge = omenBadge(def.kind);
     } else if (item.kind === 'chart') {
       icon = canvasImg(chartIcon(item.combo, 72, dpr()), 72);
       const level = run.comboLevels[item.combo];
@@ -185,7 +198,7 @@ export class ShopScreen implements Screen {
     const card = h(`div.shop-item${item.sold ? '.sold' : ''}`, null, [
       h('div.shop-icon', null, icon),
       h('div.shop-info', null, [
-        h('div.shop-name', null, title),
+        h('div.shop-name', null, kindBadge ? [kindBadge, ' ', title] : title),
         tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, tag) : null,
         h('div.shop-desc', null, rich(desc)),
         badge,
@@ -198,6 +211,7 @@ export class ShopScreen implements Screen {
             className: 'price',
             disabled: !affordable || full,
             title: full ? t('shop.slotsFull') : !affordable ? t('shop.noGold') : '',
+            ariaLabel: t('shop.buyLabel', { name: title, n: item.price }),
           }),
     ]);
     return card;
