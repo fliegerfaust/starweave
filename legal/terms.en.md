@@ -15,8 +15,13 @@ other players.
 
 ## 3. Purchases
 
-Purchases are processed by the platform you play on, under its rules, including refund rules.
-Purchased cosmetics and "No ads" apply to the version of the Game where they were bought.
+Purchases are processed by the platform you play on (Telegram Stars in Telegram), under its
+rules. The Star Atlas, the Supporter Pack and cosmetics unlock forever in the version of the Game
+where they were bought. Tips unlock nothing. Nothing on sale gives an advantage in records or the
+daily challenge.
+
+If a purchase did not unlock, send /paysupport to the game's bot — we will sort it out and refund
+if needed. A refunded purchase stops working.
 
 ## 4. Fair play
 
