@@ -205,6 +205,10 @@ export interface RunState {
   rng: RngState;
   skyId: string;
   daily: boolean;
+  /** Дата вызова дня (YYYY-MM-DD): по ней сид и запись результата, даже если доиграли после полуночи. */
+  dailyDate?: string;
+  /** Вызов из архива атласа: прошедший день, попыток сколько угодно, лучший итог в профиль. */
+  archive?: boolean;
   ante: number;
   /** 0..2 — Сумерки, Полночь, Затмение. */
   nightIndex: number;
