@@ -1,6 +1,7 @@
 import { SKY_LIST, type Unlock } from '@/core/content/skies';
 import { MAX_STAKE } from '@/core/content/stakes';
 import { hashSeed } from '@/core/rng';
+import type { TutorialGift } from '@/core/run';
 import { COMBO_IDS, type ComboId, type RunState } from '@/core/types';
 import { KEYS, storage } from './storage';
 
@@ -42,6 +43,8 @@ export interface Profile {
   combosFound?: ComboId[];
   /** Первый крест уже был. */
   crossFound?: boolean;
+  /** Золото и Знамения пройденного обучения — ждут первого забега. */
+  tutorialGift?: TutorialGift;
 }
 
 export function emptyProfile(): Profile {

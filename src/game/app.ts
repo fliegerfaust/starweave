@@ -3,7 +3,7 @@ import { SKY_THEMES, isFreeCosmetic, skyTheme } from '@/art/cosmetics';
 import { clearSigilCache } from '@/art/sigil';
 import { RuleError } from '@/core/errors';
 import { burnCard, placeCard, startNight } from '@/core/night';
-import { canDoubleReward, canRevive, collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight } from '@/core/run';
+import { GIFT_GOLD_CAP, canDoubleReward, canRevive, collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight } from '@/core/run';
 import { deserializeRun, serializeRun } from '@/core/save';
 import type { GameEvent, RunState } from '@/core/types';
 import { Synth } from '@/engine/audio';
@@ -299,10 +299,13 @@ export class App {
     if (daily) markDailyStarted(this.profile);
     this.persistProfile();
     const seed = daily ? dailySeed() : (Math.random() * 2 ** 32) >>> 0;
-    // Самый первый забег начинается со щедрой ночи
+    // Самый первый забег начинается со щедрой ночи и с тем, что заработано в обучении
     const gentle = !daily && this.profile.runs === 0;
-    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle });
-    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle });
+    const gift = gentle ? this.profile.tutorialGift : undefined;
+    this.run = newRun({ seed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
+    // Подарок — один раз: в первый забег или никогда (первым сыгран вызов дня)
+    if (!daily || this.profile.runs > 0) delete this.profile.tutorialGift;
+    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift });
     this.save();
     void this.route();
   }
@@ -593,6 +596,15 @@ export class App {
   finishTutorial(): void {
     track('tutorial_complete', {});
     this.profile.tutorialFinished = true;
+    // Заработанное в обучении не пропадает: золото (с несобранной наградой) и Знамения
+    // ждут первого настоящего забега
+    const tut = this.run;
+    if (tut?.tutorial && this.profile.runs === 0) {
+      this.profile.tutorialGift = {
+        gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)),
+        omens: tut.omens.map((o) => o.id),
+      };
+    }
     this.endTutorial();
     this.svc.audio.win();
     void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this));
