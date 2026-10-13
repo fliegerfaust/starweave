@@ -38,6 +38,9 @@ ssh denval 'cd /opt/starweave && docker compose up -d && docker compose run --rm
   `/refund <id> <charge_id>` — вернуть Stars.
 - Цены — `server/src/catalog.ts`, совпадают с `src/store/catalog.ts` игры (тест сверяет).
 - Вывод Stars — в @BotFather → бот → Monetization (Fragment).
+- С сервера (Timeweb, Москва) `api.telegram.org` отвечает только по IPv6 — поэтому у контейнера
+  есть своя сеть `starweave_egress` с IPv6 (compose). Простой `wget` в контейнере на IPv6 не
+  переключается и выдаёт таймаут; Node переключается сам.
 
 ## Устройство
 

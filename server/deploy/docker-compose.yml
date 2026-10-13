@@ -49,8 +49,17 @@ services:
         max-file: "3"
     networks:
       - platform
+      - egress
 
 networks:
   platform:
     external: true
     name: repo_default
+  # Выход в интернет по IPv6: с этого сервера Bot API Telegram доступен только по IPv6
+  # (по IPv4 соединение не устанавливается). Своя сеть проекта — сеть платформы не меняется.
+  egress:
+    name: starweave_egress
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd5e:a7e0:57a5::/64
