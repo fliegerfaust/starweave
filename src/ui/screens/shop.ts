@@ -4,7 +4,7 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, isFirstChapter, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
+import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
@@ -128,7 +128,7 @@ export class ShopScreen implements Screen {
         : null,
       h('section.shop-section', { dataset: { shop: 'omens' } }, [sectionHead(t('shop.omens')), omenCards]),
       h('section.shop-section', { dataset: { shop: 'items' } }, [
-        sectionHead(t(isFirstChapter(run) ? 'shop.itemsCharts' : 'shop.items'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
+        sectionHead(t(shop.items.some((i) => i.kind === 'ritual') ? 'shop.items' : 'shop.itemsCharts'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
         itemCards,
       ]),
       shop.packs.length ? h('section.shop-section', null, [sectionHead(t('shop.packs')), packCards]) : null,
