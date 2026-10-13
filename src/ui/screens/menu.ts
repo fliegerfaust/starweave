@@ -186,13 +186,17 @@ export class MenuScreen implements Screen {
     let stake = 0;
     const stakeInfo = h('div.hint');
     const stakeField = app.profile.maxStake > 0 ? h('div.field', null, [h('span.field-label', null, t('menu.stake')), (() => {
-      const wrap = h('div.segmented');
+      const wrap = h('div.segmented', { attrs: { role: 'group', 'aria-label': t('menu.stake') } });
       for (let i = 0; i <= app.profile.maxStake; i++) {
-        const b = h('button.seg', { type: 'button' }, i === 0 ? '—' : '✦'.repeat(i));
+        const b = h('button.seg', { type: 'button', attrs: { 'aria-pressed': String(i === stake) } }, i === 0 ? t('menu.stakeNormal') : `✦${i}`);
         if (i === stake) b.classList.add('on');
         b.addEventListener('click', () => {
           stake = i;
-          wrap.querySelectorAll('.seg').forEach((x) => x.classList.remove('on'));
+          wrap.querySelectorAll('.seg').forEach((x) => {
+            x.classList.remove('on');
+            x.setAttribute('aria-pressed', 'false');
+          });
+          b.setAttribute('aria-pressed', 'true');
           b.classList.add('on');
           stakeInfo.textContent = stakeText(i);
           app.svc.audio.click();

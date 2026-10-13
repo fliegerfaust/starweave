@@ -73,7 +73,9 @@ export class TutorialOverlay {
   }
 
   setProgress(step: number, total: number): void {
-    this.progress.textContent = `${step} / ${total}`;
+    // Полоска вместо «1 / 24»: число шагов пугает при обещании «2 минуты»
+    this.progress.style.setProperty('--p', String(step / total));
+    this.progress.setAttribute('aria-label', `${step} / ${total}`);
   }
 
   /** Показать пузырь. Возвращает промис, который разрешится по кнопке «дальше». */
@@ -84,7 +86,7 @@ export class TutorialOverlay {
       skip.addEventListener('click', () => this.onSkip());
       const actions = h('div.tut-actions', null, [this.progress, skip]);
       if (opts.next) {
-        const next = h('button.btn.btn-primary.small', { type: 'button' }, opts.next);
+        const next = h('button.btn.btn-primary.tut-next', { type: 'button' }, opts.next);
         next.addEventListener('click', () => resolve());
         actions.append(next);
       }
