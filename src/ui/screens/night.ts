@@ -51,7 +51,9 @@ export class NightScreen implements Screen {
       });
       this.scene.build();
       const scene = this.scene;
-      setCoachDock(() => (this.scene === scene ? scene.handAreaRect().y : null));
+      setCoachDock(() =>
+        this.scene === scene ? { handTop: scene.handAreaRect().y, boardBottom: scene.layout.board.y + scene.layout.board.h } : null,
+      );
       this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
