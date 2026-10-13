@@ -911,6 +911,13 @@ export class NightScene {
     this.selected = null;
     this.hooks.onSelect?.(null);
     this.setHover(null);
+    // Карта легла — подписи «что соберётся» и метки креста больше не о чём: гасим сразу,
+    // чтобы не висели поверх вспышки (вернутся после подсчёта для новых клеток)
+    for (const c of this.cells) {
+      c.forecast = [];
+      c.forecastCard = null;
+      c.closesAnim = 0;
+    }
     for (const c of this.cells) void this.svc.tweens.to(c, { avail: 0, ignite: 0 }, { duration: 0.15 });
     await this.presenter.play(events, dragged);
     this.refreshClosers();

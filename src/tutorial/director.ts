@@ -281,6 +281,9 @@ export class TutorialDirector {
     allow('[data-shop="omen-0"]');
     await this.say('buyOmen', { spot: elementRect(q('[data-shop="omen-0"]')), next: false });
     await this.waitFor('shopChanged', () => this.app.run!.omens.length > 0);
+    // Слоты Знамений внизу, под липкой панелью кнопок — сначала прокрутить их на середину
+    q('[data-shop="owned"]')?.scrollIntoView({ block: 'center' });
+    await pause(350);
     await this.say('omenSlot', { spot: elementRect(q('[data-shop="owned"]')) });
     q('[data-shop="next"]')?.classList.add('tut-allow');
     await this.say('toNight', { spot: elementRect(q('[data-shop="next"]')), next: false });
