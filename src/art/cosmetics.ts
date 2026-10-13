@@ -14,14 +14,16 @@ export interface BackStyle {
   /** Свечение вокруг карты. */
   glow: string;
   pattern: 'mandala' | 'astrolabe' | 'weave' | 'comet' | 'aurora';
+  /** Металл рамки — цвета градиента по диагонали (фольга). */
+  frame: string[];
 }
 
 export const BACKS: BackStyle[] = [
-  { id: 'classic', field: ['#2a1a5e', '#100b2c'], ink: '246,194,91', glow: 'rgba(160,120,255,0.4)', pattern: 'mandala' },
-  { id: 'astrolabe', field: ['#0f3a4a', '#061521'], ink: '226,184,104', glow: 'rgba(90,200,220,0.4)', pattern: 'astrolabe' },
-  { id: 'patron', field: ['#1b1206', '#07050a'], ink: '255,214,120', glow: 'rgba(255,200,90,0.45)', pattern: 'weave' },
-  { id: 'comet', field: ['#1a2a6c', '#0a0d2e'], ink: '160,220,255', glow: 'rgba(120,180,255,0.4)', pattern: 'comet' },
-  { id: 'aurora', field: ['#0b2a2a', '#140b30'], ink: '140,255,200', glow: 'rgba(120,255,190,0.35)', pattern: 'aurora' },
+  { id: 'classic', field: ['#2a1a5e', '#100b2c'], ink: '246,194,91', glow: 'rgba(160,120,255,0.4)', pattern: 'mandala', frame: ['#f6c25b'] },
+  { id: 'astrolabe', field: ['#11586a', '#04121c'], ink: '236,192,110', glow: 'rgba(90,200,220,0.5)', pattern: 'astrolabe', frame: ['#8a5a22', '#f3d18a', '#b07a32', '#ffe6a8', '#8a5a22'] },
+  { id: 'patron', field: ['#2a1a08', '#050307'], ink: '255,214,120', glow: 'rgba(255,200,90,0.6)', pattern: 'weave', frame: ['#7a4e12', '#fff1b8', '#d8a23a', '#fffbe6', '#a8701c', '#ffe08a'] },
+  { id: 'comet', field: ['#2b3fd1', '#120a3a'], ink: '170,230,255', glow: 'rgba(110,170,255,0.55)', pattern: 'comet', frame: ['#9fb6ff', '#ffffff', '#7a8cff', '#e4ecff'] },
+  { id: 'aurora', field: ['#06352f', '#1d0b44'], ink: '120,255,200', glow: 'rgba(110,255,190,0.5)', pattern: 'aurora', frame: ['#3ff0b0', '#a8fff0', '#8b6bff', '#d6c8ff'] },
 ];
 
 export interface SkyTheme {

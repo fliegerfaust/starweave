@@ -23,7 +23,7 @@ export const STARS_PRODUCTS: Record<string, StarsProduct> = {
   supporter: {
     stars: 500,
     permanent: true,
-    title: { ru: 'Набор поддержки', en: 'Supporter Pack' },
+    title: { ru: 'Набор мецената', en: 'Patron Pack' },
     description: {
       ru: 'Всё из «Звёздного атласа» и набор мецената: рубашка и небо. Спасибо, что поддерживаешь игру!',
       en: 'Everything in the Star Atlas plus the Patron card back and sky. Thank you for supporting the game!',

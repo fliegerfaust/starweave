@@ -1469,3 +1469,130 @@ button.archive-day:active { transform: scale(0.94); }
   .atlas-hero .atlas-plate { margin-top: 10px; }
   .atlas-hero .offer-promise { grid-column: 2; }
 }
+
+/* ─── Атлас v2: вкладки, примерочная, меценат ─────────────────────────── */
+
+.atlas > .atlas-title { margin-top: -10px; }
+.atlas-hero { margin-top: -6px; }
+.atlas-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  margin-top: -10px;
+  border-radius: 999px;
+  background: rgba(12, 11, 34, 0.92);
+  box-shadow: inset 0 0 0 1px var(--line), 0 10px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+.atlas-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-dim);
+  font: 700 14px/1 var(--font-body);
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.2s ease;
+}
+.atlas-tab:hover { color: var(--ink); }
+.atlas-tab.on { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); box-shadow: 0 4px 14px rgba(246, 194, 91, 0.3); }
+.atlas-tab:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Примерочная: живая сцена и кнопка под ней */
+.atlas-look { display: flex; flex-direction: column; }
+.look-stage {
+  position: relative;
+  height: clamp(220px, 34vh, 320px);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(246, 194, 91, 0.3), 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+.preview-stage { display: block; width: 100%; height: 100%; }
+.look-caption {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-shadow: 0 1px 8px #05061a, 0 0 2px #05061a;
+}
+.look-kind { font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+.look-name { font: 400 24px/1.1 var(--font-display); color: #ffe2a3; }
+.look-action { margin-top: 12px; display: flex; justify-content: center; }
+.look-action .look-btn { width: 100%; min-height: 52px; font-size: 16px; }
+.look-action .offer-note { margin: 4px 0 0; }
+.look-lede { text-align: center !important; margin: 14px auto 0 !important; }
+.wardrobe-item { width: 104px; }
+.wardrobe-item.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 22px rgba(246, 194, 91, 0.3); background: rgba(40, 30, 70, 0.9); }
+.wardrobe-item.worn .wardrobe-status { color: var(--ok); }
+.wardrobe-item.locked canvas { opacity: 0.92; }
+
+/* Меценат: золотая витрина */
+.atlas-support { display: flex; flex-direction: column; gap: 16px; }
+.patron {
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(60, 38, 8, 0.85), rgba(14, 9, 4, 0.95));
+  box-shadow: inset 0 0 0 1px rgba(255, 214, 120, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.4), 0 24px 50px rgba(0, 0, 0, 0.5), 0 0 60px rgba(246, 194, 91, 0.12);
+  position: relative;
+}
+/* Фольговая кромка сверху */
+.patron::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #7a4e12, #fff1b8, #d8a23a, #fffbe6, #a8701c);
+  z-index: 1;
+}
+.patron-stage { position: relative; height: clamp(200px, 30vh, 280px); }
+.patron-stage::after { content: ''; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(180deg, transparent, rgba(14, 9, 4, 0.95)); pointer-events: none; }
+.patron-seal {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: #3a2406;
+  background: radial-gradient(circle at 35% 30%, #fff6cf, #e2ad44 55%, #8a5a16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 246, 207, 0.6);
+  z-index: 1;
+}
+.patron-body { position: relative; padding: 0 18px 18px; margin-top: -34px; z-index: 1; }
+.patron-name {
+  margin: 0;
+  font: 400 32px/1.05 var(--font-display);
+  letter-spacing: 0.04em;
+  color: #ffe6a8;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5), 0 0 24px rgba(246, 194, 91, 0.45);
+}
+.patron-desc { margin: 6px 0 12px; font-size: 14px; line-height: 1.45; color: #f3e6c6; }
+.patron-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.patron-list li { position: relative; padding-left: 26px; font-size: 14px; line-height: 1.35; color: var(--ink); }
+.patron-list li::before {
+  content: '✦';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 18px;
+  text-align: center;
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(246, 194, 91, 0.7);
+}
+.patron .offer-buy { width: 100%; min-height: 56px; font-size: 17px; }
+.patron .offer-owned { margin: 0; }
+.patron-lede { text-align: center !important; margin: 0 auto !important; }
+/* Табличка: картинка над текстом — длинным описаниям нужна вся ширина */
+.atlas-plate { grid-template-columns: 1fr; gap: 12px; }
+.plate-visual { min-height: 0; }
+.plate-days { grid-template-columns: repeat(8, 30px); gap: 5px; }
+.plate-day { height: 34px; }

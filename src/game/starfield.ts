@@ -1,4 +1,5 @@
 import { ANTE_NEBULAE, renderNebula } from '@/art/nebula';
+import { SkyDecor } from '@/art/sky-decor';
 
 interface Star {
   x: number;
@@ -32,10 +33,15 @@ export class Starfield {
   /** Купленное небо: одна палитра на весь забег вместо смены по созвездиям. */
   private theme: [number, number, number][] | null = null;
   private themeSeed = 0;
+  private themeId = 'night';
+  /** Созвездия и живой эффект купленного неба. */
+  private decor = new SkyDecor('night');
   private w = 0;
   private h = 0;
   private dpr = 1;
   private meteorTimer = 4;
+  /** Скорость смены туманности (доля в секунду); витрине примерки нужна быстрая. */
+  fadeRate = 0.5;
   parallaxX = 0;
   parallaxY = 0;
 
@@ -68,11 +74,13 @@ export class Starfield {
     if (!this.theme) this.crossfade();
   }
 
-  /** Тема неба из атласа; null — обычное небо по созвездиям. */
-  setTheme(palette: [number, number, number][] | null, seed = 0): void {
-    if (palette === this.theme) return;
+  /** Тема неба из атласа: палитра (null — обычное небо по созвездиям) и свои созвездия. */
+  setTheme(id: string, palette: [number, number, number][] | null, seed = 0): void {
+    if (id === this.themeId) return;
+    this.themeId = id;
     this.theme = palette;
     this.themeSeed = seed;
+    this.decor = new SkyDecor(id);
     if (this.w) this.crossfade();
   }
 
@@ -88,7 +96,8 @@ export class Starfield {
   }
 
   update(dt: number): void {
-    this.fade = Math.min(1, this.fade + dt * 0.5);
+    this.fade = Math.min(1, this.fade + dt * this.fadeRate);
+    this.decor.update(dt);
     this.meteorTimer -= dt;
     if (this.meteorTimer <= 0) {
       this.meteorTimer = 5 + Math.random() * 9;
@@ -119,6 +128,11 @@ export class Starfield {
     } else {
       ctx.fillStyle = '#05061a';
       ctx.fillRect(0, 0, w, h);
+    }
+    if (this.decor.active) {
+      ctx.globalAlpha = this.fade;
+      this.decor.draw(ctx, w, h, time);
+      ctx.globalAlpha = 1;
     }
     for (const s of this.stars) {
       const tw = 0.55 + 0.45 * Math.sin(time * s.speed + s.phase);

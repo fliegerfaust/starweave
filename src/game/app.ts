@@ -193,7 +193,7 @@ export class App {
     const back = this.canWear('back', this.settings.cardBack) ? this.settings.cardBack : 'classic';
     setCardBack(back);
     const sky = this.canWear('sky', this.settings.skyTheme) ? this.settings.skyTheme : 'night';
-    this.svc.starfield.setTheme(skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
+    this.svc.starfield.setTheme(sky, skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
   }
 
   /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
