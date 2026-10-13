@@ -1786,10 +1786,8 @@ body.landscape .hud-chapter { display: none; }
 .tut-gift { margin: 4px 0 16px; padding: 14px 12px 10px; border-radius: 16px; background: radial-gradient(120% 100% at 50% 0%, rgba(246, 194, 91, 0.18), rgba(246, 194, 91, 0.04)); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.35) inset; }
 .tut-gift-items { display: flex; justify-content: center; align-items: center; gap: 22px; }
 .tut-gift-item { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: rise-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.tut-gift-item:nth-child(2) { animation-delay: 0.12s; }
 .tut-gift-item .coin.big { width: 34px; height: 34px; }
 .tut-gift-n { font: 400 30px/1 var(--font-display); color: var(--gold); text-shadow: 0 0 14px rgba(246, 194, 91, 0.5); }
-.tut-gift-name { font-size: 13px; font-weight: 700; color: var(--ink); }
 .tut-gift-caption { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--gold); }
 .tut-memos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 18px; }
 .tut-memo { display: flex; flex-direction: column; align-items: center; gap: 8px; }

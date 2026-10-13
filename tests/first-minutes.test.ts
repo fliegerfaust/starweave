@@ -70,13 +70,11 @@ describe('коллекция созвездий', () => {
 });
 
 describe('подарок обучения', () => {
-  it('золото и Знамения переходят в первый забег, но не в вызов дня', () => {
-    const run = newRun({ seed: 5, gentle: true, gift: { gold: 9, omens: ['stardust', 'nope'] } });
+  it('золото переходит в первый забег, но не в вызов дня', () => {
+    const run = newRun({ seed: 5, gentle: true, gift: { gold: 9 } });
     expect(run.gold).toBe(9);
-    expect(run.omens.map((o) => o.id)).toEqual(['stardust']);
-    const capped = newRun({ seed: 5, gift: { gold: 99, omens: [] } });
-    expect(capped.gold).toBe(GIFT_GOLD_CAP);
-    const daily = newRun({ seed: 5, daily: true, dailyDate: '2026-10-14', gift: { gold: 11, omens: ['stardust'] } });
-    expect(daily.omens).toHaveLength(0);
+    expect(run.omens).toHaveLength(0);
+    expect(newRun({ seed: 5, gift: { gold: 99 } }).gold).toBe(GIFT_GOLD_CAP);
+    expect(newRun({ seed: 5, daily: true, dailyDate: '2026-10-14', gift: { gold: 9 } }).gold).toBe(4);
   });
 });
