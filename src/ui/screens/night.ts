@@ -216,7 +216,7 @@ export class NightScreen implements Screen {
         night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
         isRecord ? h('div.badge.record', null, t('over.newRecord')) : null,
         statsGrid(run),
-        this.app.platform.rewardedAvailable && canRevive(run)
+        canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable)
           ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
           : null,
         h('div.row.gap.center.wrap', null, [
@@ -254,14 +254,16 @@ export class NightScreen implements Screen {
 
   /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */
   private adButton(label: string, action: () => Promise<boolean>, variant: 'primary' | 'secondary' = 'secondary'): HTMLButtonElement {
-    const btn = button(`▶ ${label}`, async () => {
+    // С атласом «второй шанс» без ролика — кнопка без значка рекламы
+    const free = this.app.adFree && label === t('ads.revive');
+    const btn = button(free ? label : `▶ ${label}`, async () => {
       btn.disabled = true;
       const ok = await action();
       if (!ok) {
         btn.disabled = false;
         toast(t('ads.failed'), 'warn');
       }
-    }, { variant, sub: t('ads.watch'), className: 'ad-btn' });
+    }, { variant, sub: free ? t('ads.atlasFree') : t('ads.watch'), className: 'ad-btn' });
     return btn;
   }
 

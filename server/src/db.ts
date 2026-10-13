@@ -30,6 +30,16 @@ export function openDb(path: string): Db {
     CREATE INDEX IF NOT EXISTS events_name_ts ON events (name, ts);
     CREATE INDEX IF NOT EXISTS events_ts ON events (ts);
     CREATE INDEX IF NOT EXISTS events_client_ts ON events (client, ts);
+    -- Покупки за Telegram Stars: не удаляются вместе со старыми событиями — это деньги
+    CREATE TABLE IF NOT EXISTS purchases (
+      charge_id TEXT PRIMARY KEY,
+      user_id   INTEGER NOT NULL,
+      product   TEXT NOT NULL,
+      stars     INTEGER NOT NULL,
+      ts        INTEGER NOT NULL,
+      refunded  INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS purchases_user ON purchases (user_id);
   `);
   return db;
 }
