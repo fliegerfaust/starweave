@@ -29,6 +29,9 @@ export class Starfield {
   private prevNebula: HTMLCanvasElement | null = null;
   private fade = 1;
   private paletteIndex = 0;
+  /** Купленное небо: одна палитра на весь забег вместо смены по созвездиям. */
+  private theme: [number, number, number][] | null = null;
+  private themeSeed = 0;
   private w = 0;
   private h = 0;
   private dpr = 1;
@@ -42,7 +45,7 @@ export class Starfield {
     this.w = w;
     this.h = h;
     this.dpr = dpr;
-    this.nebula = renderNebula(w, h, 17 + this.paletteIndex, ANTE_NEBULAE[this.paletteIndex], dpr);
+    this.nebula = this.renderCurrent();
     this.prevNebula = null;
     if (sameSize) return;
     const count = Math.round((w * h) / 2600);
@@ -62,9 +65,26 @@ export class Starfield {
     const i = ((index % ANTE_NEBULAE.length) + ANTE_NEBULAE.length) % ANTE_NEBULAE.length;
     if (i === this.paletteIndex || !this.w) return;
     this.paletteIndex = i;
+    if (!this.theme) this.crossfade();
+  }
+
+  /** Тема неба из атласа; null — обычное небо по созвездиям. */
+  setTheme(palette: [number, number, number][] | null, seed = 0): void {
+    if (palette === this.theme) return;
+    this.theme = palette;
+    this.themeSeed = seed;
+    if (this.w) this.crossfade();
+  }
+
+  private crossfade(): void {
     this.prevNebula = this.nebula;
-    this.nebula = renderNebula(this.w, this.h, 17 + i, ANTE_NEBULAE[i], this.dpr);
+    this.nebula = this.renderCurrent();
     this.fade = 0;
+  }
+
+  private renderCurrent(): HTMLCanvasElement {
+    if (this.theme) return renderNebula(this.w, this.h, 101 + this.themeSeed, this.theme, this.dpr);
+    return renderNebula(this.w, this.h, 17 + this.paletteIndex, ANTE_NEBULAE[this.paletteIndex], this.dpr);
   }
 
   update(dt: number): void {

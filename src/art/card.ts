@@ -1,6 +1,7 @@
 import type { Card, Glyph, Suit } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
 import { glowDot, roundRect, sparklePath, suitPath } from './glyphs';
+import { DEFAULT_BACK, backStyle, type BackStyle } from './cosmetics';
 import { DISPLAY_FONT, SUIT_COLORS, rgba } from './palette';
 
 /** Пропорции карты: ширина / высота. */
@@ -386,9 +387,17 @@ export function drawGlyphBadge(ctx: CanvasRenderingContext2D, glyph: Glyph, x: n
   ctx.restore();
 }
 
-/** Рубашка: фиолетовая мандала из звёздных линий. */
-export function cardBack(w: number, scale: number): HTMLCanvasElement {
-  const key = `b:${w}:${scale}`;
+let activeBack = DEFAULT_BACK;
+
+/** Рубашка карт в игре (выбирается в атласе). */
+export function setCardBack(id: string): void {
+  activeBack = backStyle(id).id;
+}
+
+/** Рубашка: поле, узор стиля и золотая (или своя) рамка. */
+export function cardBack(w: number, scale: number, styleId = activeBack): HTMLCanvasElement {
+  const style = backStyle(styleId);
+  const key = `b:${style.id}:${w}:${scale}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const h = Math.round(w / CARD_ASPECT);
@@ -399,48 +408,188 @@ export function cardBack(w: number, scale: number): HTMLCanvasElement {
   ctx.translate(pad, pad);
   const r = w * 0.09;
   ctx.save();
-  ctx.shadowColor = 'rgba(160,120,255,0.4)';
+  ctx.shadowColor = style.glow;
   ctx.shadowBlur = w * 0.08;
   roundRect(ctx, 0, 0, w, h, r);
   const g = ctx.createLinearGradient(0, 0, w, h);
-  g.addColorStop(0, '#2a1a5e');
-  g.addColorStop(1, '#100b2c');
+  g.addColorStop(0, style.field[0]);
+  g.addColorStop(1, style.field[1]);
   ctx.fillStyle = g;
   ctx.fill();
   ctx.restore();
   ctx.save();
   roundRect(ctx, 0, 0, w, h, r);
   ctx.clip();
-  ctx.translate(w / 2, h / 2);
-  ctx.strokeStyle = 'rgba(246,194,91,0.45)';
-  ctx.lineWidth = Math.max(0.6, w * 0.008);
-  for (let ring = 1; ring <= 3; ring++) {
-    const rr = w * 0.13 * ring;
-    const n = 4 + ring * 2;
-    ctx.beginPath();
-    for (let i = 0; i <= n; i++) {
-      const a = (i / n) * Math.PI * 2 + ring * 0.3;
-      const p = [Math.cos(a) * rr, Math.sin(a) * rr];
-      if (i === 0) ctx.moveTo(p[0]!, p[1]!);
-      else ctx.lineTo(p[0]!, p[1]!);
-    }
-    ctx.stroke();
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + ring * 0.3;
-      glowDot(ctx, Math.cos(a) * rr, Math.sin(a) * rr, w * 0.012, 'rgba(246,194,91,0.9)', '#fff4d6');
-    }
-  }
-  ctx.fillStyle = 'rgba(246,194,91,0.85)';
-  sparklePath(ctx, 0, 0, w * 0.1, 4, 0.2);
-  ctx.fill();
+  BACK_PATTERNS[style.pattern](ctx, w, h, style.ink);
   ctx.restore();
   roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
   ctx.lineWidth = Math.max(1, w * 0.018);
-  ctx.strokeStyle = 'rgba(246,194,91,0.8)';
+  ctx.strokeStyle = `rgba(${style.ink},0.8)`;
   ctx.stroke();
   cache.set(key, canvas);
   return canvas;
 }
+
+type BackPattern = (ctx: CanvasRenderingContext2D, w: number, h: number, ink: string) => void;
+
+const BACK_PATTERNS: Record<BackStyle['pattern'], BackPattern> = {
+  /** Классика: мандала из трёх колец звёзд. */
+  mandala(ctx, w, h, ink) {
+    ctx.translate(w / 2, h / 2);
+    ctx.strokeStyle = `rgba(${ink},0.45)`;
+    ctx.lineWidth = Math.max(0.6, w * 0.008);
+    for (let ring = 1; ring <= 3; ring++) {
+      const rr = w * 0.13 * ring;
+      const n = 4 + ring * 2;
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2 + ring * 0.3;
+        const x = Math.cos(a) * rr;
+        const y = Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + ring * 0.3;
+        glowDot(ctx, Math.cos(a) * rr, Math.sin(a) * rr, w * 0.012, `rgba(${ink},0.9)`, '#fff4d6');
+      }
+    }
+    ctx.fillStyle = `rgba(${ink},0.85)`;
+    sparklePath(ctx, 0, 0, w * 0.1, 4, 0.2);
+    ctx.fill();
+  },
+
+  /** Астролябия: лимб с делениями, тимпан с альмукантаратами и стрелка-алидада. */
+  astrolabe(ctx, w, h, ink) {
+    ctx.translate(w / 2, h / 2);
+    const R = w * 0.4;
+    ctx.lineWidth = Math.max(0.6, w * 0.008);
+    ctx.strokeStyle = `rgba(${ink},0.7)`;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.86, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 72; i++) {
+      const a = (i / 72) * Math.PI * 2;
+      const len = i % 6 === 0 ? 0.14 : 0.07;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * R, Math.sin(a) * R);
+      ctx.lineTo(Math.cos(a) * R * (1 - len), Math.sin(a) * R * (1 - len));
+      ctx.stroke();
+    }
+    ctx.strokeStyle = `rgba(${ink},0.35)`;
+    for (let k = 1; k <= 4; k++) {
+      ctx.beginPath();
+      ctx.ellipse(0, R * 0.12 * k, R * (0.75 - k * 0.1), R * (0.55 - k * 0.09), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = `rgba(${ink},0.85)`;
+    ctx.lineWidth = Math.max(1, w * 0.014);
+    ctx.beginPath();
+    ctx.moveTo(-R * 0.95, R * 0.35);
+    ctx.lineTo(R * 0.95, -R * 0.35);
+    ctx.stroke();
+    glowDot(ctx, 0, 0, w * 0.02, `rgba(${ink},0.9)`, '#fff4d6');
+    // Звёзды-указатели рете и созвездие над и под лимбом
+    for (const [x, y] of [[-0.5, -0.4], [0.35, -0.55], [0.55, 0.3], [-0.3, 0.5], [0.05, -0.2]] as const) {
+      glowDot(ctx, x * R, y * R, w * 0.013, `rgba(${ink},0.9)`, '#ffffff');
+    }
+    ctx.fillStyle = `rgba(${ink},0.8)`;
+    ctx.beginPath();
+    sparklePath(ctx, 0, -h * 0.4, w * 0.05, 4, 0.25);
+    ctx.fill();
+    ctx.beginPath();
+    sparklePath(ctx, 0, h * 0.4, w * 0.05, 4, 0.25);
+    ctx.fill();
+  },
+
+  /** Меценат: золотое плетение — переплетённые нити, как в названии игры. */
+  weave(ctx, w, h, ink) {
+    ctx.lineWidth = Math.max(0.8, w * 0.012);
+    const step = w * 0.16;
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = -6; i <= 12; i++) {
+        ctx.strokeStyle = `rgba(${ink},${pass ? 0.5 : 0.28})`;
+        ctx.beginPath();
+        for (let y = -step; y <= h + step; y += step / 4) {
+          const x = i * step + Math.sin((y / step) * Math.PI + pass * Math.PI) * step * 0.35 + (pass ? y * 0.3 : -y * 0.3);
+          if (y === -step) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+    const cx = w / 2;
+    const cy = h / 2;
+    ctx.fillStyle = 'rgba(7,5,10,0.85)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, w * 0.17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(${ink},0.9)`;
+    ctx.stroke();
+    ctx.lineWidth = Math.max(0.6, w * 0.008);
+    ctx.beginPath();
+    ctx.arc(cx, cy, w * 0.13, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(${ink},0.95)`;
+    ctx.beginPath();
+    sparklePath(ctx, cx, cy, w * 0.11, 4, 0.18);
+    ctx.fill();
+    glowDot(ctx, cx, cy, w * 0.015, `rgba(${ink},0.9)`, '#ffffff');
+  },
+
+  /** Комета: ядро в правом верхнем углу и хвост через всё поле. */
+  comet(ctx, w, h, ink) {
+    const hx = w * 0.72;
+    const hy = h * 0.26;
+    for (let i = 0; i < 5; i++) {
+      const spread = (i - 2) * w * 0.05;
+      const g = ctx.createLinearGradient(hx, hy, w * 0.05, h * 0.95);
+      g.addColorStop(0, `rgba(${ink},${0.75 - Math.abs(i - 2) * 0.2})`);
+      g.addColorStop(1, `rgba(${ink},0)`);
+      ctx.strokeStyle = g;
+      ctx.lineWidth = Math.max(0.8, w * (0.03 - Math.abs(i - 2) * 0.008));
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.quadraticCurveTo(w * 0.45 + spread, h * 0.5, w * 0.08 + spread * 2, h * 0.95);
+      ctx.stroke();
+    }
+    glowDot(ctx, hx, hy, w * 0.045, `rgba(${ink},0.95)`, '#ffffff');
+    for (const [x, y] of [[0.2, 0.15], [0.85, 0.6], [0.6, 0.85], [0.3, 0.45], [0.88, 0.12]] as const) {
+      glowDot(ctx, x * w, y * h, w * 0.01, `rgba(${ink},0.8)`, '#ffffff');
+    }
+  },
+
+  /** Сияние: занавеси северного сияния — вертикальные лучи над волнистой кромкой. */
+  aurora(ctx, w, h, ink) {
+    const colors = [ink, '120,170,255', '200,130,255'];
+    colors.forEach((c, k) => {
+      const base = h * (0.42 + k * 0.17);
+      const rays = 22;
+      ctx.lineWidth = Math.max(0.8, w * 0.022);
+      for (let i = 0; i <= rays; i++) {
+        const x = (i / rays) * w;
+        const y = base + Math.sin((x / w) * Math.PI * 2.2 + k * 1.7) * h * 0.05;
+        const len = h * (0.16 + 0.08 * Math.sin(i * 1.3 + k));
+        const g = ctx.createLinearGradient(x, y, x, y - len);
+        g.addColorStop(0, `rgba(${c},${0.5 - k * 0.1})`);
+        g.addColorStop(1, `rgba(${c},0)`);
+        ctx.strokeStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x, y - len);
+        ctx.stroke();
+      }
+    });
+    ctx.fillStyle = `rgba(${ink},0.9)`;
+    ctx.beginPath();
+    sparklePath(ctx, w / 2, h * 0.16, w * 0.07, 4, 0.22);
+    ctx.fill();
+  },
+};
 
 function prismStroke(ctx: CanvasRenderingContext2D, w: number, h: number): CanvasGradient {
   const g = ctx.createLinearGradient(0, 0, w, h);
