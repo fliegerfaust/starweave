@@ -1040,6 +1040,19 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-bubble.on { display: block; }
 .tut-bubble.top { top: calc(10px + var(--safe-top)); }
 .tut-bubble.bottom { bottom: calc(10px + var(--safe-bottom)); }
+/* Картинка шага: суть видна без чтения — уменьшенные анимации справочника и карты игры */
+.tut-say { display: flex; align-items: center; gap: 12px; }
+.tut-say .tut-text { flex: 1; min-width: 0; }
+.tut-pic-wrap { flex: none; width: 100px; height: 75px; border-radius: 10px; overflow: hidden; }
+.tut-pic-wrap > .g-stage { transform: scale(0.893); transform-origin: top left; }
+.tut-pic-card, .tut-pic-hand { display: flex; gap: 4px; align-items: center; justify-content: center; }
+.tut-pic-card .card-thumb { animation: g-bob 2.4s ease-in-out infinite; }
+.tut-pic-target { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tut-pic-target b { font: 400 30px/1 var(--font-display); color: var(--gold); text-shadow: 0 0 12px rgba(246, 194, 91, 0.5); }
+.tut-pic-bar { width: 72px; height: 6px; border-radius: 3px; background: rgba(170, 160, 255, 0.2); overflow: hidden; position: relative; }
+.tut-pic-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--light), var(--gold)); transform-origin: left; animation: tut-fill 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+@keyframes tut-fill { 0% { transform: scaleX(0); } 70%, 100% { transform: scaleX(1); } }
+.tut-pic-q { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 800 22px/1 var(--font-body); color: var(--gold); background: rgba(40, 36, 100, 0.8); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.7) inset; animation: tut-glow 1.8s ease-in-out infinite; }
 .tut-bubble.pop { animation: bubble-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 .tut-bubble.top.pop { animation-name: bubble-in-top; }
 /* Появляется на месте: лёгкий сдвиг от края, у которого стоит, и проявление */
@@ -1765,3 +1778,22 @@ body.landscape .hud-chapter { display: none; }
   .logo-main { font-size: clamp(32px, 10vw, 48px); }
   .tagline { display: none; }
 }
+
+/* «Обучение пройдено»: подарок и памятки картинками — без чтения */
+.tut-done { text-align: center; }
+.tut-gift { margin: 4px 0 16px; padding: 14px 12px 10px; border-radius: 16px; background: radial-gradient(120% 100% at 50% 0%, rgba(246, 194, 91, 0.18), rgba(246, 194, 91, 0.04)); box-shadow: 0 0 0 1px rgba(246, 194, 91, 0.35) inset; }
+.tut-gift-items { display: flex; justify-content: center; align-items: center; gap: 22px; }
+.tut-gift-item { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: rise-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.tut-gift-item:nth-child(2) { animation-delay: 0.12s; }
+.tut-gift-item .coin.big { width: 34px; height: 34px; }
+.tut-gift-n { font: 400 30px/1 var(--font-display); color: var(--gold); text-shadow: 0 0 14px rgba(246, 194, 91, 0.5); }
+.tut-gift-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.tut-gift-caption { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--gold); }
+.tut-memos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 18px; }
+.tut-memo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tut-memo-pic { height: 74px; display: grid; place-items: center; }
+.tut-memo-caption { font-size: 13px; line-height: 1.3; font-weight: 600; color: var(--ink); }
+.tut-memo-cell { width: 50px; height: 72px; border-radius: 6px; border: 1.5px solid rgba(255, 214, 120, 0.8); background: rgba(30, 26, 80, 0.5); box-shadow: 0 0 14px rgba(246, 194, 91, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.tut-memo-x { font: 400 16px/1 var(--font-display); color: #ffd678; }
+.tut-memo-name { font: 700 11px/1 var(--font-body); color: var(--gold); }
+.tut-memo-chip { width: 13px; height: 18px; border-radius: 3px; border: 1px solid #c39bff; color: #eadcff; font: 400 12px/16px var(--font-display); }
