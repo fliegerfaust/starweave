@@ -1,4 +1,5 @@
-import { clearCardCache } from '@/art/card';
+import { clearCardCache, setCardBack } from '@/art/card';
+import { SKY_THEMES, isFreeCosmetic, skyTheme } from '@/art/cosmetics';
 import { clearSigilCache } from '@/art/sigil';
 import { RuleError } from '@/core/errors';
 import { burnCard, placeCard, startNight } from '@/core/night';
@@ -92,6 +93,9 @@ export class App {
     haptics.enabled = this.settings.haptics;
     renderer.adaptive = this.settings.quality !== 'max';
     this.svc = { world, renderer, tweens, audio, input, starfield, haptics };
+    this.applyCosmetics();
+    // Покупка или возврат меняют, что можно носить
+    this.purchases.onChange(() => this.applyCosmetics());
 
     setUiSound((s) => {
       audio.unlock();
@@ -179,6 +183,19 @@ export class App {
     return result;
   }
 
+  /** Можно ли носить предмет внешнего вида: бесплатный или куплен. */
+  canWear(slot: 'back' | 'sky', id: string): boolean {
+    return isFreeCosmetic(slot, id) || this.purchases.has(`${slot}:${id}`);
+  }
+
+  /** Выбранные рубашка и небо — если куплены, иначе обычные. */
+  applyCosmetics(): void {
+    const back = this.canWear('back', this.settings.cardBack) ? this.settings.cardBack : 'classic';
+    setCardBack(back);
+    const sky = this.canWear('sky', this.settings.skyTheme) ? this.settings.skyTheme : 'night';
+    this.svc.starfield.setTheme(skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
+  }
+
   /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
   get adFree(): boolean {
     return this.purchases.has('atlas');
@@ -207,6 +224,24 @@ export class App {
     const { MenuScreen } = await import('@/ui/screens/menu');
     this.svc.starfield.setPalette(0);
     this.showIf(token, () => new MenuScreen(this));
+  }
+
+  /** «Звёздный атлас»: что внутри, покупка, примерочная, поддержка. */
+  async goAtlas(from: string, focus?: string): Promise<void> {
+    this.platform.gameplayStop();
+    track('store_open', { from });
+    const token = ++this.navToken;
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    const { AtlasScreen } = await import('@/ui/screens/atlas');
+    this.showIf(token, () => new AtlasScreen(this, focus));
+  }
+
+  /** Архив вызовов дня (входит в атлас). */
+  async goArchive(): Promise<void> {
+    this.platform.gameplayStop();
+    const token = ++this.navToken;
+    const { ArchiveScreen } = await import('@/ui/screens/archive');
+    this.showIf(token, () => new ArchiveScreen(this));
   }
 
   /** Экран по фазе забега — единственное место, где решается «что показывать». */
@@ -575,6 +610,7 @@ export class App {
       if (!adaptive) this.svc.renderer.resetQuality();
     }
     if (langChanged) clearSigilCache();
+    this.applyCosmetics();
   }
 
   resetProgress(): void {
