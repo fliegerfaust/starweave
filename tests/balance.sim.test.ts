@@ -17,7 +17,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
     // это и есть сложность. ~0.5 — «прошёл не думая», ~0.85+ — на грани.
     const used: Record<string, number[]> = {};
     for (let seed = 1; seed <= runs; seed++) {
-      const run = newRun({ seed: seed * 7919, skyId: process.env.SIM_SKY ?? 'classic', gentle: !!process.env.SIM_GENTLE });
+      const run = newRun({ seed: seed * 7919, skyId: process.env.SIM_SKY ?? 'classic', gentle: !!process.env.SIM_GENTLE, gift: process.env.SIM_GIFT ? { gold: Number(process.env.SIM_GIFT), omens: ['stardust'] } : undefined });
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 60) {
         if (run.phase === 'map') startNight(run);

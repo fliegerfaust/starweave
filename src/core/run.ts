@@ -6,6 +6,8 @@ import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
 import { generateShop } from './shop';
+import { buildRules } from './rules';
+import { OMEN_LIST } from './content/omens';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
 export const SAVE_VERSION = 1;
@@ -19,14 +21,25 @@ export interface NewRunOptions {
   stake?: number;
   /** Первый забег новичка — щедрая первая ночь. */
   gentle?: boolean;
+  /** Что игрок заработал в обучении и забирает в первый забег. */
+  gift?: TutorialGift;
 }
+
+/** Итог обучения, который переходит в первый забег: золото и купленные Знамения. */
+export interface TutorialGift {
+  gold: number;
+  omens: string[];
+}
+
+/** Больше этого из обучения не переносится — подарок, а не преимущество. */
+export const GIFT_GOLD_CAP = 10;
 
 export function rollBoss(rng: RngState, ante: number, previous: readonly string[]): string {
   const pool = BOSS_LIST.filter((b) => b.minAnte <= ante && !previous.slice(-3).includes(b.id));
   return pick(rng, pool.length ? pool : BOSS_LIST).id;
 }
 
-export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false }: NewRunOptions): RunState {
+export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false, gift }: NewRunOptions): RunState {
   const sky = skyDef(skyId);
   const rng = createRng(seed);
   const { cards, nextId } = buildDeck(sky.deck, 1);
@@ -61,6 +74,13 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
   if (daily && archive) run.archive = true;
   // Вызов дня у всех одинаковый — подыгрывать нельзя
   if (gentle && !daily) run.gentle = true;
+  if (gift && !daily) {
+    run.gold = Math.max(run.gold, Math.min(GIFT_GOLD_CAP, gift.gold));
+    // Сохранение могло пережить обновление игры — неизвестные Знамения пропускаем
+    for (const id of gift.omens.filter((x) => OMEN_LIST.some((o) => o.id === x))) {
+      if (run.omens.length < buildRules(run, null).omenSlots && !run.omens.some((o) => o.id === id)) run.omens.push(createOmen(run, id));
+    }
+  }
   for (const id of sky.startOmens ?? []) run.omens.push(createOmen(run, id));
   return run;
 }
