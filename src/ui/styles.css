@@ -249,11 +249,12 @@ body {
   border: 1px solid rgba(246, 194, 91, 0.5);
   box-shadow: 0 0 40px rgba(246, 194, 91, 0.2);
   pointer-events: auto;
-  z-index: 30;
+  /* Ниже окон (20) нельзя — плашка над HUD; окна сами убирают плашку при открытии */
+  z-index: 18;
+  /* По умолчанию — над нижними кнопками экрана; на ночи её ставит над рукой код */
+  bottom: calc(84px + var(--safe-bottom));
   animation: toast-in 0.3s ease;
 }
-.coach-bottom { top: calc(var(--safe-top) + 6px); }
-.coach-top { top: calc(140px + var(--safe-top)); }
 .coach.out { opacity: 0; transition: opacity 0.2s; }
 .coach-icon { color: var(--gold); font-size: 22px; text-shadow: 0 0 12px var(--gold); }
 .coach-text { flex: 1; font-size: 14px; line-height: 1.4; }
