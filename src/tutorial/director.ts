@@ -6,6 +6,7 @@ import { t } from '@/i18n';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
+import { cardPic, stepPic } from './pictos';
 import { track } from '@/analytics';
 
 /** Что экраны сообщают режиссёру. */
@@ -152,7 +153,7 @@ export class TutorialDirector {
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
-    await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next') });
+    await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next'), pic: stepPic(key) });
   }
 
   private get night() {
@@ -180,7 +181,7 @@ export class TutorialDirector {
       if (from && !scene.busy) this.overlay.point(center(from), center(scene.cellRect(cell)));
     };
     this.reposition();
-    await this.overlay.say(t(`tut.${key}`), { place });
+    await this.overlay.say(t(`tut.${key}`), { place, pic: cardPic(code) });
     // Как только карта легла — убираем пузырь, чтобы он не закрывал подсчёт
     const watch = this.every(50, () => {
       if (scene.busy) {
@@ -232,7 +233,7 @@ export class TutorialDirector {
     this.mark('burn');
     this.overlay.spotlight(null);
     this.sync();
-    await this.overlay.say(t('tut.burn'), { place: 'top' });
+    await this.overlay.say(t('tut.burn'), { place: 'top', pic: stepPic('burn') });
     const burnBtn = this.hud!.burnBtn;
     const waitSelect = this.every(200, () => {
       this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
@@ -340,7 +341,7 @@ export class TutorialDirector {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
-        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') }),
+        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next'), pic: stepPic('watchFormula') }),
         new Promise<void>((resolve) => (this.releaseGate = resolve)),
       ]);
       this.releaseGate = null;
