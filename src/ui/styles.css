@@ -1043,7 +1043,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-progress { font-size: 11px; color: var(--ink-dim); }
 .tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
 .tut-actions .btn { margin-left: auto; }
-.tut-formula { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
 .tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
 .tut-finger {
