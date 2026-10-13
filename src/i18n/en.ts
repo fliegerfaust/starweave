@@ -428,12 +428,14 @@ export const en: Dict = {
     wanderer: ['Wanderer', '+3 moves, −1 burn'],
     abyss: ['Abyss', 'Ranks 1–7 (28 cards), +1 omen slot'],
     gilded: ['Gilded Sky', 'Start with 12 gold and the Miser'],
+    astrolabe: ['Astrolabe', 'One card with each of the six glyphs from the first night, no starting gold'],
   },
   unlock: {
     default: '',
     reachAnte: 'Reach constellation {n}',
     winRun: 'Win a run',
     linesTotal: 'Light {n} constellations across runs',
+    atlas: 'Part of the Star Atlas',
   },
   tutorial: {
     welcome: 'This is the sky. Place cards from your hand into its cells.',

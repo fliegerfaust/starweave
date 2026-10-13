@@ -30,6 +30,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
   const { cards, nextId } = buildDeck(sky.deck, 1);
   const bosses: string[] = [];
   for (let ante = 1; ante <= FINAL_ANTE; ante++) bosses.push(rollBoss(rng, ante, bosses));
+  sky.setupDeck?.(cards, rng);
 
   const run: RunState = {
     version: SAVE_VERSION,
