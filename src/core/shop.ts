@@ -28,17 +28,37 @@ function rollChart(run: RunState): ShopItem {
   return { kind: 'chart', combo, price: stakePrice(run, CHART_PRICE), sold: false };
 }
 
+/**
+ * Ритуалы, которые в лавку не выпадают: «Изгнание» делает то же, что постоянная услуга
+ * «Убрать карту», — два способа с разной ценой только путали (обзор 14.10.2026).
+ */
+const SERVICE_RITUALS = new Set(['banish']);
+
+/** Ритуалы, которые могут выпасть в лавке или пакете. */
+function shopRituals(run: RunState) {
+  return RITUAL_LIST.filter((r) => !SERVICE_RITUALS.has(r.id) && (r.available?.(run) ?? true));
+}
+
+/**
+ * Первая глава — без ритуалов и пакетов: новичку хватает Знамений и Звёздных карт,
+ * глифы и пакеты появляются со второй главы.
+ */
+export function isFirstChapter(run: RunState): boolean {
+  return run.ante <= 1 && !run.endless;
+}
+
 function rollItems(run: RunState, count: number): ShopItem[] {
   const items: ShopItem[] = [];
   const seen = new Set<string>();
+  const ritualsAllowed = !isFirstChapter(run);
   while (items.length < count) {
-    if (chance(run.rng, 0.45)) {
+    if (!ritualsAllowed || chance(run.rng, 0.45)) {
       const item = rollChart(run);
       if (item.kind === 'chart' && seen.has(item.combo)) continue;
       if (item.kind === 'chart') seen.add(item.combo);
       items.push(item);
     } else {
-      const pool = RITUAL_LIST.filter((r) => (r.available?.(run) ?? true) && !seen.has(r.id));
+      const pool = shopRituals(run).filter((r) => !seen.has(r.id));
       const def = pick(run.rng, pool);
       seen.add(def.id);
       items.push({ kind: 'ritual', ritualId: def.id, price: stakePrice(run, def.price), sold: false });
@@ -60,7 +80,7 @@ export function generateShop(run: RunState): ShopState {
   return {
     omens: rollOmens(run, SHOP_OMEN_SLOTS, owned),
     items: rollItems(run, SHOP_ITEM_SLOTS),
-    packs: rollPacks(run, SHOP_PACK_SLOTS),
+    packs: isFirstChapter(run) ? [] : rollPacks(run, SHOP_PACK_SLOTS),
     rerollCost: REROLL_BASE,
     openPack: null,
   };
@@ -76,7 +96,7 @@ function packOptions(run: RunState, pack: PackKind): string[] {
     const pool = COMBO_IDS.filter((c) => c !== 'scatter');
     return shuffleCopy(run, pool).slice(0, PACK_OPTIONS);
   }
-  const pool = RITUAL_LIST.filter((r) => r.available?.(run) ?? true).map((r) => r.id);
+  const pool = shopRituals(run).map((r) => r.id);
   return shuffleCopy(run, pool).slice(0, PACK_OPTIONS);
 }
 
