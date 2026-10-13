@@ -199,7 +199,7 @@ export class Hud {
   setScore(score: number, target: number, animate = true): void {
     const from = this.shownScore;
     this.shownScore = score;
-    this.bar.style.width = `${Math.min(100, (score / target) * 100)}%`;
+    this.bar.style.transform = `scaleX(${Math.min(1, score / target)})`;
     this.bar.classList.toggle('done', score >= target);
     cancelAnimationFrame(this.scoreAnim);
     if (!animate) {
