@@ -16,7 +16,7 @@ other players.
 ## 3. Purchases
 
 Purchases are processed by the platform you play on (Telegram Stars in Telegram), under its
-rules. The Star Atlas, the Supporter Pack and cosmetics unlock forever in the version of the Game
+rules. The Star Atlas, the Patron Pack and cosmetics unlock forever in the version of the Game
 where they were bought. Tips unlock nothing. Nothing on sale gives an advantage in records or the
 daily challenge.
 

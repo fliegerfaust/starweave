@@ -27,7 +27,8 @@ async function boot(page: Page, query = '?fakepay'): Promise<string[]> {
 }
 
 /** Снимок после всех анимаций (проявление экрана, табличка, тост). */
-const settle = (page: Page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'), null, { timeout: 8000 });
+// Бесконечные анимации (живое небо рисуется на канвасе, не CSS) не ждём — только конечные
+const settle = (page: Page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity), null, { timeout: 8000 });
 
 async function shot(page: Page, name: string): Promise<void> {
   await settle(page);
@@ -67,6 +68,26 @@ test('атлас: созвездие, покупка, примерочная', a
   await expect(page.locator('.offer-buy')).not.toHaveText(/…$/, { timeout: 8000 });
   await fits(page, '.atlas');
   await shot(page, '20-atlas');
+
+  // Примерочная: живая сцена, примерка комет и северного сияния
+  await page.click('.atlas-tab >> nth=1');
+  await page.waitForSelector('.look-stage canvas');
+  await page.click('.wardrobe-item:has-text("Комета")');
+  await page.click('.wardrobe-item:has-text("Северное сияние")');
+  await expect(page.locator('.look-btn')).toContainText('Купить');
+  await page.evaluate(() => document.querySelector('.atlas')!.scrollTo(0, 0));
+  await fits(page, '.atlas');
+  await page.waitForTimeout(1200);
+  await shot(page, '24-look');
+
+  // Поддержать: набор мецената
+  await page.click('.atlas-tab >> nth=2');
+  await page.waitForSelector('.patron-stage canvas');
+  await fits(page, '.atlas');
+  await page.waitForTimeout(1200);
+  await shot(page, '25-patron');
+  await page.click('.atlas-tab >> nth=0');
+  await page.waitForSelector('.atlas-chart');
 
   await page.click('.atlas-star:has-text("Астролябия")');
   await expect(page.locator('.atlas-plate')).toHaveAttribute('data-star', 'astrolabe');
