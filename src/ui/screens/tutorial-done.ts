@@ -1,13 +1,12 @@
 import { bossSigil } from '@/art/sigil';
 import type { App } from '@/game/app';
-import { named, t } from '@/i18n';
+import { t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { omenMedal } from '../hud';
 import { button, modal } from '../widgets';
 import { screenTitle } from './common';
 
 /**
- * Подарок из обучения картинкой: монета с числом и медали Знамений — читается без слов.
+ * Подарок из обучения картинкой: монета с числом — читается без слов.
  * Только если первый забег ещё впереди.
  */
 function giftRow(app: App): HTMLElement | null {
@@ -16,7 +15,6 @@ function giftRow(app: App): HTMLElement | null {
   return h('div.tut-gift', null, [
     h('div.tut-gift-items', null, [
       h('div.tut-gift-item', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b.tut-gift-n', null, String(gift.gold))]),
-      ...gift.omens.map((id) => h('div.tut-gift-item', null, [omenMedal(id, 48), h('span.tut-gift-name', null, named('omen', id).name)])),
     ]),
     h('div.tut-gift-caption', null, t('tut.giftCaption')),
   ]);
