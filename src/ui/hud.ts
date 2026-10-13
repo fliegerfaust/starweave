@@ -142,7 +142,8 @@ export class Hud {
   sync(run: RunState, opts: { score?: boolean } = {}): void {
     const night = run.night;
     const kind = night?.kind ?? 'dusk';
-    this.title.textContent = `${t('night.constellation', { n: run.ante })} · ${t(`night.${kind}`)}`;
+    // Глава — отдельным кусочком: в тесном заголовке (ландшафт) остаётся только ночь
+    this.title.replaceChildren(h('span.hud-chapter', null, `${t('night.constellation', { n: run.ante })} · `), t(`night.${kind}`));
     clear(this.bossBadge);
     if (night?.bossId) {
       const icon = canvasImg(bossSigil(night.bossId, 28, dpr()), 28);
