@@ -807,12 +807,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .fan-card, .menu-fan, .tut-spot.on::after { animation: none !important; }
-  .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery { animation-name: fade-in !important; }
+  .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery, .tut-bubble.pop { animation-name: fade-in !important; }
 }
 /* То же по настройке игры «Меньше тряски» — для тех, у кого не включено в системе */
 html.calm *, html.calm *::before, html.calm *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 html.calm .fan-card, html.calm .menu-fan, html.calm .tut-spot.on::after { animation: none !important; }
-html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate, html.calm .reward-row, html.calm .discovery { animation-name: fade-in !important; }
+html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate, html.calm .reward-row, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
@@ -1021,9 +1021,12 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 @keyframes tut-breathe { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
 .tut-bubble {
   position: fixed;
-  left: 50%;
+  /* Центр — полями, а не translateX(-50%): анимация появления меняет transform и
+     раньше на время анимации сбивала центровку — пузырь «выезжал» справа рывком */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: min(440px, calc(100vw - 20px));
-  transform: translateX(-50%);
   padding: 14px 16px 10px;
   border-radius: 18px;
   background: linear-gradient(160deg, rgba(64, 44, 150, 0.98), rgba(22, 18, 64, 0.98));
@@ -1037,7 +1040,11 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .tut-bubble.on { display: block; }
 .tut-bubble.top { top: calc(10px + var(--safe-top)); }
 .tut-bubble.bottom { bottom: calc(10px + var(--safe-bottom)); }
-.tut-bubble.pop { animation: pop-in 0.32s cubic-bezier(0.16, 1, 0.3, 1); }
+.tut-bubble.pop { animation: bubble-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.tut-bubble.top.pop { animation-name: bubble-in-top; }
+/* Появляется на месте: лёгкий сдвиг от края, у которого стоит, и проявление */
+@keyframes bubble-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes bubble-in-top { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
 .tut-bubble::before { content: '✦'; position: absolute; left: -9px; top: -11px; font-size: 22px; color: var(--gold); text-shadow: 0 0 12px var(--gold); }
 .tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .tut-progress { font-size: 11px; color: var(--ink-dim); }
