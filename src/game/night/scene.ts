@@ -949,7 +949,7 @@ export class NightScene {
       this.hud.setPreview(null);
       return;
     }
-    this.preview = previewPlacement(this.run, handIndex, cell);
+    this.preview = this.cachedPreview(handIndex, cell);
     if (!this.preview) {
       this.hud.setPreview(null);
       return;
@@ -988,6 +988,26 @@ export class NightScene {
    * нет — лучшее, что даст какая-нибудь карта руки. В «Тумане» ранги в руке скрыты,
    * поэтому прогноза нет.
    */
+  /** Прогнозы клеток на текущее состояние ночи: выбор карты не пересчитывает их заново. */
+  private forecastCache = new Map<string, PlacementPreview | null>();
+  private forecastState = '';
+  private forecastSeed = 0;
+
+  private cachedPreview(handIndex: number, cell: number): PlacementPreview | null {
+    // Новое состояние неба или руки — сбросить кэш; свой сид на состояние, чтобы случайные
+    // Знамения не меняли подсказку от выбора к выбору
+    const n = this.night;
+    const state = `${n.placements}|${n.burnsLeft}|${n.hand.map((c) => c.id).join(',')}|${n.grid.map((c) => c?.id ?? '').join(',')}`;
+    if (state !== this.forecastState) {
+      this.forecastState = state;
+      this.forecastCache.clear();
+      this.forecastSeed = (Math.random() * 2 ** 32) >>> 0;
+    }
+    const key = `${handIndex}:${cell}`;
+    if (!this.forecastCache.has(key)) this.forecastCache.set(key, previewPlacement(this.run, handIndex, cell, this.forecastSeed));
+    return this.forecastCache.get(key)!;
+  }
+
   refreshForecast(): void {
     const n = this.night;
     const picked = this.selected;
@@ -1001,7 +1021,7 @@ export class NightScene {
       let best: PlacementPreview | null = null;
       let bestIndex = -1;
       for (const i of indices) {
-        const p = previewPlacement(this.run, i, cell);
+        const p = this.cachedPreview(i, cell);
         if (p && (!best || p.total > best.total)) {
           best = p;
           bestIndex = i;

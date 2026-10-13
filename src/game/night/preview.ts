@@ -12,10 +12,10 @@ export interface PlacementPreview {
  * Проигрывает ход на копии забега и сообщает, что вспыхнет. Случайные эффекты
  * (Стекло, Игрок) на копии могут выпасть иначе — поэтому в UI «≈».
  */
-export function previewPlacement(run: RunState, handIndex: number, cell: number): PlacementPreview | null {
+export function previewPlacement(run: RunState, handIndex: number, cell: number, seed?: number): PlacementPreview | null {
   const sim = structuredClone(run);
   // Своя случайность: превью не должно подсказывать исход Стекла или Игрока
-  sim.rng.s = (Math.random() * 2 ** 32) >>> 0;
+  sim.rng.s = seed ?? (Math.random() * 2 ** 32) >>> 0;
   try {
     const events = placeCard(sim, handIndex, cell);
     const ignite = events.find((e) => e.t === 'ignite');
