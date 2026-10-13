@@ -27,12 +27,15 @@ export class NightScreen implements Screen {
   mount(root: HTMLElement): void {
     this.hud = new Hud({
       onMenu: () => this.pause(),
-      onGuide: (focus) => showHelp(focus, this.run.comboLevels),
+      onGuide: (focus) => this.guide(focus),
       onBurn: () => this.burn(),
       onDeck: () => showDeck(this.run),
     });
     this.hud.mount(root);
     this.hud.sync(this.run);
+    // Новичку «?» мягко пульсирует, пока он её не нажмёт: там все созвездия
+    const p = this.app.profile;
+    this.hud.setGuideAttention(!this.run.tutorial && p.runs < 3 && !p.tutorial.includes('guideSeen'));
     this.hud.setBurnEnabled(false);
 
     if (this.run.night) {
@@ -80,6 +83,18 @@ export class NightScreen implements Screen {
     }
     coach(this.app, 'place');
     coach(this.app, 'target');
+  }
+
+  /** «?»: посреди ночи нужнее всего созвездия; подпись о глифе ведёт в справочник. */
+  private guide(focus?: string): void {
+    if (focus) showHelp(focus, this.run.comboLevels);
+    else showCombos(this.run);
+    const p = this.app.profile;
+    if (!p.tutorial.includes('guideSeen')) {
+      p.tutorial.push('guideSeen');
+      this.app.persistProfile();
+    }
+    this.hud.setGuideAttention(false);
   }
 
   private burn(): void {
