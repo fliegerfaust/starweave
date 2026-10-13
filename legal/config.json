@@ -1,4 +1,5 @@
 {
-  "operator": "[УКАЖИТЕ ОПЕРАТОРА: ФИО самозанятого / ИП / название ООО]",
-  "email": "[УКАЖИТЕ АДРЕС ДЛЯ ВОПРОСОВ ПО ДАННЫМ]"
+  "operator": "Безик Денис Валерьевич, плательщик налога на профессиональный доход (самозанятый), ИНН 230910405420",
+  "operator_en": "Denis Valerievich Bezik, self-employed (professional income tax payer, Russia), INN 230910405420",
+  "email": "denis.bezik@gmail.com"
 }
