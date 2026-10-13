@@ -51,11 +51,14 @@ export const SKY_LIST: SkyDef[] = [
   },
   { id: 'gilded', deck: {}, startGold: 12, unlock: { kind: 'winRun' }, startOmens: ['miser'] },
   {
-    // Атлас: каждый глиф с первой ночи, но без стартового золота
+    // Атлас: каждый глиф с первой ночи, но без стартового золота и с одним сжиганием меньше
     id: 'astrolabe',
     deck: {},
     startGold: 0,
     unlock: { kind: 'atlas' },
+    modifyRules(rules) {
+      rules.burns -= 1;
+    },
     setupDeck(cards, rng) {
       const pool = [...cards];
       for (const glyph of GLYPHS) {
