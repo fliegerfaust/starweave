@@ -189,7 +189,7 @@ export class NightScreen implements Screen {
           button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
             m.close();
             this.app.abandonRun();
-          }), { variant: 'ghost' }),
+          }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
         ]),
       ],
       { title: t('pause.title'), className: 'narrow' },

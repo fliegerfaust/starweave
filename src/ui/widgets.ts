@@ -43,6 +43,41 @@ export interface ModalHandle {
   close(): void;
 }
 
+/** Открытые окна снизу вверх: Escape и Tab относятся только к верхнему. */
+const stack: { panel: HTMLElement; close: () => void; dismissable: boolean }[] = [];
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+
+window.addEventListener('keydown', (e) => {
+  // Окна, снятые со страницы целиком (переход между экранами), из стопки выбрасываем
+  for (let i = stack.length - 1; i >= 0; i--) if (!stack[i]!.panel.isConnected) stack.splice(i, 1);
+  const top = stack[stack.length - 1];
+  if (!top) return;
+  if (e.key === 'Escape') {
+    // Одно нажатие — одно окно, даже если открыто окно поверх окна
+    e.stopImmediatePropagation();
+    if (top.dismissable) top.close();
+  } else if (e.key === 'Tab') {
+    // Фокус не уходит за затемнение — по кругу внутри верхнего окна
+    const items = [...top.panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+    if (items.length === 0) {
+      e.preventDefault();
+      top.panel.focus();
+      return;
+    }
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+    const inside = top.panel.contains(document.activeElement);
+    if (e.shiftKey && (document.activeElement === first || !inside)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !inside)) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+});
+
 /** Модальное окно поверх всего. Закрывается по кнопке, фону (если разрешено) или Escape. */
 export function modal(
   content: Child | Child[],
@@ -76,22 +111,21 @@ export function modal(
     if (closed) return;
     closed = true;
     backdrop.classList.add('closing');
-    window.removeEventListener('keydown', onKey);
+    const i = stack.findIndex((m) => m.panel === panel);
+    if (i >= 0) stack.splice(i, 1);
     setTimeout(() => backdrop.remove(), 180);
-    // Фокус клавиатуры — туда, откуда окно открыли
-    if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+    // Фокус клавиатуры — туда, откуда окно открыли; если того уже нет — в окно ниже
+    if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus({ preventScroll: true });
+    else stack[stack.length - 1]?.panel.focus({ preventScroll: true });
     opts.onClose?.();
   };
   closeBtn?.addEventListener('click', () => {
     playSound('click');
     close();
   });
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && opts.dismissable !== false) close();
-  };
-  window.addEventListener('keydown', onKey);
+  stack.push({ panel, close, dismissable });
   backdrop.addEventListener('pointerdown', (e) => {
-    if (e.target === backdrop && opts.dismissable !== false) close();
+    if (e.target === backdrop && dismissable) close();
   });
   root.append(backdrop);
   panel.focus({ preventScroll: true });
@@ -99,13 +133,13 @@ export function modal(
   return { el: panel, close };
 }
 
-export function confirmDialog(text: string, onYes: () => void, variant: ButtonVariant = 'danger'): void {
+export function confirmDialog(text: string, onYes: () => void, variant: ButtonVariant = 'danger', labels?: { yes: string; no: string }): void {
   const m = modal(
     [
       h('p.modal-text', null, text),
       h('div.row.gap.end', null, [
-        button(t('confirm.no'), () => m.close(), { variant: 'secondary' }),
-        button(t('confirm.yes'), () => {
+        button(labels?.no ?? t('confirm.no'), () => m.close(), { variant: 'secondary' }),
+        button(labels?.yes ?? t('confirm.yes'), () => {
           m.close();
           onYes();
         }, { variant }),
@@ -121,14 +155,18 @@ let toastTimer = 0;
 export function toast(text: string, kind: 'info' | 'warn' = 'info'): void {
   const root = document.getElementById('ui')!;
   root.querySelector('.toast')?.remove();
-  const el = h(`div.toast.toast-${kind}`, null, text);
+  const el = h(`div.toast.toast-${kind}`, { attrs: { role: 'status', 'aria-live': 'polite' } }, text);
   root.append(el);
   if (kind === 'warn') playSound('deny');
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => {
+  // Сколько читать: ~60 мс на знак, но не меньше 2,2 с и не больше 7 с; касание закрывает раньше
+  const hide = () => {
+    window.clearTimeout(toastTimer);
     el.classList.add('out');
     setTimeout(() => el.remove(), 250);
-  }, 1800);
+  };
+  el.addEventListener('click', hide);
+  toastTimer = window.setTimeout(hide, Math.min(7000, Math.max(2200, text.length * 60)));
 }
 
 let activeTip: HTMLElement | null = null;
