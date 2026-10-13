@@ -216,7 +216,6 @@ export class TutorialDirector {
     this.overlay.hideBubble();
     await this.guidePlace('place4', '5c', TUTORIAL_CELLS.pairRow[3], 'top');
 
-    await this.say('formula', { extra: this.formulaCard() });
     await this.say('target', { spot: elementRect(document.querySelector('.hud-row.mid')) });
     await this.say('combos', { spot: elementRect(this.hud!.guideBtn) });
 
@@ -248,12 +247,17 @@ export class TutorialDirector {
     await this.say('prepare');
     this.overlay.hideBubble();
     scene.setStepPause(1);
-    for (const step of TUTORIAL_CELLS.crossSetup) {
+    // Почти всё раскладываем сами, последнюю карту подготовки кладёт игрок: крест он
+    // строит своими руками, а не смотрит со стороны
+    const setup = TUTORIAL_CELLS.crossSetup;
+    for (const step of setup.slice(0, -1)) {
       scene.setGuide(null);
       const index = this.app.run!.night!.hand.findIndex((c) => cardCode(c) === step.card);
       await scene.place(index, step.cell);
       scene.setGuide({});
     }
+    const last = setup[setup.length - 1]!;
+    await this.guidePlace('setupLast', last.card, last.cell, 'top');
     scene.setStepPause(2);
     await this.say('crossCell', { spot: scene.cellRect(TUTORIAL_CELLS.cross.cell) });
     this.overlay.hideBubble();
@@ -357,19 +361,6 @@ export class TutorialDirector {
 
   // ─── Наглядные вставки ─────────────────────────────────────────────────
 
-  /** (10 + 18) × 2 = 56 — с подписями. */
-  private formulaCard(): HTMLElement {
-    const box = (cls: string, value: string, label: string) => h(`div.mini-box.${cls}`, null, [h('b', null, value), h('span', null, label)]);
-    return h('div.tut-formula', null, [
-      h('div.mini-formula', null, [
-        box('light', '10 + 18', t('calc.light')),
-        h('span', null, '×'),
-        box('mult', '2', t('calc.mult')),
-        h('span', null, '='),
-        box('total', '56', t('calc.total')),
-      ]),
-      h('div.hint', null, t('tut.formulaNote')),
-    ]);
-  }
+
 
 }
