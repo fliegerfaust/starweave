@@ -1641,6 +1641,21 @@ button.archive-day:active { transform: scale(0.94); }
 }
 .modal-head:not(.bare)::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; background: linear-gradient(180deg, rgb(28, 24, 70), rgba(28, 24, 70, 0)); pointer-events: none; }
 .modal-head .modal-title { margin: 0; }
+.modal-head .head-extra { margin: 12px -44px 0; }
+.modal-head .head-extra .segmented.tabs { margin: 0; }
+.modal-head .head-extra .segmented.tabs .seg { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
+.modal-panel.sheet .modal-title { font-size: 24px; }
+
+/* Нижний лист: справка поверх ночи, доска над ним остаётся видна */
+.modal-backdrop.sheet { place-items: end center; padding-bottom: 0; background: rgba(3, 3, 14, 0.3); backdrop-filter: none; }
+.modal-panel.sheet {
+  max-height: min(64%, 640px);
+  border-radius: 22px 22px 0 0;
+  border-bottom: 0;
+  padding-bottom: calc(18px + var(--safe-bottom));
+  animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-head.bare { position: relative; top: 0; padding: 0; margin: 0; height: 0; background: none; }
 .modal-head.bare .modal-close { top: -18px; right: -16px; }
 /* Окно без заголовка: первый блок не залезает под крестик */

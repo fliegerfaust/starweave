@@ -7,10 +7,8 @@ import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenTooltip, bossTooltip } from '../hud';
 import { attachTooltip, button, modal } from '../widgets';
-import { comboList } from '../combos';
-import { collectedLine } from './common';
 
-type Tab = 'omens' | 'combos' | 'bosses' | 'stats';
+type Tab = 'omens' | 'bosses' | 'stats';
 
 /** Кодекс: открытые Знамения и Затмения, таблица созвездий, статистика. */
 export function showCodex(app: App): void {
@@ -31,9 +29,6 @@ export function showCodex(app: App): void {
         grid.append(cell);
       }
       body.replaceChildren(h('p.hint', null, t('codex.found', { n: p.seenOmens.length, total: OMEN_LIST.length })), grid);
-    } else if (tab === 'combos') {
-      const found = p.combosFound ?? [];
-      body.replaceChildren(h('p.hint', null, t('combos.hint')), collectedLine(found), comboList({ levels: app.run?.comboLevels, found }));
     } else if (tab === 'bosses') {
       const grid = h('div.codex-grid');
       for (const b of BOSS_LIST) {
@@ -68,7 +63,6 @@ export function showCodex(app: App): void {
   };
   const labels: [Tab, string][] = [
     ['omens', t('codex.omens')],
-    ['combos', t('codex.combos')],
     ['bosses', t('codex.bosses')],
     ['stats', t('codex.stats')],
   ];

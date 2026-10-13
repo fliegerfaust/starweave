@@ -73,7 +73,7 @@ export class MenuScreen implements Screen {
         app.profile.runs > 0 ? button(t('archive.menu'), () => void app.goArchive(), { variant: 'ghost' }) : null,
         app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { variant: 'ghost' }) : null,
         app.profile.runs > 0 ? button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }) : null,
-        button(t('menu.howTo'), () => showHelp(), { variant: 'ghost' }),
+        button(t('menu.howTo'), () => showHelp({ found: app.profile.combosFound }), { variant: 'ghost' }),
         button(t('menu.settings'), () => showSettings(app, () => this.rerender()), { variant: 'ghost' }),
       ]),
     ]);

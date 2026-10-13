@@ -13,7 +13,6 @@ import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenBadge, omenMedal, omenTooltip } from '../hud';
 import { rich } from '../rich';
-import { showScoringHelp } from './scoring-help';
 import { coach } from '../tutorial';
 import { attachTooltip, button, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
@@ -125,7 +124,7 @@ export class ShopScreen implements Screen {
       // Своё — внизу одной панелью: Знамения (порядок важен) и колода
       h('section.shop-section.inventory', null, [
         h('div.inventory-part', null, [
-          sectionHead(`${t('shop.yourOmens')} · ${run.omens.length}/${slots}`, t('scoring.button'), () => showScoringHelp()),
+          sectionHead(`${t('shop.yourOmens')} · ${run.omens.length}/${slots}`, t('scoring.button'), () => showHelp({ focus: 'order' })),
           owned,
           misordered
             ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
@@ -178,7 +177,7 @@ export class ShopScreen implements Screen {
       // Глиф: короткая анимация в справочнике и правило «один глиф на карту»
       if (item.ritualId.startsWith('glyph-')) {
         const glyph = item.ritualId.slice('glyph-'.length);
-        badge = h('button.link-btn', { type: 'button', onclick: () => showHelp(`glyph-${glyph}`) }, t('shop.glyphHow'));
+        badge = h('button.link-btn', { type: 'button', onclick: () => showHelp({ focus: `glyph-${glyph}` }) }, t('shop.glyphHow'));
       }
     }
     const affordable = run.gold >= item.price;
