@@ -62,6 +62,7 @@ export function modal(
     if (e.target === backdrop && opts.dismissable !== false) close();
   });
   root.append(backdrop);
+  document.dispatchEvent(new Event('starweave:modal'));
   return { el: panel, close };
 }
 

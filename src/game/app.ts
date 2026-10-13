@@ -18,6 +18,7 @@ import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settin
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
 import { hideTooltip, setUiSound, toast } from '@/ui/widgets';
+import { clearCoach } from '@/ui/tutorial';
 import { Drawable, Layer, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
@@ -555,6 +556,8 @@ export class App {
   /** Учебный забег не трогает сохранённый настоящий: тот вернётся после обучения. */
   startTutorial(source: 'offer' | 'menu' | 'retry' = 'menu'): void {
     track('tutorial_start', { source });
+    // Обучение ведёт сам режиссёр — плашки первых забегов ему мешают
+    clearCoach();
     this.tutorial?.stop();
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.run = newTutorialRun();
