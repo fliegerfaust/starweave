@@ -654,6 +654,13 @@ body {
 }
 .shop-item:nth-child(2) { animation-delay: 0.06s; }
 .shop-item.sold { opacity: 0.4; }
+/* После входа экран пересобирается на каждое действие — карточки не «въезжают» заново */
+.shop.settled .shop-item { animation: none; }
+.shop.settled .shop-item.fresh { animation: rise-in 0.35s ease both; }
+.shop.settled .shop-item.just-sold { animation: sold-out 0.4s ease both; }
+.owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.gold-pill.pop { animation: bump 0.35s ease; }
+@keyframes sold-out { from { opacity: 1; } to { opacity: 0.4; } }
 .shop-icon { flex: none; width: 72px; height: 72px; display: grid; place-items: center; }
 .shop-info { flex: 1; min-width: 0; }
 .shop-name { font: 400 20px/1.1 var(--font-display); }
@@ -762,7 +769,11 @@ body {
   justify-content: center;
 }
 .seg.on { color: #1a1206; background: var(--gold); }
-.segmented.tabs { margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; mask-image: linear-gradient(90deg, #000 85%, transparent); -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.segmented.tabs { margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; }
+/* Гаснет только край, за которым ещё есть вкладки (edgeFade) */
+.segmented.tabs.fade-end { mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
+.segmented.tabs.fade-start { mask-image: linear-gradient(90deg, transparent, #000 36px); -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px); }
+.segmented.tabs.fade-start.fade-end { mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
 .segmented.tabs .seg { flex: 1 0 auto; padding: 8px 9px; font-size: 13px; }
 .codex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
 .codex-cell { pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); cursor: help; }
@@ -822,12 +833,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .fan-card, .menu-fan, .tut-spot.on::after { animation: none !important; }
-  .modal-panel, .toast, .coach, .atlas-plate, .reward-row, .discovery, .tut-bubble.pop { animation-name: fade-in !important; }
+  .modal-panel, .toast, .coach, .atlas-plate.enter, .reward-row, .discovery, .tut-bubble.pop { animation-name: fade-in !important; }
 }
 /* То же по настройке игры «Меньше тряски» — для тех, у кого не включено в системе */
 html.calm *, html.calm *::before, html.calm *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 html.calm .fan-card, html.calm .menu-fan, html.calm .tut-spot.on::after { animation: none !important; }
-html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate, html.calm .reward-row, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
+html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate.enter, html.calm .reward-row, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
@@ -1348,8 +1359,8 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
   background: linear-gradient(180deg, rgb(var(--panel-head-rgb) / 0.9), rgba(14, 12, 40, 0.92));
   border: 1px solid rgb(var(--gold-rgb) / 0.28);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  animation: plate-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.atlas-plate.enter { animation: plate-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes plate-in { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
 .plate-visual { display: grid; place-items: center; min-width: 96px; min-height: 0; }
 .plate-name { margin: 0 0 6px; font: 400 24px/1.05 var(--font-display); color: #ffe2a3; letter-spacing: 0.02em; }
@@ -1523,7 +1534,7 @@ button.archive-day:active { transform: scale(0.94); }
 .archive-locked p { margin: 0 0 8px; font-size: 13px; color: var(--ink-dim); }
 
 @media (prefers-reduced-motion: reduce) {
-  .atlas-chart.igniting .atlas-lines line, .atlas-chart.igniting .atlas-star, .atlas-plate { animation: none; }
+  .atlas-chart.igniting .atlas-lines line, .atlas-chart.igniting .atlas-star, .atlas-plate.enter { animation: none; }
 }
 /* Узкий телефон: табличка в одну колонку */
 @media (max-width: 359px) {
@@ -1710,6 +1721,20 @@ button.archive-day:active { transform: scale(0.94); }
   animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Ландшафт и десктоп: небо в центре, снизу лист закрыл бы его половину — справка
+   выезжает слева во всю высоту, поверх колонки HUD; небо и рука остаются видны */
+body.landscape .modal-backdrop.sheet { place-items: stretch start; padding: 0; }
+body.landscape .modal-panel.sheet {
+  width: min(420px, 38vw);
+  max-height: none;
+  border-radius: 0 22px 22px 0;
+  border: 1px solid var(--line);
+  border-left: 0;
+  padding: 22px 20px calc(18px + var(--safe-bottom));
+  animation-name: sheet-side-in;
+}
+body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
+@keyframes sheet-side-in { from { transform: translateX(-40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-head.bare { position: relative; top: 0; padding: 0; margin: 0; height: 0; background: none; }
 .modal-head.bare .modal-close { top: -18px; right: -16px; }
 /* Окно без заголовка: первый блок не залезает под крестик */

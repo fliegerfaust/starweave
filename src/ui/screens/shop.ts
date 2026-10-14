@@ -33,8 +33,16 @@ function sectionHead(title: string, link?: string, onLink?: () => void): HTMLEle
   ]);
 }
 
+/** Что было на витрине в прошлую отрисовку: по разнице анимируем только изменившееся. */
+type ShopSnapshot = { gold: number; omenUids: Set<number>; offers: Map<string, { id: string; sold: boolean }> };
+
+function offerId(item: ShopItem): string {
+  return item.kind === 'omen' ? item.omenId : item.kind === 'chart' ? item.combo : item.kind === 'ritual' ? item.ritualId : item.pack;
+}
+
 export class ShopScreen implements Screen {
   private el!: HTMLElement;
+  private prev: ShopSnapshot | null = null;
 
   constructor(
     private readonly app: App,
@@ -81,14 +89,26 @@ export class ShopScreen implements Screen {
     if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
 
-    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`)));
-    const itemCards = h('div.shop-row', null, shop.items.map((item, i) => this.itemCard(item, () => this.buyItem(item, i))));
-    const packCards = h('div.shop-row', null, shop.packs.map((item, i) => this.itemCard(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy())));
+    // Экран пересобирается после каждого действия. Появление карточек играет только при входе,
+    // дальше двигается лишь то, что изменилось: купленное гаснет, новое после «Обновить» всплывает
+    const prev = this.prev;
+    this.el.classList.toggle('settled', prev !== null);
+    const offers = new Map<string, { id: string; sold: boolean }>();
+    const mark = (card: HTMLElement, key: string, item: ShopItem): HTMLElement => {
+      const was = prev?.offers.get(key);
+      offers.set(key, { id: offerId(item), sold: item.sold });
+      if (prev && (!was || was.id !== offerId(item))) card.classList.add('fresh');
+      else if (was && item.sold && !was.sold) card.classList.add('just-sold');
+      return card;
+    };
+    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => mark(tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item)));
+    const itemCards = h('div.shop-row', null, shop.items.map((item, i) => mark(this.itemCard(item, () => this.buyItem(item, i)), `item-${i}`, item)));
+    const packCards = h('div.shop-row', null, shop.packs.map((item, i) => mark(this.itemCard(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item)));
 
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
     run.omens.forEach((o, i) => {
       const medal = h('div.omen-slot.draggable', { dataset: { dragHandle: '' } }, [h('span.order-num', null, String(i + 1)), omenMedal(o.id, 52)]);
-      const chip = h('div.owned-omen', { dataset: { omen: String(i) } }, [
+      const chip = h(`div.owned-omen${prev && !prev.omenUids.has(o.uid) ? '.fresh' : ''}`, { dataset: { omen: String(i) } }, [
         medal,
         h('button.btn.btn-secondary.small.sell-btn', {
           type: 'button',
@@ -118,7 +138,7 @@ export class ShopScreen implements Screen {
       h('div.shop-top', null, [
         h('h1.shop-title', null, t('shop.title')),
         h('div.row.gap', null, [
-          h('div.gold-pill', null, String(run.gold)),
+          h(`div.gold-pill${prev && prev.gold !== run.gold ? '.pop' : ''}`, null, String(run.gold)),
           menuButton(() => showRunMenu(this.app, run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2 ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
         ]),
       ]),
@@ -149,6 +169,7 @@ export class ShopScreen implements Screen {
       ]),
     ];
     this.el.replaceChildren(...sections.filter((x): x is HTMLElement => x !== null));
+    this.prev = { gold: run.gold, omenUids: new Set(run.omens.map((o) => o.uid)), offers };
   }
 
   private itemCard(item: ShopItem, onBuy: () => void): HTMLElement {
