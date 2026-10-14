@@ -7,6 +7,8 @@ export interface PointerEventData {
   y: number;
   /** mouse | touch | pen */
   pointerType: string;
+  /** Нажатые кнопки (PointerEvent.buttons): у мыши 0 — ни одна не зажата. */
+  buttons: number;
 }
 
 /** Нормализует мышь и касания в поток событий с координатами в CSS-пикселях канваса. */
@@ -45,7 +47,7 @@ export class PointerInput {
     const rect = this.el.getBoundingClientRect();
     this.x = e.clientX - rect.left;
     this.y = e.clientY - rect.top;
-    const data = { kind, id: e.pointerId, x: this.x, y: this.y, pointerType: e.pointerType };
+    const data = { kind, id: e.pointerId, x: this.x, y: this.y, pointerType: e.pointerType, buttons: e.buttons };
     for (const fn of this.listeners) fn(data);
   }
 }
