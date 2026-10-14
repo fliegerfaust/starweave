@@ -22,8 +22,10 @@ export function rich(text: string): HTMLElement {
     const index = m.index ?? 0;
     if (index > last) out.append(text.slice(last, index));
     const group = m.slice(1).findIndex((g) => g !== undefined);
-    // Число не отрывается от своего слова при переносе: «+40 света», «×3»
-    out.append(h(`span.fx-pill.fx-${RULES[group]?.cls ?? 'light'}`, null, m[0].replace(/([+−-]?\d+(?:[.,]\d+)?)\s/g, '$1\u00a0')));
+    // Короткая плашка («+2 к множителю») не рвётся; длинная переносится, но число
+    // не отрывается от своего слова
+    const label = m[0].length <= 18 ? m[0].replace(/\s/g, '\u00a0') : m[0].replace(/([+−-]?\d+(?:[.,]\d+)?)\s/g, '$1\u00a0');
+    out.append(h(`span.fx-pill.fx-${RULES[group]?.cls ?? 'light'}`, null, label));
     last = index + m[0].length;
   }
   if (last < text.length) out.append(text.slice(last));
