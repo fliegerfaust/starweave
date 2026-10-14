@@ -79,6 +79,21 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+/**
+ * Полоса вкладок, которая может не влезть: край гаснет только там, куда есть что листать.
+ * Когда всё помещается, фейда нет — иначе крайняя вкладка выглядит недоступной.
+ */
+export function edgeFade(el: HTMLElement): HTMLElement {
+  const update = () => {
+    const more = el.scrollWidth - el.clientWidth > 1;
+    el.classList.toggle('fade-start', more && el.scrollLeft > 1);
+    el.classList.toggle('fade-end', more && el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+  el.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(el);
+  return el;
+}
+
 /** Модальное окно поверх всего. Закрывается по кнопке, фону (если разрешено) или Escape. */
 export function modal(
   content: Child | Child[],
