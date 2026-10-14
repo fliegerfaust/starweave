@@ -1762,6 +1762,12 @@ button.archive-day:active { transform: scale(0.94); }
 /* ─── Итоговые окна (аудит, пакет F) ──────────────────────────────────── */
 .over-short { margin: 4px 0 0; text-align: center; color: var(--mult); font-weight: 700; font-size: 15px; }
 .over-tip { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; background: rgb(var(--light-rgb) / 0.07); box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.2); font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: pretty; }
+/* Вызов друга: его итог и свой; золото — побил, розовый — друг впереди */
+.challenge-vs { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; text-align: center; font-size: 14px; line-height: 1.5; color: var(--ink-dim); background: rgb(var(--violet-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.3); }
+.challenge-vs-title { font: 400 20px/1.2 var(--font-display); color: var(--ink); margin-bottom: 4px; }
+.challenge-vs.beat { background: rgb(var(--gold-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
+.challenge-vs.beat .challenge-vs-title { color: var(--gold); }
+.challenge-vs.behind .challenge-vs-title { color: var(--mult); }
 .over.victory .over-sub { text-align: center; color: var(--ink-dim); margin: -6px 0 10px; }
 
 /* ─── Полировка (аудит, пакет G) ──────────────────────────────────────── */

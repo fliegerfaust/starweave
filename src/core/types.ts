@@ -234,6 +234,8 @@ export interface RunState {
   tutorial?: boolean;
   /** Первый забег новичка: первая ночь щедрая (см. `GENTLE_NIGHT`). */
   gentle?: boolean;
+  /** Забег по вызову друга: его итог, с которым сравниваем свой (см. `game/challenge.ts`). */
+  challenge?: { ante: number; best: number };
   /** Второй шанс уже использован в этом забеге. */
   revived?: boolean;
   /** В каком созвездии награду уже удваивали. */

@@ -4,6 +4,7 @@ import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
+import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from '@/game/challenge';
 import { COLLECTIBLE_COMBOS, dailyNumber, recordDiscoveries } from '@/meta/profile';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
@@ -285,13 +286,14 @@ export class NightScreen implements Screen {
         night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
         short ? h('p.over-short', null, t('over.short', { n: num(short) })) : null,
         isRecord ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+        this.challengeVersus(false),
         h('p.over-tip', null, lostTip(run)),
         statsGrid(run),
         canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable)
           ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
           : null,
         h('div.row.gap.center.wrap', null, [
-          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
+          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : this.challengeButton(false),
           button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
           // Тот же расклад: те же карты в том же порядке — понять, где можно было сыграть лучше.
           // Вызов дня и так один на всех, у него своё «ещё раз» из архива
@@ -318,9 +320,10 @@ export class NightScreen implements Screen {
         screenTitle(t('over.winTitle')),
         h('p.over-sub', null, t('over.winSub', { sky: named('sky', run.skyId).name, stake: (run.stake ?? 0) ? `✦${run.stake}` : t('menu.stakeNormal') })),
         run.stats.bestPlacement > this.app.bestBefore ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+        this.challengeVersus(true),
         statsGrid(run),
         h('div.row.gap.center.wrap', null, [
-          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : null,
+          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : this.challengeButton(true),
           button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
           button(t('over.endless'), () => {
             this.overlay?.close();
@@ -351,6 +354,43 @@ export class NightScreen implements Screen {
       }
     }, { variant, sub: free ? t('ads.atlasFree') : t('ads.watch'), className: 'ad-btn' });
     return btn;
+  }
+
+  /** Забег по вызову друга: кто кого — его итог и свой. */
+  private challengeVersus(won: boolean): HTMLElement | null {
+    const c = this.run.challenge;
+    if (!c) return null;
+    const ante = won ? 9 : this.run.ante;
+    const best = this.run.stats.bestPlacement;
+    const outcome = compareToChallenge(c, ante, best);
+    return h(`div.challenge-vs.${outcome > 0 ? 'beat' : outcome < 0 ? 'behind' : 'tie'}`, null, [
+      h('div.challenge-vs-title', null, t(outcome > 0 ? 'challenge.beat' : outcome < 0 ? 'challenge.behind' : 'challenge.tie')),
+      h('div', null, t('challenge.them', { score: challengeScore(c.ante, c.best) })),
+      h('div', null, t('challenge.you', { score: challengeScore(ante, best) })),
+    ]);
+  }
+
+  /** «Бросить вызов»: ссылка на тот же расклад со своим итогом. В вызове дня — обычное «Поделиться». */
+  private challengeButton(won: boolean): HTMLElement | null {
+    if (this.run.tutorial) return null;
+    return button(t(this.run.challenge ? 'challenge.answer' : 'challenge.send'), () => this.sendChallenge(won), {
+      variant: 'secondary',
+      sub: t('challenge.sendSub'),
+    });
+  }
+
+  private sendChallenge(won: boolean): void {
+    const c = challengeOf(this.run, won);
+    const param = encodeChallenge(c);
+    const text = t('challenge.shareText', { score: challengeScore(c.ante, c.best) });
+    track('challenge_share', { ante: c.ante, best: c.best, won });
+    if (this.app.platform.share?.(text, param)) return;
+    const url = `${location.origin}${location.pathname}?startapp=${param}`;
+    if (navigator.share) {
+      void navigator.share({ text, url }).catch(() => undefined);
+    } else {
+      void navigator.clipboard?.writeText(`${text}\n${url}`).then(() => toast(t('over.copied')));
+    }
   }
 
   private share(): void {

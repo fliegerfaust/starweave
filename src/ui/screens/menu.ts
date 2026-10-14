@@ -4,10 +4,12 @@ import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
+import { track } from '@/analytics';
 import { canvasImg, dpr, h } from '../dom';
 import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
 import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
+import { challengeScore, type Challenge } from '@/game/challenge';
 
 /** «13 октября» — как люди называют дату. */
 function humanDate(key: string): string {
@@ -37,6 +39,42 @@ export class MenuScreen implements Screen {
     this.el = h('div.menu');
     root.append(this.el);
     this.render();
+    const challenge = this.app.pendingChallenge;
+    if (challenge) {
+      this.app.pendingChallenge = null;
+      this.offerChallenge(challenge);
+    }
+  }
+
+  /** Открыли игру по ссылке друга: показать его итог и предложить тот же расклад. */
+  private offerChallenge(c: Challenge): void {
+    const app = this.app;
+    // Уже играем этот вызов (перезапуск Mini App с той же ссылкой) — не спрашиваем снова
+    if (app.hasSave && app.run?.challenge && app.run.seed === c.seed) return;
+    track('challenge_open', { ante: c.ante, best: c.best, fresh: app.profile.runs === 0 });
+    const sky = SKY_LIST.find((s) => s.id === c.skyId);
+    const locked = sky?.unlock.kind === 'atlas' && !app.purchases.has('atlas');
+    const stake = c.stake ? `✦${c.stake}` : t('menu.stakeNormal');
+    const m = modal(
+      [
+        h('p.modal-text', null, t('challenge.text', { score: challengeScore(c.ante, c.best) })),
+        h('p.hint', null, t('challenge.deck', { sky: named('sky', c.skyId).name, stake })),
+        locked ? h('p.hint', null, t('challenge.needAtlas')) : null,
+        h('div.row.between', null, [
+          button(t('challenge.later'), () => m.close(), { variant: 'ghost' }),
+          locked
+            ? button(t('challenge.openAtlas'), () => {
+                m.close();
+                void app.goAtlas('challenge');
+              })
+            : button(t('challenge.accept'), () => {
+                m.close();
+                this.guardSave(() => app.startChallenge(c));
+              }),
+        ]),
+      ],
+      { title: t('challenge.title'), className: 'narrow' },
+    );
   }
 
   unmount(): void {
