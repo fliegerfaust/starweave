@@ -48,6 +48,25 @@ async function crossMoment(page: Page): Promise<void> {
   await page.waitForSelector('.calc.show');
 }
 
+// Иконки и аватар бота — из `?icon` (src/dev/icon.ts): одна картинка на все размеры
+test('иконки', async ({ browser }) => {
+  mkdirSync(`${OUT}/telegram`, { recursive: true });
+  for (const [size, file, rounded] of [
+    [1024, `${OUT}/telegram/avatar-1024.png`, false],
+    [512, 'public/icons/icon-512.png', true],
+    [192, 'public/icons/icon-192.png', true],
+    [512, 'public/icons/maskable-512.png', false],
+    [180, 'public/icons/apple-touch-icon.png', false],
+    [64, 'public/favicon.png', true],
+  ] as const) {
+    const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
+    await page.goto(`/?icon${rounded ? '&rounded' : ''}`);
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: file, omitBackground: rounded });
+    await page.close();
+  }
+});
+
 for (const lang of ['ru', 'en'] as const) {
   test.describe(`витрина ${lang}`, () => {
     test(`обложки ${lang}`, async ({ browser }) => {

@@ -42,6 +42,11 @@ async function boot(): Promise<void> {
     showPromo(ui);
     return;
   }
+  if (params.has('icon')) {
+    const { showIcon } = await import('./dev/icon');
+    showIcon(ui, params.has('rounded'));
+    return;
+  }
   if (params.has('gallery')) {
     const { showGallery } = await import('./dev/gallery');
     showGallery(ui);
