@@ -29,10 +29,23 @@ export interface Stats {
   runs: { started: number; ended: number; victories: number; byResult: { result: string; count: number }[]; reach: { ante: number; runs: number }[] };
   /** movesLeft — сколько ходов в среднем оставалось у победивших: мера запаса, а не перебора. */
   nights: { ante: number; night: string; played: number; lost: number; movesLeft: number | null }[];
-  shop: { kind: string; id: string; count: number }[];
+  /** Покупки: итог по видам и самое популярное внутри каждого вида. */
+  shop: { byKind: { kind: string; count: number; players: number }[]; top: { kind: string; id: string; count: number; players: number }[] };
+  /** Первые минуты новичков (впервые пришли в этот период): сколько игроков дошли до шага. */
+  funnel: { step: string; players: number }[];
+  /** Рост: вызовы друзьям и метки источников (app_open.source). */
+  growth: {
+    shared: number;
+    sharers: number;
+    opened: number;
+    openedFresh: number;
+    accepted: number;
+    results: { beat: number; tie: number; behind: number };
+    sources: { source: string; players: number; fresh: number }[];
+  };
   help: { guide: number; scoring: number; banish: number; rerolls: number };
   ads: { kind: string; placement: string; requests: number; rewarded: number }[];
-  errors: { message: string; count: number; last: number }[];
+  errors: { message: string; where: string; count: number; last: number }[];
   perf: { platform: string; medianFps: number; samples: number }[];
   versions: { version: string; players: number }[];
 }
@@ -133,11 +146,56 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     from,
   ).map((r) => ({ ante: num(r.ante), night: String(r.night), played: num(r.played), lost: num(r.lost), movesLeft: r.moves === null ? null : num(r.moves) }));
 
-  const shop = all(
-    `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.id') AS id, COUNT(*) AS n
-     FROM events WHERE name = 'shop_buy' AND ts >= ? GROUP BY kind, id ORDER BY n DESC LIMIT 12`,
+  // Псевдоним не «id»: у таблицы своя колонка id, и SQLite группировал бы по ней — каждая
+  // покупка становилась отдельной строкой (дубли и случайный срез в сводке до 14.10.2026)
+  const shopRows = all(
+    `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.id') AS item, COUNT(*) AS n, COUNT(DISTINCT client) AS players
+     FROM events WHERE name = 'shop_buy' AND ts >= ? GROUP BY kind, item ORDER BY n DESC, players DESC`,
     from,
-  ).map((r) => ({ kind: String(r.kind), id: String(r.id), count: num(r.n) }));
+  ).map((r) => ({ kind: String(r.kind), id: String(r.item), count: num(r.n), players: num(r.players) }));
+  const byKind = all(
+    `SELECT json_extract(params, '$.kind') AS kind, COUNT(*) AS n, COUNT(DISTINCT client) AS players
+     FROM events WHERE name = 'shop_buy' AND ts >= ? GROUP BY kind ORDER BY n DESC`,
+    from,
+  ).map((r) => ({ kind: String(r.kind), count: num(r.n), players: num(r.players) }));
+  const perKind = new Map<string, number>();
+  const shop = {
+    byKind,
+    top: shopRows.filter((x) => {
+      const seen = perKind.get(x.kind) ?? 0;
+      perKind.set(x.kind, seen + 1);
+      return seen < 6;
+    }),
+  };
+
+  // Воронка новичков: только те, кто впервые пришёл в этот период
+  const fresh = `client IN (SELECT client FROM (${firstSeen}) WHERE first_day >= ${fromDay})`;
+  const reached = (where: string) => num(one(`SELECT COUNT(DISTINCT client) AS n FROM events WHERE ${fresh} AND (${where})`).n);
+  const funnel = [
+    { step: 'Открыли', players: reached(`name = 'app_open'`) },
+    { step: 'Начали обучение', players: reached(`name = 'tutorial_start'`) },
+    { step: 'Закончили обучение', players: reached(`name IN ('tutorial_complete', 'tutorial_skip')`) },
+    { step: 'Начали забег', players: reached(`name = 'run_start'`) },
+    { step: 'Прошли 1-ю ночь', players: reached(`name = 'night_end' AND json_extract(params, '$.won')`) },
+    { step: 'Дошли до 2-й главы', players: reached(`name = 'night_start' AND json_extract(params, '$.ante') >= 2`) },
+  ];
+
+  const outcome = (o: number) => num(one(`SELECT COUNT(*) AS n FROM events WHERE name = 'challenge_result' AND json_extract(params, '$.outcome') = ? AND ts >= ?`, o, from).n);
+  const growth = {
+    shared: count('challenge_share'),
+    sharers: players('challenge_share'),
+    opened: players('challenge_open'),
+    openedFresh: num(one(`SELECT COUNT(DISTINCT client) AS n FROM events WHERE name = 'challenge_open' AND json_extract(params, '$.fresh') AND ts >= ?`, from).n),
+    accepted: players('challenge_accept'),
+    results: { beat: outcome(1), tie: outcome(0), behind: outcome(-1) },
+    sources: all(
+      `SELECT json_extract(params, '$.source') AS source, COUNT(DISTINCT client) AS players,
+              COUNT(DISTINCT CASE WHEN ${fresh} THEN client END) AS fresh
+       FROM events WHERE name = 'app_open' AND json_extract(params, '$.source') IS NOT NULL AND ts >= ?
+       GROUP BY source ORDER BY players DESC LIMIT 12`,
+      from,
+    ).map((r) => ({ source: String(r.source), players: num(r.players), fresh: num(r.fresh) })),
+  };
 
   const help = { guide: count('guide_open'), scoring: count('scoring_help_open'), banish: count('shop_banish'), rerolls: count('shop_reroll') };
 
@@ -150,10 +208,10 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
   const errors = all(
-    `SELECT json_extract(params, '$.message') AS message, COUNT(*) AS n, MAX(ts) AS last
+    `SELECT json_extract(params, '$.message') AS message, MAX(json_extract(params, '$.where')) AS place, COUNT(*) AS n, MAX(ts) AS last
      FROM events WHERE name = 'js_error' AND ts >= ? GROUP BY message ORDER BY n DESC LIMIT 10`,
     from,
-  ).map((r) => ({ message: String(r.message), count: num(r.n), last: num(r.last) }));
+  ).map((r) => ({ message: String(r.message), where: r.place ? String(r.place) : '', count: num(r.n), last: num(r.last) }));
 
   const fpsRows = all(`SELECT platform, json_extract(params, '$.fps') AS fps FROM events WHERE name = 'perf' AND ts >= ?`, from);
   const fpsBy = new Map<string, number[]>();
@@ -169,7 +227,7 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     players: num(r.players),
   }));
 
-  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, help, ads, errors, perf, versions };
+  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
 }
 
 function median(list: number[]): number | null {
