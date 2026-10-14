@@ -36,7 +36,8 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 сторы и на порталы — в [docs/MONETIZATION.md](docs/MONETIZATION.md), план выхода в сторы, бэкенд и развитие — в
 [docs/ROADMAP.md](docs/ROADMAP.md), Telegram — [docs/TELEGRAM.md](docs/TELEGRAM.md), Яндекс —
 [docs/YANDEX.md](docs/YANDEX.md), аналитика — [docs/ANALYTICS.md](docs/ANALYTICS.md), аудит
-дизайна — [docs/DESIGN-AUDIT.md](docs/DESIGN-AUDIT.md), продукт для дизайна — [PRODUCT.md](PRODUCT.md).
+дизайна — [docs/DESIGN-AUDIT.md](docs/DESIGN-AUDIT.md), главная «Обсерватория» —
+[docs/HOME-OBSERVATORY.md](docs/HOME-OBSERVATORY.md), продукт для дизайна — [PRODUCT.md](PRODUCT.md).
 
 Отладочная витрина графики: `http://localhost:5173/?gallery`.
 
