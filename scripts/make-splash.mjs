@@ -1,7 +1,8 @@
 // Иконка загрузочного экрана Telegram Mini App: SVG 512×512 ровно с одним <path>
 // (требование @BotFather → Configure Splash Screen). Силуэт той же «пары карт», что и
 // иконка (src/dev/icon.ts): видимая часть задней карты, передняя карта со звездой-вырезом
-// и искры. Заливка «nonzero»: вырезы идут в обратную сторону обхода.
+// и искры. Заливка «nonzero»: вырезы идут в обратную сторону обхода. Только команды
+// M, L, C, Z — другие формат иконки Telegram не принимает.
 // Запуск: node scripts/make-splash.mjs → store/telegram/splash.svg
 import { mkdirSync, writeFileSync } from 'node:fs';
 
@@ -65,7 +66,12 @@ function star(x, y, r, waist = 0.2, reverse = false) {
     const i = reverse ? (4 - k) % 4 : k; // откуда
     const j = reverse ? (i + 3) % 4 : (i + 1) % 4; // куда
     const c = reverse ? ctrls[j] : ctrls[i];
-    d += `Q${f(c[0])} ${f(c[1])} ${f(tips[j][0])} ${f(tips[j][1])}`;
+    // Кубическая кривая вместо квадратичной: Telegram хранит иконку в формате векторных
+    // превью, а тот знает только M, L, C и Z (на Q BotFather отвечает «Unable to extract»)
+    const [p0, p2] = [tips[i], tips[j]];
+    const c1 = [p0[0] + ((c[0] - p0[0]) * 2) / 3, p0[1] + ((c[1] - p0[1]) * 2) / 3];
+    const c2 = [p2[0] + ((c[0] - p2[0]) * 2) / 3, p2[1] + ((c[1] - p2[1]) * 2) / 3];
+    d += `C${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${f(p2[0])} ${f(p2[1])}`;
   }
   return `${d}Z`;
 }
@@ -103,7 +109,7 @@ const sparks = [
 ];
 
 const d = [...pieces, poly(frontPts), ...holes, ...sparks].join('');
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}"><path fill="#F6B843" d="${d}"/></svg>\n`;
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}"><path d="${d}"/></svg>\n`;
 mkdirSync('store/telegram', { recursive: true });
 writeFileSync('store/telegram/splash.svg', svg);
 console.log(`store/telegram/splash.svg — ${svg.length} байт`);
