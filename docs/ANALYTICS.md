@@ -54,7 +54,7 @@
 | `purchase_result` | итог покупки | product, result: paid / cancelled / failed / unavailable | **конверсия** и сбои оплаты |
 | `guide_open` | справочник | focus — раздел или вкладка (combos, night, shop, glyphs) | какие термины непонятны; «Как считаются очки» теперь вкладка «Ночь» |
 | `perf` | через 30 с после запуска | fps, dpr, width, height | слабые устройства |
-| `js_error` | ошибка JavaScript | message | стабильность |
+| `js_error` | ошибка JavaScript | message, where (файл:строка:колонка; пусто — чужой скрипт без CORS) | стабильность; чужие скрипты Telegram грузятся с crossorigin, их ошибки видны полностью |
 
 ## Ключевые отчёты
 - **Воронка новичка:** app_open → tutorial_start → tutorial_step (по index) → tutorial_complete →
