@@ -80,6 +80,7 @@ function loadScript(src: string, timeoutMs = 0): Promise<void> {
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
   readonly rewardedAvailable = false;
+  readonly interstitialAvailable = false;
   payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];

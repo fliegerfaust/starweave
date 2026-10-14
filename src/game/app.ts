@@ -477,8 +477,9 @@ export class App {
     }
     this.persistProfile();
     this.save();
-    // Межстраничная реклама — только в паузе между созвездиями
-    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree) {
+    // Межстраничная реклама — только в паузе между созвездиями и только где она есть
+    // (раньше событие уходило и из Telegram, где рекламы нет: «32 показа» в сводке)
+    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree && this.platform.interstitialAvailable) {
       track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
       void this.platform.showInterstitial().then(() => this.route());
       return;
