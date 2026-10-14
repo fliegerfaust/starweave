@@ -5,7 +5,16 @@
  */
 export interface EventMap {
   /** Запуск игры. */
-  app_open: { platform: string; lang: string; returning: boolean };
+  app_open: { platform: string; lang: string; returning: boolean; source?: string; challenge?: boolean };
+
+  // ── Вызов другу ────────────────────────────────────────────────────────
+  /** Отправил вызов: на каком итоге. */
+  challenge_share: { ante: number; best: number; won: boolean };
+  /** Открыл игру по вызову и увидел окно вызова. */
+  challenge_open: { ante: number; best: number; fresh: boolean };
+  challenge_accept: { ante: number; best: number };
+  /** Доиграл забег по вызову: 1 — побил, 0 — ничья, −1 — нет. */
+  challenge_result: { ante: number; best: number; their_ante: number; their_best: number; outcome: number };
 
   // ── Воронка новичка ────────────────────────────────────────────────────
   tutorial_start: { source: 'offer' | 'menu' | 'retry' };
@@ -14,7 +23,7 @@ export interface EventMap {
   tutorial_complete: Record<string, never>;
 
   // ── Забег и ночи ───────────────────────────────────────────────────────
-  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean; gift?: boolean; replay?: boolean };
+  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean; gift?: boolean; replay?: boolean; challenge?: boolean };
   night_start: { ante: number; night: string; boss: string; gentle?: boolean };
   combo_found: { combo: string; count: number; ante: number };
   night_end: {

@@ -174,12 +174,18 @@ export class TelegramPlatform implements Platform {
     this.pauseListeners.push(fn);
   }
 
-  /** Поделиться через выбор чата Telegram: текст и ссылка на игру. */
-  share(text: string): boolean {
+  /** Поделиться через выбор чата Telegram: текст и ссылка на игру (с вызовом — если передан). */
+  share(text: string, startParam?: string): boolean {
     if (!this.app) return false;
-    const link = import.meta.env.VITE_TG_APP_LINK || location.origin + location.pathname;
+    const base = import.meta.env.VITE_TG_APP_LINK || location.origin + location.pathname;
+    const link = startParam ? `${base}?startapp=${startParam}` : base;
     this.app.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
     return true;
+  }
+
+  startParam(): string | null {
+    const params = new URLSearchParams(location.search);
+    return this.app?.initDataUnsafe.start_param || params.get('tgWebAppStartParam') || params.get('startapp');
   }
 
   private cloud(): TelegramWebApp['CloudStorage'] | null {

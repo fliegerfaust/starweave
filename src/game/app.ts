@@ -24,6 +24,7 @@ import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
+import { compareToChallenge, parseStartParam, type Challenge } from './challenge';
 import { forgetClientId, initAnalytics, measureFps, track } from '@/analytics';
 import type { Platform, PurchaseResult } from '@/platform';
 import { Entitlements } from '@/store/entitlements';
@@ -136,6 +137,8 @@ export class App {
   private adPlaying = false;
   /** Рекорд хода до записи итогов забега — окно итогов сравнивает с ним честно. */
   bestBefore = 0;
+  /** Вызов из ссылки, которым открыли игру: меню покажет его один раз. */
+  pendingChallenge: Challenge | null = null;
 
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
@@ -312,6 +315,22 @@ export class App {
     void this.route();
   }
 
+  /**
+   * Вызов друга: тот же сид, небо и звёздность, что были у него. Без щедрой первой ночи
+   * и без подарка обучения — иначе расклад другой и сравнивать нечестно. Подарок не тратится.
+   */
+  startChallenge(c: Challenge): void {
+    if (this.run?.tutorial) this.endTutorial();
+    if (this.hasSave && this.run) recordRunEnd(this.profile, this.run, false);
+    this.persistProfile();
+    this.run = newRun({ seed: c.seed, skyId: c.skyId, stake: c.stake });
+    this.run.challenge = { ante: c.ante, best: c.best };
+    track('challenge_accept', { ante: c.ante, best: c.best });
+    track('run_start', { sky: c.skyId, stake: c.stake, daily: false, challenge: true });
+    this.save();
+    void this.route();
+  }
+
   /** Вызов прошедшего дня из архива атласа: тот же сид, что был в тот день. */
   startArchive(date: string): void {
     if (this.run?.tutorial) this.endTutorial();
@@ -414,6 +433,11 @@ export class App {
       crosses: run.stats.crosses,
       omens: run.omens.map((o) => o.id).join(','),
     });
+    if (run.challenge && result !== 'abandon') {
+      const ante = result === 'victory' ? 9 : run.ante;
+      const c = run.challenge;
+      track('challenge_result', { ante, best: run.stats.bestPlacement, their_ante: c.ante, their_best: c.best, outcome: compareToChallenge(c, ante, run.stats.bestPlacement) });
+    }
   }
 
   collectReward(): void {
@@ -662,7 +686,16 @@ export async function startGame(platform: Platform): Promise<App> {
   await restoreFromCloud(platform);
   const app = new App(platform);
   (window as unknown as { starweave: App }).starweave = app;
-  track('app_open', { platform: platform.id, lang: app.settings.lang, returning: app.profile.runs > 0 || app.profile.tutorialDone });
+  // Ссылка с вызовом друга или с меткой рекламного источника (`startapp=src_<канал>`)
+  const start = parseStartParam(platform.startParam?.());
+  app.pendingChallenge = start.challenge ?? null;
+  track('app_open', {
+    platform: platform.id,
+    lang: app.settings.lang,
+    returning: app.profile.runs > 0 || app.profile.tutorialDone,
+    ...(start.source ? { source: start.source } : {}),
+    ...(start.challenge ? { challenge: true } : {}),
+  });
   app.start();
   // FPS меряем, когда игрок уже в игре, а не на загрузке
   window.setTimeout(() => measureFps(5), 30_000);

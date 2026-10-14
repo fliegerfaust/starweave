@@ -28,12 +28,16 @@
 
 | Событие | Когда | Параметры | Что смотрим |
 |---|---|---|---|
-| `app_open` | запуск | platform, lang, returning | аудитория, возвраты |
+| `app_open` | запуск | platform, lang, returning, source, challenge | аудитория, возвраты; source — метка из ссылки `startapp=src_<канал>` (рекламный источник, GR.7); challenge — открыли по вызову друга |
+| `challenge_share` | «Бросить вызов» / «Ответить вызовом» | ante, best, won | сколько вызовов отправляют и после каких забегов |
+| `challenge_open` | окно вызова при входе по ссылке | ante, best, fresh | fresh — новый игрок: **сколько людей приводит вызов** |
+| `challenge_accept` | вызов принят | ante, best | конверсия окна вызова |
+| `challenge_result` | забег по вызову закончен | ante, best, their_ante, their_best, outcome (1 / 0 / −1) | побеждают ли друзей; отвечают ли вызовом |
 | `tutorial_start` | начало обучения | source: offer / menu / retry | кто идёт в обучение |
 | `tutorial_step` | каждый шаг | step, index | **где бросают обучение** |
 | `tutorial_skip` | пропуск | step, index | на каком шаге пропускают |
 | `tutorial_complete` | конец обучения | — | конверсия обучения (цель ≥ 80%) |
-| `run_start` | новый забег | sky, stake, daily, archive, gentle, gift, replay | популярность колод и сложности; archive — вызов из архива; gentle — первый забег со щедрой ночью; gift — с золотом из обучения; replay — «Тот же расклад» после поражения |
+| `run_start` | новый забег | sky, stake, daily, archive, gentle, gift, replay, challenge | популярность колод и сложности; archive — вызов из архива; gentle — первый забег со щедрой ночью; gift — с золотом из обучения; replay — «Тот же расклад» после поражения; challenge — по вызову друга |
 | `night_start` | начало ночи | ante, night, boss, gentle | gentle — щедрая первая ночь новичка |
 | `night_end` | конец ночи | ante, night, boss, won, score, target, ratio, moves_left, burns_left, lines | **баланс целей**: ratio около 1 — на грани, сильно больше — слишком легко |
 | `combo_found` | созвездие собрано впервые (коллекция) | combo (или `cross`), count, ante | когда новички открывают созвездия; дошли ли до редких |
