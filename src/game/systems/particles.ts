@@ -65,6 +65,21 @@ export function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, t: Tran
       ctx.restore();
       break;
     }
+    case 'dust': {
+      // Облачко растёт и тает; поверх свечения не складывается — это пыль, а не свет
+      const k = p.life / p.maxLife;
+      const r = p.size * (1.4 - k * 0.6);
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = k * 0.9;
+      const g = ctx.createRadialGradient(t.x, t.y, 0, t.x, t.y, r);
+      g.addColorStop(0, p.color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(t.x - r, t.y - r, r * 2, r * 2);
+      ctx.restore();
+      break;
+    }
     case 'ring': {
       const k = 1 - p.life / p.maxLife;
       ctx.lineWidth = Math.max(0.5, 3 * (1 - k));

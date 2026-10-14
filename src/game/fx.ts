@@ -50,6 +50,52 @@ export function ring(world: GameWorld, x: number, y: number, color: string, size
   spawnParticle(world, x, y, { vx: 0, vy: 0, life, maxLife: life, drag: 0, gravity: 0, size, color, kind: 'ring', spin: 0 });
 }
 
+/** Пыль от приземления карты: облачка расходятся от её низа в стороны и медленно всплывают. */
+export function dustPuff(world: GameWorld, x: number, bottom: number, width: number, count = 30): void {
+  const n = Math.round(count * (world.res.reduceMotion ? 0.4 : 1));
+  const colors = ['rgba(200,214,255,0.75)', 'rgba(255,232,190,0.7)', 'rgba(230,228,250,0.65)'];
+  for (let i = 0; i < n; i++) {
+    const side = i % 2 ? 1 : -1;
+    const a = (side > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 1.1;
+    const v = 90 + Math.random() * 190;
+    const life = 0.9 + Math.random() * 0.6;
+    spawnParticle(world, x + (Math.random() - 0.5) * width * 0.9, bottom - 8 - Math.random() * 10, {
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.3 - 25,
+      life,
+      maxLife: life,
+      drag: 3,
+      gravity: -45,
+      size: 9 + Math.random() * 11,
+      color: colors[i % colors.length]!,
+      kind: 'dust',
+      spin: 0,
+    });
+  }
+}
+
+/** Короткая белая вспышка на месте клетки — момент удара. */
+export function cellFlash(world: GameWorld, x: number, y: number, w: number, h: number): void {
+  const e = world.create();
+  const t = world.add(e, Transform, transform(x, y, { alpha: 1 }));
+  world.add(e, Drawable, {
+    layer: Layer.Effects,
+    z: 1,
+    visible: true,
+    draw(ctx, tr) {
+      const r = Math.max(w, h) * 0.75;
+      const g = ctx.createRadialGradient(tr.x, tr.y, 0, tr.x, tr.y, r);
+      g.addColorStop(0, `rgba(255,255,255,${0.75 * tr.alpha})`);
+      g.addColorStop(0.55, `rgba(255,230,170,${0.25 * tr.alpha})`);
+      g.addColorStop(1, 'rgba(255,230,170,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(tr.x - r, tr.y - r, r * 2, r * 2);
+    },
+  });
+  world.add(e, Lifetime, { left: 0.45 / world.res.speed });
+  void world.res.tweens.to(t, { alpha: 0 }, { duration: 0.42 / world.res.speed, ease: 'outCubic' });
+}
+
 export function shake(world: GameWorld, amount: number): void {
   world.res.camera.trauma = Math.min(1, world.res.camera.trauma + amount);
 }
@@ -84,8 +130,8 @@ export function floatText(world: GameWorld, x: number, y: number, text: string, 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round';
-      ctx.lineWidth = size * 0.22;
-      ctx.strokeStyle = 'rgba(5,4,20,0.85)';
+      ctx.lineWidth = size * 0.34;
+      ctx.strokeStyle = 'rgba(4,3,16,0.92)';
       ctx.strokeText(text, 0, 0);
       ctx.shadowColor = opts.color ?? '#fff';
       ctx.shadowBlur = size * 0.5;
