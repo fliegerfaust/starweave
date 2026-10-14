@@ -102,10 +102,13 @@ gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
    `store/screens/ru/portrait-2-cross.png` (крест — главный «вау»), `portrait-3-shop.png`,
    `portrait-4-map.png`, `portrait-1-menu.png`. Для английского языка — те же из
    `store/screens/en/`. Первым лучше поставить видео (шаг 3).
-3. **Видео 15–30 секунд.** Проще всего — запись экрана iPhone прямо в Telegram: Пункт
-   управления → Запись экрана → открыть игру → выложить 3–4 карты так, чтобы вспыхнула
-   линия (лучше крест) и прошёл подсчёт. Обрезать начало и конец в Фото. Без звука —
-   превью и так смотрят без него.
+3. **Видео** — готово: `store/telegram/preview-ru.mp4` (25 с) и `preview-en.mp4` (22 с),
+   1080×1920. Сценарий — режим `?demo` (`src/dev/demo.ts`, только в разработке): середина
+   забега, пять Знамений, «Каскад», затем крест «Флеш + Тройка» с «Цепь ×3» и победа в ночи.
+   Пересоздать: `npm run dev`, затем в iOS-симуляторе
+   `xcrun simctl io booted recordVideo --codec=h264 demo.mov` и открыть
+   `http://localhost:5173/?demo` (`&lang=en` — английский); обрезать начало и панели Safari:
+   `ffmpeg -ss 2.2 -to 27.5 -i demo.mov -vf "crop=1206:2144:0:180,scale=1080:1920,fps=30,format=yuv420p" -c:v libx264 -crf 20 -an preview-ru.mp4`.
 4. **Тексты бота** (`/setdescription` — то, что видно до старта, `/setabouttext` — профиль;
    BotFather спросит язык — заполнить ru и en):
    - Описание ru: `Звёздное плетение — карточная головоломка о созвездиях. Выкладывай

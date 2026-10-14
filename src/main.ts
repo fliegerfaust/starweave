@@ -52,10 +52,22 @@ async function boot(): Promise<void> {
     showGallery(ui);
     return;
   }
+  // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
+  const demo = import.meta.env.DEV && params.has('demo');
+  if (demo) {
+    localStorage.setItem('starweave.profile.v1', JSON.stringify({ version: 1, tutorialDone: true, runs: 12 }));
+    localStorage.removeItem('starweave.run.v1');
+    const lang = params.get('lang');
+    if (lang === 'en' || lang === 'ru') {
+      const settings = JSON.parse(localStorage.getItem('starweave.settings.v1') ?? '{}') as Record<string, unknown>;
+      localStorage.setItem('starweave.settings.v1', JSON.stringify({ ...settings, lang }));
+    }
+  }
   const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
   const platform = await createPlatform();
   await platform.init();
   const app = await startGame(platform);
+  if (demo) void import('./dev/demo').then(({ runDemo }) => runDemo(app));
   if (params.has('debug')) void import('./dev/diag').then(({ showDiagnostics }) => showDiagnostics(app));
 }
 
