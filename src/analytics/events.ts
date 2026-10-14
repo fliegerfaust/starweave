@@ -62,7 +62,8 @@ export interface EventMap {
 
   // ── Техника ────────────────────────────────────────────────────────────
   perf: { fps: number; dpr: number; width: number; height: number };
-  js_error: { message: string };
+  /** where — файл:строка:колонка; пусто у «Script error.» (чужой скрипт без CORS). */
+  js_error: { message: string; where: string };
 }
 
 export type EventName = keyof EventMap;
