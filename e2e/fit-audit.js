@@ -8,6 +8,11 @@
 // Возвращает список проблем — пустой список значит «всё внутри».
 (() => {
   const out = [];
+  // Мерить конечное положение, а не середину перехода: выключаем переходы на время замера
+  const freeze = document.createElement('style');
+  freeze.textContent = '*, *::before, *::after { transition: none !important; }';
+  document.head.append(freeze);
+  document.body.offsetWidth;
   const vw = innerWidth, vh = innerHeight;
   const boxy = (el) => {
     const s = getComputedStyle(el);
@@ -32,5 +37,6 @@
     if (r.left < pr.left + padL - 1 || r.right > pr.right - padR + 1 || r.top < pr.top - 1 || r.bottom > pr.bottom + 1)
       out.push(`вылезает: ${name(el)} «${el.textContent.trim().slice(0, 24)}» из ${name(p)} (${Math.round(r.right - pr.right)}px справа)`);
   }
+  freeze.remove();
   return [...new Set(out)];
 })();
