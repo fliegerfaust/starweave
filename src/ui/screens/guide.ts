@@ -2,7 +2,7 @@ import { chartIcon, omenSigil, ritualIcon, bossSigil } from '@/art/sigil';
 import { GLYPHS, type Card, type ComboId, type Glyph } from '@/core/types';
 import { dict, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { modal } from '../widgets';
+import { edgeFade, modal } from '../widgets';
 import { track } from '@/analytics';
 import { cardThumb, collectedLine } from './common';
 import { rich } from '../rich';
@@ -146,7 +146,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     glyphs: () => [h('p.hint', null, g.glyphs[1]), ...GLYPHS.map((gl) => entry(t(`glyph.${gl}`), dict().glyphDesc[gl], glyphDemo(gl), `glyph-${gl}`))],
   };
   const body = h('div.g-list');
-  const tabs = h('div.segmented.tabs', { attrs: { role: 'tablist' } });
+  const tabs = edgeFade(h('div.segmented.tabs', { attrs: { role: 'tablist' } }));
   const show = (tab: GuideTab) => {
     tabs.querySelectorAll<HTMLElement>('.seg').forEach((el) => {
       const on = el.dataset.tab === tab;
