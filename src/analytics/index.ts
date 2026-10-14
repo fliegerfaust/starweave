@@ -66,7 +66,11 @@ export function initAnalytics(platform = 'web'): void {
   if (eventsUrl) sinks.push(new ServerSink(eventsUrl, platform, __APP_VERSION__));
   for (const sink of sinks) sink.init?.();
   for (const [name, params] of queue.splice(0)) for (const sink of sinks) sink.send(name, params);
-  window.addEventListener('error', (e) => track('js_error', { message: String(e.message).slice(0, 200) }));
+  window.addEventListener('error', (e) => {
+    // Где: наш файл (путь без адреса сайта) или чужой скрипт (адрес) — строка и колонка
+    const file = e.filename ? e.filename.replace(location.origin, '') : '';
+    track('js_error', { message: String(e.message).slice(0, 200), where: file ? `${file}:${e.lineno}:${e.colno}`.slice(0, 160) : '' });
+  });
 }
 
 /** Отправить событие. Аналитика никогда не роняет игру. */
