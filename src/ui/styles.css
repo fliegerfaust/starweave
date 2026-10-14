@@ -273,7 +273,10 @@ body {
   .coach-icon { font-size: 18px; }
 }
 
-/* ─── HUD ночи ────────────────────────────────────────────────────────── */
+/* ─── HUD ночи: «Рама» (RD.1) ────────────────────────────────────────── */
+/* Всё о ночи — в одной латунной раме: табличка главы между меню и справкой, правило
+   Затмения, счёт с полосой, ходы и сжигания, ряд Знамений и золото. Подсчёт — лоток над
+   рукой (на ПК и в ландшафте — в колонке под рамой). Язык — DESIGN.md, «Латунные рёбра». */
 
 .hud {
   animation: fade-in 0.4s ease;
@@ -283,42 +286,65 @@ body {
   transform: translateX(-50%);
   width: min(620px, 100%);
   padding: calc(8px + var(--safe-top)) 12px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
   pointer-events: none;
 }
+.hud-frame {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-radius: 18px;
+  background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.06), transparent 60%), rgb(14 12 38 / 0.84);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18);
+}
 .hud-row { display: flex; align-items: center; gap: 10px; }
-.hud-row.top { height: 40px; }
-.hud-title-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.hud-row.top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  padding-bottom: 9px;
+  /* Подоконник: светящаяся линия под табличкой, как кромка щели купола на главной */
+  background: radial-gradient(50% 1.5px at 50% 100%, rgb(255 230 168 / 0.6), transparent) bottom / 100% 2px no-repeat;
+}
+.hud .icon-btn.medal {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgb(var(--violet-rgb) / 0.12), rgb(8 7 26 / 0.6));
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3);
+}
+.hud-title-wrap { min-width: 0; display: flex; justify-content: center; }
 .hud-title {
-  font: 400 19px/1 var(--font-display);
-  letter-spacing: 0.03em;
+  font: 400 13px/1 var(--font-display);
+  letter-spacing: 0.2em;
+  padding-left: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-hi, #ffe6a8);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 0 1 auto;
   min-width: 0;
 }
+/* Правило Затмения — одной строкой с сигилом; касание открывает подробности */
+.hud-rule:empty { display: none; }
+.hud-rule { display: flex; justify-content: center; min-width: 0; margin-top: -2px; }
 .boss-chip {
   pointer-events: auto;
   appearance: none;
-  font-family: inherit;
-  cursor: pointer;
-  position: relative;
+  border: 0;
+  background: none;
+  font: 600 12.5px/1.3 var(--font-body);
+  color: #eee2cd;
+  cursor: help;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 10px 2px 2px;
-  border-radius: 999px;
-  background: rgba(80, 10, 30, 0.6);
-  border: 1px solid rgb(var(--danger-rgb) / 0.45);
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffc3cf;
-  white-space: nowrap;
-  cursor: help;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  text-align: left;
 }
+.boss-chip canvas { flex: none; }
+.boss-chip-name { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-wrap: balance; }
 .hud-gold, .gold-pill {
   pointer-events: auto;
   display: inline-flex;
@@ -339,122 +365,142 @@ body {
   background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b);
   box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.7);
 }
+.hud .hud-gold { flex: none; margin-left: auto; padding: 5px 11px 5px 7px; font-size: 15px; color: #ffe6a8; background: rgb(14 12 34 / 0.7); border-color: rgb(var(--gold-rgb) / 0.3); }
 .hud-gold.pop { animation: bump 0.35s ease; }
-.hud-row.mid {
-  padding: 8px 12px;
-  border-radius: 16px;
-  background: rgba(14, 12, 42, 0.72);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(6px);
-}
-.hud-score-wrap { flex: 1; min-width: 0; }
+.hud-row.mid { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: end; }
+.hud-score-wrap { min-width: 0; }
+.hud-score-wrap .row.baseline { align-items: baseline; gap: 6px; flex-wrap: nowrap; }
 .hud-score {
-  font: 400 32px/1 var(--font-display);
-  color: #fff;
-  text-shadow: 0 0 18px rgb(var(--light-rgb) / 0.55);
+  display: inline-block;
+  font: 800 34px/1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  transform-origin: 30% 70%;
 }
-.hud-score.pop { animation: bump 0.4s ease; }
-.hud-target { color: var(--ink-dim); font: 400 18px/1 var(--font-display); }
-.hud-bar { height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); margin-top: 6px; overflow: hidden; }
+.hud-score.pop { animation: score-bump 0.55s cubic-bezier(0.2, 1.8, 0.4, 1); }
+@keyframes score-bump { 30% { transform: scale(1.3); color: #fff6d8; text-shadow: 0 0 22px rgb(var(--gold-rgb)); } }
+.hud-target { color: var(--ink-dim); font: 600 14px/1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hud-bar { height: 5px; border-radius: 3px; background: rgb(var(--violet-rgb) / 0.14); margin-top: 7px; overflow: hidden; }
 .hud-bar-fill {
   height: 100%;
   width: 100%;
   transform: scaleX(0);
   transform-origin: left center;
-  background: linear-gradient(90deg, #7fe0ff, #c39bff);
-  box-shadow: 0 0 12px rgb(var(--light-rgb) / 0.8);
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: linear-gradient(90deg, #e09a2f, #ffe6a8);
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.hud-bar-fill.done { background: linear-gradient(90deg, #f6c25b, #ffe6a8); }
+.hud-bar-fill.done { box-shadow: 0 0 12px rgb(var(--gold-rgb)); }
+.hud .stat { display: grid; justify-items: center; gap: 4px; min-width: 56px; }
+.hud .stat + .stat { padding-left: 12px; box-shadow: inset 1px 0 0 rgb(var(--gold-rgb) / 0.18); }
 .stat { text-align: center; min-width: 52px; }
-.stat-label { font-size: 11px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
-.stat-value { font: 400 26px/1.05 var(--font-display); }
+.stat-label { font: 800 9.5px/1 var(--font-body); color: var(--ink-faint, #8a85b8); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat-value { font: 800 22px/1 var(--font-body); font-variant-numeric: tabular-nums; }
 .stat-value.low { color: var(--danger); text-shadow: 0 0 10px rgb(var(--danger-rgb) / 0.6); }
+.hud-row.omens { display: flex; align-items: center; gap: 8px; min-width: 0; }
 
-.hud-omens { display: flex; gap: 6px; justify-content: center; height: 42px; }
+.hud-omens { display: flex; gap: 8px; min-width: 0; }
 .omen-slot {
   pointer-events: auto;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   cursor: help;
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18);
   transition: transform 0.15s ease;
 }
 .omen-slot:hover { transform: scale(1.08); }
-.omen-slot.empty { border: 1px dashed rgb(var(--violet-rgb) / 0.45); cursor: default; display: grid; place-items: center; color: rgb(var(--violet-rgb) / 0.45); font: 400 18px/1 var(--font-display); }
+.omen-slot.empty { cursor: default; }
+.omen-slot.empty::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.22); }
 .omen-slot.empty:hover { transform: none; }
 .omen-slot.fire { animation: omen-fire 0.45s ease; }
 
+/* Затмение: небо темнеет, рама в тонкой жемчужной короне — без красного */
+.hud.boss .hud-frame {
+  background: radial-gradient(90% 70% at 50% 0%, rgb(255 238 210 / 0.07), transparent 65%), rgb(8 7 24 / 0.9);
+  box-shadow: inset 0 0 0 1px rgb(255 238 210 / 0.4), 0 0 26px -10px rgb(255 238 210 / 0.5);
+}
+.hud.boss .hud-title { color: #fff0d8; }
+
+/* Лоток подсчёта: латунная панель над рукой. Сцена ставит --calc-bottom (портрет)
+   или --calc-top/--calc-cx/--calc-w (ландшафт и ПК — колонка под рамой). */
 .calc {
   position: absolute;
-  top: var(--calc-top, 60px);
+  bottom: var(--calc-bottom, calc(64px + var(--safe-bottom)));
   left: var(--calc-cx, 50%);
-  width: var(--calc-w, min(620px, 96vw));
-  padding: 8px 8px 8px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(34, 28, 86, 0.98), rgba(14, 12, 42, 0.98));
-  border: 1px solid rgb(var(--gold-rgb) / 0.45);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  transform: translate(-50%, -8px) scale(0.92);
+  width: var(--calc-w, min(352px, calc(100vw - 24px)));
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #15123d, #0b0a24);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 24px 50px -20px rgb(0 0 0 / 0.9);
+  transform: translate(-50%, 14px);
   opacity: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.25s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: center;
   pointer-events: none;
   z-index: 5;
 }
-.calc.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.calc.show { opacity: 1; transform: translate(-50%, 0); }
 .calc-combo {
-  font: 400 18px/1 var(--font-display);
-  letter-spacing: 0.1em;
+  font: 400 13px/1 var(--font-display);
+  letter-spacing: 0.2em;
+  padding-left: 0.2em;
   text-transform: uppercase;
-  margin-bottom: 5px;
-  text-shadow: 0 0 14px rgba(255, 255, 255, 0.6), 0 2px 6px #000;
+  color: #ffe6a8;
+  margin-bottom: 8px;
 }
-.calc-row { display: inline-flex; align-items: flex-start; gap: 6px; }
-.calc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.calc-label { font: 700 11px/1 var(--font-body); color: #fff; text-transform: uppercase; letter-spacing: 0.08em; text-shadow: 0 1px 4px #000; }
-.calc-x { margin-top: 8px; font: 800 22px/1 var(--font-body); color: #fff; text-shadow: 0 2px 6px #000; }
-.calc-total {
-  min-width: 64px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font: 400 28px/1 var(--font-display);
-  color: var(--ink-dim);
-  background: rgba(20, 18, 54, 0.9);
-  border: 1px dashed rgb(var(--gold-rgb) / 0.5);
-}
-.calc-total.done { color: #2a1a04; background: linear-gradient(180deg, #ffe6a8, #f6c25b); border-style: solid; box-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.6); }
-.calc-total.bump { animation: bump 0.3s ease; }
+.calc-row { display: inline-flex; align-items: center; gap: 8px; }
+.calc-cell { display: grid; justify-items: center; gap: 4px; min-width: 64px; padding: 7px 10px; border-radius: 12px; }
+.calc-cell:nth-child(1) { color: var(--light); background: rgb(var(--light-rgb) / 0.09); box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.55); }
+.calc-cell:nth-child(3) { color: var(--mult); background: rgb(var(--mult-rgb) / 0.09); box-shadow: inset 0 0 0 1px rgb(var(--mult-rgb) / 0.55); }
+.calc-cell:nth-child(5) { color: #ffe6a8; background: rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.calc-cell:has(.calc-total.done) { box-shadow: inset 0 0 0 1.5px var(--gold), 0 0 22px rgb(var(--gold-rgb) / 0.55); }
+.calc-cell:has(.calc-light.points) { color: #ffe6a8; background: rgb(var(--gold-rgb) / 0.08); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.calc-label { font: 800 10px/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; color: inherit; }
+.calc-x { font: 700 16px/1 var(--font-body); color: var(--ink-dim); }
+.calc-light, .calc-mult, .calc-total { font: 800 24px/1 var(--font-body); font-variant-numeric: tabular-nums; color: inherit; }
+.calc-light.bump, .calc-mult.bump, .calc-total.bump { animation: plate-bump 0.25s cubic-bezier(0.2, 1.8, 0.4, 1); }
+@keyframes plate-bump { 50% { transform: scale(1.18); } }
 .calc-caption {
-  margin: 6px auto 0;
-  width: fit-content;
-  min-height: 22px;
-  display: block;
-  padding: 3px 12px;
-  border-radius: 999px;
-  background: rgba(10, 8, 30, 0.82);
-  font: 600 13px/1.3 var(--font-body);
-  color: #fff;
-  max-width: min(92vw, 420px);
+  margin: 8px auto 0;
+  min-height: 16px;
+  font: 600 12.5px/1.3 var(--font-body);
+  color: var(--ink-dim);
+  max-width: 100%;
 }
 .calc-caption:empty { visibility: hidden; }
 .calc-caption.flash { animation: caption-in 0.25s ease; }
 @keyframes caption-in { from { opacity: 0.2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.calc-light, .calc-mult {
-  min-width: 58px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font: 400 28px/1 var(--font-display);
-  color: #04131b;
-}
-.calc-light { background: linear-gradient(180deg, #b9f0ff, #4fc8f2); box-shadow: 0 0 20px rgb(var(--light-rgb) / 0.55); }
-/* Шаги всего хода: слева уже очки линий, а не свет — золото, как итог */
-.calc-light.points { background: linear-gradient(180deg, #ffe6a8, #f6c25b); color: #2a1a04; box-shadow: 0 0 20px rgb(var(--gold-rgb) / 0.55); }
-.calc-mult { background: linear-gradient(180deg, #ffb3c4, #f0466e); color: #2a0510; box-shadow: 0 0 20px rgb(var(--mult-rgb) / 0.55); }
 
-.calc-light.bump, .calc-mult.bump { animation: bump 0.22s ease; }
+/* Лента с названием созвездия: поперёк вспыхнувшей линии, над слоем вспышки */
+.combo-ribbon {
+  position: fixed;
+  z-index: 40;
+  left: var(--board-cx, 50%);
+  top: 50%;
+  display: grid;
+  place-items: center;
+  gap: 5px;
+  /* По ширине названия: «Звёздный флеш» — самое длинное; фон тает к краям */
+  width: max-content;
+  min-width: min(260px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  padding: 11px 40px 12px;
+  background: linear-gradient(90deg, rgb(6 5 22 / 0), rgb(6 5 22 / 0.96) 14%, rgb(6 5 22 / 0.96) 86%, rgb(6 5 22 / 0));
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.combo-ribbon::before, .combo-ribbon::after { content: ''; position: absolute; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.9), transparent); }
+.combo-ribbon::before { top: 0; }
+.combo-ribbon::after { bottom: 0; }
+.combo-ribbon b { font: 400 clamp(22px, 7.2vw, 30px)/1 var(--font-display); letter-spacing: 0.16em; padding-left: 0.16em; text-transform: uppercase; color: #fff6e0; text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 0 0 12px rgb(var(--gold-rgb) / 0.45); white-space: nowrap; }
+.combo-ribbon small { font: 700 12px/1 var(--font-body); letter-spacing: 0.04em; color: #f2dfb6; white-space: nowrap; }
+.combo-ribbon.show { animation: ribbon-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.combo-ribbon.hide { animation: ribbon-out 0.3s ease forwards; }
+@keyframes ribbon-in { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 45% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes ribbon-out { from { opacity: 1; transform: translate(-50%, -50%) scale(1); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.04); } }
 
 .preview {
   position: absolute;
@@ -477,6 +523,7 @@ body {
 .preview-combo { font-weight: 800; }
 .preview-total { color: var(--gold); font-weight: 800; }
 
+/* Кнопки ночи — вторые по важности: тёмная заливка, латунная кромка */
 .actions {
   position: absolute;
   bottom: calc(10px + var(--safe-bottom));
@@ -484,13 +531,36 @@ body {
   transform: translateX(-50%);
   width: min(620px, 100%);
   padding: 0 12px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  justify-content: space-between;
   pointer-events: none;
 }
-.actions .btn { min-height: 44px; flex: 1; max-width: 220px; position: relative; }
-.burn-btn.drop-ready { border-style: dashed; animation: pulse 1.2s ease-in-out infinite; }
+.actions .btn {
+  min-height: 46px;
+  position: relative;
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  color: #ffe6a8;
+  background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.09), transparent 70%), rgb(14 12 34 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3);
+}
+.actions .btn:hover:not(:disabled) { background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.14), transparent 70%), rgb(20 18 48 / 0.9); }
+/* Рубашка колоды — маленькая карта перед словом */
+.deck-btn .btn-label::before {
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 15px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #2a1a5e, #100b2c);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.8);
+}
+.burn-btn.drop-ready { animation: pulse 1.2s ease-in-out infinite; }
 .burn-btn.drop-hover {
   animation: none;
   transform: scale(1.06);
@@ -498,7 +568,6 @@ body {
   background: linear-gradient(180deg, rgba(255, 122, 60, 0.55), rgba(255, 59, 92, 0.45));
   box-shadow: 0 0 0 2px #ff7a3c inset, 0 0 28px rgba(255, 122, 60, 0.6);
 }
-.burn-btn:not(:disabled) { box-shadow: 0 0 0 1px rgba(255, 122, 60, 0.6) inset, 0 0 18px rgba(255, 122, 60, 0.3); }
 
 /* ─── Меню: «Обсерватория» ───────────────────────────────────────────── */
 /* Мы внутри купола: оболочка закрывает живое небо игры, кроме щели. В щели проступают
@@ -1046,30 +1115,24 @@ html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-pla
 body.landscape .hud {
   left: calc(12px + env(safe-area-inset-left, 0px));
   transform: none;
-  width: 280px;
+  width: 324px;
+  padding-left: 0;
+  padding-right: 0;
   padding-top: calc(12px + var(--safe-top));
 }
-body.landscape .hud-row.mid { flex-wrap: wrap; row-gap: 8px; }
-body.landscape .hud-score-wrap { flex-basis: 100%; }
-body.landscape .hud-omens { flex-wrap: wrap; height: auto; justify-content: flex-start; }
 body.landscape .actions {
   left: calc(12px + env(safe-area-inset-left, 0px));
   transform: none;
-  width: 280px;
+  width: 324px;
   padding: 0;
 }
+body.landscape .calc { bottom: auto; top: var(--calc-top, 220px); }
 /* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
 body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
 @media (max-height: 520px) {
   .btn { min-height: 40px; }
 }
 
-@media (max-width: 480px) {
-  .boss-chip-name { display: none; }
-  .boss-chip { padding-right: 2px; }
-}
-body.landscape .boss-chip-name { display: none; }
-body.landscape .boss-chip { padding-right: 2px; }
 
 .stake-chip { margin-left: 8px; font-size: 14px; color: var(--gold); letter-spacing: 0.1em; text-shadow: 0 0 8px var(--gold); vertical-align: middle; }
 
@@ -1364,28 +1427,34 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 }
 
 .hud-omens.none { display: none; }
+/* Невысокие экраны: рама компактнее, чтобы небо и рука остались крупными */
 @media (max-height: 700px) {
-  .hud { gap: 4px; padding-top: calc(4px + var(--safe-top)); }
-  .hud-row.top { height: 36px; }
-  .icon-btn { width: 36px; height: 36px; }
-  .hud-row.mid { padding: 5px 10px; }
-  .hud-score { font-size: 26px; }
-  .stat-value { font-size: 22px; }
-  .hud-omens { height: 36px; }
-  .hud-omens .omen-slot { width: 36px; height: 36px; }
+  .hud { padding-top: calc(4px + var(--safe-top)); }
+  .hud-frame { gap: 7px; padding: 8px 10px 9px; }
+  .hud-row.top { padding-bottom: 7px; }
+  .hud .icon-btn.medal { width: 36px; height: 36px; }
+  .hud-score { font-size: 28px; }
+  .stat-value { font-size: 20px; }
+  .omen-slot { width: 32px; height: 32px; }
+  .omen-slot canvas { width: 30px !important; height: 30px !important; }
   .actions { bottom: calc(6px + var(--safe-bottom)); }
   .actions .btn { min-height: 40px; padding: 6px 14px; }
   /* Компактно на вид, но цель касания — 44 px */
   .actions .btn::after { content: ''; position: absolute; inset: -2px 0; }
-  .calc { padding: 5px 8px; }
-  .calc-combo { font-size: 15px; margin-bottom: 3px; }
-  .calc-light, .calc-mult, .calc-total { font-size: 22px; padding: 4px 10px; min-width: 50px; }
-  .calc-label { font-size: 10px; }
-  .calc-x { margin-top: 5px; }
-  .calc-caption { margin-top: 4px; font-size: 12px; min-height: 18px; padding: 2px 10px; }
+  .calc { padding: 8px 10px; }
+  .calc-cell { min-width: 54px; padding: 5px 8px; }
+  .calc-light, .calc-mult, .calc-total { font-size: 20px; }
+  .calc-caption { margin-top: 5px; font-size: 12px; }
+}
+/* Узкие телефоны: плашки формулы и лента компактнее */
+@media (max-width: 359px) {
+  .calc-row { gap: 5px; }
+  .calc-cell { min-width: 0; padding: 6px 8px; }
+  .calc-light, .calc-mult, .calc-total { font-size: 20px; }
+  .calc-label { font-size: 9px; letter-spacing: 0.06em; }
+  .hud-title { letter-spacing: 0.14em; }
 }
 
-.calc.bottom { top: auto; bottom: calc(6px + var(--safe-bottom)); }
 
 /* Подсказка о порядке Знамений */
 .order-warn { color: #ffcf6b; background: rgba(255, 170, 60, 0.1); border: 1px solid rgba(255, 170, 60, 0.35); border-radius: 12px; padding: 8px 12px; }
@@ -1982,9 +2051,7 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 
 /* ─── Полировка (аудит, пакет G) ──────────────────────────────────────── */
 /* Тесный заголовок HUD (ландшафт, узкие экраны) — только ночь, глава видна на карте */
-body.landscape .hud-chapter { display: none; }
 /* В Затмение рядом значок Затмения — «Глава N · » уступает ему место, чтобы ничего не обрезалось */
-.hud-title-wrap.boss .hud-chapter { display: none; }
 @media (max-width: 340px) { .hud-chapter { display: none; } }
 
 /* «Обучение пройдено»: подарок и памятки картинками — без чтения */

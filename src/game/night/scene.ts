@@ -120,12 +120,17 @@ export class NightScene {
     const root = document.documentElement.style;
     root.setProperty('--board-top', `${this.layout.board.y}px`);
     root.setProperty('--board-cx', `${this.layout.board.x + this.layout.board.w / 2}px`);
-    // Панель подсчёта ложится поверх строки счёта HUD — так она не закрывает карты
-    const mid = this.hud.el.querySelector('.hud-row.mid')?.getBoundingClientRect();
-    if (mid) {
-      root.setProperty('--calc-top', `${mid.top - 4}px`);
-      root.setProperty('--calc-cx', `${mid.left + mid.width / 2}px`);
-      root.setProperty('--calc-w', `${mid.width + 8}px`);
+    // Лоток подсчёта («Рама»): в портрете — над рукой, прямо над кнопками; вспыхнувшие
+    // карты он не закрывает. В ландшафте и на ПК — в колонке под рамой табло.
+    const frame = this.hud.el.querySelector('.hud-frame')?.getBoundingClientRect() ?? hud;
+    if (landscape) {
+      root.setProperty('--calc-top', `${frame.bottom + 12}px`);
+      root.setProperty('--calc-cx', `${frame.left + frame.width / 2}px`);
+      root.setProperty('--calc-w', `${frame.width}px`);
+    } else {
+      root.setProperty('--calc-bottom', `${Math.max(0, height - (actions.top || height - safe.bottom - 64)) + 8}px`);
+      root.setProperty('--calc-cx', `${this.layout.board.x + this.layout.board.w / 2}px`);
+      root.setProperty('--calc-w', `${Math.min(352, width - 24)}px`);
     }
   }
 
@@ -218,16 +223,7 @@ export class NightScene {
       ctx.restore();
     }
     ctx.drawImage(img, -w / 2 - pad, -hgt / 2 - pad, w + pad * 2, spriteH + pad * 2);
-    if (v.debuffed && showFace) {
-      roundRect(ctx, -w / 2, -hgt / 2, w, hgt, w * 0.09);
-      ctx.fillStyle = 'rgba(4,3,12,0.62)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,83,112,0.7)';
-      ctx.lineWidth = w * 0.03;
-      ctx.beginPath();
-      ctx.arc(0, 0, w * 0.22, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    if (v.debuffed && showFace) drawEclipsed(ctx, w, hgt);
     if (v.glow > 0.01) {
       ctx.globalCompositeOperation = 'lighter';
       roundRect(ctx, -w / 2, -hgt / 2, w, hgt, w * 0.09);
@@ -1159,4 +1155,30 @@ export function safeInsets(): { top: number; bottom: number } {
   }
   const css = getComputedStyle(probe);
   return { top: parseFloat(css.paddingTop) || 0, bottom: parseFloat(css.paddingBottom) || 0 };
+}
+
+/**
+ * Затмённая карта: приглушена и закрыта чёрным диском в жемчужной короне — как настоящее
+ * солнечное затмение, без красного. Рисуется поверх лица карты.
+ */
+function drawEclipsed(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  roundRect(ctx, -w / 2, -h / 2, w, h, w * 0.09);
+  ctx.fillStyle = 'rgba(4,3,12,0.5)';
+  ctx.fill();
+  const r = w * 0.23;
+  const cy = h * 0.02;
+  // Корона: мягкое свечение и тонкое светлое кольцо
+  const g = ctx.createRadialGradient(0, cy, r * 0.9, 0, cy, r * 2);
+  g.addColorStop(0, 'rgba(255,238,210,0.55)');
+  g.addColorStop(0.35, 'rgba(255,230,200,0.18)');
+  g.addColorStop(1, 'rgba(150,170,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-r * 2, cy - r * 2, r * 4, r * 4);
+  ctx.beginPath();
+  ctx.arc(0, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#03020a';
+  ctx.fill();
+  ctx.lineWidth = Math.max(1, w * 0.012);
+  ctx.strokeStyle = 'rgba(255,245,225,0.95)';
+  ctx.stroke();
 }

@@ -1,10 +1,10 @@
 import { SUIT_COLORS, UI } from '@/art/palette';
-import type { GameEvent, LineScore, PlacementScore, ScoreStep } from '@/core/types';
+import type { GameEvent, LineScore, PlacementScore, ScoreStep, Suit } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
-import { named, num, t } from '@/i18n';
+import { dict, named, num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform, transform } from '../components';
-import { burst, flash, floatText, ring, shake } from '../fx';
+import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
 import type { NightScene } from './scene';
 
@@ -145,9 +145,35 @@ export class Presenter {
     }
     this.audio.bell(view.card.rank);
     this.scene.svc.haptics.play('place');
-    ring(this.world, p.x, p.y, SUIT_COLORS[view.card.suit].main, scene.layout.cardW * 0.8, 0.5);
-    await this.tweens.to(tr, { scale: scene.boardScale }, { duration: 0.12 / this.speed, ease: 'outBack' });
+    this.landingImpact(cell, view.card.suit, !!dragged);
+    await this.tweens.to(tr, { scale: scene.boardScale }, { duration: 0.16 / this.speed, ease: 'outBack' });
     scene.hud.setMoves(scene.night.movesLeft, scene.night.burnsLeft);
+  }
+
+  /**
+   * Удар приземления: клетка вспыхивает, от низа карты расходится пыль, ударная волна,
+   * искры, соседние карты вздрагивают, экран коротко встряхивает.
+   */
+  private landingImpact(cell: number, suit: Suit, dragged: boolean): void {
+    const scene = this.scene;
+    const p = this.cellPos(cell);
+    const { cardW, cardH } = scene.layout;
+    cellFlash(this.world, p.x, p.y, cardW, cardH);
+    ring(this.world, p.x, p.y, SUIT_COLORS[suit].light, cardW * 1.15, 0.5);
+    dustPuff(this.world, p.x, p.y + cardH / 2, cardW);
+    burst(this.world, p.x, p.y + cardH * 0.4, '#fff3c4', { count: 16, speed: 180, size: 1.8, life: 0.8, gravity: -30, kind: 'dot', angle: -Math.PI / 2, spread: Math.PI * 1.4, colors: ['#fff3c4', '#d9f0ff', '#ffffff'] });
+    burst(this.world, p.x, p.y, '#ffffff', { count: 12, speed: 300, size: 1.8, life: 0.45, gravity: 200, colors: ['#ffffff', SUIT_COLORS[suit].light, SUIT_COLORS[suit].main] });
+    const size = scene.night.rules.gridSize;
+    const r = Math.floor(cell / size), c = cell % size;
+    const near = [[r, c - 1, -1], [r, c + 1, 1], [r - 1, c, -1], [r + 1, c, 1]] as const;
+    for (const [rr, cc, dir] of near) {
+      if (rr < 0 || cc < 0 || rr >= size || cc >= size) continue;
+      const e = this.cardEntityAt(rr * size + cc);
+      if (e === undefined) continue;
+      const nt = this.world.req(e, Transform);
+      void this.tweens.to(nt, { rot: dir * 0.045 }, { duration: 0.08 / this.speed, ease: 'outQuad' }).then(() => this.tweens.to(nt, { rot: 0 }, { duration: 0.22 / this.speed, ease: 'outBack' }));
+    }
+    shake(this.world, dragged ? 0.22 : 0.3);
   }
 
   private async onBurn(id: number, handIndex: number): Promise<void> {
@@ -218,10 +244,41 @@ export class Presenter {
     return id === null || id === undefined ? undefined : this.scene.cards.get(id);
   }
 
-  /** Светящаяся ломаная через центры карт линии — собственно созвездие. */
-  private drawConstellation(line: LineScore, color: string): { state: { progress: number; alpha: number }; entity: Entity } {
+  /** Карта на пути искры: подпрыгивает, загорается мастью, сыплет искры. */
+  private igniteCard(cell: number): void {
+    const e = this.cardEntityAt(cell);
+    if (e === undefined) return;
+    const v = this.world.req(e, CardView);
+    const tr = this.world.req(e, Transform);
+    const col = SUIT_COLORS[v.card.suit];
+    v.glowColor = col.main;
+    void this.tweens.to(v, { glow: 1 }, { duration: 0.15 / this.speed });
+    const base = this.scene.boardScale;
+    tr.scale = base * 1.12;
+    void this.tweens.to(tr, { scale: base }, { duration: 0.3 / this.speed, ease: 'outBack' });
+    const p = this.cellPos(cell);
+    burst(this.world, p.x, p.y, col.main, { count: 18, speed: 300, size: 2.2, life: 0.7, colors: [col.main, '#ffffff', '#fff3c4'] });
+    shake(this.world, 0.06);
+  }
+
+  /** Линия уходит: вдоль созвездия поднимается золотая звёздная пыль, свечение гаснет. */
+  private dissolveLine(line: LineScore, state: { alpha: number }): void {
     const pts = line.cells.map((c) => this.cellPos(c));
-    const state = { progress: 0, alpha: 1 };
+    for (let k = 0; k < pts.length - 1; k++) {
+      for (let j = 0; j < 10; j++) {
+        const f = j / 10;
+        const x = pts[k]!.x + (pts[k + 1]!.x - pts[k]!.x) * f;
+        const y = pts[k]!.y + (pts[k + 1]!.y - pts[k]!.y) * f;
+        burst(this.world, x, y, '#ffe6a8', { count: 1, speed: 50, size: 1.6, life: 0.9, gravity: -20, kind: 'dot', angle: -Math.PI / 2, spread: 1.6, colors: [['#ffe6a8', '#ffffff', '#fff3c4'][j % 3]!] });
+      }
+    }
+    void this.tweens.to(state, { alpha: 0 }, { duration: 0.5 / this.speed, ease: 'outQuad' });
+  }
+
+  /** Светящаяся ломаная через центры карт линии — собственно созвездие. */
+  private drawConstellation(line: LineScore, color: string): { state: { progress: number; alpha: number; breathe: boolean }; entity: Entity } {
+    const pts = line.cells.map((c) => this.cellPos(c));
+    const state = { progress: 0, alpha: 1, breathe: false };
     const e = this.world.create();
     this.world.add(e, Transform, transform(0, 0));
     this.world.add(e, Drawable, {
@@ -231,12 +288,13 @@ export class Presenter {
       draw: (ctx) => {
         const total = pts.length - 1;
         const upto = state.progress * total;
-        ctx.globalAlpha = state.alpha;
+        const breath = state.breathe ? 0.86 + 0.14 * Math.sin(this.world.res.time * 9) : 1;
+        ctx.globalAlpha = state.alpha * breath;
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
         for (const [width, alpha] of [[10, 0.12], [4, 0.35], [1.6, 1]] as const) {
           ctx.strokeStyle = color;
-          ctx.globalAlpha = state.alpha * alpha;
+          ctx.globalAlpha = state.alpha * breath * alpha;
           ctx.lineWidth = width;
           ctx.beginPath();
           ctx.moveTo(pts[0]!.x, pts[0]!.y);
@@ -268,7 +326,7 @@ export class Presenter {
     const scene = this.scene;
     const hud = scene.hud;
     const target = scene.night.target;
-    const lineFx: { state: { progress: number; alpha: number }; entity: Entity }[] = [];
+    const lineFx: { state: { progress: number; alpha: number; breathe: boolean }; entity: Entity }[] = [];
 
     for (const line of score.lines) {
       const firstCard = this.cardEntityAt(line.cells[0]!);
@@ -276,18 +334,30 @@ export class Presenter {
       const color = SUIT_COLORS[suit].light;
       const center = this.lineCenter(line);
 
-      // Карты линии загораются, рисуется созвездие
-      for (const cell of line.cells) {
-        const e = this.cardEntityAt(cell);
-        if (e === undefined) continue;
-        const v = this.world.req(e, CardView);
-        v.glowColor = SUIT_COLORS[v.card.suit].main;
-        void this.tweens.to(v, { glow: 1 }, { duration: 0.2 / this.speed });
-      }
+      // Линия загорается по картам: искра бежит по созвездию, каждая карта на её пути
+      // подпрыгивает, вспыхивает своей мастью и сыплет искры
       const fx = this.drawConstellation(line, color);
       lineFx.push(fx);
       this.audio.ignite(score.lines.length);
-      await this.tweens.to(fx.state, { progress: 1 }, { duration: 0.35 / this.speed, ease: 'inOutQuad' });
+      const drawDur = 0.42 / this.speed;
+      const drawn = this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'linear' });
+      line.cells.forEach((cell, i) => {
+        void this.tweens.wait((drawDur * i) / Math.max(1, line.cells.length - 1)).then(() => this.igniteCard(cell));
+      });
+      await drawn;
+      // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
+      fx.state.breathe = true;
+      hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
+      flash(this.world, '255,240,200', 0.22, 0.4);
+      shake(this.world, 0.14);
+      await this.wait(0.9);
+      // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
+      hud.hideRibbon();
+      this.dissolveLine(line, fx.state);
+      for (const cell of line.cells) {
+        const e = this.cardEntityAt(cell);
+        if (e !== undefined) void this.tweens.to(this.world.req(e, CardView), { glow: 0.35 }, { duration: 0.6 / this.speed });
+      }
 
       const comboStep = line.steps[0]!;
       hud.showCalc(line.combo, comboStep.lightAfter, comboStep.multAfter);
@@ -295,7 +365,6 @@ export class Presenter {
       const topRow = line.cells.some((c) => c < scene.night.rules.gridSize);
       hud.placeCalc(topRow ? scene.cellRect(line.cells[0]!).y : null);
       hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
-      floatText(this.world, center.x, center.y, t(`combo.${line.combo}`).toUpperCase(), { size: 26, display: true, color: '#fff', life: 1.1, rise: 24 });
       await this.wait(0.3);
       // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
       const gate = this.scoringGate;
@@ -504,7 +573,7 @@ export class Presenter {
     }
     if (!text) return;
     const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.35 : 0;
-    floatText(this.world, anchor.x, anchor.y + offY, text, { size: kind === 'xmult' ? 30 : 22, color, life: 0.8 });
+    floatText(this.world, anchor.x, anchor.y + offY, text, { size: kind === 'xmult' ? 34 : 28, color, life: 0.9 });
     hud.setCalc(step.lightAfter, step.multAfter, kind === 'light' ? 'light' : kind === 'gold' ? undefined : 'mult');
     this.audio.count(index, kind);
     if (kind === 'xmult') shake(this.world, 0.15);
