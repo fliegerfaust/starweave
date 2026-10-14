@@ -51,3 +51,39 @@ test('конец обучения поверх окна награды не ло
   expect(result.modals, 'остаётся только «Обучение пройдено»').toBe(1);
   expect(errors).toEqual([]);
 });
+
+// 14.10.2026, 0.4.10: «У сущности N нет Transform» — 155 раз. Карту держали пальцем, а сожгли
+// её в обход перетаскивания (второй палец по «Сжечь», клавиша B); каждое движение пальца
+// обращалось к удалённой сущности.
+test('сжечь карту, которую держишь, — без ошибок', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave);
+  await page.evaluate(() => {
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void; beginNight(): void } }).starweave;
+    app.profile.tutorialDone = true;
+    localStorage.removeItem('starweave.run.v1');
+    app.startRun('classic');
+    app.beginNight();
+  });
+  await page.waitForFunction(() => {
+    const s = (window as unknown as { __scene?: { busy: boolean; hand: number[] } }).__scene;
+    return !!s && !s.busy && s.hand.length > 0;
+  }, null, { timeout: 15_000 });
+  await page.waitForTimeout(300);
+  const card = await page.evaluate(() => {
+    const s = (window as unknown as { __scene: { hand: number[]; handRect(id: number): { x: number; y: number; w: number; h: number } } }).__scene;
+    const r = s.handRect(s.hand[0]!);
+    const box = document.querySelector('canvas')!.getBoundingClientRect();
+    return { x: box.x + r.x + r.w / 2, y: box.y + r.y + r.h / 2 };
+  });
+  await page.mouse.move(card.x, card.y);
+  await page.mouse.down();
+  await page.mouse.move(card.x - 60, card.y - 40, { steps: 5 });
+  await page.keyboard.press('b');
+  await page.waitForFunction(() => !(window as unknown as { __scene: { busy: boolean } }).__scene.busy, null, { timeout: 10_000 });
+  await page.mouse.move(card.x - 160, card.y - 120, { steps: 10 });
+  await page.mouse.up();
+  expect(errors).toEqual([]);
+});
