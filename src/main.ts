@@ -67,7 +67,10 @@ async function boot(): Promise<void> {
   const platform = await createPlatform();
   await platform.init();
   const app = await startGame(platform);
-  if (demo) void import('./dev/demo').then(({ runDemo }) => runDemo(app));
+  if (demo) {
+    if (params.has('capture')) (await import('./dev/capture')).setupCapture(app);
+    void import('./dev/demo').then(({ runDemo }) => runDemo(app, params.get('demo') ?? ''));
+  }
   if (params.has('debug')) void import('./dev/diag').then(({ showDiagnostics }) => showDiagnostics(app));
 }
 

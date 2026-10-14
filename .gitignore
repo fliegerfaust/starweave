@@ -9,3 +9,7 @@ release
 e2e-results
 test-results
 playwright-report
+
+# Ролики: запись игры и готовые клипы — пересобираются `npm run clips`
+clips/public/raw
+store/clips
