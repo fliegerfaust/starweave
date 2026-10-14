@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-14T23:00:00Z",
+  "title": "Design System: Звёздное плетение",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "window",
+        "value": "inset 0 0 0 1px rgb(246 194 91 / .3), 0 30px 60px -20px rgb(0 0 0 / .8)",
+        "purpose": "Окна и листы над небом."
+      },
+      {
+        "name": "primary-glow",
+        "value": "0 0 0 1px rgba(255,230,160,.5) inset, 0 6px 14px -8px rgb(246 194 91 / .45), 0 2px 5px rgb(0 0 0 / .35)",
+        "purpose": "Короткое свечение главной кнопки, не задевает соседей."
+      },
+      {
+        "name": "brass-hair",
+        "value": "inset 0 0 0 1px rgb(246 194 91 / .18)",
+        "purpose": "Латунная кромка карточек."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Появление, листы, створки купола."
+      },
+      {
+        "name": "dome-open",
+        "value": "1.8s cubic-bezier(0.7, 0, 0.2, 1)",
+        "purpose": "Створки щели, раз за сессию."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "short",
+        "value": "max-height: 720px"
+      },
+      {
+        "name": "landscape-phone",
+        "value": "max-height: 520px and min-aspect-ratio: 1/1"
+      },
+      {
+        "name": "desktop",
+        "value": "min-width: 860px and min-aspect-ratio: 1/1"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Главная кнопка",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Одна на экран.",
+      "html": "<button class=\"ds-btn-primary\">Следующая ночь</button>",
+      "css": ".ds-btn-primary{min-height:52px;padding:10px 24px;border:0;border-radius:999px;font:700 16px/1.1 Manrope,system-ui,sans-serif;color:#1a1206;background:linear-gradient(180deg,#ffe09a 0%,#f6c25b 55%,#e09a2f 100%);box-shadow:0 0 0 1px rgba(255,230,160,.5) inset,0 6px 14px -8px rgb(246 194 91/.45),0 2px 5px rgb(0 0 0/.35);cursor:pointer;transition:filter .2s,transform .12s}.ds-btn-primary:hover{filter:brightness(1.08)}.ds-btn-primary:active{transform:scale(.96)}.ds-btn-primary:focus-visible{outline:2px solid #f6c25b;outline-offset:2px}"
+    },
+    {
+      "name": "Вторая кнопка",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Второе по важности действие: атлас, «Обновить».",
+      "html": "<button class=\"ds-btn-second\">Звёздный атлас</button>",
+      "css": ".ds-btn-second{min-height:48px;padding:8px 20px;border:0;border-radius:999px;font:700 15px/1.1 Manrope,system-ui,sans-serif;color:#ffe6a8;background:radial-gradient(120% 140% at 50% 0%,rgb(246 194 91/.09),transparent 70%),rgb(14 12 34/.82);box-shadow:inset 0 0 0 1px rgb(246 194 91/.3);cursor:pointer;transition:box-shadow .2s}.ds-btn-second:hover{box-shadow:inset 0 0 0 1px rgb(246 194 91/.5)}.ds-btn-second:focus-visible{outline:2px solid #f6c25b;outline-offset:2px}"
+    },
+    {
+      "name": "Лёгкая кнопка",
+      "kind": "button",
+      "refersTo": "button-light",
+      "description": "Значок и слово без плашки.",
+      "html": "<button class=\"ds-btn-light\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M8 5.5v13l10.5-6.5Z\"/></svg>Новый забег</button>",
+      "css": ".ds-btn-light{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:4px 10px;border:0;border-radius:12px;background:none;color:#eae6ff;font:600 14.5px/1 Manrope,system-ui,sans-serif;cursor:pointer}.ds-btn-light svg{color:#f6c25b}.ds-btn-light:hover{background:rgb(170 160 255/.08)}.ds-btn-light:focus-visible{outline:2px solid #f6c25b;outline-offset:2px}"
+    },
+    {
+      "name": "Карточка",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Знамение, звёздная карта, товар.",
+      "html": "<article class=\"ds-card\"><b>Горизонт</b><p>Вспыхнувший ряд: <span>+6 к множителю</span></p></article>",
+      "css": ".ds-card{padding:12px 14px;border-radius:16px;color:#eae6ff;font:400 14px/1.45 Manrope,system-ui,sans-serif;background:radial-gradient(120% 90% at 50% 0%,rgb(246 194 91/.06),transparent 60%),rgb(14 12 38/.82);box-shadow:inset 0 0 0 1px rgb(246 194 91/.18)}.ds-card b{font-weight:700;font-size:15.5px}.ds-card p{margin:4px 0 0;color:#a5a0cf}.ds-card span{color:#ff6b8b}"
+    },
+    {
+      "name": "Подпись раздела",
+      "kind": "custom",
+      "refersTo": "section-label",
+      "description": "Капитель между волосяными линиями.",
+      "html": "<h2 class=\"ds-sec\">Знамения</h2>",
+      "css": ".ds-sec{display:flex;align-items:center;gap:10px;margin:0;font:400 13px/1 Forum,serif;letter-spacing:.24em;text-transform:uppercase;color:rgb(255 230 168/.85)}.ds-sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgb(246 194 91/.18),transparent)}"
+    },
+    {
+      "name": "Плашки формулы",
+      "kind": "chip",
+      "refersTo": "plate-light",
+      "description": "Свет × множитель = очки.",
+      "html": "<div class=\"ds-formula\"><span class=\"ds-pl l\"><b>53</b>свет</span>×<span class=\"ds-pl m\"><b>4</b>множитель</span>=<span class=\"ds-pl t\"><b>212</b>очки</span></div>",
+      "css": ".ds-formula{display:flex;align-items:center;gap:8px;color:#a5a0cf;font:800 15px/1 Manrope,system-ui,sans-serif}.ds-pl{display:grid;justify-items:center;gap:4px;min-width:64px;padding:8px 10px;border-radius:12px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}.ds-pl b{font-size:20px;letter-spacing:0}.ds-pl.l{color:#7fe0ff;background:rgb(127 224 255/.08);box-shadow:inset 0 0 0 1px rgb(127 224 255/.5)}.ds-pl.m{color:#ff6b8b;background:rgb(255 107 139/.08);box-shadow:inset 0 0 0 1px rgb(255 107 139/.5)}.ds-pl.t{color:#ffe6a8;box-shadow:inset 0 0 0 1px rgb(246 194 91/.3)}"
+    },
+    {
+      "name": "Окно",
+      "kind": "card",
+      "refersTo": "window",
+      "description": "Окно над небом: табличка с подоконником.",
+      "html": "<section class=\"ds-win\"><h2>Ночь пройдена</h2><p>Очки <b>412</b> из 240</p></section>",
+      "css": ".ds-win{width:300px;padding:22px 20px 20px;border-radius:24px;text-align:center;color:#a5a0cf;font:400 14px/1.5 Manrope,system-ui,sans-serif;background:linear-gradient(180deg,#15123d,#0b0a24);box-shadow:inset 0 0 0 1px rgb(246 194 91/.3),0 30px 60px -20px rgb(0 0 0/.8)}.ds-win h2{margin:0 0 8px;padding:0 0 12px .14em;font:400 24px/1 Forum,serif;letter-spacing:.14em;text-transform:uppercase;color:#ffe6a8;background:radial-gradient(50% 1.5px at 50% 100%,rgb(255 230 168/.7),transparent) bottom/100% 2px no-repeat}.ds-win b{color:#eae6ff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Латунная обсерватория",
+    "overview": "Игрок стоит внутри обсерватории. Ночное небо — сцена игры, а интерфейс — латунный инструмент вокруг неё: тонкие золотые кромки, кольца и рёбра купола, таблички с названиями капителью. Премиальность — в композиции, свете и арте, а не в материале кнопок.",
+    "keyCharacteristics": [
+      "Латунные волосяные кромки (1 px золота 18–30 %) вместо заливок и толстых рамок.",
+      "Подоконник: светящаяся линия под заголовком экрана и окна, как кромка щели купола.",
+      "Капитель Forum с разрядкой для названий, Manrope для всего, что читают и нажимают.",
+      "Три уровня кнопок: золотая главная, тёмная вторая с латунной кромкой, лёгкая «значок + слово».",
+      "Цвета формулы закреплены: свет — бирюза, множитель — розовый, очки и золото — золото."
+    ],
+    "rules": [
+      {
+        "name": "The Formula Colors Rule",
+        "body": "Бирюза — только свет, розовый — только множитель.",
+        "section": "colors"
+      },
+      {
+        "name": "The Thin Brass Rule",
+        "body": "Латунь — это линия, а не заливка.",
+        "section": "colors"
+      },
+      {
+        "name": "The Engraving Rule",
+        "body": "Forum — только капитель с разрядкой для табличек и заголовков.",
+        "section": "typography"
+      },
+      {
+        "name": "The Short Glow Rule",
+        "body": "Свечение главной кнопки не выходит дальше 8 px и не задевает соседей.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do держать одну золотую главную кнопку на экран; остальное — вторая или лёгкая.",
+      "Do рисовать кромки латунью 1 px (18–30 %) и ставить подоконник под заголовком экрана и окна.",
+      "Do подписывать разделы капителью Forum 13 px с разрядкой 0.24em и линией до края.",
+      "Do уносить служебное во второй слой — нижний лист или панель слева.",
+      "Do давать «Меньше движения» и автотестам конечный кадр без анимации.",
+      "Do перед переделкой экрана показывать витрину из трёх вариантов (правило 0.5.0)."
+    ],
+    "donts": [
+      "Don't делать кнопки из стекла, с сеткой, бликом или срезанными углами — Денис отверг.",
+      "Don't красить кнопки и украшения в бирюзу или розовый — это цвета формулы.",
+      "Don't давать главной кнопке свечение, которое задевает соседние элементы.",
+      "Don't ставить эмодзи и символы (✦ 🔒 ›) вместо значков — только src/ui/icons.ts.",
+      "Don't набирать абзацы и кнопки шрифтом Forum."
+    ]
+  }
+}

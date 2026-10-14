@@ -16,6 +16,7 @@
     "legal": "node scripts/build-legal.ts",
     "e2e": "playwright test",
     "clips": "node scripts/clips.mjs",
+    "vitrine-art": "node scripts/vitrine-art.mjs",
     "store-assets": "ASSETS=1 playwright test e2e/store-assets.spec.ts --project=desktop --workers=1"
   },
   "devDependencies": {
