@@ -1,11 +1,11 @@
-import { cardFace } from '@/art/card';
+import { SKY_FIGURES, shuffledFigures, starRadius, type SkyFigure } from '@/art/constellations';
 import { SKY_LIST } from '@/core/content/skies';
-import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { track } from '@/analytics';
-import { canvasImg, dpr, h } from '../dom';
+import { h } from '../dom';
+import { icon, type IconName } from '../icons';
 import { button, confirmDialog, modal } from '../widgets';
 import { showHelp, showSettings } from './common';
 import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
@@ -24,29 +24,164 @@ function stakeText(stake: number): string {
   return list.slice(1, stake + 1).join(' · ');
 }
 
-const DECOR: Pick<Card, 'suit' | 'rank'>[] = [
-  { suit: 'moon', rank: 7 },
-  { suit: 'sun', rank: 9 },
-  { suit: 'star', rank: 5 },
-];
+const SVG_NS = 'http://www.w3.org/2000/svg';
+/** Смена созвездия в щели, мс. */
+const FIGURE_MS = 9000;
+/** Створки купола расходятся один раз за сессию — при возврате из забега меню открыто сразу. */
+let domeOpened = false;
 
+/**
+ * Главная — «Обсерватория»: мы внутри купола, в щели — живое небо игры и настоящие
+ * созвездия. Под куполом одна главная кнопка, атлас вторым, два лёгких режима,
+ * всё служебное — в «Библиотеке» (нижний лист).
+ */
 export class MenuScreen implements Screen {
   private el!: HTMLElement;
-
-  private fan: HTMLElement | null = null;
-  private fanKey = '';
+  private scroller!: HTMLElement;
+  private dome!: SVGSVGElement;
+  private scope!: HTMLElement;
+  private figureSvg!: SVGSVGElement;
+  private figureName!: HTMLElement;
+  private plate!: HTMLElement;
+  private nav!: HTMLElement;
+  private foot!: HTMLElement;
+  private timers: number[] = [];
+  private resize: ResizeObserver | null = null;
+  private queue: SkyFigure[] = [];
+  private figure: SkyFigure | null = null;
+  /** Без движения: «Меньше движения» или автотест/снимок витрины — купол открыт, созвездие нарисовано сразу. */
+  private still = false;
 
   constructor(private readonly app: App) {}
 
   mount(root: HTMLElement): void {
-    this.el = h('div.menu');
+    const calm = this.app.settings.reduceMotion || navigator.webdriver;
+    this.still = calm;
+    this.dome = document.createElementNS(SVG_NS, 'svg');
+    this.dome.setAttribute('class', 'dome-shell');
+    this.dome.setAttribute('aria-hidden', 'true');
+    this.dome.setAttribute('preserveAspectRatio', 'none');
+    const shutters = [h('div.dome-shutter.l', { attrs: { 'aria-hidden': 'true' } }), h('div.dome-shutter.r', { attrs: { 'aria-hidden': 'true' } })];
+    this.figureSvg = document.createElementNS(SVG_NS, 'svg');
+    this.figureSvg.setAttribute('class', 'dome-figure');
+    this.figureSvg.setAttribute('viewBox', '0 0 100 100');
+    this.figureSvg.setAttribute('aria-hidden', 'true');
+    this.figureName = h('div.dome-name', { attrs: { 'aria-live': 'polite' } });
+    this.scope = h('div.dome-scope', null, [this.figureSvg, this.figureName]);
+    this.plate = h('header.menu-plate');
+    this.nav = h('nav.menu-buttons', { attrs: { 'aria-label': t('game.title') } });
+    this.foot = h('div.menu-foot');
+    this.scroller = h('div.menu', null, [this.scope, this.plate, this.nav, this.foot]);
+    this.el = h(`div.observatory${domeOpened || calm ? '.open' : ''}${calm ? '.still' : ''}`, null, [this.dome, ...shutters, this.scroller]);
     root.append(this.el);
     this.render();
+    this.drawDome();
+    this.resize = new ResizeObserver(() => this.drawDome());
+    this.resize.observe(this.el);
+    this.wireLibrarySwipe();
+    // Любая кнопка меню — жест пользователя: в нём можно развернуть игру на весь экран.
+    // Перехват, потому что кнопки гасят всплытие
+    this.nav.addEventListener('click', () => {
+      if (this.app.platform.id === 'web' && this.app.settings.fullscreen) enterFullscreen();
+    }, { capture: true });
+    if (!domeOpened && !calm) {
+      // Два кадра: закрытые створки успевают нарисоваться, потом расходятся
+      this.later(() => this.el.classList.add('open'), 80);
+    }
+    domeOpened = true;
+    this.later(() => this.nextFigure(), calm ? 0 : this.el.classList.contains('open') ? 500 : 1900);
     const challenge = this.app.pendingChallenge;
     if (challenge) {
       this.app.pendingChallenge = null;
       this.offerChallenge(challenge);
     }
+  }
+
+  unmount(): void {
+    this.timers.forEach((id) => window.clearTimeout(id));
+    this.timers = [];
+    this.resize?.disconnect();
+    this.el.remove();
+  }
+
+  private later(fn: () => void, ms: number): void {
+    this.timers.push(window.setTimeout(fn, ms));
+  }
+
+  /** Купол изнутри: тёмная оболочка с кольцами и рёбрами, щель вырезана маской. */
+  private drawDome(): void {
+    const W = this.el.clientWidth, H = this.el.clientHeight;
+    const sw = this.scope.offsetWidth, sh = this.scope.offsetHeight;
+    if (!W || !H || !sw) return;
+    const x0 = (W - sw) / 2, x1 = x0 + sw;
+    const r = sw / 2;
+    const slit = `M${x0},${sh} V${r} A${r},${r} 0 0 1 ${x1},${r} V${sh}`;
+    let ribs = '';
+    for (let i = 1; i <= 9; i++) {
+      const ry = sh * 0.55 + i * i * (H / 70);
+      ribs += `<ellipse cx="${W / 2}" cy="${-sh * 0.25}" rx="${ry * 1.25}" ry="${ry}"/>`;
+    }
+    const R = Math.max(W, H) * 1.05;
+    for (let i = -6; i <= 6; i++) {
+      if (!i) continue;
+      const a = i * 0.2;
+      ribs += `<line x1="${W / 2 + Math.sign(i) * r}" y1="0" x2="${W / 2 + Math.sin(a) * R}" y2="${Math.cos(a) * R * 0.9}"/>`;
+    }
+    this.dome.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    this.dome.innerHTML = `
+      <defs>
+        <radialGradient id="dome-spill" cx="50%" cy="22%" r="70%"><stop offset="0" stop-color="#1d1a52"/><stop offset="0.45" stop-color="#0d0b2a"/><stop offset="1" stop-color="#05040f"/></radialGradient>
+        <linearGradient id="dome-sill" x1="0" x2="1"><stop offset="0" stop-color="#f6c25b" stop-opacity="0"/><stop offset="0.5" stop-color="#ffe6a8" stop-opacity="0.9"/><stop offset="1" stop-color="#f6c25b" stop-opacity="0"/></linearGradient>
+        <mask id="dome-cut"><rect width="${W}" height="${H}" fill="#fff"/><path d="${slit} Z" fill="#000"/></mask>
+      </defs>
+      <g mask="url(#dome-cut)"><rect width="${W}" height="${H}" fill="url(#dome-spill)"/><g fill="none" stroke="#f6c25b" stroke-opacity="0.08" stroke-width="1">${ribs}</g></g>
+      <path d="${slit}" fill="none" stroke="#f6c25b" stroke-opacity="0.55" stroke-width="1.5"/>
+      <rect x="${x0 - 30}" y="${sh - 1}" width="${sw + 60}" height="2" fill="url(#dome-sill)"/>`;
+    this.el.style.setProperty('--slit-x', `${x0}px`);
+    this.el.style.setProperty('--slit-px', `${sw}px`);
+    this.el.style.setProperty('--slit-hpx', `${sh}px`);
+  }
+
+  /** Следующее созвездие: звёзды проступают, тянутся линии, затем подпись. */
+  private nextFigure(): void {
+    // Снимки витрин и автотесты всегда видят одну и ту же Большую Медведицу
+    if (!this.queue.length) this.queue = navigator.webdriver ? [...SKY_FIGURES] : shuffledFigures(Math.random, this.figure ?? undefined);
+    const fig = this.queue.shift()!;
+    this.figure = fig;
+    const svg = this.figureSvg;
+    svg.classList.remove('fade');
+    svg.replaceChildren();
+    fig.lines.forEach(([a, b], i) => {
+      const [x1, y1] = fig.stars[a]!, [x2, y2] = fig.stars[b]!;
+      const line = document.createElementNS(SVG_NS, 'line');
+      line.setAttribute('x1', String(x1));
+      line.setAttribute('y1', String(y1));
+      line.setAttribute('x2', String(x2));
+      line.setAttribute('y2', String(y2));
+      line.setAttribute('pathLength', '1');
+      line.style.animationDelay = `${0.9 + i * 0.22}s`;
+      svg.append(line);
+    });
+    fig.stars.forEach(([x, y, mag], i) => {
+      const c = document.createElementNS(SVG_NS, 'circle');
+      c.setAttribute('cx', String(x));
+      c.setAttribute('cy', String(y));
+      c.setAttribute('r', String(starRadius(mag)));
+      c.style.animationDelay = `${i * 0.12}s`;
+      svg.append(c);
+    });
+    const name = dict().constellation[fig.id] ?? fig.id;
+    this.figureName.classList.remove('on');
+    this.figureName.textContent = name;
+    this.figureName.setAttribute('aria-label', t('menu.skyName', { name }));
+    const calm = this.still;
+    this.later(() => this.figureName.classList.add('on'), calm ? 0 : 900 + fig.lines.length * 220);
+    if (calm) return;
+    this.later(() => {
+      svg.classList.add('fade');
+      this.figureName.classList.remove('on');
+      this.later(() => this.nextFigure(), 950);
+    }, FIGURE_MS);
   }
 
   /** Открыли игру по ссылке друга: показать его итог и предложить тот же расклад. */
@@ -80,75 +215,103 @@ export class MenuScreen implements Screen {
     );
   }
 
-  unmount(): void {
-    this.el.remove();
-  }
-
+  /**
+   * Табличка и пульт. Купол и щель не трогаем — пересборка после «Настроек» не должна
+   * заново открывать створки и обрывать созвездие.
+   */
   private render(): void {
     const app = this.app;
-    // Веер парит бесконечно: новый после «Настроек» дёрнулся бы к началу анимации — берём прежний,
-    // пока не сменилось то, от чего зависит рисунок карт
-    const fanKey = `${JSON.stringify(app.settings)}|${dpr()}`;
-    if (!this.fan || this.fanKey !== fanKey) {
-      this.fan = h('div.menu-fan');
-      this.fanKey = fanKey;
-      DECOR.forEach((card, i) => {
-        const img = canvasImg(cardFace(card, 96, dpr()), 96 * 1.24, (96 / 0.7) * 1.24, 'fan-card');
-        img.style.setProperty('--i', String(i - 1));
-        this.fan!.append(img);
-      });
-    }
-    const fan = this.fan;
-    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
-    const buttons = h('div.menu-buttons', null, [
-      app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
-      !app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { sub: t('tut.menuSub') }) : null,
-      button(t('menu.newRun'), () => this.guardSave(() => this.offerTutorial(() => this.chooseSky())), {
-        variant: app.hasSave || !app.profile.tutorialDone ? 'secondary' : 'primary',
-      }),
-      button(dailyDone ? t('menu.dailyDone') : t('menu.daily'), () => this.guardSave(() => app.startRun('classic', true)), {
-        variant: 'secondary',
-        disabled: dailyDone,
-        sub: `№ ${dailyNumber()} · ${humanDate(todayKey())}`,
-      }),
-      button(t('atlas.menu'), () => void app.goAtlas('menu'), {
-        variant: 'ghost',
-        className: 'atlas-entry',
-        sub: app.purchases.has('atlas') ? t('atlas.menuOwned') : t('atlas.menuSub'),
-      }),
-      h('div.menu-grid', null, [
-        // Новичку — меньше выбора: архив и кодекс появятся после первого забега
-        app.profile.runs > 0 ? button(t('archive.menu'), () => void app.goArchive(), { variant: 'ghost' }) : null,
-        app.profile.tutorialDone ? button(t('tut.menuButton'), () => app.startTutorial(), { variant: 'ghost' }) : null,
-        app.profile.runs > 0 ? button(t('menu.codex'), () => void import('./codex').then(({ showCodex }) => showCodex(app)), { variant: 'ghost' }) : null,
-        button(t('menu.howTo'), () => showHelp({ found: app.profile.combosFound }), { variant: 'ghost' }),
-        button(t('menu.settings'), () => showSettings(app, () => this.rerender()), { variant: 'ghost' }),
-      ]),
-    ]);
-    // Любая кнопка меню — жест пользователя: в нём можно развернуть игру на весь экран
-    buttons.addEventListener('click', () => {
-      if (app.platform.id === 'web' && app.settings.fullscreen) enterFullscreen();
-    }, { capture: true });
-    const heroText = [
+    this.plate.replaceChildren(
       h('h1.logo', null, [
         h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-    ];
-    const foot = h('div.menu-foot', null, [this.homeHint(), h('span', null, `v${__APP_VERSION__}`)]);
-    // Вынутый из документа элемент начинает анимацию заново, поэтому веер не трогаем:
-    // меняем всё вокруг него
-    const hero = this.el.querySelector<HTMLElement>(':scope > .menu-hero');
-    if (hero && fan.parentElement === hero) {
-      while (fan.nextSibling) fan.nextSibling.remove();
-      while (fan.previousSibling) fan.previousSibling.remove();
-      hero.append(...heroText);
-      while (hero.nextSibling) hero.nextSibling.remove();
-      hero.after(buttons, foot);
-      return;
+    );
+    if (this.figure) {
+      const name = dict().constellation[this.figure.id] ?? this.figure.id;
+      this.figureName.textContent = name;
+      this.figureName.setAttribute('aria-label', t('menu.skyName', { name }));
     }
-    this.el.replaceChildren(h('div.menu-hero', null, [fan, ...heroText]), buttons, foot);
+    this.nav.setAttribute('aria-label', t('game.title'));
+
+    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
+    const newRun = () => this.guardSave(() => this.offerTutorial(() => this.chooseSky()));
+    const daily = () => this.guardSave(() => app.startRun('classic', true));
+    // Главная кнопка одна: продолжить → обучение для новичка → новый забег
+    const primaryKind = app.hasSave ? 'continue' : !app.profile.tutorialDone ? 'tutorial' : 'newRun';
+    const primary =
+      primaryKind === 'continue' ? button(t('menu.continue'), () => void app.route(), { className: 'menu-primary' })
+      : primaryKind === 'tutorial' ? button(t('tut.menuButton'), () => app.startTutorial(), { sub: t('tut.menuSub'), className: 'menu-primary' })
+      : button(t('menu.newRun'), newRun, { className: 'menu-primary' });
+    // Атлас — второй по важности: та же лёгкость, но своё тихое золото и рамка
+    const atlas = button(h('span.menu-atlas-label', null, [icon('astrolabe'), t('atlas.menu')]), () => void app.goAtlas('menu'), {
+      variant: 'ghost',
+      className: 'menu-atlas',
+      ariaLabel: app.purchases.has('atlas') ? `${t('atlas.menu')}, ${t('atlas.menuOwned')}` : `${t('atlas.menu')}, ${t('atlas.menuSub')}`,
+    });
+    const lite = (name: IconName, label: string, onClick: () => void, opts: { disabled?: boolean; title?: string } = {}) => {
+      const b = h('button.menu-lite', { type: 'button', title: opts.title ?? '' }, [icon(name), label]);
+      b.disabled = !!opts.disabled;
+      b.addEventListener('click', () => {
+        if (b.disabled) return;
+        app.svc.audio.click();
+        onClick();
+      });
+      return b;
+    };
+    const pair = h('div.menu-pair', null, [
+      primaryKind !== 'newRun' ? lite('play', t('menu.newRun'), newRun) : null,
+      lite('daily', dailyDone ? t('menu.dailyDone') : t('menu.daily'), daily, { disabled: dailyDone, title: `№ ${dailyNumber()} · ${humanDate(todayKey())}` }),
+    ]);
+    const handle = h('button.menu-handle', { type: 'button', attrs: { 'aria-haspopup': 'dialog', 'aria-label': t('menu.libraryOpen') } }, t('menu.library'));
+    handle.addEventListener('click', () => {
+      app.svc.audio.click();
+      this.openLibrary();
+    });
+    this.nav.replaceChildren(primary, atlas, pair, handle);
+    this.foot.replaceChildren(...[this.homeHint()].filter((x): x is HTMLElement => !!x));
+  }
+
+  /** «Библиотека»: всё служебное на втором экране — нижний лист, в ландшафте панель слева. */
+  private openLibrary(): void {
+    const app = this.app;
+    const lib = dict().menu.lib;
+    const item = (name: IconName, title: string, sub: string, run: () => void) => {
+      const b = h('button.library-item', { type: 'button' }, [icon(name), h('b', null, title), h('span', null, sub)]);
+      b.addEventListener('click', () => {
+        app.svc.audio.click();
+        m.close();
+        run();
+      });
+      return b;
+    };
+    // Новичку — меньше выбора: архив и кодекс появятся после первого забега
+    const items = [
+      item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound })),
+      item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.startTutorial())),
+      app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.goArchive()) : null,
+      app.profile.runs > 0 ? item('codex', t('menu.codex'), lib.codex, () => void import('./codex').then(({ showCodex }) => showCodex(app))) : null,
+      item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
+    ];
+    const m = modal(
+      [h('div.library-grid', null, items), h('p.library-version', null, `v${__APP_VERSION__}`)],
+      { title: t('menu.library'), sheet: true, className: 'library' },
+    );
+  }
+
+  /** Свайп вверх у нижнего края открывает библиотеку — если меню не прокручивается само. */
+  private wireLibrarySwipe(): void {
+    let start: { y: number; t: number } | null = null;
+    this.scroller.addEventListener('pointerdown', (e) => {
+      const fits = this.scroller.scrollHeight <= this.scroller.clientHeight + 1;
+      start = fits && e.clientY > this.scroller.clientHeight * 0.7 ? { y: e.clientY, t: performance.now() } : null;
+    });
+    this.scroller.addEventListener('pointerup', (e) => {
+      if (start && start.y - e.clientY > 50 && performance.now() - start.t < 700) this.openLibrary();
+      start = null;
+    });
+    this.scroller.addEventListener('pointercancel', () => (start = null));
   }
 
   /** Новичку перед первым забегом предлагаем обучение. */
@@ -204,10 +367,6 @@ export class MenuScreen implements Screen {
       );
     });
     return link;
-  }
-
-  private rerender(): void {
-    this.render();
   }
 
   private chooseSky(): void {
