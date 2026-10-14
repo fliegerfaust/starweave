@@ -564,6 +564,12 @@ export class NightScene {
     if (e.kind === 'down') this.dragPointer = e.id;
     else if (e.kind === 'up' || e.kind === 'cancel') this.dragPointer = null;
     this.svc.audio.unlock();
+    // Мышь едет без зажатой кнопки, а карта всё ещё «в руке» — отпускание потерялось
+    // (окно потеряло фокус и т.п.). Отпускаем здесь, иначе карта ездит за курсором
+    if (e.kind === 'move' && e.pointerType === 'mouse' && e.buttons === 0 && (this.drag || this.pendingCell !== null)) {
+      this.dragPointer = null;
+      return this.onUp(e.x, e.y);
+    }
     if (e.kind === 'down') this.onDown(e.x, e.y);
     else if (e.kind === 'move') this.onMove(e.x, e.y, e.pointerType === 'touch');
     else if (e.kind === 'up') this.onUp(e.x, e.y);
