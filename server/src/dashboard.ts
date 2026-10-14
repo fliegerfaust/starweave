@@ -15,6 +15,8 @@ const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round(
 const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры' };
 const NIGHT: Record<string, string> = { dusk: ru.night.dusk, midnight: ru.night.midnight, eclipse: ru.night.eclipse };
 const RESULT: Record<string, string> = { lost: 'проиграли', abandon: 'сдались', victory: 'победили' };
+const PLACEMENT: Record<string, string> = { between_antes: 'Между главами', revive: 'Второй шанс', double_reward: 'Удвоить награду' };
+const AD_KIND: Record<string, string> = { interstitial: 'межстраничная', rewarded: 'за награду' };
 const KIND: Record<string, string> = { omen: 'Знамения', chart: 'Звёздные карты', ritual: 'Ритуалы', pack: 'Пакеты' };
 
 function itemName(kind: string, id: string): string {
@@ -199,9 +201,9 @@ export function renderDashboard(s: Stats): string {
   const ads = s.ads.length
     ? table(
         ['Где', 'Показов', 'Досмотрели'],
-        s.ads.map((a) => [esc(a.placement), fmt(a.requests), a.kind === 'rewarded' ? pct(a.rewarded, a.requests) : '—']),
+        s.ads.map((a) => [`${esc(PLACEMENT[a.placement] ?? a.placement)} <small class="where">${esc(AD_KIND[a.kind] ?? a.kind)}</small>`, fmt(a.requests), a.kind === 'rewarded' ? pct(a.rewarded, a.requests) : '—']),
       )
-    : empty('Рекламы пока нет.');
+    : empty('Рекламы пока нет: она будет в Яндекс Играх (между главами и за награду) и в Telegram через AdsGram.');
 
   const tech = `${
     s.perf.length
@@ -248,7 +250,7 @@ export function renderDashboard(s: Stats): string {
   ${section('Где сложно', 'Каждая ночь: сколько раз её играли и как часто проигрывали. Красным — проигрывают 40% и чаще. «Ходов в запасе» — сколько ходов в среднем оставалось у победивших: меньше 3 — проходят на грани.', nights)}
   ${section('Что покупают в Обсерватории', 'Сколько покупок каждого вида и самое популярное внутри вида. «Звёздную пыль» покупают и в обучении — она там обязательна.', shop)}
   ${section('Пользуются ли подсказками', 'Если справочник открывают часто — какое-то правило объяснено плохо.', help)}
-  ${section('Реклама', 'Показы рекламы за награду и сколько её досмотрели.', ads)}
+  ${section('Реклама', 'Показы рекламы: межстраничная — между главами, за награду — «Второй шанс» и «Удвоить награду» (сколько досмотрели).', ads)}
   ${section('Техника', 'Плавность на устройствах игроков, версии и ошибки в коде.', tech)}
 </main>
 <footer>Данные анонимные: случайный номер устройства, без имён, адресов и IP. Хранятся на сервере в Москве ${RETENTION_DAYS} дней.</footer>

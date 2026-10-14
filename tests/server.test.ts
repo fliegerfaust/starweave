@@ -74,6 +74,19 @@ describe('сервер: сводка', () => {
     expect(s.shop.top[0]).toEqual({ kind: 'omen', id: 'pillar', count: 2, players: 2 });
   });
 
+  it('реклама: ложные межстраничные из Telegram и с сайта не считаются', () => {
+    const db = openDb(':memory:');
+    const ad = (platform: string, kind: string) =>
+      insertBatch(db, { client: `client-${platform}`, session: `s-${platform}-${kind}`, platform, version: '1', lang: 'ru', events: [{ name: 'ad_request', params: { kind, placement: kind === 'interstitial' ? 'between_antes' : 'revive' }, at: NOW - DAY }] });
+    ad('telegram', 'interstitial');
+    ad('web', 'interstitial');
+    ad('yandex', 'interstitial');
+    ad('yandex', 'rewarded');
+    const s = computeStats(db, NOW, 7);
+    expect(s.ads.map((a) => `${a.kind}:${a.requests}`).sort()).toEqual(['interstitial:1', 'rewarded:1']);
+    expect(renderDashboard(s)).toContain('Между главами');
+  });
+
   it('воронка новичков и рост', () => {
     const db = openDb(':memory:');
     const put = (c: string, at: number, events: [string, Record<string, string | number | boolean>][]) =>

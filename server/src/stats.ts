@@ -203,7 +203,10 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
             SUM(CASE WHEN name = 'ad_request' THEN 1 ELSE 0 END) AS requests,
             SUM(CASE WHEN name = 'ad_result' AND json_extract(params, '$.result') = 'rewarded' THEN 1 ELSE 0 END) AS rewarded
-     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ? GROUP BY kind, placement ORDER BY requests DESC`,
+     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ?
+       -- До 0.4.10 игра писала запрос межстраничной рекламы и там, где её нет (Telegram, сайт)
+       AND NOT (json_extract(params, '$.kind') = 'interstitial' AND platform IN ('telegram', 'web'))
+     GROUP BY kind, placement ORDER BY requests DESC`,
     from,
   ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
