@@ -1004,7 +1004,7 @@ export class NightScene {
         }
       }
       state.closes = closes;
-      void this.svc.tweens.to(state, { closesAnim: closes > 0 ? 1 : 0 }, { duration: 0.3 });
+      void this.svc.tweens.to(state, { closesAnim: closes > 0 && !this.forecastOff ? 1 : 0 }, { duration: 0.3 });
     });
     this.refreshForecast();
   }
@@ -1015,6 +1015,8 @@ export class NightScene {
    * поэтому прогноза нет.
    */
   /** Прогнозы клеток на текущее состояние ночи: выбор карты не пересчитывает их заново. */
+  /** Без подписей прогноза и меток «×2» на небе — ролик-загадка (`?demo=puzzle`). */
+  forecastOff = false;
   private forecastCache = new Map<string, PlacementPreview | null>();
   private forecastState = '';
   private forecastSeed = 0;
@@ -1042,7 +1044,7 @@ export class NightScene {
       state.forecastPicked = picked !== null;
       state.forecastWeak = false;
       state.forecastCard = null;
-      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing') continue;
+      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing' || this.forecastOff) continue;
       const indices = picked !== null ? [picked] : n.hand.map((_, i) => i);
       let best: PlacementPreview | null = null;
       let bestIndex = -1;

@@ -8,6 +8,7 @@
 | Telegram | аватар бота 1024×1024 | `telegram/avatar-1024.png` |
 | | загрузочный экран (SVG, один path) | `telegram/splash.svg` (`node scripts/make-splash.mjs`) |
 | | видео превью 1080×1920 | `telegram/preview-ru.mp4`, `-en.mp4` (`?demo`, см. docs/TELEGRAM.md) |
+| Shorts / Клипы / Reels | ролики 1080×1920, 60 fps | `clips/*-ru.mp4`, `-en.mp4` (`npm run clips`, в git не хранятся) |
 | Яндекс Игры | иконка 512×512 | `yandex/icon-512.png` |
 | | обложка 800×470 | `yandex/cover-800x470-ru.png`, `-en.png` |
 | | скриншоты | `screens/ru/*`, `screens/en/*` |
