@@ -25,7 +25,7 @@
     ([...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) || ['IMG', 'svg', 'SVG'].includes(el.tagName)));
   const boxes = [...document.querySelectorAll('body *')].filter((el) => visible(el) && boxy(el) && !['CANVAS'].includes(el.tagName));
   for (const el of new Set([...leaves, ...boxes])) {
-    if (el.closest('.sys, .pop, .flash, .card, .sky')) continue;
+    if (el.closest('.sys, .pop, .flash, .card, .sky, .sr-only')) continue;
     const r = el.getBoundingClientRect();
     if (r.right > vw + 1 || r.left < -1 || r.bottom > vh + 1) out.push(`за экраном: ${name(el)} «${el.textContent.trim().slice(0, 24)}»`);
     if (el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== 'visible') out.push(`обрезан текст: ${name(el)}`);

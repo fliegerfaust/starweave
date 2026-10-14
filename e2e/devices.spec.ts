@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+
+/** Проверка «ничего не вылезает из плашки» (e2e/fit-audit.js), пустой список — всё на месте. */
+const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8');
 
 /**
  * Прогон ключевых экранов на каждом устройстве из playwright.config.ts:
@@ -99,6 +103,8 @@ test('экраны помещаются, не накладываются и ра
   await page.waitForSelector('.calc.show', { timeout: 15_000 });
   await page.waitForTimeout(900);
   await shot(page, '04-scoring');
+  // Табло и лоток подсчёта: ни текст, ни значки не вылезают из своих плашек (правило Дениса)
+  expect(await page.evaluate(FIT_AUDIT), 'вылезает из плашки на ночи').toEqual([]);
   await page.waitForFunction(() => !(window as unknown as { __scene: { busy: boolean } }).__scene.busy, null, { timeout: 20_000 });
 
   // Обсерватория

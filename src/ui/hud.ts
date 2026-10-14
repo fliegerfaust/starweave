@@ -69,6 +69,8 @@ export class Hud {
   private readonly calcCaption: HTMLElement;
   private readonly calcLightLabel: HTMLElement;
   private readonly preview: HTMLElement;
+  /** Лента с названием созвездия поперёк вспыхнувшей линии — над слоем вспышки. */
+  private readonly ribbon: HTMLElement;
   /** Невидимая строка для скринридера: выбор карты, клетка, итог хода. */
   private readonly live: HTMLElement;
   private readonly cardInfo: HTMLElement;
@@ -82,7 +84,7 @@ export class Hud {
 
   constructor(cb: HudCallbacks) {
     this.title = h('div.hud-title');
-    this.bossBadge = h('div.hud-boss');
+    this.bossBadge = h('div.hud-rule');
     this.gold = h('div.hud-gold');
     this.score = h('div.hud-score', null, '0');
     this.target = h('div.hud-target');
@@ -112,21 +114,25 @@ export class Hud {
     this.preview = h('div.preview');
     this.live = h('div.sr-only', { attrs: { 'aria-live': 'polite', 'aria-atomic': 'true' } });
 
-    const menuBtn = h('button.icon-btn', { type: 'button', ariaLabel: t('pause.title'), onclick: () => cb.onMenu() }, h('span.burger'));
-    const guideBtn = (this.guideBtn = h('button.icon-btn.q', { type: 'button', ariaLabel: t('guide.title'), onclick: () => cb.onGuide() }, '?'));
+    const menuBtn = h('button.icon-btn.medal', { type: 'button', ariaLabel: t('pause.title'), onclick: () => cb.onMenu() }, h('span.burger'));
+    const guideBtn = (this.guideBtn = h('button.icon-btn.medal.q', { type: 'button', ariaLabel: t('guide.title'), onclick: () => cb.onGuide() }, '?'));
     this.cardInfo = h('div.card-info');
     this.cardInfo.addEventListener('click', () => {
       if (this.cardInfoGlyph) cb.onGuide(`glyph-${this.cardInfoGlyph}`);
     });
-    this.el = h('div.hud', null, [
-      h('div.hud-row.top', null, [menuBtn, guideBtn, h('div.hud-title-wrap', null, [this.title, this.bossBadge]), this.gold]),
+    this.ribbon = h('div.combo-ribbon', { attrs: { 'aria-hidden': 'true' } }, [h('b'), h('small')]);
+    // «Рама» (RD.1): всё о ночи в одной латунной раме — табличка главы, правило Затмения,
+    // счёт с полосой, ходы и сжигания, ряд Знамений и золото
+    this.el = h('div.hud', null, h('div.hud-frame', null, [
+      h('div.hud-row.top', null, [menuBtn, h('div.hud-title-wrap', null, this.title), guideBtn]),
+      this.bossBadge,
       h('div.hud-row.mid', null, [
         h('div.hud-score-wrap', null, [h('div.row.baseline', null, [this.score, this.target]), h('div.hud-bar', null, this.bar)]),
-        h('div.stat', null, [h('div.stat-label', null, t('night.moves')), this.moves]),
-        h('div.stat', null, [h('div.stat-label', null, t('night.burns')), this.burns]),
+        h('div.stat', null, [this.moves, h('div.stat-label', null, t('night.moves'))]),
+        h('div.stat', null, [this.burns, h('div.stat-label', null, t('night.burns'))]),
       ]),
-      this.omens,
-    ]);
+      h('div.hud-row.omens', null, [this.omens, this.gold]),
+    ]));
 
     this.deckBtn = button('', () => cb.onDeck(), { variant: 'secondary', className: 'deck-btn' });
     this.burnBtn = button(t('night.burn'), () => cb.onBurn(), { variant: 'secondary', className: 'burn-btn' });
@@ -135,10 +141,12 @@ export class Hud {
 
   mount(root: HTMLElement): void {
     root.append(this.el, this.calc, this.preview, this.cardInfo, this.actions, this.live);
+    document.body.append(this.ribbon);
   }
 
   unmount(): void {
     this.el.remove();
+    this.ribbon.remove();
     this.calc.remove();
     this.preview.remove();
     this.cardInfo.remove();
@@ -161,11 +169,13 @@ export class Hud {
     this.title.replaceChildren(h('span.hud-chapter', null, `${t('night.constellation', { n: run.ante })} · `), t(`night.${kind}`));
     clear(this.bossBadge);
     this.title.parentElement?.classList.toggle('boss', !!night?.bossId);
+    // Затмение: рама в жемчужной короне, правило — одной строкой с сигилом под табличкой
+    this.el.classList.toggle('boss', !!night?.bossId);
     if (night?.bossId) {
-      const icon = canvasImg(bossSigil(night.bossId, 28, dpr()), 28);
+      const icon = canvasImg(bossSigil(night.bossId, 24, dpr()), 24);
       // Кнопка, а не подпись: правило Затмения можно открыть касанием в любой момент ночи
       const boss = named('boss', night.bossId);
-      const badge = h('button.boss-chip', { type: 'button', ariaLabel: `${boss.name}: ${boss.desc}` }, [icon, h('span.boss-chip-name', null, boss.name)]);
+      const badge = h('button.boss-chip', { type: 'button', ariaLabel: `${boss.name}: ${boss.desc}` }, [icon, h('span.boss-chip-name', null, `${boss.name}: ${boss.desc.charAt(0).toLocaleLowerCase()}${boss.desc.slice(1)}`)]);
       attachTooltip(badge, () => bossTooltip(night.bossId!));
       this.bossBadge.append(badge);
     }
@@ -175,6 +185,7 @@ export class Hud {
       this.moves.textContent = String(night.movesLeft);
       this.moves.classList.toggle('low', night.movesLeft <= 3);
       this.burns.textContent = String(night.burnsLeft);
+      this.setBurnLabel(night.burnsLeft);
       if (opts.score !== false) this.setScore(night.score, night.target, false);
       this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${night.drawPile.length}`;
     }
@@ -191,7 +202,7 @@ export class Hud {
         this.omens.append(h('div.omen-slot.empty'));
         continue;
       }
-      const el = h('div.omen-slot', { dataset: { uid: String(omen.uid) } }, omenMedal(omen.id, 40));
+      const el = h('div.omen-slot', { dataset: { uid: String(omen.uid) } }, omenMedal(omen.id, 34));
       attachTooltip(el, () => omenTooltip(omen));
       this.omens.append(el);
     }
@@ -208,6 +219,12 @@ export class Hud {
     this.moves.textContent = String(moves);
     this.moves.classList.toggle('low', moves <= 3);
     this.burns.textContent = String(burns);
+    this.setBurnLabel(burns);
+  }
+
+  /** «Сжечь · 2» — сколько сжиганий осталось видно прямо на кнопке. */
+  private setBurnLabel(burns: number): void {
+    this.burnBtn.querySelector('.btn-label')!.textContent = `${t('night.burn')} · ${burns}`;
   }
 
   setDeckCount(n: number): void {
@@ -294,13 +311,24 @@ export class Hud {
    * Поставить панель подсчёта сверху или снизу. Снизу — когда сверху она закрыла бы
    * вспыхнувшие карты (низкие экраны, линия в верхнем ряду).
    */
-  placeCalc(avoidTop: number | null): void {
-    this.calc.classList.remove('bottom');
-    if (avoidTop === null) return;
-    const r = this.calc.getBoundingClientRect();
-    // Панель в момент показа ещё «выпрыгивает» — оцениваем по высоте без анимации
-    const bottom = r.top + this.calc.offsetHeight;
-    if (bottom > avoidTop + 4) this.calc.classList.add('bottom');
+  placeCalc(_avoidTop: number | null): void {
+    // «Рама»: лоток всегда над рукой (на ПК и в ландшафте — в колонке под табло),
+    // вспыхнувших карт он не закрывает. Место задаёт сцена через --calc-*.
+  }
+
+  /** Лента с названием созвездия поперёк линии; y — центр линии в координатах экрана. */
+  showRibbon(name: string, desc: string, y: number): void {
+    this.ribbon.querySelector('b')!.textContent = name;
+    this.ribbon.querySelector('small')!.textContent = desc;
+    this.ribbon.style.top = `${y}px`;
+    this.ribbon.classList.remove('show', 'hide');
+    void this.ribbon.offsetWidth;
+    this.ribbon.classList.add('show');
+    this.announce(`${name}. ${desc}`);
+  }
+
+  hideRibbon(): void {
+    this.ribbon.classList.replace('show', 'hide');
   }
 
   /** Пояснение текущего шага подсчёта простыми словами. */

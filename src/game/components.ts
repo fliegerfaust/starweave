@@ -62,7 +62,8 @@ export interface Particle {
   gravity: number;
   size: number;
   color: string;
-  kind: 'dot' | 'spark' | 'shard' | 'ring';
+  /** dust — мягкое облачко пыли при приземлении карты (рисуется без «lighter»). */
+  kind: 'dot' | 'spark' | 'shard' | 'ring' | 'dust';
   spin: number;
 }
 export const Particle = defineComponent<Particle>('Particle');
