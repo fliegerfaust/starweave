@@ -4,6 +4,7 @@ import { insertBatch, openDb, purgeOld } from './db.ts';
 import { createInvoice, handleUpdate, ownedProducts, type PaymentsConfig } from './payments.ts';
 import { botApi, verifyInitData } from './telegram.ts';
 import { renderDashboard } from './dashboard.ts';
+import { STACK_SCRIPT_HASH } from './stack-decoder.ts';
 import { computeStats } from './stats.ts';
 import { LIMITS, parseBatch } from './validate.ts';
 
@@ -209,11 +210,13 @@ function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void 
     return;
   }
   const days = [1, 7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 7;
-  const html = renderDashboard(computeStats(db, Date.now(), days));
+  // Сайт игры: оттуда страница сводки читает карты исходников для стеков ошибок
+  const site = [...ORIGINS][0] ?? '';
+  const html = renderDashboard(computeStats(db, Date.now(), days), { site });
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
-    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+    'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src '${STACK_SCRIPT_HASH}'; connect-src ${site || "'none'"}; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`,
     'X-Robots-Tag': 'noindex',
   });
   res.end(html);
