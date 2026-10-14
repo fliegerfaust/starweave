@@ -512,7 +512,9 @@ body {
   justify-content: safe center;
   gap: 26px;
   padding: calc(24px + var(--safe-top)) 20px calc(24px + var(--safe-bottom));
-  pointer-events: none;
+  /* Меню прокручивается: касание фона должно попадать в него, а не в холст под ним */
+  pointer-events: auto;
+  overscroll-behavior: contain;
   animation: fade-in 0.5s ease;
 }
 .menu-hero { display: flex; flex-direction: column; align-items: center; }
@@ -1118,7 +1120,9 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .legal-links { margin-top: 4px; }
 
 /* ─── Эффекты в описаниях — цвета формулы ─────────────────────────────── */
-.fx-pill { display: inline-block; padding: 0 6px; border-radius: 6px; font-weight: 800; white-space: nowrap; line-height: 1.5; }
+/* Строчный элемент: длинная плашка переносится вместе с текстом и не вылезает за карточку,
+   цену или подсказку; рамка и фон повторяются на каждой строке */
+.fx-pill { display: inline; padding: 1px 6px; border-radius: 6px; font-weight: 800; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .fx-light { background: rgb(var(--light-rgb) / 0.18); color: #b9f0ff; box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.45); }
 .fx-mult { background: rgb(var(--mult-rgb) / 0.18); color: #ffb3c4; box-shadow: inset 0 0 0 1px rgb(var(--mult-rgb) / 0.5); }
 .fx-xmult { background: linear-gradient(90deg, rgb(var(--mult-rgb) / 0.25), rgba(255, 179, 71, 0.25)); color: #ffd0a8; box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.55); }
@@ -1805,4 +1809,5 @@ html.large-text .preview, html.large-text .tut-memo-caption, html.large-text .re
 html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label, html.large-text .shop-tag,
 html.large-text .sell-label, html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
 html.large-text .combo-name { font-size: 21px; }
+
 
