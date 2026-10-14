@@ -33,6 +33,11 @@ describe('сервер: приём событий', () => {
     const batch = parseBatch(body({}, [['js_error', { message: 'y'.repeat(1000) }, NOW]]), NOW) as Batch;
     expect((batch.events[0]!.params.message as string).length).toBe(LIMITS.string);
   });
+
+  it('стек ошибки длиннее обычной строки, но тоже с пределом', () => {
+    const batch = parseBatch(body({}, [['js_error', { message: 'x', stack: 's'.repeat(5000) }, NOW]]), NOW) as Batch;
+    expect((batch.events[0]!.params.stack as string).length).toBe(LIMITS.stack);
+  });
 });
 
 function seed(): ReturnType<typeof openDb> {
@@ -110,6 +115,25 @@ describe('сервер: сводка', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('Telegram');
+  });
+
+  it('ошибки: свежий стек, версии по порядку, стек экранирован и расшифровывается скриптом', () => {
+    const db = openDb(':memory:');
+    const put = (version: string, at: number, params: Record<string, string>) =>
+      insertBatch(db, { client: 'client-err1', session: `s-${version}-${at}`, platform: 'web', version, lang: 'ru', events: [{ name: 'js_error', params, at }] });
+    put('0.4.9', NOW - 3 * DAY, { message: 'boom', where: '/a.js:1:1', stack: 'old@/a.js:1:1' });
+    put('0.4.13', NOW - DAY, { message: 'boom', where: '/a.js:1:1', stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1' });
+    put('0.4.13', NOW - DAY + 1000, { message: 'boom', where: '/a.js:1:1' });
+    const s = computeStats(db, NOW, 7);
+    expect(s.errors).toEqual([
+      { message: 'boom', where: '/a.js:1:1', count: 3, last: NOW - DAY + 1000, stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1', versions: ['0.4.9', '0.4.13'] },
+    ]);
+    const html = renderDashboard(s, { site: 'https://game.example' });
+    expect(html).toContain('<pre data-stack>req@/a.js:2:5\n&lt;img src=x&gt;@/a.js:3:1</pre>');
+    expect(html).toContain('data-site="https://game.example"');
+    expect(html).toContain('<script>');
+    // Без стеков скрипт не нужен
+    expect(renderDashboard(computeStats(seed(), NOW, 7))).not.toContain('<script>');
   });
 
   it('пустая база не ломает страницу', () => {

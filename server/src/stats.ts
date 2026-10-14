@@ -45,7 +45,8 @@ export interface Stats {
   };
   help: { guide: number; scoring: number; banish: number; rerolls: number };
   ads: { kind: string; placement: string; requests: number; rewarded: number }[];
-  errors: { message: string; where: string; count: number; last: number }[];
+  /** stack — самый свежий из присланных стеков; versions — в каких версиях игры встречалась. */
+  errors: { message: string; where: string; count: number; last: number; stack: string; versions: string[] }[];
   perf: { platform: string; medianFps: number; samples: number }[];
   versions: { version: string; players: number }[];
 }
@@ -211,10 +212,23 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
   const errors = all(
-    `SELECT json_extract(params, '$.message') AS message, MAX(json_extract(params, '$.where')) AS place, COUNT(*) AS n, MAX(ts) AS last
-     FROM events WHERE name = 'js_error' AND ts >= ? GROUP BY message ORDER BY n DESC LIMIT 10`,
+    `SELECT json_extract(e.params, '$.message') AS message, MAX(json_extract(e.params, '$.where')) AS place, COUNT(*) AS n, MAX(e.ts) AS last,
+            GROUP_CONCAT(DISTINCT e.version) AS vers,
+            (SELECT json_extract(s.params, '$.stack') FROM events s
+              WHERE s.name = 'js_error' AND s.ts >= ? AND json_extract(s.params, '$.message') = json_extract(e.params, '$.message')
+                AND json_extract(s.params, '$.stack') IS NOT NULL
+              ORDER BY s.ts DESC LIMIT 1) AS stack
+     FROM events e WHERE e.name = 'js_error' AND e.ts >= ? GROUP BY message ORDER BY n DESC LIMIT 10`,
     from,
-  ).map((r) => ({ message: String(r.message), where: r.place ? String(r.place) : '', count: num(r.n), last: num(r.last) }));
+    from,
+  ).map((r) => ({
+    message: String(r.message),
+    where: r.place ? String(r.place) : '',
+    count: num(r.n),
+    last: num(r.last),
+    stack: r.stack ? String(r.stack) : '',
+    versions: String(r.vers ?? '').split(',').filter(Boolean).sort(cmpVersion),
+  }));
 
   const fpsRows = all(`SELECT platform, json_extract(params, '$.fps') AS fps FROM events WHERE name = 'perf' AND ts >= ?`, from);
   const fpsBy = new Map<string, number[]>();
@@ -231,6 +245,17 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   }));
 
   return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
+}
+
+/** Сравнение версий «0.4.9» < «0.4.13» — по числам, не по строке. */
+function cmpVersion(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return d;
+  }
+  return 0;
 }
 
 function median(list: number[]): number | null {

@@ -1,5 +1,6 @@
 import type { EventMap, EventName } from './events';
 import { ServerSink } from './server-sink';
+import { compactStack } from './stack';
 export { forgetClientId } from './server-sink';
 
 export type { EventMap, EventName } from './events';
@@ -69,8 +70,30 @@ export function initAnalytics(platform = 'web'): void {
   window.addEventListener('error', (e) => {
     // Где: наш файл (путь без адреса сайта) или чужой скрипт (адрес) — строка и колонка
     const file = e.filename ? e.filename.replace(location.origin, '') : '';
-    track('js_error', { message: String(e.message).slice(0, 200), where: file ? `${file}:${e.lineno}:${e.colno}`.slice(0, 160) : '' });
+    reportError(String(e.message), file ? `${file}:${e.lineno}:${e.colno}` : '', (e.error as Error | undefined)?.stack);
   });
+  // Ошибка в промисе без catch: окно её не видит как 'error', а игра так же ломается
+  window.addEventListener('unhandledrejection', (e) => {
+    const reason = e.reason as unknown;
+    const err = reason instanceof Error ? reason : null;
+    reportError(`Unhandled rejection: ${err ? `${err.name}: ${err.message}` : String(reason)}`, '', err?.stack);
+  });
+}
+
+/** Сколько раз за сессию ошибка с этим сообщением уже ушла со стеком. */
+const stackSent = new Map<string, number>();
+/**
+ * Стек — только у первых повторов: ошибка в обработчике движения пальца приходит сотнями
+ * за секунды, и пачка со стеками не влезла бы в предел тела запроса на сервере.
+ */
+const STACKS_PER_MESSAGE = 3;
+
+function reportError(message: string, where: string, stack: string | undefined): void {
+  const msg = message.slice(0, 200);
+  const sent = stackSent.get(msg) ?? 0;
+  const compact = sent < STACKS_PER_MESSAGE ? compactStack(stack, location.origin) : '';
+  if (compact) stackSent.set(msg, sent + 1);
+  track('js_error', { message: msg, where: where.slice(0, 160), ...(compact ? { stack: compact } : {}) });
 }
 
 /** Отправить событие. Аналитика никогда не роняет игру. */

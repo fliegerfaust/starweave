@@ -27,6 +27,8 @@ export const LIMITS = {
   events: 50,
   params: 24,
   string: 200,
+  /** Стек ошибки (js_error.stack) — единственная длинная строка. */
+  stack: 1000,
   /** Насколько назад можно датировать событие (очередь офлайн-устройства). */
   backdateMs: 24 * 60 * 60 * 1000,
 } as const;
@@ -95,7 +97,7 @@ function cleanParams(params: unknown): Record<string, Value> | string {
   const out: Record<string, Value> = {};
   for (const [key, value] of entries) {
     if (!KEY.test(key)) return 'bad param key';
-    if (typeof value === 'string') out[key] = value.slice(0, LIMITS.string);
+    if (typeof value === 'string') out[key] = value.slice(0, key === 'stack' ? LIMITS.stack : LIMITS.string);
     else if (typeof value === 'number') {
       if (!Number.isFinite(value)) return 'bad param number';
       out[key] = value;
