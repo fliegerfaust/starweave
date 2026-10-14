@@ -15,6 +15,7 @@
     "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/strip-web-only.mjs dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
     "legal": "node scripts/build-legal.ts",
     "e2e": "playwright test",
+    "clips": "node scripts/clips.mjs",
     "store-assets": "ASSETS=1 playwright test e2e/store-assets.spec.ts --project=desktop --workers=1"
   },
   "devDependencies": {

@@ -26,7 +26,9 @@ interface ToneOptions {
 }
 
 export class Synth {
-  private ctx: AudioContext | null = null;
+  private ctx: BaseAudioContext | null = null;
+  /** Свои часы вместо `ctx.currentTime` — запись ролика в OfflineAudioContext (`?capture`). */
+  private clock: (() => number) | null = null;
   private master!: GainNode;
   private sfx!: GainNode;
   private music!: GainNode;
@@ -41,12 +43,24 @@ export class Synth {
   /** AudioContext создаётся только после жеста пользователя (политика браузеров). */
   unlock(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      if (this.ctx instanceof AudioContext && this.ctx.state === 'suspended') void this.ctx.resume();
       return;
     }
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
-    const ctx = new Ctor();
+    this.build(new Ctor());
+  }
+
+  /**
+   * Запись ролика: весь звук идёт в `ctx` (OfflineAudioContext), время звуков — по `clock`
+   * (секунды от начала записи; отрицательное — звук до записи, его не будет).
+   */
+  attachOffline(ctx: OfflineAudioContext, clock: () => number): void {
+    this.clock = clock;
+    this.build(ctx);
+  }
+
+  private build(ctx: BaseAudioContext): void {
     this.ctx = ctx;
     this.master = ctx.createGain();
     this.master.gain.value = 0.7;
@@ -75,7 +89,7 @@ export class Synth {
 
   /** Временная тишина (реклама, свёрнутая вкладка) — громкости из настроек не трогает. */
   setMuted(muted: boolean): void {
-    if (!this.ctx) return;
+    if (!(this.ctx instanceof AudioContext)) return;
     this.master.gain.setTargetAtTime(muted ? 0 : 0.7, this.ctx.currentTime, 0.05);
     if (muted) void this.ctx.suspend().catch(() => undefined);
     else void this.ctx.resume().catch(() => undefined);
@@ -85,8 +99,12 @@ export class Synth {
     this.sfxVolume = sfx;
     this.musicVolume = music;
     if (!this.ctx) return;
-    this.sfx.gain.setTargetAtTime(sfx, this.ctx.currentTime, 0.05);
-    this.music.gain.setTargetAtTime(music, this.ctx.currentTime, 0.3);
+    this.sfx.gain.setTargetAtTime(sfx, Math.max(0, this.now()), 0.05);
+    this.music.gain.setTargetAtTime(music, Math.max(0, this.now()), 0.3);
+  }
+
+  private now(): number {
+    return this.clock ? this.clock() : this.ctx!.currentTime;
   }
 
   private impulse(seconds: number, decay: number): AudioBuffer {
@@ -103,7 +121,8 @@ export class Synth {
   private tone(o: ToneOptions, bus: GainNode = this.sfx): void {
     const ctx = this.ctx;
     if (!ctx || this.sfxVolume <= 0 && bus === this.sfx) return;
-    const t0 = ctx.currentTime + (o.delay ?? 0);
+    const t0 = this.now() + (o.delay ?? 0);
+    if (t0 < 0) return;
     const osc = ctx.createOscillator();
     osc.type = o.type ?? 'sine';
     osc.frequency.setValueAtTime(o.freq, t0);
@@ -129,7 +148,8 @@ export class Synth {
   private noise(duration: number, from: number, to: number, gain = 0.15, delay = 0, q = 1): void {
     const ctx = this.ctx;
     if (!ctx) return;
-    const t0 = ctx.currentTime + delay;
+    const t0 = this.now() + delay;
+    if (t0 < 0) return;
     const src = ctx.createBufferSource();
     src.buffer = this.noiseBuffer;
     const filter = ctx.createBiquadFilter();
