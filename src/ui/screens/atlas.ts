@@ -51,6 +51,8 @@ export class AtlasScreen implements Screen {
   private prices: Record<string, string> | null = null;
   private busy = false;
   private drawn = false;
+  /** Звезда, чья табличка уже на экране. */
+  private plateStar: string | null = null;
   private off: (() => void) | null = null;
   private tab: Tab = 'atlas';
   /** Что примеряем (может быть ещё не куплено) и что выбрали последним — к нему кнопка. */
@@ -269,8 +271,11 @@ export class AtlasScreen implements Screen {
       }
     }
     if (actions.length) body.append(h('div.plate-actions', null, actions));
-    const plate = h('div#atlas-plate.atlas-plate', { attrs: { role: 'tabpanel', 'aria-live': 'polite' } }, [visual, body]);
+    // Табличка «проявляется» только при смене звезды: пересборка после подгрузки цен или
+    // покупки не должна мигать ею заново
+    const plate = h(`div#atlas-plate.atlas-plate${this.plateStar !== this.star ? '.enter' : ''}`, { attrs: { role: 'tabpanel', 'aria-live': 'polite' } }, [visual, body]);
     plate.dataset.star = this.star;
+    this.plateStar = this.star;
     return plate;
   }
 
