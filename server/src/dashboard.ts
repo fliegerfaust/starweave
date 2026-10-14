@@ -1,5 +1,6 @@
 import { ru } from '../../src/i18n/ru.ts';
 import { RETENTION_DAYS } from './db.ts';
+import { STACK_SCRIPT } from './stack-decoder.ts';
 import { dayLabel, type Stats } from './stats.ts';
 
 /**
@@ -89,7 +90,8 @@ function table(head: string[], rows: string[][], numericFrom = 1): string {
   return `<div class="table-wrap"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
 }
 
-export function renderDashboard(s: Stats): string {
+/** site — адрес сайта игры: оттуда страница берёт карты исходников, чтобы расшифровать стек. */
+export function renderDashboard(s: Stats, opts: { site?: string } = {}): string {
   const t = s.totals;
   const updated = new Date(s.generatedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const periods: [number, string][] = [
@@ -217,7 +219,11 @@ export function renderDashboard(s: Stats): string {
     s.errors.length
       ? table(
           ['Сообщение', 'Раз', 'Последняя'],
-          s.errors.map((e) => [`<code>${esc(e.message)}</code>${e.where ? `<br><small class="where">${esc(e.where)}</small>` : ''}`, fmt(e.count), esc(new Date(e.last).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))]),
+          s.errors.map((e) => [
+            `<code>${esc(e.message)}</code>${e.where ? `<br><small class="where">${esc(e.where)}</small>` : ''}${
+              e.versions.length ? `<br><small class="where">версии: ${esc(e.versions.join(', '))}</small>` : ''
+            }${e.stack ? `<details class="stack"><summary>Стек</summary><pre data-stack>${esc(e.stack)}</pre></details>` : ''}`,
+            fmt(e.count), esc(new Date(e.last).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))]),
         )
       : '<p class="empty good">Ошибок не было.</p>'
   }`;
@@ -231,7 +237,7 @@ export function renderDashboard(s: Stats): string {
 <title>Звёздное плетение — сводка</title>
 <style>${CSS}</style>
 </head>
-<body>
+<body data-site="${esc(opts.site ?? '')}">
 <header class="top">
   <div>
     <h1>Звёздное плетение <span>сводка</span></h1>
@@ -254,6 +260,7 @@ export function renderDashboard(s: Stats): string {
   ${section('Техника', 'Плавность на устройствах игроков, версии и ошибки в коде.', tech)}
 </main>
 <footer>Данные анонимные: случайный номер устройства, без имён, адресов и IP. Хранятся на сервере в Москве ${RETENTION_DAYS} дней.</footer>
+${s.errors.some((e) => e.stack) ? `<script>${STACK_SCRIPT}</script>` : ''}
 </body>
 </html>`;
 }
@@ -305,6 +312,9 @@ td{padding:9px 8px;border-bottom:1px solid var(--line)}tr:last-child td{border-b
 .pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 code{font-size:13px;word-break:break-word}
 .where{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace;word-break:break-all}
+.stack{margin-top:6px}.stack summary{cursor:pointer;color:var(--dim);font-size:12px}
+.stack pre{margin:6px 0 0;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-all}
+.stack .decoded small{display:block;color:var(--dim);font-size:11px;margin-bottom:4px}
 .empty{color:var(--dim);margin:0;padding:12px 0}.empty.good{color:var(--ok)}
 footer{max-width:1080px;margin:0 auto;padding:8px 20px 40px;color:var(--dim);font-size:13px}
 @media (max-width:760px){main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding-top:20px}h1{font-size:23px}.kpi-value{font-size:26px}.rows li{grid-template-columns:minmax(0,1fr) 72px auto}}
