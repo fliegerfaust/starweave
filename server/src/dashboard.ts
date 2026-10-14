@@ -15,6 +15,7 @@ const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round(
 const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры' };
 const NIGHT: Record<string, string> = { dusk: ru.night.dusk, midnight: ru.night.midnight, eclipse: ru.night.eclipse };
 const RESULT: Record<string, string> = { lost: 'проиграли', abandon: 'сдались', victory: 'победили' };
+const KIND: Record<string, string> = { omen: 'Знамения', chart: 'Звёздные карты', ritual: 'Ритуалы', pack: 'Пакеты' };
 
 function itemName(kind: string, id: string): string {
   const dict = ru as unknown as Record<string, Record<string, unknown>>;
@@ -150,10 +151,43 @@ export function renderDashboard(s: Stats): string {
       )
     : empty('Ночей в этот период не сыграно.');
 
-  const maxShop = Math.max(1, ...s.shop.map((x) => x.count));
-  const shop = s.shop.length
-    ? `<ul class="rows">${s.shop.map((x) => `<li><span class="name">${esc(itemName(x.kind, x.id))}</span>${bar(x.count, maxShop, 'gold')}<span class="num">${fmt(x.count)}</span></li>`).join('')}</ul>`
+  // Внутри вида — без приставки «Звёздная карта:», вид уже в заголовке
+  const shortName = (kind: string, id: string) => itemName(kind, id).replace(/^Звёздная карта: /, '');
+  const shop = s.shop.byKind.length
+    ? `<p class="lead">${s.shop.byKind.map((k) => `${esc(KIND[k.kind] ?? k.kind)} — <b>${fmt(k.count)}</b> (${fmt(k.players)} игр.)`).join(' · ')}</p>${s.shop.byKind
+        .map((k) => {
+          const items = s.shop.top.filter((x) => x.kind === k.kind);
+          const max = Math.max(1, ...items.map((x) => x.count));
+          return `<h3>${esc(KIND[k.kind] ?? k.kind)}</h3><ul class="rows">${items
+            .map((x) => `<li><span class="name">${esc(shortName(x.kind, x.id))}</span>${bar(x.count, max, 'gold')}<span class="num">${fmt(x.count)}</span></li>`)
+            .join('')}</ul>`;
+        })
+        .join('')}`
     : empty('Покупок в этот период не было.');
+
+  const fu = s.funnel;
+  const top = fu[0]?.players ?? 0;
+  const funnel = top
+    ? `<ol class="rows funnel">${fu
+        .map((st, i) => `<li><span class="name"><span class="idx">${i + 1}</span>${esc(st.step)}</span>${bar(st.players, top)}<span class="num">${fmt(st.players)} · ${pct(st.players, top)}</span></li>`)
+        .join('')}</ol>`
+    : empty('Новых игроков в этот период не было.');
+
+  const g = s.growth;
+  const res = g.results;
+  const growth = `<div class="kpis four">
+    ${kpi(fmt(g.shared), 'вызовов отправлено', g.sharers ? `от ${fmt(g.sharers)} игр.` : 'кнопка «Бросить вызов»')}
+    ${kpi(fmt(g.opened), 'открыли по вызову', `из них новых — ${fmt(g.openedFresh)}`)}
+    ${kpi(fmt(g.accepted), 'приняли вызов', g.opened ? `${pct(g.accepted, g.opened)} открывших` : 'окно «Вызов от друга»')}
+    ${kpi(fmt(res.beat + res.tie + res.behind), 'доиграли вызов', `побили — ${fmt(res.beat)}, ничья — ${fmt(res.tie)}, друг впереди — ${fmt(res.behind)}`)}
+  </div>${
+    g.sources.length
+      ? `<h3>Метки источников</h3>${table(
+          ['Метка', 'Игроков', 'Из них новых'],
+          g.sources.map((x) => [`<code>${esc(x.source)}</code>`, fmt(x.players), fmt(x.fresh)]),
+        )}`
+      : '<p class="empty">Ссылок с меткой <code>startapp=src_…</code> пока не открывали.</p>'
+  }`;
 
   const help = `<div class="kpis four">
     ${kpi(fmt(s.help.guide), 'открыли справочник', 'кнопка «?» и ссылки на термины')}
@@ -181,7 +215,7 @@ export function renderDashboard(s: Stats): string {
     s.errors.length
       ? table(
           ['Сообщение', 'Раз', 'Последняя'],
-          s.errors.map((e) => [`<code>${esc(e.message)}</code>`, fmt(e.count), esc(new Date(e.last).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))]),
+          s.errors.map((e) => [`<code>${esc(e.message)}</code>${e.where ? `<br><small class="where">${esc(e.where)}</small>` : ''}`, fmt(e.count), esc(new Date(e.last).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))]),
         )
       : '<p class="empty good">Ошибок не было.</p>'
   }`;
@@ -206,11 +240,13 @@ export function renderDashboard(s: Stats): string {
 <main>
   ${section('Игроки', 'Сколько людей играло и как долго. Игрок — одно устройство: телефон и компьютер одного человека считаются двумя.', kpis + dailyChart(s.daily))}
   ${section('Возвращаются ли', 'Главный признак, что игра цепляет. Ориентир для мобильных игр: на следующий день возвращаются 30–40%.', retention)}
+  ${section('Первые минуты', 'Новички этого периода: сколько дошли до каждого шага. «Закончили обучение» — прошли или пропустили. Самый большой провал — первое, что чинить.', funnel)}
   ${section('Откуда играют', 'Игроки по площадкам за период.', platforms)}
+  ${section('Рост', 'Вызовы друзьям («Бросить вызов» после забега) и ссылки с меткой источника — какие каналы приводят людей.', growth)}
   ${section('Обучение', 'Сколько игроков дошли до каждого шага, от числа начавших. Резкий провал между шагами — место, где непонятно или скучно.', tutorial)}
   ${section('Забеги', 'Как далеко заходят игроки. Если почти все обрываются на одном созвездии — там слишком резкий скачок сложности.', runs)}
   ${section('Где сложно', 'Каждая ночь: сколько раз её играли и как часто проигрывали. Красным — проигрывают 40% и чаще. «Ходов в запасе» — сколько ходов в среднем оставалось у победивших: меньше 3 — проходят на грани.', nights)}
-  ${section('Что покупают в Обсерватории', 'Самые популярные покупки за период.', shop)}
+  ${section('Что покупают в Обсерватории', 'Сколько покупок каждого вида и самое популярное внутри вида. «Звёздную пыль» покупают и в обучении — она там обязательна.', shop)}
   ${section('Пользуются ли подсказками', 'Если справочник открывают часто — какое-то правило объяснено плохо.', help)}
   ${section('Реклама', 'Показы рекламы за награду и сколько её досмотрели.', ads)}
   ${section('Техника', 'Плавность на устройствах игроков, версии и ошибки в коде.', tech)}
@@ -266,6 +302,7 @@ td{padding:9px 8px;border-bottom:1px solid var(--line)}tr:last-child td{border-b
 .pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 code{font-size:13px;word-break:break-word}
+.where{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace;word-break:break-all}
 .empty{color:var(--dim);margin:0;padding:12px 0}.empty.good{color:var(--ok)}
 footer{max-width:1080px;margin:0 auto;padding:8px 20px 40px;color:var(--dim);font-size:13px}
 @media (max-width:760px){main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding-top:20px}h1{font-size:23px}.kpi-value{font-size:26px}.rows li{grid-template-columns:minmax(0,1fr) 72px auto}}

@@ -58,6 +58,40 @@ describe('сервер: сводка', () => {
     expect(s.nights).toEqual([{ ante: 1, night: 'dusk', played: 2, lost: 1, movesLeft: 6 }]);
   });
 
+  it('покупки считаются по предмету, а не по событию', () => {
+    const db = openDb(':memory:');
+    const buy = (c: string, kind: string, id: string) =>
+      insertBatch(db, { client: c, session: `${c}-s`, platform: 'telegram', version: '1', lang: 'ru', events: [{ name: 'shop_buy', params: { kind, id, price: 5, ante: 1, gold_left: 0 }, at: NOW - DAY }] });
+    buy('client-aaaa', 'omen', 'pillar');
+    buy('client-bbbb', 'omen', 'pillar');
+    buy('client-bbbb', 'omen', 'stardust');
+    buy('client-aaaa', 'chart', 'cascade');
+    const s = computeStats(db, NOW, 7);
+    expect(s.shop.byKind).toEqual([
+      { kind: 'omen', count: 3, players: 2 },
+      { kind: 'chart', count: 1, players: 1 },
+    ]);
+    expect(s.shop.top[0]).toEqual({ kind: 'omen', id: 'pillar', count: 2, players: 2 });
+  });
+
+  it('воронка новичков и рост', () => {
+    const db = openDb(':memory:');
+    const put = (c: string, at: number, events: [string, Record<string, string | number | boolean>][]) =>
+      insertBatch(db, { client: c, session: `${c}-${at}`, platform: 'telegram', version: '1', lang: 'ru', events: events.map(([name, params]) => ({ name, params, at })) });
+    put('client-aaaa', NOW - DAY, [['app_open', { source: 'tgads' }], ['tutorial_start', {}], ['tutorial_skip', {}], ['run_start', {}], ['night_end', { won: true }], ['night_start', { ante: 2 }], ['challenge_share', { ante: 3, best: 400, won: false }]]);
+    put('client-bbbb', NOW - DAY, [['app_open', { challenge: true }], ['challenge_open', { ante: 3, best: 400, fresh: true }], ['challenge_accept', {}], ['run_start', {}], ['challenge_result', { outcome: 1 }]]);
+    // Старый игрок не попадает в воронку новичков периода
+    put('client-cccc', NOW - 20 * DAY, [['app_open', {}]]);
+    put('client-cccc', NOW - DAY, [['app_open', {}], ['run_start', {}]]);
+    const s = computeStats(db, NOW, 7);
+    expect(s.funnel.map((x) => x.players)).toEqual([2, 1, 1, 2, 1, 1]);
+    expect(s.growth).toMatchObject({ shared: 1, sharers: 1, opened: 1, openedFresh: 1, accepted: 1, results: { beat: 1, tie: 0, behind: 0 } });
+    expect(s.growth.sources).toEqual([{ source: 'tgads', players: 1, fresh: 1 }]);
+    const html = renderDashboard(s);
+    expect(html).toContain('Первые минуты');
+    expect(html).toContain('tgads');
+  });
+
   it('страница экранирует то, что прислали клиенты', () => {
     const html = renderDashboard(computeStats(seed(), NOW, 7));
     expect(html).not.toContain('<script>alert(1)</script>');
