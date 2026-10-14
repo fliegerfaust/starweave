@@ -344,6 +344,8 @@ export class App {
 
   /** Кнопки фаз могут нажать дважды, пока закрывается модалка: второе нажатие — тихо игнорируем. */
   private guarded(fn: () => void): boolean {
+    // Забега уже нет (обучение закончилось, пока на экране висело его окно) — кнопке нечего делать
+    if (!this.run) return false;
     try {
       fn();
       return true;
@@ -370,7 +372,8 @@ export class App {
 
   /** Действие ночи. Ошибки правил превращаются в подсказку. */
   act(action: NightAction): GameEvent[] | null {
-    const run = this.run!;
+    const run = this.run;
+    if (!run) return null;
     try {
       const events = action.kind === 'place' ? placeCard(run, action.handIndex, action.cell) : burnCard(run, action.handIndex);
       this.afterAction(events);
@@ -474,8 +477,9 @@ export class App {
     }
     this.persistProfile();
     this.save();
-    // Межстраничная реклама — только в паузе между созвездиями
-    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree) {
+    // Межстраничная реклама — только в паузе между созвездиями и только где она есть
+    // (раньше событие уходило и из Telegram, где рекламы нет: «32 показа» в сводке)
+    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree && this.platform.interstitialAvailable) {
       track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
       void this.platform.showInterstitial().then(() => this.route());
       return;
@@ -485,8 +489,10 @@ export class App {
 
   /** Действие в Обсерватории: ошибки правил — подсказкой, успех — сохранение. */
   shopAction(fn: (run: RunState) => void): boolean {
+    const run = this.run;
+    if (!run) return false;
     try {
-      fn(this.run!);
+      fn(run);
       this.save();
       return true;
     } catch (e) {
@@ -629,6 +635,9 @@ export class App {
       this.profile.tutorialGift = { gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)) };
     }
     this.endTutorial();
+    // Окно награды учебной ночи ещё открыто: под «Обучение пройдено» его кнопка «Забрать»
+    // оставалась нажимаемой и вела в уже несуществующий забег (js_error 14.10.2026)
+    document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.svc.audio.win();
     void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this));
   }

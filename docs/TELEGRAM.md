@@ -97,11 +97,12 @@ gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
    Bot Settings → Configure Mini App → Enable Mini App → адрес
    `https://fliegerfaust.github.io/starweave/`. Если пункта не видно — открыть @BotFather
    кнопкой «Open» (у него своё мини-приложение) → бот → раздел Mini App → Main App.
-2. **Превью.** Там же, в настройках Mini App, — пункт про превью (Preview Media). Загрузить
-   по порядку вертикальные снимки 1080×1920:
+2. **Превью** — не в BotFather, а на профиле бота в Telegram на телефоне (видно только
+   владельцу): открыть `@starweave_game_bot` → имя вверху → под «Настройки бота» блок
+   «Предпросмотр» → «Основной» → «Добавить предпросмотр» (до 12 видео и снимков). По порядку:
    `store/screens/ru/portrait-2-cross.png` (крест — главный «вау»), `portrait-3-shop.png`,
-   `portrait-4-map.png`, `portrait-1-menu.png`. Для английского языка — те же из
-   `store/screens/en/`. Первым лучше поставить видео (шаг 3).
+   `portrait-4-map.png`, `portrait-1-menu.png`. Затем «+ Добавить язык» → English — те же
+   из `store/screens/en/`. Первым лучше поставить видео (шаг 3).
 3. **Видео** — готово: `store/telegram/preview-ru.mp4` (25 с) и `preview-en.mp4` (22 с),
    1080×1920. Сценарий — режим `?demo` (`src/dev/demo.ts`, только в разработке): середина
    забега, пять Знамений, «Каскад», затем крест «Флеш + Тройка» с «Цепь ×3» и победа в ночи.

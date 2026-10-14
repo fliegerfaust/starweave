@@ -6,14 +6,14 @@ import type { App } from '@/game/app';
 import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { omenTooltip, bossTooltip } from '../hud';
-import { attachTooltip, button, modal } from '../widgets';
+import { attachTooltip, button, edgeFade, modal } from '../widgets';
 
 type Tab = 'omens' | 'bosses' | 'stats';
 
 /** Кодекс: открытые Знамения и Затмения, таблица созвездий, статистика. */
 export function showCodex(app: App): void {
   const body = h('div.codex-body');
-  const tabs = h('div.segmented.tabs');
+  const tabs = edgeFade(h('div.segmented.tabs'));
   const p = app.profile;
   const render = (tab: Tab) => {
     tabs.querySelectorAll('.seg').forEach((el) => el.classList.toggle('on', (el as HTMLElement).dataset.tab === tab));

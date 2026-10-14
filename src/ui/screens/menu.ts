@@ -33,6 +33,9 @@ const DECOR: Pick<Card, 'suit' | 'rank'>[] = [
 export class MenuScreen implements Screen {
   private el!: HTMLElement;
 
+  private fan: HTMLElement | null = null;
+  private fanKey = '';
+
   constructor(private readonly app: App) {}
 
   mount(root: HTMLElement): void {
@@ -83,12 +86,19 @@ export class MenuScreen implements Screen {
 
   private render(): void {
     const app = this.app;
-    const fan = h('div.menu-fan');
-    DECOR.forEach((card, i) => {
-      const img = canvasImg(cardFace(card, 96, dpr()), 96 * 1.24, (96 / 0.7) * 1.24, 'fan-card');
-      img.style.setProperty('--i', String(i - 1));
-      fan.append(img);
-    });
+    // Веер парит бесконечно: новый после «Настроек» дёрнулся бы к началу анимации — берём прежний,
+    // пока не сменилось то, от чего зависит рисунок карт
+    const fanKey = `${JSON.stringify(app.settings)}|${dpr()}`;
+    if (!this.fan || this.fanKey !== fanKey) {
+      this.fan = h('div.menu-fan');
+      this.fanKey = fanKey;
+      DECOR.forEach((card, i) => {
+        const img = canvasImg(cardFace(card, 96, dpr()), 96 * 1.24, (96 / 0.7) * 1.24, 'fan-card');
+        img.style.setProperty('--i', String(i - 1));
+        this.fan!.append(img);
+      });
+    }
+    const fan = this.fan;
     const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
     const buttons = h('div.menu-buttons', null, [
       app.hasSave ? button(t('menu.continue'), () => void app.route()) : null,
@@ -119,18 +129,26 @@ export class MenuScreen implements Screen {
     buttons.addEventListener('click', () => {
       if (app.platform.id === 'web' && app.settings.fullscreen) enterFullscreen();
     }, { capture: true });
-    this.el.replaceChildren(
-      h('div.menu-hero', null, [
-        fan,
-        h('h1.logo', null, [
-          h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
-          t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
-        ]),
-        h('p.tagline', null, t('game.tagline')),
+    const heroText = [
+      h('h1.logo', null, [
+        h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
+        t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
-      buttons,
-      h('div.menu-foot', null, [this.homeHint(), h('span', null, `v${__APP_VERSION__}`)]),
-    );
+      h('p.tagline', null, t('game.tagline')),
+    ];
+    const foot = h('div.menu-foot', null, [this.homeHint(), h('span', null, `v${__APP_VERSION__}`)]);
+    // Вынутый из документа элемент начинает анимацию заново, поэтому веер не трогаем:
+    // меняем всё вокруг него
+    const hero = this.el.querySelector<HTMLElement>(':scope > .menu-hero');
+    if (hero && fan.parentElement === hero) {
+      while (fan.nextSibling) fan.nextSibling.remove();
+      while (fan.previousSibling) fan.previousSibling.remove();
+      hero.append(...heroText);
+      while (hero.nextSibling) hero.nextSibling.remove();
+      hero.after(buttons, foot);
+      return;
+    }
+    this.el.replaceChildren(h('div.menu-hero', null, [fan, ...heroText]), buttons, foot);
   }
 
   /** Новичку перед первым забегом предлагаем обучение. */

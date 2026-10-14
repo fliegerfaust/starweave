@@ -57,9 +57,14 @@ export function isTelegramLaunch(): boolean {
   }
 }
 
-function loadScript(src: string): Promise<void> {
+/** `timeoutMs` — не ждать дольше: игра не должна висеть на чужом медленном сервере. */
+function loadScript(src: string, timeoutMs = 0): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (timeoutMs > 0) window.setTimeout(() => reject(new Error(`долго грузится ${src}`)), timeoutMs);
     const s = document.createElement('script');
+    // Оба сервера (telegram.org, tganalytics.xyz) отдают Access-Control-Allow-Origin: * —
+    // с crossorigin их ошибки приходят с текстом и местом, а не как «Script error.»
+    s.crossOrigin = 'anonymous';
     s.src = src;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error(`не загрузился ${src}`));
@@ -75,6 +80,7 @@ function loadScript(src: string): Promise<void> {
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
   readonly rewardedAvailable = false;
+  readonly interstitialAvailable = false;
   payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
@@ -118,8 +124,11 @@ export class TelegramPlatform implements Platform {
     const appName = import.meta.env.VITE_TG_ANALYTICS_APP;
     if (!token || !appName) return;
     try {
-      await loadScript(ANALYTICS_URL);
-      await window.telegramAnalytics?.init({ token, appName });
+      // Сервер аналитики бывает недоступен минутами (14.10.2026 — не отвечал совсем), а
+      // init ждёт этого до старта игры: дольше 3 с не ждём, играем без аналитики Telegram
+      await loadScript(ANALYTICS_URL, 3000);
+      const wait = new Promise<void>((resolve) => window.setTimeout(resolve, 2000));
+      await Promise.race([window.telegramAnalytics?.init({ token, appName }), wait]);
     } catch {
       /* аналитика не должна мешать игре */
     }

@@ -564,6 +564,12 @@ export class NightScene {
     if (e.kind === 'down') this.dragPointer = e.id;
     else if (e.kind === 'up' || e.kind === 'cancel') this.dragPointer = null;
     this.svc.audio.unlock();
+    // Мышь едет без зажатой кнопки, а карта всё ещё «в руке» — отпускание потерялось
+    // (окно потеряло фокус и т.п.). Отпускаем здесь, иначе карта ездит за курсором
+    if (e.kind === 'move' && e.pointerType === 'mouse' && e.buttons === 0 && (this.drag || this.pendingCell !== null)) {
+      this.dragPointer = null;
+      return this.onUp(e.x, e.y);
+    }
     if (e.kind === 'down') this.onDown(e.x, e.y);
     else if (e.kind === 'move') this.onMove(e.x, e.y, e.pointerType === 'touch');
     else if (e.kind === 'up') this.onUp(e.x, e.y);
@@ -697,6 +703,7 @@ export class NightScene {
     starfield.parallaxX = (x / renderer.width - 0.5) * 2;
     starfield.parallaxY = (y / renderer.height - 0.5) * 2;
     if (this.busy) return;
+    if (this.drag && !this.dragValid()) this.dropDrag();
     if (this.drag) {
       const d = this.drag;
       if (!d.active && Math.hypot(x - d.startX, y - d.startY) > DRAG_THRESHOLD) {
@@ -859,6 +866,7 @@ export class NightScene {
     const d = this.drag;
     this.drag = null;
     if (!d || this.busy) return;
+    if (!this.world.isAlive(d.entity) || !this.hand.includes(d.id)) return this.hud.setBurnDrop(null);
     if (!d.active) {
       const index = this.hand.indexOf(d.id);
       this.select(this.selected === index ? null : index);
@@ -896,6 +904,24 @@ export class NightScene {
   private canBurnCard(id: number): boolean {
     if (this.night.burnsLeft <= 0) return false;
     return !this.guide || this.guide.free || (!!this.guide.burn && id === this.guide.card);
+  }
+
+  /**
+   * Карта под пальцем ещё в руке. Её могли сжечь или выложить в обход перетаскивания —
+   * вторым пальцем по «Сжечь», клавишей B или Enter; тогда сущность уже удалена, и каждое
+   * движение пальца роняло ошибку «нет Transform» (js_error, 155 раз за день 14.10.2026).
+   */
+  private dragValid(): boolean {
+    const d = this.drag;
+    return !!d && this.world.isAlive(d.entity) && this.hand.includes(d.id) && this.cards.get(d.id) === d.entity;
+  }
+
+  /** Бросить перетаскивание без возврата карты: она уже ушла из руки. */
+  private dropDrag(): void {
+    this.drag = null;
+    this.pendingCell = null;
+    this.hud.setBurnDrop(null);
+    this.setHover(null);
   }
 
   private cancelDrag(): void {
@@ -1045,6 +1071,8 @@ export class NightScene {
       void this.layoutHand(true);
       return;
     }
+    // Карту выкладывают клавиатурой, пока её держит палец, — палец её больше не ведёт
+    if (dragged === undefined && this.drag?.id === this.hand[handIndex]) this.dropDrag();
     const events = this.hooks.act({ kind: 'place', handIndex, cell });
     if (!events) {
       this.select(handIndex);
@@ -1072,6 +1100,7 @@ export class NightScene {
     if (this.busy || this.selected === null) return;
     if (this.guide && !this.guide.free && !(this.guide.burn && this.hand[this.selected] === this.guide.card)) return this.deny();
     const handIndex = this.selected;
+    if (this.drag?.id === this.hand[handIndex]) this.dropDrag();
     const events = this.hooks.act({ kind: 'burn', handIndex });
     if (!events) return;
     this.busy = true;

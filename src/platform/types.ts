@@ -19,6 +19,8 @@ export interface Platform {
   readonly id: 'web' | 'yandex' | 'telegram';
   /** Есть ли реклама за награду (кнопки «второй шанс» показываются только тогда). */
   readonly rewardedAvailable: boolean;
+  /** Есть ли межстраничная реклама: без неё игра не просит показ и не пишет его в аналитику. */
+  readonly interstitialAvailable: boolean;
   /** Покупки; null — площадка их не поддерживает (обычный сайт). */
   readonly payments: Payments | null;
   init(): Promise<void>;
