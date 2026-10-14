@@ -124,8 +124,13 @@ gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
      вызов дня и вызовы друзьям.`
    - О боте en: `A card puzzle about constellations: light up lines on a 4×4 sky, daily
      challenge, duels with friends.`
-5. **Иконка бота** — `/setuserpic` → `store/yandex/icon-512.png` (если ещё не стоит).
-6. **Проверка:** открыть профиль бота с другого аккаунта — кнопка «Открыть», превью
+5. **Загрузочный экран.** @BotFather → `/mybots` → бот → Bot Settings → Configure Mini App →
+   Configure Splash Screen → прислать файлом `store/telegram/splash.svg` (SVG 512×512, один
+   `<path>`: силуэт «пары карт»; пересоздать — `node scripts/make-splash.mjs`). Цвет фона —
+   `#070818` для светлой и тёмной темы (тот же, что красит игра при запуске), цвет шапки — тот же.
+   Проверить — «Open Splash Screen Preview».
+6. **Иконка бота** — `/setuserpic` → `store/yandex/icon-512.png` (если ещё не стоит).
+7. **Проверка:** открыть профиль бота с другого аккаунта — кнопка «Открыть», превью
    листаются; в поиске Telegram на вкладке «Приложения» игра видна (у тех, кто её уже
    запускал).
 
