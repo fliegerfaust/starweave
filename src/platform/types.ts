@@ -37,6 +37,11 @@ export interface Platform {
   cloudSave(data: Record<string, string>): Promise<void>;
   /** Площадка просит паузу (реклама, сворачивание) и разрешает продолжить. */
   onPauseChange(fn: (paused: boolean) => void): void;
-  /** Поделиться своими средствами площадки; false — площадка не умеет, игра делится сама. */
-  share?(text: string): boolean;
+  /**
+   * Поделиться своими средствами площадки; false — площадка не умеет, игра делится сама.
+   * `startParam` — что откроется у получателя по ссылке (вызов с тем же раскладом).
+   */
+  share?(text: string, startParam?: string): boolean;
+  /** Параметр запуска из ссылки (`?startapp=` / Telegram `start_param`): вызов друга или метка источника. */
+  startParam?(): string | null;
 }

@@ -19,6 +19,11 @@ export class WebPlatform implements Platform {
   }
 
   async init(): Promise<void> {}
+
+  /** Ссылка на сайт вида `?startapp=c_…` — тот же формат, что и в Telegram. */
+  startParam(): string | null {
+    return new URLSearchParams(location.search).get('startapp');
+  }
   ready(): void {}
   gameplayStart(): void {}
   gameplayStop(): void {}
