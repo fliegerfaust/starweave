@@ -81,6 +81,7 @@ function loadScript(src: string): Promise<void> {
 export class YandexPlatform implements Platform {
   readonly id = 'yandex' as const;
   rewardedAvailable = false;
+  interstitialAvailable = false;
   payments: Payments | null = null;
   private sdk: YSDK | null = null;
   private player: Awaited<ReturnType<YSDK['getPlayer']>> | null = null;
@@ -92,6 +93,7 @@ export class YandexPlatform implements Platform {
       if (!window.YaGames) await loadScript('/sdk.js');
       this.sdk = (await window.YaGames?.init()) ?? null;
       this.rewardedAvailable = !!this.sdk;
+      this.interstitialAvailable = !!this.sdk;
       this.sdk?.on?.('game_api_pause', () => this.emitPause(true));
       this.sdk?.on?.('game_api_resume', () => this.emitPause(false));
       this.player = (await this.sdk?.getPlayer({ scopes: false }).catch(() => null)) ?? null;

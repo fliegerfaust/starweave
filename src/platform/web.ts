@@ -9,12 +9,14 @@ import type { Payments, Platform } from './types';
 export class WebPlatform implements Platform {
   readonly id = 'web' as const;
   readonly rewardedAvailable: boolean;
+  readonly interstitialAvailable: boolean;
   readonly payments: Payments | null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
 
   constructor() {
     const params = new URLSearchParams(location.search);
     this.rewardedAvailable = import.meta.env.DEV && params.has('fakeads');
+    this.interstitialAvailable = this.rewardedAvailable;
     this.payments = import.meta.env.DEV && params.has('fakepay') ? new FakePayments() : null;
   }
 
