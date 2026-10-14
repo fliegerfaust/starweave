@@ -31,7 +31,10 @@ echo "→ пароль сводки (создаётся один раз, дал�
 ssh "$HOST" "test -f $DIR/.env || (umask 077; printf 'STATS_PASSWORD=%s\n' \"\$(openssl rand -base64 24 | tr -d '/+=')\" > $DIR/.env); chown -R 1000:1000 $DIR/data"
 
 echo "→ контейнер"
-ssh "$HOST" "cd $DIR && docker compose pull -q && docker compose up -d --remove-orphans"
+# Код подключён в контейнер папкой и читается Node только при старте, а `up -d` не трогает
+# контейнер, если образ и compose не менялись, — перезапускаем явно, иначе новый код не
+# подхватится (так сводка v2 14.10.2026 сначала осталась старой)
+ssh "$HOST" "cd $DIR && docker compose pull -q && docker compose up -d --remove-orphans && docker compose restart api"
 for i in $(seq 1 20); do
   state="$(ssh "$HOST" "docker inspect -f '{{.State.Health.Status}}' starweave-api" 2>/dev/null || true)"
   [ "$state" = "healthy" ] && break
