@@ -29,6 +29,8 @@ const PATHS = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   // Обсерватория
   cut: '<path d="M6 6l12 12M6 18 18 6"/>',
+  // Библиотека и настройки: строка ведёт дальше
+  chevron: '<path d="m9 6 6 6-6 6"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

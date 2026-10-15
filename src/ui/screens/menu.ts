@@ -273,12 +273,15 @@ export class MenuScreen implements Screen {
     this.foot.replaceChildren(...[this.homeHint()].filter((x): x is HTMLElement => !!x));
   }
 
-  /** «Библиотека»: всё служебное на втором экране — нижний лист, в ландшафте панель слева. */
+  /**
+   * «Библиотека» (RD.8, «Пульт»): всё служебное строками — знак, название, подпись, стрелка.
+   * На телефоне — лист снизу; в ландшафте и на ПК — окно по центру экрана (не панель у края).
+   */
   private openLibrary(): void {
     const app = this.app;
     const lib = dict().menu.lib;
     const item = (name: IconName, title: string, sub: string, run: () => void) => {
-      const b = h('button.library-item', { type: 'button' }, [icon(name), h('b', null, title), h('span', null, sub)]);
+      const b = h('button.lib-row', { type: 'button' }, [h('span.lib-ic', null, icon(name)), h('span.lib-lbl', null, [h('b', null, title), h('small', null, sub)]), icon('chevron', 'icon lib-chev')]);
       b.addEventListener('click', () => {
         app.svc.audio.click();
         m.close();
@@ -295,8 +298,8 @@ export class MenuScreen implements Screen {
       item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
     ];
     const m = modal(
-      [h('div.library-grid', null, items), h('p.library-version', null, `v${__APP_VERSION__}`)],
-      { title: t('menu.library'), sheet: true, className: 'library' },
+      [h('div.lib-list', null, items), h('p.lib-ver', null, `v${__APP_VERSION__}`)],
+      { title: t('menu.library'), sheet: !document.body.classList.contains('landscape'), className: 'library' },
     );
   }
 
