@@ -1,5 +1,5 @@
 import { cardFace } from '@/art/card';
-import { LANGS, dict, getLang, num, t, type Lang } from '@/i18n';
+import { LANGS, dict, getLang, t, type Lang } from '@/i18n';
 import type { Card, ComboId, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
@@ -65,6 +65,7 @@ export function deckGrid(cards: Card[], opts: { dimmed?: Set<number>; selectable
   return grid;
 }
 
+/** Колода — нижний лист (в ландшафте — панель слева): масти рядами, сыгранные приглушены. */
 export function showDeck(run: RunState): void {
   const night = run.night;
   const dimmed = new Set<number>();
@@ -73,9 +74,13 @@ export function showDeck(run: RunState): void {
     for (const c of run.deck) if (!inPile.has(c.id)) dimmed.add(c.id);
   }
   const count = night ? night.drawPile.length : run.deck.length;
-  const m = modal([deckGrid(run.deck, { dimmed }), h('div.row.end', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))], {
-    title: `${t('night.deck')} · ${count}/${run.deck.length}`,
-    className: 'wide',
+  const legend = night
+    ? h('div.deck-legend', null, [h('span', null, [h('i'), t('deck.left', { n: count, total: run.deck.length })]), h('span', null, [h('i.used'), t('deck.played', { n: dimmed.size })])])
+    : null;
+  const m = modal([deckGrid(run.deck, { dimmed }), legend, h('div.deck-back', null, button(t('menu.back'), () => m.close(), { variant: 'secondary' }))], {
+    title: night ? t('night.deck') : `${t('night.deck')} · ${run.deck.length}`,
+    sheet: true,
+    className: 'deck',
   });
 }
 
@@ -186,19 +191,6 @@ export function showSettings(app: App, onChange?: () => void): void {
     ],
     { title: t('settings.title') },
   );
-}
-
-export function statsGrid(run: RunState): HTMLElement {
-  const s = run.stats;
-  const item = (label: string, value: string) => h('div.stat-item', null, [h('div.stat-item-value', null, value), h('div.stat-item-label', null, label)]);
-  return h('div.stats-grid', null, [
-    item(t('over.nights'), String(s.nightsWon)),
-    item(t('over.lines'), num(s.linesIgnited)),
-    item(t('over.crosses'), num(s.crosses)),
-    item(t('over.best'), num(s.bestPlacement)),
-    item(t('over.bestCombo'), t(`combo.${s.bestCombo}`)),
-    item(t('over.goldEarned'), num(s.goldEarned)),
-  ]);
 }
 
 /** Заголовок экрана: декоративная строка со звёздочками. */

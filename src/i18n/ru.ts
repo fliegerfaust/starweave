@@ -99,6 +99,10 @@ export const ru = {
     effCells: 'Клеток неба: {n} вместо {was}',
     stake: 'Звёздность {n}',
   },
+  deck: {
+    left: 'в колоде · {n} из {total}',
+    played: 'сыграны · {n}',
+  },
   calc: {
     light: 'свет',
     mult: 'множитель',
@@ -210,6 +214,7 @@ export const ru = {
     burns: 'Оставшиеся сжигания',
     interest: 'Проценты',
     collect: 'Забрать {n}',
+    sub: '{night} · {score} из {target}',
   },
   shop: {
     title: 'Обсерватория',
@@ -258,6 +263,7 @@ export const ru = {
   },
   over: {
     lostTitle: 'Небо погасло',
+    of: 'из {target}',
     winTitle: 'Все восемь глав пройдены',
     reached: 'Глава {ante}, {night}',
     stats: 'Итоги забега',
@@ -280,7 +286,7 @@ export const ru = {
     tipCross: 'Совет: ищи кресты — карта на пересечении двух почти полных линий зажигает обе, итог ×2.',
     tipOmens: 'Совет: покупай Знамения в Обсерватории — они прибавляют и умножают очки каждой линии.',
     tipOrder: 'Совет: Знамения срабатывают слева направо — умножающие ставь правее прибавляющих.',
-    winSub: 'Небо «{sky}» · сложность {stake}',
+    winSub: '«{sky}» · сложность {stake}',
     endlessSub: 'играть дальше',
   },
   discovery: {

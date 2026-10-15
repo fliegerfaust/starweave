@@ -96,6 +96,10 @@ export const en: Dict = {
     effCells: 'Sky cells: {n} instead of {was}',
     stake: 'Stake {n}',
   },
+  deck: {
+    left: 'in deck · {n} of {total}',
+    played: 'played · {n}',
+  },
   calc: {
     light: 'light',
     mult: 'multiplier',
@@ -207,6 +211,7 @@ export const en: Dict = {
     burns: 'Burns left',
     interest: 'Interest',
     collect: 'Collect {n}',
+    sub: '{night} · {score} of {target}',
   },
   shop: {
     title: 'Observatory',
@@ -255,6 +260,7 @@ export const en: Dict = {
   },
   over: {
     lostTitle: 'The sky went dark',
+    of: 'of {target}',
     winTitle: 'All eight chapters cleared',
     reached: 'Chapter {ante}, {night}',
     stats: 'Run summary',
@@ -277,7 +283,7 @@ export const en: Dict = {
     tipCross: 'Tip: look for crosses — a card where two almost full lines meet lights both, ×2.',
     tipOmens: 'Tip: buy Omens in the Observatory — they add to and multiply every line.',
     tipOrder: 'Tip: Omens fire left to right — put multiplying ones to the right of adding ones.',
-    winSub: '{sky} sky · difficulty {stake}',
+    winSub: '{sky} · difficulty {stake}',
     endlessSub: 'keep playing',
   },
   discovery: {
