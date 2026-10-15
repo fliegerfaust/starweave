@@ -1,4 +1,7 @@
-import { devices, expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { expect, test, type Page } from '@playwright/test';
+
+const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8');
 
 /**
  * Атлас и архив: помещаются по ширине, кнопки под палец, без ошибок; тестовая покупка.
@@ -49,12 +52,12 @@ async function fits(page: Page, root: string): Promise<void> {
   expect(r.tooSmall, `${root}: кнопки ниже 30px`).toBe(0);
 }
 
-const openAtlas = async (page: Page) => {
-  await page.evaluate(() => (window as unknown as W).starweave.goAtlas('e2e'));
-  await page.waitForSelector('.atlas-chart');
+const openAtlas = async (page: Page, focus?: string) => {
+  await page.evaluate((f) => (window as unknown as W).starweave.goAtlas('e2e', f), focus);
+  await page.waitForSelector('.atl-body');
 };
 
-test('атлас: созвездие, покупка, примерочная', async ({ page }) => {
+test('атлас: обложка, покупка, примерочная, меценат', async ({ page }) => {
   const errors = await boot(page);
   // Цена «грузится»: задерживаем ответ площадки
   await page.evaluate(() => {
@@ -63,54 +66,116 @@ test('атлас: созвездие, покупка, примерочная', a
     p.prices = () => new Promise((r) => setTimeout(() => r(orig()), 4000));
   });
   await openAtlas(page);
+  await expect(page.locator('.atl-hero')).toBeVisible();
+  await expect(page.locator('.atl-buy .atl-pr')).toHaveText('…');
   await shot(page, '19-atlas-loading');
-  await expect(page.locator('.offer-buy .btn-sub')).toHaveText('…');
-  await expect(page.locator('.offer-buy')).not.toHaveText(/…$/, { timeout: 8000 });
+  await expect(page.locator('.atl-buy .atl-pr')).not.toHaveText('…', { timeout: 8000 });
+  await expect(page.locator('.atl-buy .tstar')).toBeVisible();
   await fits(page, '.atlas');
   await shot(page, '20-atlas');
 
-  // Примерочная: живая сцена, примерка комет и северного сияния
-  await page.click('.atlas-tab >> nth=1');
-  await page.waitForSelector('.look-stage canvas');
-  await page.click('.wardrobe-item:has-text("Комета")');
-  await page.click('.wardrobe-item:has-text("Северное сияние")');
-  await expect(page.locator('.look-btn')).toContainText('Купить');
-  await page.evaluate(() => document.querySelector('.atlas')!.scrollTo(0, 0));
+  // Примерочная: живая сцена; касание в прокрученной ленте не уводит наверх
+  await page.click('.atl-tab >> nth=1');
+  await page.waitForSelector('.atl-stage canvas');
+  await page.click('.atl-item:has-text("Комета")');
+  await page.click('.atl-item:has-text("Северное сияние")');
+  await expect(page.locator('.atl-cta .atl-buy')).toContainText('Купить');
+  const kept = await page.evaluate(async () => {
+    const sc = [...document.querySelectorAll<HTMLElement>('.atl-right, .atl-body')].find((e) => e.scrollHeight > e.clientHeight + 2);
+    if (!sc) return { before: 0, after: 0, visible: true };
+    sc.scrollTop = sc.scrollHeight;
+    const before = sc.scrollTop;
+    document.querySelector<HTMLElement>('.atl-item:has(+ .atl-item) ~ .atl-item')!.click();
+    await new Promise((r) => setTimeout(r, 50));
+    const again = [...document.querySelectorAll<HTMLElement>('.atl-right, .atl-body')].find((e) => e.scrollHeight > e.clientHeight + 2)!;
+    const r = document.querySelector('.atl-stage')!.getBoundingClientRect();
+    return { before, after: again.scrollTop, visible: r.top >= -1 && r.bottom <= innerHeight };
+  });
+  expect(kept.after, 'прокрутка лент после касания').toBe(kept.before);
+  expect(kept.visible, 'сцена на экране').toBe(true);
   await fits(page, '.atlas');
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(800);
   await shot(page, '24-look');
 
   // Поддержать: набор мецената
-  await page.click('.atlas-tab >> nth=2');
-  await page.waitForSelector('.patron-stage canvas');
+  await page.click('.atl-tab >> nth=2');
+  await page.waitForSelector('.hero-support canvas');
   await fits(page, '.atlas');
-  await page.waitForTimeout(1200);
   await shot(page, '25-patron');
-  await page.click('.atlas-tab >> nth=0');
-  await page.waitForSelector('.atlas-chart');
+  await page.click('.atl-tab >> nth=0');
+  await page.waitForSelector('.hero-atlas');
 
-  await page.click('.atlas-star:has-text("Астролябия")');
-  await expect(page.locator('.atlas-plate')).toHaveAttribute('data-star', 'astrolabe');
-  await page.click('.offer-buy');
+  await page.click('.atl-buy');
   await page.waitForSelector('[data-r="paid"]');
   await page.evaluate(() => document.querySelector<HTMLElement>('[data-r]')!.parentElement!.parentElement!.style.setProperty('visibility', 'hidden'));
-  await expect(page.locator('.offer-buy')).toBeDisabled();
+  await expect(page.locator('.atl-buy')).toBeDisabled();
   await shot(page, '20b-atlas-busy');
   await page.evaluate(() => document.querySelector<HTMLElement>('[data-r]')!.parentElement!.parentElement!.style.removeProperty('visibility'));
   await page.click('[data-r="paid"]');
-  await page.waitForSelector('.offer-owned');
+  await page.waitForSelector('.atl-owned');
   expect(await page.evaluate(() => (window as unknown as W).starweave.purchases.has('atlas'))).toBe(true);
   // Тост исчезает через ~2 с
   await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 5000 });
-  await expect(page.locator('.plate-actions .btn')).toHaveText(/Играть колодой/);
+  await expect(page.locator('.atl-two .btn').nth(1)).toHaveText(/Астролябия/);
   await shot(page, '21-atlas-owned');
+  expect(errors).toEqual([]);
+});
+
+/**
+ * «Разворот» на каждом устройстве: три вкладки × можно купить / куплено, ru и en. Ничего не
+ * обрезано и не вылезает, кнопка на экране, середина не уходит под неё; веер примерочной
+ * над подписью; на ПК — собранный блок без пустого поля.
+ */
+test('атлас: вкладки и состояния без вылезаний', async ({ page }) => {
+  const errors = await boot(page);
+  const failures: string[] = [];
+  for (const lang of ['ru', 'en'] as const) {
+    for (const owned of [false, true]) {
+      await page.evaluate(async ({ lang, owned }) => {
+        const { setLang } = await import('/src/i18n/index.ts');
+        setLang(lang);
+        if (owned) (window as unknown as W).starweave.purchases.add('supporter');
+      }, { lang, owned });
+      for (const focus of [undefined, 'wardrobe', 'support']) {
+        await openAtlas(page, focus);
+        await page.waitForTimeout(400);
+        await settle(page);
+        const tag = `${lang} ${owned ? 'куплено' : 'купить'} ${focus ?? 'atlas'}`;
+        const res = await page.evaluate(() => {
+          const out: string[] = [];
+          const root = document.querySelector<HTMLElement>('.atlas')!;
+          for (const el of root.querySelectorAll<HTMLElement>('*')) {
+            if (el.childElementCount || !el.textContent?.trim() || el.closest('.atl-strip')) continue;
+            if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) out.push(`обрезано: ${el.textContent.trim().slice(0, 24)}`);
+          }
+          const cta = root.querySelector('.atl-cta')!.getBoundingClientRect();
+          const body = root.querySelector('.atl-body')!.getBoundingClientRect();
+          if (cta.bottom > innerHeight + 1) out.push('кнопка за экраном');
+          if (body.bottom > cta.top + 1) out.push('середина под кнопкой');
+          const stage = root.querySelector('.atl-stage')?.getBoundingClientRect();
+          if (stage && (stage.top < -1 || stage.bottom > cta.top + 1)) out.push('сцена не на экране');
+          if (matchMedia('(min-width: 900px) and (min-height: 561px)').matches) {
+            const top = root.querySelector('.atl-top')!.getBoundingClientRect().top;
+            const gap = innerHeight - cta.bottom;
+            if (Math.abs(top - gap) > 90 && Math.min(top, gap) > 60) out.push(`ПК: пусто сверху ${Math.round(top)}, снизу ${Math.round(gap)}`);
+          }
+          return out;
+        });
+        const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('за экраном') && !p.includes('atl-strip') && !p.includes('atl-body') && !p.includes('atl-right'));
+        const all = [...res, ...audit];
+        if (all.length) failures.push(`${tag}: ${all.slice(0, 3).join('; ')}`);
+        if (lang === 'ru') await shot(page, `26-atlas-${owned ? 'owned' : 'buy'}-${focus ?? 'atlas'}`);
+      }
+    }
+  }
+  expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
 
 test('атлас на обычном сайте без покупок', async ({ page }) => {
   const errors = await boot(page, '');
   await openAtlas(page);
-  await expect(page.locator('.offer-note')).toBeVisible();
+  await expect(page.locator('.atl-note')).toBeVisible();
   await fits(page, '.atlas');
   await shot(page, '23-atlas-web');
   expect(errors).toEqual([]);

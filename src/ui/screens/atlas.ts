@@ -1,72 +1,82 @@
 /*
- * THESIS: атлас продаётся как созвездие — четыре его части стоят звёздами креста (главного
- * хода игры), и каждую можно потрогать до оплаты. Отказ от витрины «карточка + список
- * преимуществ + цена».
- * OWN-WORLD: ночь игры — заголовки Forum в золоте, фиолетовые панели с тонкой линией,
- * золотая кнопка-пилюля; фигура созвездия — те же золотые линии и светящиеся звёзды,
- * что на картах; примерочная — живое небо игры с веером карт.
- * STORY: три вкладки сверху сразу говорят, что здесь есть: «Атлас» (звёзды → покупка),
- * «Примерочная» (примерить вживую и купить вид), «Поддержать» (набор мецената, чаевые).
- * FIRST VIEWPORT: «‹ Назад», заголовок, вкладки, крест ~250 px, табличка выбранной звезды,
- * золотая кнопка «Открыть атлас · цена» прилипает к низу экрана.
- * FORM: оглавление-созвездие (4-я структура списка), сид f6974252; v2 по отзыву Дениса:
- * вкладки вместо длинной прокрутки, живая примерка.
+ * «Разворот» (RD.5, выбор Дениса): атлас продаётся как обложка товара. Первый экран —
+ * живое небо атласа, латунная рубашка и карты с глифами веером, название и одна фраза;
+ * ниже «Что внутри» — четыре части с миниатюрами. Золотая кнопка всегда внизу.
+ * Три вкладки устроены одинаково: обложка сверху, содержимое ниже, одна кнопка по смыслу.
+ * «Примерочная» — живая сцена с примеряемым видом; на телефоне сцена закреплена, ленты
+ * листаются под ней. «Поддержать» — набор мецената на золотом небе и чаевые.
+ * Один авторский момент: карты раскрываются веером; дальше обложка тихо живёт — дышит
+ * свечение, карты парят, по рубашке изредка идёт блик.
  */
 import { cardBack, cardFace } from '@/art/card';
 import { BACKS, SKY_THEMES, type SkyTheme } from '@/art/cosmetics';
-import { PreviewStage } from '../preview-stage';
 import { DEFAULT_NEBULA } from '@/art/nebula';
 import { skyMiniature } from '@/art/sky-miniature';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { dict, format, t } from '@/i18n';
-import { archiveDates, todayKey } from '@/meta/profile';
+import { archiveDates } from '@/meta/profile';
 import { PRODUCT_BY_ID, productForCosmetic } from '@/store/catalog';
 import { canvasImg, dpr, h } from '../dom';
+import { icon } from '../icons';
+import { PreviewStage } from '../preview-stage';
 import { button, confirmDialog, toast } from '../widgets';
 
-type StarId = 'archive' | 'astrolabe' | 'noads' | 'look';
 type Tab = 'atlas' | 'look' | 'support';
+type PartId = 'archive' | 'astrolabe' | 'noads' | 'look';
 const TABS: Tab[] = ['atlas', 'look', 'support'];
-
-/** Южный Крест: перекладина и стойка пересекаются — как карта на кресте двух линий. */
-const STARS: { id: StarId; x: number; y: number; mag: number }[] = [
-  { id: 'look', x: 0.5, y: 0.1, mag: 0.8 },
-  { id: 'noads', x: 0.17, y: 0.47, mag: 0.75 },
-  { id: 'archive', x: 0.84, y: 0.4, mag: 0.9 },
-  { id: 'astrolabe', x: 0.54, y: 0.88, mag: 1 },
-];
-/** Пятая, безымянная звезда креста — для узнаваемости фигуры. */
-const EPSILON = { x: 0.67, y: 0.62 };
+const PARTS: PartId[] = ['archive', 'astrolabe', 'noads', 'look'];
 
 const ASTRO_CARDS: Pick<Card, 'suit' | 'rank' | 'glyph'>[] = [
   { suit: 'moon', rank: 4, glyph: 'echo' },
   { suit: 'sun', rank: 9, glyph: 'prism' },
   { suit: 'comet', rank: 6, glyph: 'blazing' },
 ];
+const PATRON_CARDS: Pick<Card, 'suit' | 'rank' | 'glyph'>[] = [
+  { suit: 'sun', rank: 8, glyph: 'gilded' },
+  { suit: 'star', rank: 7, glyph: 'radiant' },
+  { suit: 'sun', rank: 9, glyph: 'prism' },
+];
+
+const SVG = 'http://www.w3.org/2000/svg';
+
+/** Звезда Telegram — нарисованный знак цены вместо эмодзи ⭐. */
+function tstar(): SVGSVGElement {
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'tstar');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = '<path d="m12 2.8 2.7 5.9 6.4.7-4.8 4.3 1.4 6.3L12 16.8l-5.7 3.2 1.4-6.3-4.8-4.3 6.4-.7Z"/>';
+  return svg;
+}
+
+/** Цена площадки: «250 ⭐» — число с нарисованной звездой, иначе как есть (₽ на Яндексе). */
+function priceNode(label: string): HTMLElement {
+  const m = /^(\d+)\s*⭐$/.exec(label.trim());
+  return h('span.atl-price', null, m ? [tstar(), m[1]!] : [label]);
+}
 
 export class AtlasScreen implements Screen {
   private el!: HTMLElement;
-  private star: StarId;
   private prices: Record<string, string> | null = null;
   private busy = false;
-  private drawn = false;
-  /** Звезда, чья табличка уже на экране. */
-  private plateStar: string | null = null;
   private off: (() => void) | null = null;
   private tab: Tab = 'atlas';
+  /** Вкладки, чья обложка уже раскрылась: при пересборке веер не раскрывается заново. */
+  private shown = new Set<Tab>();
+  /** Вкладка на экране — прокрутка переживает пересборку только внутри неё. */
+  private shownTab: Tab | null = null;
   /** Что примеряем (может быть ещё не куплено) и что выбрали последним — к нему кнопка. */
   private tryBack: string;
   private trySky: string;
   private focusSlot: 'back' | 'sky' = 'back';
-  private lookStage: PreviewStage | null = null;
-  private patronStage: PreviewStage | null = null;
+  private stages: Partial<Record<Tab, PreviewStage>> = {};
+  private capRo: ResizeObserver | null = null;
 
   constructor(
     private readonly app: App,
     focus?: string,
   ) {
-    this.star = STARS.some((s) => s.id === focus) ? (focus as StarId) : 'archive';
     if (focus === 'wardrobe') this.tab = 'look';
     if (focus === 'support') this.tab = 'support';
     this.tryBack = app.canWear('back', app.settings.cardBack) ? app.settings.cardBack : 'classic';
@@ -91,8 +101,8 @@ export class AtlasScreen implements Screen {
 
   unmount(): void {
     this.off?.();
-    this.lookStage?.destroy();
-    this.patronStage?.destroy();
+    this.capRo?.disconnect();
+    for (const s of Object.values(this.stages)) s.destroy();
     this.el.remove();
   }
 
@@ -100,54 +110,54 @@ export class AtlasScreen implements Screen {
     return this.app.purchases.has('atlas');
   }
 
+  private stage(tab: Tab): PreviewStage {
+    return (this.stages[tab] ??= new PreviewStage({ cards: tab === 'look' ? 3 : 0, reduceMotion: this.app.settings.reduceMotion }));
+  }
+
   private render(): void {
-    const scroll = this.el.scrollTop;
-    const panel =
-      this.tab === 'atlas'
-        ? [
-            h('section.atlas-hero', null, [
-              h('p.atlas-lede', null, t('atlas.lede')),
-              this.chart(),
-              this.plate(),
-              this.owned || !this.app.platform.payments ? null : h('p.offer-promise', null, t('atlas.promise')),
-            ]),
-            this.offer(),
-          ]
-        : this.tab === 'look'
-          ? [this.wardrobe()]
-          : [this.support()];
-    this.el.replaceChildren(
-      ...([
-      h('div.atlas-top', null, [button(`‹ ${t('menu.back')}`, () => void this.app.goMenu(), { variant: 'ghost', className: 'small' })]),
-      h('h1.atlas-title', null, t('atlas.title')),
+    // Касание в ленте или подгрузка цен пересобирает экран — прокрутка остаётся на месте
+    const same = this.shownTab === this.tab;
+    const scrollers = () => [...this.el.querySelectorAll<HTMLElement>('.atl-body, .atl-right, .atl-strip')];
+    const keep = same ? scrollers().map((e) => [e.scrollTop, e.scrollLeft] as const) : [];
+    const [body, cta] = this.tab === 'atlas' ? this.atlasTab() : this.tab === 'look' ? this.lookTab() : this.supportTab();
+    this.el.className = `atlas tab-${this.tab}${this.shown.has(this.tab) ? ' settled' : ''}`;
+    this.el.replaceChildren(this.top(), body, cta);
+    if (same) scrollers().forEach((e, i) => {
+      const k = keep[i];
+      if (k) [e.scrollTop, e.scrollLeft] = k;
+    });
+    this.shownTab = this.tab;
+    this.shown.add(this.tab);
+    this.watchCaption();
+  }
+
+  // ─── Шапка и вкладки ───────────────────────────────────────────────────
+
+  private top(): HTMLElement {
+    return h('header.atl-top', null, [
+      h('button.atl-back', { type: 'button', onclick: () => void this.app.goMenu() }, [icon('back'), t('menu.back')]),
+      h('h1.atl-plaque', null, t('atlas.title')),
       this.tabs(),
-      ...panel,
-      h('div.atlas-foot', null, [
-        h('button.link-btn', { type: 'button', onclick: () => void import('./legal').then(({ showLegal }) => showLegal('terms')) }, t('atlas.terms')),
-      ]),
-      ].filter((x): x is HTMLElement => !!x)),
-    );
-    this.el.scrollTop = scroll;
-    if (this.tab === 'atlas') this.drawn = true;
+    ]);
   }
 
   /** Вкладки сверху: всё, что есть в магазине, видно сразу — без поиска прокруткой. */
   private tabs(): HTMLElement {
-    const bar = h('div.atlas-tabs', { attrs: { role: 'tablist', 'aria-label': t('atlas.title') } });
+    const bar = h('nav.atl-tabs', { attrs: { role: 'tablist', 'aria-label': t('atlas.title') } });
     TABS.forEach((id, i) => {
       const on = id === this.tab;
-      const b = h(`button.atlas-tab${on ? '.on' : ''}`, {
+      const b = h(`button.atl-tab${on ? '.on' : ''}`, {
         type: 'button',
         tabIndex: on ? 0 : -1,
         attrs: { role: 'tab', 'aria-selected': String(on) },
-      }, [h('span', null, dict().atlas.tabs[id]!)]);
+      }, dict().atlas.tabs[id]!);
       b.addEventListener('click', () => this.openTab(id));
       b.addEventListener('keydown', (e) => {
         const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
         if (!step) return;
         e.preventDefault();
         this.openTab(TABS[(i + step + TABS.length) % TABS.length]!);
-        this.el.querySelector<HTMLElement>('.atlas-tab.on')?.focus();
+        this.el.querySelector<HTMLElement>('.atl-tab.on')?.focus();
       });
       bar.append(b);
     });
@@ -159,180 +169,121 @@ export class AtlasScreen implements Screen {
     this.tab = id;
     this.app.svc.audio.click();
     this.render();
-    this.el.scrollTo({ top: 0 });
   }
 
-  // ─── Созвездие ─────────────────────────────────────────────────────────
+  // ─── Обложка ───────────────────────────────────────────────────────────
 
-  private chart(): HTMLElement {
-    const ns = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.classList.add('atlas-lines');
-    const at = (id: StarId) => STARS.find((s) => s.id === id)!;
-    const line = (a: { x: number; y: number }, b: { x: number; y: number }, lit: boolean, i: number) => {
-      const l = document.createElementNS(ns, 'line');
-      l.setAttribute('x1', String(a.x * 100));
-      l.setAttribute('y1', String(a.y * 100));
-      l.setAttribute('x2', String(b.x * 100));
-      l.setAttribute('y2', String(b.y * 100));
-      l.setAttribute('pathLength', '1');
-      l.style.setProperty('--i', String(i));
-      if (lit) l.classList.add('lit');
-      svg.append(l);
-    };
-    // Стойка и перекладина креста; линия выбранной звезды горит ярче
-    const stem = this.star === 'look' || this.star === 'astrolabe';
-    // Купленный атлас — созвездие зажжено целиком
-    line(at('look'), at('astrolabe'), stem || this.owned, 0);
-    line(at('noads'), at('archive'), !stem || this.owned, 1);
-    const wrap = h(`div.atlas-chart${this.drawn ? '' : '.igniting'}`, { attrs: { role: 'tablist', 'aria-label': t('atlas.title') } }, [svg]);
-    const dot = h('span.atlas-eps', null);
-    dot.style.left = `${EPSILON.x * 100}%`;
-    dot.style.top = `${EPSILON.y * 100}%`;
-    wrap.append(dot);
-    STARS.forEach((s, i) => {
-      const [name] = dict().atlas.stars[s.id]!;
-      const btn = h(`button.atlas-star${s.id === this.star ? '.on' : ''}`, {
-        type: 'button',
-        attrs: { role: 'tab', 'aria-selected': String(s.id === this.star), 'aria-controls': 'atlas-plate' },
-        tabIndex: s.id === this.star ? 0 : -1,
-      }, [h('span.atlas-star-dot', null), h('span.atlas-star-name', null, name)]);
-      btn.style.left = `${s.x * 100}%`;
-      btn.style.top = `${s.y * 100}%`;
-      btn.style.setProperty('--mag', String(s.mag));
-      btn.style.setProperty('--i', String(i));
-      if (s.x > 0.7) btn.classList.add('label-left');
-      if (s.x < 0.3) btn.classList.add('label-right');
-      btn.addEventListener('click', () => this.select(s.id));
-      btn.addEventListener('keydown', (e) => {
-        const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
-        if (!step) return;
-        e.preventDefault();
-        this.select(STARS[(i + step + STARS.length) % STARS.length]!.id);
-      });
-      wrap.append(btn);
+  /** Обложка: живое небо, карты веером за рубашкой, название и одна фраза. */
+  private hero(tab: Tab, sky: string, back: string, faces: Pick<Card, 'suit' | 'rank' | 'glyph'>[], title: string, sub: string): HTMLElement {
+    const stage = this.stage(tab);
+    stage.setSky(sky);
+    const stack = h('div.atl-stack', { attrs: { 'aria-hidden': 'true' } });
+    faces.forEach((c, i) => {
+      const img = canvasImg(cardFace(c, 84, dpr()), 84 * 1.24, (84 / 0.7) * 1.24, 'atl-face');
+      img.style.setProperty('--r', `${(i - 1) * 22}deg`);
+      img.style.setProperty('--d', `${0.25 + i * 0.08}s`);
+      stack.append(img);
     });
-    return wrap;
+    const backArt = cardBack(104, dpr(), back);
+    stack.append(canvasImg(backArt, 104 * 1.24, (104 / 0.7) * 1.24, 'atl-backc'));
+    // Блик идёт по самой рубашке: маска — её же картинка
+    const glint = h('i.atl-glint');
+    glint.style.setProperty('--m', `url(${backArt.toDataURL()})`);
+    // Высота блика — как у рубашки (WebKit не выводит её из aspect-ratio у абсолютного блока)
+    glint.style.setProperty('--gh', String((backArt.height / backArt.width).toFixed(4)));
+    stack.append(glint);
+    return h(`section.atl-hero.hero-${tab}`, null, [stage.el, stack, h('h2.atl-title', null, title), h('p.atl-sub', null, sub)]);
   }
 
-  /** Выбрать звезду: табличка меняется и показывается над липкой кнопкой, фокус остаётся на звезде. */
-  private select(id: StarId): void {
-    if (this.star === id) return;
-    this.star = id;
-    this.app.svc.audio.click();
-    this.render();
-    this.el.querySelector<HTMLElement>('.atlas-star.on')?.focus({ preventScroll: true });
-    this.el.querySelector('#atlas-plate')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // ─── Атлас ─────────────────────────────────────────────────────────────
+
+  private atlasTab(): [HTMLElement, HTMLElement] {
+    const owned = this.owned;
+    const n = archiveDates().length;
+    const parts = h('div.atl-parts', null, PARTS.map((id) => {
+      const [name, text] = dict().atlas.parts[id]!;
+      const desc = id === 'archive' && n ? `${text} ${format(t('atlas.archiveNow'), { n })}` : text;
+      return this.part(this.partArt(id), name, desc, owned);
+    }));
+    const body = h('div.atl-body', null, [
+      this.hero('atlas', 'astrolabe', 'astrolabe', ASTRO_CARDS, t('atlas.title'), owned ? t('atlas.heroSubOwned') : t('atlas.heroSub')),
+      h('div.atl-right', null, [h('h2.atl-section', null, t('atlas.inside')), parts]),
+    ]);
+    return [body, this.atlasCta()];
   }
 
-  /** Табличка выбранной звезды: что это и как выглядит. */
-  private plate(): HTMLElement {
-    const [name, rawDesc] = dict().atlas.stars[this.star]!;
-    const desc = format(rawDesc, { n: archiveDates().length });
-    const body = h('div.plate-body', null, [h('h2.plate-name', null, name), h('p.plate-desc', null, desc)]);
-    const visual = h('div.plate-visual', { attrs: { 'aria-hidden': 'true' } });
-    const actions: HTMLElement[] = [];
-    switch (this.star) {
-      case 'archive': {
-        visual.append(this.archiveStrip());
-        if (this.owned) actions.push(button(t('atlas.openArchive'), () => void this.app.goArchive(), { variant: 'secondary', className: 'small' }));
-        break;
-      }
-      case 'astrolabe': {
-        const fan = h('div.plate-fan');
-        ASTRO_CARDS.forEach((c, i) => {
-          const img = canvasImg(cardFace(c, 64, dpr()), 64 * 1.24, (64 / 0.7) * 1.24, 'plate-card');
-          img.style.setProperty('--i', String(i - 1));
-          fan.append(img);
-        });
-        visual.append(fan);
-        if (this.owned) actions.push(button(t('atlas.playAstrolabe'), () => this.playAstrolabe(), { variant: 'secondary', className: 'small' }));
-        break;
-      }
-      case 'noads':
-        // U+FE0E — текстовый вариант значка: на iOS и в Telegram он не станет эмодзи
-        visual.append(h('div.plate-noads', null, [h('span', null, '\u25B6\uFE0E'), h('i', null)]));
-        break;
-      case 'look': {
-        visual.append(
-          h('div.plate-look', null, [
-            canvasImg(cardBack(64, dpr(), 'astrolabe'), 64 * 1.24, (64 / 0.7) * 1.24, 'plate-card'),
-            this.skySwatch(SKY_THEMES.find((s) => s.id === 'astrolabe')!, 64, 92),
-          ]),
-        );
-        if (this.owned) {
-          const wearing = this.app.settings.cardBack === 'astrolabe' && this.app.settings.skyTheme === 'astrolabe';
-          actions.push(button(wearing ? t('atlas.wearing') : t('atlas.wear'), () => this.wear({ cardBack: 'astrolabe', skyTheme: 'astrolabe' }), { variant: 'secondary', className: 'small', disabled: wearing }));
-        }
-        break;
-      }
+  private part(art: HTMLElement, name: string, text: string, done: boolean): HTMLElement {
+    return h('div.atl-part', null, [art, h('h3', null, [done ? icon('check') : null, name]), h('p', null, text)]);
+  }
+
+  /** Миниатюры частей: календарь вызовов, карты с глифами, перечёркнутый ролик, рубашка на небе. */
+  private partArt(id: PartId): HTMLElement {
+    const pv = h(`span.atl-pv.pv-${id}`, { attrs: { 'aria-hidden': 'true' } });
+    if (id === 'archive') {
+      const days = ['p', 'p', '', 'w', 'p', '', 'p', 'p', 'w', '', 'p', 'p'];
+      pv.append(h('span.pv-days', null, days.map((d) => (d ? h(`i.${d}`) : h('i')))));
+    } else if (id === 'astrolabe') {
+      ASTRO_CARDS.forEach((c, i) => {
+        const img = canvasImg(cardFace(c, 34, dpr()), 34 * 1.24, (34 / 0.7) * 1.24);
+        img.style.setProperty('--r', `${(i - 1) * 16}deg`);
+        pv.append(img);
+      });
+    } else if (id === 'noads') {
+      pv.append(h('span.pv-noads', null, icon('play')));
+    } else {
+      pv.append(this.skySwatch(SKY_THEMES.find((s) => s.id === 'astrolabe')!, 64, 64), canvasImg(cardBack(30, dpr(), 'astrolabe'), 30 * 1.24, (30 / 0.7) * 1.24, 'pv-bk'));
     }
-    if (actions.length) body.append(h('div.plate-actions', null, actions));
-    // Табличка «проявляется» только при смене звезды: пересборка после подгрузки цен или
-    // покупки не должна мигать ею заново
-    const plate = h(`div#atlas-plate.atlas-plate${this.plateStar !== this.star ? '.enter' : ''}`, { attrs: { role: 'tabpanel', 'aria-live': 'polite' } }, [visual, body]);
-    plate.dataset.star = this.star;
-    this.plateStar = this.star;
-    return plate;
+    return pv;
   }
 
-  /** Последние дни архива: сыгранные светятся, пройденные целиком — звездой. */
-  private archiveStrip(): HTMLElement {
-    const days = archiveDates().slice(0, 7).reverse();
-    const results = this.app.profile.archive ?? {};
-    const strip = h('div.plate-days');
-    for (const date of days) {
-      const r = results[date];
-      strip.append(
-        h(`span.plate-day${r ? '.played' : ''}${r?.won ? '.won' : ''}`, null, [
-          h('b', null, String(Number(date.slice(8)))),
-          h('small', null, r ? (r.won ? '✦' : String(r.ante)) : ''),
+  private atlasCta(): HTMLElement {
+    const foot = h('footer.atl-cta');
+    const payments = this.app.platform.payments;
+    if (this.owned) {
+      foot.append(
+        h('div.atl-owned', null, [icon('check'), t('atlas.owned')]),
+        h('div.atl-two', null, [
+          button(h('span.btn-row', null, [icon('archive'), t('atlas.archiveShort')]), () => void this.app.goArchive(), { variant: 'secondary', ariaLabel: t('atlas.openArchive') }),
+          button(h('span.btn-row', null, [icon('deck'), t('atlas.astroShort')]), () => this.playAstrolabe(), { variant: 'secondary', ariaLabel: t('atlas.playAstrolabe') }),
         ]),
       );
+      return foot;
     }
-    strip.append(h('span.plate-day.today', null, [h('b', null, String(Number(todayKey().slice(8)))), h('small', null, '')]));
-    return strip;
-  }
-
-  // ─── Покупка атласа ────────────────────────────────────────────────────
-
-  private offer(): HTMLElement {
-    const bar = h('div.atlas-offer');
-    if (this.owned) {
-      bar.classList.add('owned');
-      bar.append(h('p.offer-owned', null, t('atlas.owned')));
-      return bar;
-    }
-    if (!this.app.platform.payments) {
-      bar.classList.add('unavailable');
-      bar.append(h('p.offer-note', null, t('atlas.unavailable')));
-      const link = import.meta.env.VITE_TG_APP_LINK;
-      if (link) bar.append(button(t('atlas.openTelegram'), () => window.open(link, '_blank', 'noopener'), { variant: 'secondary' }));
-      return bar;
-    }
+    if (!payments) return this.unavailable(foot, t('atlas.unavailable'));
     if (this.prices && !this.prices.atlas) {
       // Площадка ответила, но атласа не продаёт (оплата ещё не включена)
-      bar.classList.add('unavailable');
-      bar.append(h('p.offer-note', null, t('atlas.soon')));
-      return bar;
+      foot.append(h('p.atl-note', null, t('atlas.soon')));
+      return foot;
     }
-    const price = this.price('atlas');
-    const buy = button(this.busy ? t('atlas.paying') : t('atlas.buy'), () => void this.buy('atlas'), {
-      sub: this.busy ? undefined : price,
-      disabled: this.busy || !this.prices?.atlas,
-      className: `offer-buy${this.prices ? '' : ' loading'}`,
-    });
-    if (this.busy) buy.setAttribute('aria-busy', 'true');
-    bar.append(buy);
-    return bar;
+    foot.append(this.buyButton('atlas', t('atlas.buy')), this.promise());
+    return foot;
   }
 
-  private price(id: string): string {
-    if (!this.prices) return t('atlas.loading');
-    return this.prices[id] ?? '';
+  private promise(): HTMLElement {
+    return h('p.atl-promise', null, [
+      h('b', null, t('atlas.promiseLead')),
+      ` ${t('atlas.promiseRest')} `,
+      h('button.link-btn.atl-terms', { type: 'button', onclick: () => void import('./legal').then(({ showLegal }) => showLegal('terms')) }, t('atlas.terms')),
+    ]);
+  }
+
+  /** Покупок на площадке нет: подсказка и ссылка в Telegram. */
+  private unavailable(foot: HTMLElement, note: string): HTMLElement {
+    foot.append(h('p.atl-note', null, note));
+    const link = import.meta.env.VITE_TG_APP_LINK;
+    if (link) foot.append(button(t('atlas.openTelegram'), () => window.open(link, '_blank', 'noopener'), { variant: 'secondary' }));
+    return foot;
+  }
+
+  /** Золотая кнопка покупки с ценой; пока ждём оплату — кольцо и «Ждём оплату…». */
+  private buyButton(id: string, label: string, variant: 'primary' | 'secondary' = 'primary'): HTMLButtonElement {
+    const priced = this.prices?.[id];
+    const content = this.busy
+      ? h('span.btn-row', null, [h('span.atl-spin'), t('atlas.paying')])
+      : h('span.btn-row', null, [label, h('span.atl-pr', null, priced ? priceNode(priced) : t('atlas.loading'))]);
+    const b = button(content, () => void this.buy(id), { variant, disabled: this.busy || !priced, className: `atl-buy${priced ? '' : ' loading'}` });
+    if (this.busy) b.setAttribute('aria-busy', 'true');
+    return b;
   }
 
   private async buy(id: string): Promise<void> {
@@ -342,8 +293,8 @@ export class AtlasScreen implements Screen {
     const result = await this.app.purchase(id);
     this.busy = false;
     if (result === 'paid') {
-      // Крест зажигается заново — уже целиком
-      if (id === 'atlas' || id === 'supporter') this.drawn = false;
+      // Обложка раскрывается заново — уже купленной
+      if (id === 'atlas' || id === 'supporter') this.shown.clear();
       this.app.svc.audio.win();
       toast(PRODUCT_BY_ID[id]?.kind === 'tip' ? t('atlas.thanksTip') : t('atlas.thanks'));
     } else if (result === 'cancelled') toast(t('atlas.cancelled'));
@@ -364,29 +315,46 @@ export class AtlasScreen implements Screen {
 
   // ─── Примерочная ───────────────────────────────────────────────────────
 
-  private wardrobe(): HTMLElement {
-    const stage = (this.lookStage ??= new PreviewStage({ reduceMotion: this.app.settings.reduceMotion }));
+  /** Где взять вид: бесплатно, твоё, в атласе, у мецената или цена. */
+  private where(slot: 'back' | 'sky', id: string): Node {
+    if (this.app.canWear(slot, id)) return document.createTextNode(id === 'classic' || id === 'night' ? t('atlas.free') : t('atlas.yours'));
+    const product = productForCosmetic(slot, id);
+    if (product?.id === 'atlas') return document.createTextNode(t('atlas.inAtlas'));
+    if (product?.id === 'supporter') return document.createTextNode(t('atlas.atPatron'));
+    const label = product && this.app.platform.payments ? this.prices?.[product.id] : '';
+    return label ? priceNode(label) : document.createTextNode('—');
+  }
+
+  private lookTab(): [HTMLElement, HTMLElement] {
+    const stage = this.stage('look');
     stage.setBack(this.tryBack);
     stage.setSky(this.trySky);
-    const backs = h('div.wardrobe-row', { attrs: { role: 'listbox', 'aria-label': t('atlas.backs') } });
-    for (const b of BACKS) {
-      backs.append(this.wardrobeItem('back', b.id, canvasImg(cardBack(64, dpr(), b.id), 64 * 1.24, (64 / 0.7) * 1.24)));
-    }
-    const skies = h('div.wardrobe-row', { attrs: { role: 'listbox', 'aria-label': t('atlas.skies') } });
-    for (const s of SKY_THEMES) skies.append(this.wardrobeItem('sky', s.id, this.skySwatch(s, 64, 92)));
-    const id = this.focusSlot === 'back' ? this.tryBack : this.trySky;
-    return h('section.atlas-look', null, [
-      h('div.look-stage', null, [stage.el, h('div.look-caption', null, [
-        h('span.look-kind', null, this.focusSlot === 'back' ? t('atlas.backOne') : t('atlas.skyOne')),
-        h('span.look-name', null, dict().cosmetic[this.focusSlot][id] ?? id),
-      ])]),
-      this.lookAction(),
-      h('p.atlas-lede.look-lede', null, t('atlas.lookLede')),
-      h('h3.atlas-h3', null, t('atlas.backs')),
-      backs,
-      h('h3.atlas-h3', null, t('atlas.skies')),
-      skies,
+    const name = (slot: 'back' | 'sky', id: string) => dict().cosmetic[slot][id] ?? id;
+    const cap = h('div.atl-cap', null, [
+      h('span', null, [h('span.lbl', null, `${t('atlas.backOne')} `), h('b', null, name('back', this.tryBack)), ' · ', this.where('back', this.tryBack)]),
+      h('span', null, [h('span.lbl', null, `${t('atlas.skyOne')} `), h('b', null, name('sky', this.trySky)), ' · ', this.where('sky', this.trySky)]),
     ]);
+    const strip = (slot: 'back' | 'sky') => {
+      const row = h('div.atl-strip', { attrs: { role: 'listbox', 'aria-label': slot === 'back' ? t('atlas.backs') : t('atlas.skies') } });
+      if (slot === 'back') for (const b of BACKS) row.append(this.item('back', b.id, canvasImg(cardBack(50, dpr(), b.id), 50 * 1.24, (50 / 0.7) * 1.24)));
+      else for (const s of SKY_THEMES) row.append(this.item('sky', s.id, this.skySwatch(s, 50, 70)));
+      return row;
+    };
+    const body = h('div.atl-body.look-body', null, [
+      h('div.look-left', null, [h('section.atl-stage', null, [stage.el, cap]), h('p.atl-hint', null, t('atlas.lookLede'))]),
+      h('div.atl-right', null, [h('h2.atl-section', null, t('atlas.backs')), strip('back'), h('h2.atl-section', null, t('atlas.skies')), strip('sky')]),
+    ]);
+    return [body, h('footer.atl-cta', null, [this.lookAction(), h('p.atl-promise', null, t('atlas.lookPromise'))])];
+  }
+
+  /** Веер встаёт по центру неба над подписью: сцене сообщаем её высоту. */
+  private watchCaption(): void {
+    this.capRo?.disconnect();
+    const cap = this.el.querySelector<HTMLElement>('.atl-cap');
+    const stage = this.stages.look;
+    if (!cap || !stage) return;
+    this.capRo = new ResizeObserver(() => (stage.bottomInset = cap.offsetHeight));
+    this.capRo.observe(cap);
   }
 
   /** Кнопка под примеркой: надеть, купить или где это продаётся. */
@@ -397,103 +365,72 @@ export class AtlasScreen implements Screen {
     const name = dict().cosmetic[slot][id] ?? id;
     const current = slot === 'back' ? app.settings.cardBack : app.settings.skyTheme;
     const product = productForCosmetic(slot, id);
-    const wrap = h('div.look-action');
     if (app.canWear(slot, id)) {
       const worn = current === id;
-      wrap.append(button(worn ? t('atlas.worn') : format(t('atlas.wearIt'), { name }), () => this.wear(slot === 'back' ? { cardBack: id } : { skyTheme: id }), { disabled: worn, variant: worn ? 'secondary' : 'primary', className: 'look-btn' }));
-      return wrap;
+      return button(worn ? h('span.btn-row', null, [icon('check'), t('atlas.wearing')]) : format(t('atlas.wearIt'), { name }), () => this.wear(slot === 'back' ? { cardBack: id } : { skyTheme: id }), {
+        disabled: worn, variant: worn ? 'secondary' : 'primary', className: 'atl-look-btn',
+      });
     }
-    if (product?.id === 'atlas') {
-      wrap.append(button(t('atlas.inAtlasGo'), () => {
-        this.star = 'look';
-        this.openTab('atlas');
-      }, { variant: 'secondary', className: 'look-btn' }));
-      return wrap;
-    }
-    if (product?.id === 'supporter') {
-      wrap.append(button(t('atlas.inSupporterGo'), () => this.openTab('support'), { variant: 'secondary', className: 'look-btn' }));
-      return wrap;
-    }
-    if (product && app.platform.payments && this.prices?.[product.id]) {
-      const b = button(this.busy ? t('atlas.paying') : format(t('atlas.buyIt'), { name }), () => void this.buy(product.id), { sub: this.busy ? undefined : this.price(product.id), disabled: this.busy, className: 'look-btn' });
-      wrap.append(b);
-      return wrap;
-    }
-    wrap.append(h('p.offer-note', null, app.platform.payments ? (this.prices ? t('atlas.soon') : t('atlas.loading')) : t('atlas.unavailable')));
-    return wrap;
+    if (product?.id === 'atlas') return button(t('atlas.inAtlasGo'), () => this.openTab('atlas'), { variant: 'secondary', className: 'atl-look-btn' });
+    if (product?.id === 'supporter') return button(t('atlas.inSupporterGo'), () => this.openTab('support'), { variant: 'secondary', className: 'atl-look-btn' });
+    if (product && app.platform.payments && this.prices?.[product.id]) return this.buyButton(product.id, format(t('atlas.buyIt'), { name }));
+    return h('p.atl-note', null, app.platform.payments ? (this.prices ? t('atlas.soon') : t('atlas.loading')) : t('atlas.unavailable'));
   }
 
-  private wardrobeItem(slot: 'back' | 'sky', id: string, art: HTMLElement): HTMLElement {
-    const app = this.app;
-    const wearable = app.canWear(slot, id);
-    const current = slot === 'back' ? app.settings.cardBack : app.settings.skyTheme;
-    const wearing = wearable && current === id;
+  private item(slot: 'back' | 'sky', id: string, art: HTMLElement): HTMLElement {
     const trying = (slot === 'back' ? this.tryBack : this.trySky) === id;
-    const product = productForCosmetic(slot, id);
-    let status: string;
-    if (wearing) status = t('atlas.wearing');
-    else if (wearable) status = id === 'classic' || id === 'night' ? t('atlas.free') : t('atlas.owned1');
-    else if (product?.id === 'atlas') status = t('atlas.inAtlas');
-    else if (product?.id === 'supporter') status = t('atlas.inSupporter');
-    else status = (product && app.platform.payments ? this.price(product.id) : '') || '—';
-    const item = h(`button.wardrobe-item${trying ? '.on' : ''}${wearable ? '' : '.locked'}${wearing ? '.worn' : ''}`, {
+    const where = this.where(slot, id);
+    const inPack = productForCosmetic(slot, id)?.kind === 'unlock' && !this.app.canWear(slot, id);
+    const item = h(`button.atl-item${trying ? '.on' : ''}`, {
       type: 'button',
       attrs: { role: 'option', 'aria-selected': String(trying) },
-    }, [art, h('span.wardrobe-name', null, dict().cosmetic[slot][id] ?? id), h('span.wardrobe-status', null, status)]);
-    // Нажатие — примерить на сцене; покупка и «надеть» — кнопкой под сценой
+    }, [h('span.atl-thumb', null, art), h('b', null, dict().cosmetic[slot][id] ?? id), h(`small${inPack ? '.in' : ''}`, null, where)]);
+    // Касание — примерить на сцене; покупка и «надеть» — кнопкой внизу
     item.addEventListener('click', () => {
       if (slot === 'back') this.tryBack = id;
       else this.trySky = id;
       this.focusSlot = slot;
       this.app.svc.audio.click();
       this.render();
-      this.el.querySelector('.look-stage')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
     return item;
   }
 
   /** Кусочек неба темы — как оно выглядит за игрой. */
   private skySwatch(theme: SkyTheme, w: number, hgt: number): HTMLElement {
-    return canvasImg(skyMiniature(theme.palette ?? DEFAULT_NEBULA, w * 1.24, hgt * 1.24, dpr()), w * 1.24, hgt * 1.24, 'sky-swatch');
+    return canvasImg(skyMiniature(theme.palette ?? DEFAULT_NEBULA, w * 1.24, hgt * 1.24, dpr()), w, hgt, 'sky-swatch');
   }
 
-  // ─── Поддержка ─────────────────────────────────────────────────────────
+  // ─── Поддержать ────────────────────────────────────────────────────────
 
-  private support(): HTMLElement {
+  private supportTab(): [HTMLElement, HTMLElement] {
     const app = this.app;
-    const payments = app.platform.payments;
-    const [name, desc] = dict().atlas.supporter;
     const has = app.purchases.has('supporter');
-    const stage = (this.patronStage ??= new PreviewStage({ reduceMotion: app.settings.reduceMotion }));
-    stage.setBack('patron');
-    stage.setSky('patron');
-    let action: HTMLElement;
-    if (has) action = h('p.offer-owned', null, t('atlas.supporterOwned'));
-    else if (payments && this.prices?.supporter) {
-      const b = button(this.busy ? t('atlas.paying') : t('atlas.supporterBuy'), () => void this.buy('supporter'), { sub: this.busy ? undefined : this.price('supporter'), disabled: this.busy, className: 'offer-buy patron-buy' });
-      if (this.busy) b.setAttribute('aria-busy', 'true');
-      action = b;
-    } else action = h('p.offer-note', null, !payments ? t('atlas.unavailable') : this.prices ? t('atlas.soon') : t('atlas.loading'));
+    const arts: HTMLElement[] = [
+      this.partArt('look'),
+      h('span.atl-pv.pv-fan', { attrs: { 'aria-hidden': 'true' } }, canvasImg(cardBack(36, dpr(), 'patron'), 36 * 1.24, (36 / 0.7) * 1.24)),
+      h('span.atl-pv.pv-look', { attrs: { 'aria-hidden': 'true' } }, this.skySwatch(SKY_THEMES.find((s) => s.id === 'patron')!, 64, 64)),
+      h('span.atl-pv', { attrs: { 'aria-hidden': 'true' } }, h('span.pv-noads.seal', null, tstar())),
+    ];
+    const parts = h('div.atl-parts', null, dict().atlas.patronParts.map(([n, text], i) => this.part(arts[i]!, n, text, has)));
     const tipIds = ['tip_small', 'tip_medium', 'tip_large'].filter((id) => this.prices?.[id]);
     const tips = tipIds.length
-      ? h('div.support-tips', null, [
-          h('h3.atlas-h3', null, t('atlas.tips')),
-          h('div.tip-row', null, tipIds.map((id) => button(dict().atlas.tipNames[id] ?? id, () => void this.buy(id), { variant: 'ghost', sub: this.price(id), disabled: this.busy }))),
-          h('p.hint', null, t('atlas.tipNote')),
-        ])
-      : null;
-    return h('section.atlas-support', null, [
-      h('div.patron', null, [
-        h('div.patron-stage', null, [stage.el, h('span.patron-seal', { attrs: { 'aria-hidden': 'true' } }, '✦')]),
-        h('div.patron-body', null, [
-          h('h2.patron-name', null, name),
-          h('p.patron-desc', null, desc),
-          h('ul.patron-list', null, dict().atlas.supporterItems.map((line) => h('li', null, line))),
-          action,
-        ]),
-      ]),
-      h('p.atlas-lede.patron-lede', null, t('atlas.supportLede')),
-      tips,
+      ? [
+          h('h2.atl-section', null, t('atlas.tips')),
+          h('div.atl-tips', null, tipIds.map((id) => button(h('span.tip-in', null, [h('span', null, dict().atlas.tipNames[id] ?? id), priceNode(this.prices![id]!)]), () => void this.buy(id), { variant: 'secondary', disabled: this.busy, className: 'atl-tip' }))),
+          h('p.atl-promise', null, t('atlas.tipNote')),
+        ]
+      : [];
+    const [name] = dict().atlas.supporter;
+    const body = h('div.atl-body', null, [
+      this.hero('support', 'patron', 'patron', PATRON_CARDS, name, has ? t('atlas.supporterOwned') : t('atlas.patronSub')),
+      h('div.atl-right', null, [h('h2.atl-section', null, t('atlas.whatsIn')), parts, ...tips]),
     ]);
+    const foot = h('footer.atl-cta');
+    if (has) foot.append(h('div.atl-owned', null, [icon('check'), t('atlas.supporterOwned')]));
+    else if (!app.platform.payments) this.unavailable(foot, t('atlas.patronUnavailable'));
+    else if (this.prices && !this.prices.supporter) foot.append(h('p.atl-note', null, t('atlas.soon')));
+    else foot.append(this.buyButton('supporter', t('atlas.supporterBuy')));
+    return [body, foot];
   }
 }
