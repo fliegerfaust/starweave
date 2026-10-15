@@ -2,14 +2,15 @@ import { SKY_FIGURES, shuffledFigures, starRadius, type SkyFigure } from '@/art/
 import { SKY_LIST } from '@/core/content/skies';
 import type { App, Screen } from '@/game/app';
 import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
-import { dict, named, t } from '@/i18n';
+import { dict, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
-import { button, confirmDialog, modal } from '../widgets';
-import { showHelp, showSettings } from './common';
+import { button, modal } from '../widgets';
+import { cardThumb, confirmNewRun, showHelp, showSettings } from './common';
+import type { Card, Glyph, Suit } from '@/core/types';
 import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
-import { challengeScore, type Challenge } from '@/game/challenge';
+import type { Challenge } from '@/game/challenge';
 
 /** «13 октября» — как люди называют дату. */
 function humanDate(key: string): string {
@@ -22,6 +23,30 @@ function stakeText(stake: number): string {
   const list = dict().menu.stakes;
   if (stake === 0) return list[0]!;
   return list.slice(1, stake + 1).join(' · ');
+}
+
+/** Небо — картинкой: веер из характерных карт его колоды (RD.10, «Табличка»). */
+const SKY_FAN: Record<string, [number, Suit, Glyph?][]> = {
+  classic: [[9, 'sun'], [5, 'moon'], [7, 'star']],
+  twins: [[7, 'sun'], [4, 'moon'], [7, 'sun']],
+  wanderer: [[8, 'comet'], [2, 'star'], [6, 'comet']],
+  abyss: [[1, 'moon'], [3, 'sun'], [2, 'star']],
+  gilded: [[3, 'sun'], [7, 'sun', 'gilded'], [9, 'sun']],
+  astrolabe: [[9, 'moon', 'prism'], [9, 'star', 'radiant'], [8, 'sun', 'glass']],
+};
+let fanId = -7000;
+
+/** Веер карт неба шириной карты `w`; закрытое небо — тусклое, с замком. */
+export function skyFan(skyId: string, w: number, locked = false): HTMLElement {
+  const cards = SKY_FAN[skyId] ?? SKY_FAN.classic!;
+  const n = cards.length;
+  return h(`span.sky-fan${locked ? '.off' : ''}`, { style: `--cw: ${w}px`, attrs: { 'aria-hidden': 'true' } }, [
+    ...cards.map(([rank, suit, glyph], i) => {
+      const k = i - (n - 1) / 2;
+      return h('span.sky-fan-card', { style: { transform: `translateX(calc(-50% + ${k * w * 0.32}px)) rotate(${k * 13}deg)` } }, cardThumb({ id: fanId--, rank, suit, ...(glyph ? { glyph } : {}) } as Card, w));
+    }),
+    locked ? h('span.sky-fan-lock', null, icon('lock')) : null,
+  ]);
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -197,13 +222,18 @@ export class MenuScreen implements Screen {
     track('challenge_open', { ante: c.ante, best: c.best, fresh: app.profile.runs === 0 });
     const sky = SKY_LIST.find((s) => s.id === c.skyId);
     const locked = sky?.unlock.kind === 'atlas' && !app.purchases.has('atlas');
-    const stake = c.stake ? `✦${c.stake}` : t('menu.stakeNormal');
+    const stake = c.stake ? t('map.stake', { n: c.stake }) : t('menu.stakeNormal');
+    const all = c.ante > 8;
     const m = modal(
       [
-        h('p.modal-text', null, t('challenge.text', { score: challengeScore(c.ante, c.best) })),
-        h('p.hint', null, t('challenge.deck', { sky: named('sky', c.skyId).name, stake })),
+        h('div.win-stats', null, [
+          h('div', null, [h('b', null, all ? '8' : String(c.ante)), h('small', null, all ? t('challenge.chapters') : t('challenge.chapter'))]),
+          h('div', null, [h('b', null, num(c.best)), h('small', null, t('challenge.bestMove'))]),
+        ]),
+        h('p.modal-text', null, t('challenge.lede')),
+        h('div.deck-line', null, [skyFan(c.skyId, 22, false), h('span', null, [h('b', null, named('sky', c.skyId).name), ` · ${stake}`])]),
         locked ? h('p.hint', null, t('challenge.needAtlas')) : null,
-        h('div.row.between', null, [
+        h('div.win-acts', null, [
           button(t('challenge.later'), () => m.close(), { variant: 'ghost' }),
           locked
             ? button(t('challenge.openAtlas'), () => {
@@ -216,7 +246,7 @@ export class MenuScreen implements Screen {
               }),
         ]),
       ],
-      { title: t('challenge.title'), className: 'narrow' },
+      { title: t('challenge.title'), className: 'narrow challenge' },
     );
   }
 
@@ -329,7 +359,7 @@ export class MenuScreen implements Screen {
     const m = modal(
       [
         h('p.modal-text', null, t('tut.offer')),
-        h('div.row.between', null, [
+        h('div.win-acts', null, [
           button(t('tut.offerSkip'), () => {
             m.close();
             app.profile.tutorialDone = true;
@@ -348,8 +378,7 @@ export class MenuScreen implements Screen {
 
   /** Новый забег затирает сохранённый — спрашиваем. */
   private guardSave(next: () => void): void {
-    if (!this.app.hasSave) return next();
-    confirmDialog(t('menu.overwrite'), next, 'primary');
+    confirmNewRun(this.app, next);
   }
 
   /**
@@ -359,19 +388,20 @@ export class MenuScreen implements Screen {
   private homeHint(): HTMLElement | null {
     const app = this.app;
     if (app.platform.id !== 'web' || app.settings.homeHintSeen || !suggestHomeScreen()) return null;
-    const link = h('button.link-btn.home-link', { type: 'button' }, t('home.link'));
+    const link = h('button.link-btn.home-link', { type: 'button' }, [icon('expand'), t('home.link')]);
     link.addEventListener('click', () => {
+      const steps: IconName[] = ['share', 'addHome', 'midnight'];
       const m = modal(
         [
-          h('p.modal-text', null, t('home.why')),
-          h('ol.home-steps', null, dict().home.steps.map((step) => h('li', null, step))),
-          h('div.row.center', null, button(t('home.ok'), () => {
+          h('p.modal-text.dim', null, t('home.why')),
+          h('ol.win-steps', null, dict().home.steps.map((step, i) => h('li', null, [h(`span.win-ring${i === 2 ? '.app' : ''}`, null, icon(steps[i]!)), h('span', null, step)]))),
+          h('div.win-acts.center', null, button(t('home.ok'), () => {
             app.applySettings({ ...app.settings, homeHintSeen: true });
             m.close();
             link.remove();
           })),
         ],
-        { title: t('home.title'), className: 'narrow' },
+        { title: t('home.title'), className: 'narrow home-hint' },
       );
     });
     return link;
@@ -386,69 +416,96 @@ export class MenuScreen implements Screen {
       return;
     }
     let chosen = 'classic';
-    const list = h('div.sky-list');
-    const items: HTMLElement[] = [];
+    let stake = 0;
+    // Невысокий экран (iPhone SE, ландшафт): веера мельче — карты рисуются сразу нужного размера
+    const low = innerHeight <= 600;
+    const open = (sky: (typeof SKY_LIST)[number]) => app.profile.unlockedSkies.includes(sky.id) || isUnlocked(sky.unlock, app.profile, owned);
+    const list = h('ul.sky-rows');
+    const hero = h('div.sky-hero');
+    const stakeName = h('b');
+    const effect = h('p.sky-effect');
+    const dots = h('div.sky-dots', { attrs: { role: 'group', 'aria-label': t('menu.stake') } });
+    const stakes = dict().menu.stakes;
+    const paint = () => {
+      list.querySelectorAll<HTMLElement>('.sky-row').forEach((row) => {
+        const on = row.dataset.sky === chosen;
+        row.classList.toggle('on', on);
+        row.setAttribute('aria-pressed', String(on));
+        const mark = row.querySelector('.sky-mark')!;
+        if (row.dataset.state === 'open') mark.replaceChildren(on ? icon('check') : '');
+      });
+      const { name, desc } = named('sky', chosen);
+      hero.replaceChildren(skyFan(chosen, low ? 40 : 64), h('h3', null, name), h('p', null, desc));
+      dots.querySelectorAll<HTMLElement>('button').forEach((b, i) => {
+        b.classList.toggle('on', i === stake);
+        b.classList.toggle('past', i < stake);
+        b.setAttribute('aria-pressed', String(i === stake));
+      });
+      stakeName.textContent = stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal');
+      effect.textContent = stakeText(stake);
+    };
     for (const sky of SKY_LIST) {
-      const unlocked = app.profile.unlockedSkies.includes(sky.id) || isUnlocked(sky.unlock, app.profile, owned);
+      const unlocked = open(sky);
       const atlasLocked = !unlocked && sky.unlock.kind === 'atlas';
       const { name, desc } = named('sky', sky.id);
       const lockText = sky.unlock.kind === 'default' ? '' : t(`unlock.${sky.unlock.kind}`, { n: 'ante' in sky.unlock ? sky.unlock.ante : 'lines' in sky.unlock ? sky.unlock.lines : '' });
-      const item = h(`button.sky-item${unlocked ? '' : '.locked'}${atlasLocked ? '.atlas-sky' : ''}`, { type: 'button' }, [
-        h('div.sky-name', null, unlocked ? name : atlasLocked ? `✦ ${name}` : `🔒 ${name}`),
-        h('div.sky-desc', null, unlocked ? desc : atlasLocked ? `${desc}. ${lockText} ›` : lockText),
-      ]);
-      if (sky.id === chosen) item.classList.add('on');
-      item.addEventListener('click', () => {
-        if (atlasLocked) {
+      const state = unlocked ? 'open' : atlasLocked ? 'atlas' : 'locked';
+      const row = h(`li.sky-row.sky-${state}`, { attrs: { 'data-sky': sky.id, 'data-state': state } }, h('button', { type: 'button', attrs: { 'aria-disabled': String(state === 'locked') } }, [
+        skyFan(sky.id, low ? 20 : 25, state === 'locked'),
+        h('span.sky-row-text', null, [h('b', null, name), h('small', null, unlocked ? desc : lockText)]),
+        h('span.sky-mark', null, state === 'locked' ? icon('lock') : state === 'atlas' ? icon('chevron') : ''),
+      ]));
+      row.querySelector('button')!.addEventListener('click', () => {
+        if (state === 'atlas') {
           m.close();
           void app.goAtlas('sky', 'astrolabe');
           return;
         }
-        if (!unlocked) return;
+        if (state === 'locked') return;
         chosen = sky.id;
-        items.forEach((x) => x.classList.remove('on'));
-        item.classList.add('on');
         app.svc.audio.click();
+        paint();
       });
-      items.push(item);
-      list.append(item);
+      list.append(row);
     }
-    let stake = 0;
-    const stakeInfo = h('div.hint');
-    const stakeField = app.profile.maxStake > 0 ? h('div.field', null, [h('span.field-label', null, t('menu.stake')), (() => {
-      const wrap = h('div.segmented', { attrs: { role: 'group', 'aria-label': t('menu.stake') } });
-      for (let i = 0; i <= app.profile.maxStake; i++) {
-        const b = h('button.seg', { type: 'button', attrs: { 'aria-pressed': String(i === stake) } }, i === 0 ? t('menu.stakeNormal') : `✦${i}`);
-        if (i === stake) b.classList.add('on');
-        b.addEventListener('click', () => {
-          stake = i;
-          wrap.querySelectorAll('.seg').forEach((x) => {
-            x.classList.remove('on');
-            x.setAttribute('aria-pressed', 'false');
+    // Сложность — ступенями, как скорость в «Пульте»: открытые и ещё закрытые
+    const stakeBlock = app.profile.maxStake > 0 ? h('div.sky-stake', null, [
+      h('div.sky-stake-top', null, [h('span.win-label', null, t('menu.stake')), stakeName]),
+      (() => {
+        for (let i = 0; i < stakes.length; i++) {
+          const can = i <= app.profile.maxStake;
+          const b = h(`button${can ? '' : '.locked'}`, { type: 'button', attrs: { 'aria-label': i ? t('map.stake', { n: i }) : t('menu.stakeNormal') } }, h('i'));
+          b.disabled = !can;
+          b.addEventListener('click', () => {
+            stake = i;
+            app.svc.audio.click();
+            paint();
           });
-          b.setAttribute('aria-pressed', 'true');
-          b.classList.add('on');
-          stakeInfo.textContent = stakeText(i);
-          app.svc.audio.click();
-        });
-        wrap.append(b);
-      }
-      return wrap;
-    })(), stakeInfo]) : null;
-    stakeInfo.textContent = stakeText(0);
+          dots.append(b);
+        }
+        return dots;
+      })(),
+      effect,
+    ]) : null;
     const m = modal(
       [
-        list,
-        stakeField,
-        h('div.row.between', null, [
-          button(t('menu.back'), () => m.close(), { variant: 'secondary' }),
-          button(t('menu.start'), () => {
-            m.close();
-            app.startRun(chosen, false, stake);
-          }),
+        h('div.sky-body', null, [
+          list,
+          h('div.sky-side', null, [
+            hero,
+            stakeBlock,
+            h('div.win-acts', null, [
+              button(t('menu.back'), () => m.close(), { variant: 'ghost' }),
+              button(t('menu.start'), () => {
+                m.close();
+                app.startRun(chosen, false, stake);
+              }),
+            ]),
+          ]),
         ]),
       ],
-      { title: t('menu.chooseSky') },
+      { title: t('menu.chooseSky'), className: 'sky-win' },
     );
+    paint();
   }
 }

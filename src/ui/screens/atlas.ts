@@ -20,7 +20,8 @@ import { PRODUCT_BY_ID, productForCosmetic } from '@/store/catalog';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
 import { PreviewStage } from '../preview-stage';
-import { button, confirmDialog, toast } from '../widgets';
+import { button, toast } from '../widgets';
+import { confirmNewRun } from './common';
 
 type Tab = 'atlas' | 'look' | 'support';
 type PartId = 'archive' | 'astrolabe' | 'noads' | 'look';
@@ -304,8 +305,7 @@ export class AtlasScreen implements Screen {
 
   private playAstrolabe(): void {
     const start = () => this.app.startRun('astrolabe');
-    if (this.app.hasSave) confirmDialog(t('menu.overwrite'), start, 'primary');
-    else start();
+    confirmNewRun(this.app, start);
   }
 
   private wear(next: { cardBack?: string; skyTheme?: string }): void {

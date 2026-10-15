@@ -1,5 +1,5 @@
 import { cardFace } from '@/art/card';
-import { LANGS, dict, getLang, t, type Lang } from '@/i18n';
+import { LANGS, dict, getLang, num, t, type Lang } from '@/i18n';
 import type { Card, ComboId, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
@@ -8,7 +8,8 @@ import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
-import { button, confirmDialog, modal } from '../widgets';
+import { button, confirmDialog, modal, withCoin } from '../widgets';
+import { omenMedal } from '../hud';
 
 export const CARD_THUMB = 46;
 
@@ -19,6 +20,24 @@ export function cardThumb(card: Card, width = CARD_THUMB, opts: { hideRank?: boo
   const c = canvasImg(img, width + pad * 2, width / 0.7 + pad * 2, 'card-thumb');
   c.style.margin = `${-pad}px`;
   return c;
+}
+
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const NIGHT_NAMES = ['dusk', 'midnight', 'eclipse'] as const;
+
+/**
+ * Новый забег поверх сохранённого — «Табличка» (RD.10): что именно пропадёт, строкой —
+ * глава и ночь, золото и Знамения забега.
+ */
+export function confirmNewRun(app: App, next: () => void): void {
+  if (!app.hasSave || !app.run) return next();
+  const run = app.run;
+  const where = `${t('night.constellation', { n: ROMAN[run.ante - 1] ?? run.ante })} · ${t(`night.${NIGHT_NAMES[run.nightIndex] ?? 'dusk'}`)}`;
+  const line = h('div.run-line', null, [
+    h('span.run-line-text', null, [h('b', null, where), withCoin(num(run.gold))]),
+    run.omens.length ? h('span.run-line-omens', null, run.omens.slice(0, 4).map((o) => omenMedal(o.id, 30))) : null,
+  ]);
+  confirmDialog(t('menu.overwrite'), next, 'primary', { yes: t('menu.restart'), no: t('menu.keep') }, { title: t('menu.overwriteTitle'), extra: line });
 }
 
 export function sortCards(cards: Card[]): Card[] {
