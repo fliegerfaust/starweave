@@ -348,6 +348,47 @@ export function showGuide(opts: GuideOptions = {}): void {
     return [...grid('omen'), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
   };
 
+  const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
+    which === 'combos' ? comboBoard() : which === 'night' ? nightBoard() : which === 'shop' ? shopBoard() : which === 'glyphs' ? glyphBoard() : collectionBoard();
+
+  /**
+   * Доска не меняет размер при переключении (замечание Дениса): один раз на вкладку и ширину
+   * окна примеряем все варианты — созвездия, шаги ночи, разделы Обсерватории, глифы, всю
+   * коллекцию — и держим высоту самого большого.
+   */
+  const steadyHeights = new Map<string, number>();
+  // Шрифты могли догрузиться после первого замера — меряем заново
+  void document.fonts?.ready.then(() => {
+    if (!m.el.isConnected || !steadyHeights.size) return;
+    steadyHeights.clear();
+    render();
+  });
+  function steadyBoard(board: HTMLElement): void {
+    const key = `${tab}:${body.clientWidth}`;
+    let max = steadyHeights.get(key);
+    if (max === undefined) {
+      const saved = { combo, step, shopSel, glyph, pick };
+      const variants: (() => void)[] =
+        tab === 'combos' ? COMBO_IDS.map((id) => () => { combo = id; })
+        : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
+        : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
+        : tab === 'glyphs' ? GLYPHS.map((id) => () => { glyph = id; })
+        : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; })];
+      const live = [...board.childNodes];
+      max = board.offsetHeight;
+      for (const apply of variants) {
+        apply();
+        const [vis, tally] = boardOf(tab);
+        board.replaceChildren(vis, h('div.gb-tally', null, tally));
+        max = Math.max(max, board.offsetHeight);
+      }
+      ({ combo, step, shopSel, glyph, pick } = saved);
+      board.replaceChildren(...live);
+      steadyHeights.set(key, max);
+    }
+    board.style.minHeight = `${max}px`;
+  }
+
   let shownTab: GuideTab | null = null;
   function render(): void {
     timers.forEach(clearTimeout);
@@ -359,11 +400,12 @@ export function showGuide(opts: GuideOptions = {}): void {
       el.setAttribute('aria-selected', String(on));
       el.tabIndex = on ? 0 : -1;
     });
-    const [vis, tally] = tab === 'combos' ? comboBoard() : tab === 'night' ? nightBoard() : tab === 'shop' ? shopBoard() : tab === 'glyphs' ? glyphBoard() : collectionBoard();
+    const [vis, tally] = boardOf(tab);
     const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : collectionList();
     // Широкая сцена (Обсерватория) — подпись под ней
     const board = h(`div.gb-board${tab === 'shop' ? '.stack' : ''}`, null, [vis, h('div.gb-tally', { attrs: { 'aria-live': 'polite' } }, tally)]);
     body.replaceChildren(h('div.gb-pin', null, board), h('div.gb-scroll', null, below));
+    steadyBoard(board);
     body.querySelector('.gb-scroll')!.scrollTop = keep;
     shownTab = tab;
     // Шаги ночи идут сами, пока игрок не выбрал шаг

@@ -99,3 +99,46 @@ test('Обсерватория: строки товаров, бонус стро
   expect(failures, failures.slice(0, 10).join('\n')).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * Баг 0.5.0: после покупки Знамения хит-зоны кнопок цены растягивались на весь раздел и
+ * накрывали следующие Знамения, а подсказка первых забегов ловила свайп — купить второе
+ * Знамение было нельзя. Проверяем: после покупки каждая кнопка цены получает своё касание,
+ * второе Знамение покупается, под подсказкой — прокручиваемый список.
+ */
+test('Обсерватория: после покупки Знамения можно купить второе', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  await page.evaluate(async () => {
+    const a = (window as unknown as { starweave: { profile: Record<string, unknown>; run: Record<string, unknown>; startRun(s: string): void; collectReward(): void } }).starweave;
+    Object.assign(a.profile, { tutorialDone: true, runs: 0, tutorial: [] });
+    a.startRun('classic');
+    await new Promise((r) => setTimeout(r, 300));
+    Object.assign(a.run, { gold: 30, phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
+    a.collectReward();
+  });
+  await page.waitForSelector('.shop');
+  await page.waitForTimeout(900);
+  const omens = () => page.evaluate(() => (window as unknown as { starweave: { run: { omens: unknown[] } } }).starweave.run.omens.length);
+  await page.locator('[data-shop="omens"] .btn.price').first().click();
+  await page.waitForTimeout(700);
+  expect(await omens()).toBe(1);
+  const hits = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.ware .btn.price')].map((b) => {
+    b.scrollIntoView({ block: 'center' });
+    const r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return el === b || b.contains(el) ? '' : b.getAttribute('aria-label') ?? '?';
+  }).filter(Boolean));
+  expect(hits, 'кнопки цены, касание которых уходит другому элементу').toEqual([]);
+  await page.locator('[data-shop="omens"] .btn.price').first().click();
+  await page.waitForTimeout(700);
+  expect(await omens(), 'второе Знамение куплено').toBe(2);
+  const under = await page.evaluate(() => {
+    const c = document.querySelector('.coach-text')?.getBoundingClientRect();
+    return c ? document.elementFromPoint(c.left + c.width / 2, c.top + c.height / 2)?.closest('.shop') ? 'shop' : 'coach' : 'none';
+  });
+  expect(under, 'касание по тексту подсказки уходит экрану').not.toBe('coach');
+  expect(errors).toEqual([]);
+});

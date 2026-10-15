@@ -106,6 +106,9 @@ body {
 /* ─── Кнопки ──────────────────────────────────────────────────────────── */
 
 .btn {
+  /* Хит-зоны ::after (цены, кнопки ночи) держатся своей кнопки, а не случайного предка: без
+     этого после первой покупки они растягивались на весь раздел Обсерватории (баг 0.5.0) */
+  position: relative;
   pointer-events: auto;
   appearance: none;
   border: 0;
@@ -271,7 +274,9 @@ body {
   /* Подсказка первых забегов — «Нить» (RD.12): тёмная плашка с латунной кромкой, без затемнения */
   background: linear-gradient(180deg, rgb(25 22 65 / 0.97), rgb(12 11 34 / 0.98));
   box-shadow: inset 0 0 0 1px var(--brass), 0 18px 40px -10px rgb(0 0 0 / 0.8);
-  pointer-events: auto;
+  /* Плашка не ловит касания: под ней прокручивается и нажимается экран (баг 0.5.0 — в
+     Обсерватории она закрывала Знамения и останавливала прокрутку). Ловит только «Понятно» */
+  pointer-events: none;
   /* Ниже окон (20) нельзя — плашка над HUD; окна сами убирают плашку при открытии */
   z-index: 18;
   bottom: calc(84px + var(--safe-bottom));
@@ -279,7 +284,7 @@ body {
 }
 .coach.out, .coach-ring.out, .coach-thread.out { opacity: 0; transition: opacity 0.2s; }
 .coach-text { font: 500 14.5px/1.4 var(--font-body); color: var(--ink); text-wrap: pretty; }
-.coach-ok { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
+.coach-ok { pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
 .coach-ok:hover { background: rgb(var(--gold-rgb) / 0.08); }
 /* Цель — в дышащей золотой рамке; нить от плашки к цели */
 .coach-ring { position: fixed; z-index: 17; border-radius: 14px; pointer-events: none; opacity: 0; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.9), 0 0 22px rgb(var(--gold-rgb) / 0.55); transition: opacity 0.3s; }

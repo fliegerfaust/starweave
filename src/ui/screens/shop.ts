@@ -14,7 +14,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { bonusLine } from '../bonus';
 import { icon } from '../icons';
 import { lightButton, sceneRibbon, sceneWindow } from '../scene-window';
-import { coach } from '../tutorial';
+import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
@@ -60,6 +60,8 @@ export class ShopScreen implements Screen {
       onSuccess?.();
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
+      // Экран пересобран — подсказка первых забегов переставляется к своей цели
+      requestAnimationFrame(layoutCoach);
       this.app.tutorial?.emit({ type: 'shopChanged' });
     }
     return false;
