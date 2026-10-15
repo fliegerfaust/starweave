@@ -31,6 +31,10 @@ const PATHS = {
   cut: '<path d="M6 6l12 12M6 18 18 6"/>',
   // Библиотека и настройки: строка ведёт дальше
   chevron: '<path d="m9 6 6 6-6 6"/>',
+  // Окна главной: закрытое небо, «На экран „Домой“», «На весь экран»
+  lock: '<rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  addHome: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/>',
+  expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

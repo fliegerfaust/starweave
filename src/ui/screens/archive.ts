@@ -5,7 +5,8 @@ import { dict, format, named, num, t } from '@/i18n';
 import { archiveDates, dailyNumber, dailySeed, dailyTaken, todayKey, type ArchiveRecord } from '@/meta/profile';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
-import { button, confirmDialog } from '../widgets';
+import { button } from '../widgets';
+import { confirmNewRun } from './common';
 
 /*
  * «Журнал наблюдений» (RD.6, выбор Дениса): дни строками от свежего — крупный номер вызова,
@@ -212,7 +213,6 @@ export class ArchiveScreen implements Screen {
 
   /** Сохранённый забег перезапишется — спрашиваем. */
   private guard(start: () => void): void {
-    if (this.app.hasSave) confirmDialog(t('menu.overwrite'), start, 'primary');
-    else start();
+    confirmNewRun(this.app, start);
   }
 }
