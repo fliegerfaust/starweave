@@ -90,7 +90,9 @@ export function edgeFade(el: HTMLElement): HTMLElement {
     el.classList.toggle('fade-end', more && el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
   };
   el.addEventListener('scroll', update, { passive: true });
-  new ResizeObserver(update).observe(el);
+  // Полоса ушла со страницы (окно закрыли) — наблюдатель больше не нужен
+  const ro = new ResizeObserver(() => (el.isConnected ? update() : ro.disconnect()));
+  ro.observe(el);
   return el;
 }
 

@@ -152,12 +152,14 @@ export class TutorialOverlay {
       const height = b.offsetHeight;
       const inGap = dock.handTop - height - 12;
       if (inGap >= dock.boardBottom + 6 && !overlaps(inGap, height)) top = inGap;
-      else if (!overlaps(hud.top, height)) {
-        // Просвета нет — на шапку, во всю её ширину
+      else if (!overlaps(Math.max(hud.top, safeTop()), height)) {
+        // Просвета нет — на шапку, во всю её ширину; сверху — не выше safe area (вырез,
+        // кнопки Telegram): у шапки там только отступ
+        const from = Math.max(hud.top, safeTop());
         b.style.width = `${hud.width}px`;
-        b.style.minHeight = `${hud.height}px`;
+        b.style.minHeight = `${hud.bottom - from}px`;
         b.style.left = `${hud.left}px`;
-        top = hud.top;
+        top = from;
       } else top = Math.max(hud.bottom + 6, dock.handTop - height - 12);
     } else {
       // Не ночь (Обсерватория): сверху или снизу — подальше от цели
@@ -203,8 +205,19 @@ export class TutorialOverlay {
   }
 }
 
-const safeTop = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0;
-const safeBottom = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0;
+/**
+ * Safe area в пикселях. `--safe-top` — это `env(...)` или `calc(var(--tg-...))`, строкой её не
+ * прочесть: меряем пробным элементом с таким отступом.
+ */
+function safeInset(side: 'top' | 'bottom'): number {
+  const probe = h('div', { style: `position: fixed; visibility: hidden; pointer-events: none; height: var(--safe-${side}, 0px)` });
+  document.body.append(probe);
+  const px = probe.getBoundingClientRect().height;
+  probe.remove();
+  return px;
+}
+const safeTop = () => safeInset('top');
+const safeBottom = () => safeInset('bottom');
 
 /** Прямоугольник DOM-элемента. */
 export function elementRect(el: Element | null | undefined): Rect | null {

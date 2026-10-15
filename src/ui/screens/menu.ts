@@ -358,7 +358,7 @@ export class MenuScreen implements Screen {
     if (app.profile.tutorialDone || app.profile.runs > 0) return next();
     const m = modal(
       [
-        h('p.modal-text', null, t('tut.offer')),
+        h('p.modal-text.confirm-text', null, t('tut.offer')),
         h('div.win-acts', null, [
           button(t('tut.offerSkip'), () => {
             m.close();
@@ -372,7 +372,7 @@ export class MenuScreen implements Screen {
           }),
         ]),
       ],
-      { className: 'narrow' },
+      { title: t('tut.offerTitle'), className: 'narrow confirm' },
     );
   }
 

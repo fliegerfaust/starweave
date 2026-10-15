@@ -56,6 +56,13 @@ test('окна главной: небо, вызов, подтверждение,
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   const landscape = await page.evaluate(() => document.body.classList.contains('landscape'));
+  // Портрет — как полноэкранный Telegram на iPhone: вырез и кнопки Telegram сверху (105 px)
+  if (!landscape) {
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty('--safe-top', '105px');
+      document.documentElement.style.setProperty('--safe-bottom', '34px');
+    });
+  }
   const failures: string[] = [];
   const audit = async (tag: string) => {
     await page.waitForTimeout(500);
@@ -70,6 +77,9 @@ test('окна главной: небо, вызов, подтверждение,
         if (!el.childElementCount && el.textContent?.trim() && el.scrollWidth > el.clientWidth + 1) out.push(`обрезано ${el.textContent.trim().slice(0, 20)}`);
       }
       if (landscape) for (const b of panel.querySelectorAll('.win-acts .btn')) if (b.getBoundingClientRect().width > 300) out.push('растянута кнопка');
+      // Кнопки окна — над нижним вырезом, без прокрутки до них
+      const sb = landscape ? 0 : 34;
+      for (const b of panel.querySelectorAll('.win-acts .btn')) if (b.getBoundingClientRect().bottom > innerHeight - sb + 1 || b.getBoundingClientRect().bottom > panel.getBoundingClientRect().bottom + 1) out.push('кнопка не видна');
       return [...new Set(out)];
     }, landscape);
     if (res.length) failures.push(`${tag}: ${res.slice(0, 3).join('; ')}`);
