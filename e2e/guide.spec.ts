@@ -119,3 +119,34 @@ test('Коллекция во Справочнике (бывший Кодекс)
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * Замечание Дениса: при переключении глифов, созвездий, разделов и коллекции доска не
+ * меняет размер — высота одна на вкладку.
+ */
+test('Справочник: доска не меняет размер при переключении', async ({ page }) => {
+  const errors = await boot(page);
+  const jumps: string[] = [];
+  for (const tab of ['combos', 'night', 'shop', 'glyphs', 'collection'] as const) {
+    const heights = await page.evaluate(async (tab) => {
+      document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
+      const { showGuide } = await import('/src/ui/screens/guide.ts');
+      showGuide({ tab, profile: (window as unknown as { starweave: { profile: never } }).starweave.profile, found: ['pair'] });
+      await document.fonts.ready;
+      // Окно открывается с лёгким увеличением — меряем после появления
+      await new Promise((r) => setTimeout(r, 600));
+      const sel = tab === 'collection' ? '.gb-sigils button' : '.gb-scroll .gb-row';
+      const set = new Set([Math.round(document.querySelector('.gb-board')!.getBoundingClientRect().height)]);
+      const n = document.querySelectorAll(sel).length;
+      for (let i = 0; i < n; i++) {
+        document.querySelectorAll<HTMLElement>(sel)[i]!.click();
+        await new Promise((r) => setTimeout(r, 10));
+        set.add(Math.round(document.querySelector('.gb-board')!.getBoundingClientRect().height));
+      }
+      return [...set];
+    }, tab);
+    if (heights.length > 1) jumps.push(`${tab}: ${heights.join(' / ')}`);
+  }
+  expect(jumps, 'доска прыгает').toEqual([]);
+  expect(errors).toEqual([]);
+});
