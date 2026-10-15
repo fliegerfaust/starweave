@@ -11,10 +11,11 @@ import { track } from '@/analytics';
 import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
-import { omenBadge, omenMedal, omenTooltip } from '../hud';
-import { rich } from '../rich';
+import { bonusLine } from '../bonus';
+import { icon } from '../icons';
+import { lightButton, sceneRibbon, sceneWindow } from '../scene-window';
 import { coach } from '../tutorial';
-import { attachTooltip, button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
+import { button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
@@ -24,15 +25,7 @@ function tag<T extends HTMLElement>(el: T, name: string): T {
   return el;
 }
 
-/** Обсерватория: витрина Знамений и предметов, свои Знамения, переброс. */
-/** Заголовок раздела: название слева, необязательная ссылка-подсказка справа. */
-function sectionHead(title: string, link?: string, onLink?: () => void): HTMLElement {
-  return h('div.section-head', null, [
-    h('h2', null, title),
-    link && onLink ? h('button.link-btn', { type: 'button', onclick: onLink }, `${link} ›`) : null,
-  ]);
-}
-
+/** Обсерватория — «Прилавок» (RD.4): товары строками, бонус одной строкой, своё ниже. */
 /** Что было на витрине в прошлую отрисовку: по разнице анимируем только изменившееся. */
 type ShopSnapshot = { gold: number; omenUids: Set<number>; offers: Map<string, { id: string; sold: boolean }> };
 
@@ -88,154 +81,173 @@ export class ShopScreen implements Screen {
     if (shop.openPack?.pack === 'omen') seen.push(...shop.openPack.options);
     if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
+    // Прокрутка середины переживает пересборку экрана после покупки
+    const keepScroll = this.el.querySelector('.shop-body')?.scrollTop ?? 0;
 
-    // Экран пересобирается после каждого действия. Появление карточек играет только при входе,
+    // Экран пересобирается после каждого действия. Появление строк играет только при входе,
     // дальше двигается лишь то, что изменилось: купленное гаснет, новое после «Обновить» всплывает
     const prev = this.prev;
     this.el.classList.toggle('settled', prev !== null);
     const offers = new Map<string, { id: string; sold: boolean }>();
-    const mark = (card: HTMLElement, key: string, item: ShopItem): HTMLElement => {
+    const mark = (row: HTMLElement, key: string, item: ShopItem): HTMLElement => {
       const was = prev?.offers.get(key);
       offers.set(key, { id: offerId(item), sold: item.sold });
-      if (prev && (!was || was.id !== offerId(item))) card.classList.add('fresh');
-      else if (was && item.sold && !was.sold) card.classList.add('just-sold');
-      return card;
+      if (prev && (!was || was.id !== offerId(item))) row.classList.add('fresh');
+      else if (was && item.sold && !was.sold) row.classList.add('just-sold');
+      return row;
     };
-    const omenCards = h('div.shop-row', null, shop.omens.map((item, i) => mark(tag(this.itemCard(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item)));
-    const itemCards = h('div.shop-row', null, shop.items.map((item, i) => mark(this.itemCard(item, () => this.buyItem(item, i)), `item-${i}`, item)));
-    const packCards = h('div.shop-row', null, shop.packs.map((item, i) => mark(this.itemCard(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item)));
+    const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item));
+    const itemRows = shop.items.map((item, i) => mark(this.wareRow(item, () => this.buyItem(item, i)), `item-${i}`, item));
+    const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
 
+    // Свои Знамения: только знаки, порядок — слева направо; касание — лист с бонусом и «Продать»
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
+    const misordered = misorderedOmens(run.omens);
     run.omens.forEach((o, i) => {
-      const medal = h('div.omen-slot.draggable', { dataset: { dragHandle: '' } }, [h('span.order-num', null, String(i + 1)), omenMedal(o.id, 52)]);
-      const chip = h(`div.owned-omen${prev && !prev.omenUids.has(o.uid) ? '.fresh' : ''}`, { dataset: { omen: String(i) } }, [
-        medal,
-        h('button.btn.btn-secondary.small.sell-btn', {
-          type: 'button',
-          title: t('shop.sell', { n: sellPrice(o.id) }),
-          // Продажа — с подтверждением: кнопка под пальцем, когда Знамения переставляют
-          onclick: () =>
-            confirmDialog(
-              t('shop.sellConfirm', { name: named('omen', o.id).name, n: sellPrice(o.id) }),
-              () => this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: run.ante })),
-              'danger',
-              { yes: t('shop.sell', { n: sellPrice(o.id) }), no: t('shop.keep') },
-            ),
-        }, [
-          h('span.sell-label', null, t('shop.sellShort')),
-          h('span.sell-price', null, `+${sellPrice(o.id)}`),
-        ]),
-      ]);
-      attachTooltip(medal, () => omenTooltip(o));
+      const medal = h('button.omen-slot.draggable', { type: 'button', dataset: { dragHandle: '' }, ariaLabel: named('omen', o.id).name, onclick: () => this.showOwned(o.uid) },
+        canvasImg(omenSigil(o.id, 48, dpr()), 48));
+      const chip = h(`div.owned-omen${prev && !prev.omenUids.has(o.uid) ? '.fresh' : ''}`, { dataset: { omen: String(i) } }, medal);
+      if (misordered && o.id === misordered.xmult && run.omens.findIndex((x) => x.id === misordered.xmult) === i) chip.classList.add('misplaced');
       owned.append(chip);
     });
-    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty', null, String(i + 1))));
-    const misordered = misorderedOmens(run.omens);
-    if (misordered) owned.querySelector(`[data-omen="${run.omens.findIndex((o) => o.id === misordered.xmult)}"]`)?.classList.add('misplaced');
+    for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
     makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
+    const ownedHint = misordered
+      ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
+      : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint'));
 
+    // После последней ночи финального созвездия впереди победа, а не карта
+    const canPeek = run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2;
+    const goods = [...itemRows, ...packRows];
+    const hasRituals = shop.items.some((i) => i.kind === 'ritual');
     const sections: (HTMLElement | null)[] = [
-      h('div.shop-top', null, [
+      h('header.shop-top', null, [
+        menuButton(() => showRunMenu(this.app, canPeek ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
         h('h1.shop-title', null, t('shop.title')),
-        h('div.row.gap', null, [
-          h(`div.gold-pill${prev && prev.gold !== run.gold ? '.pop' : ''}`, null, String(run.gold)),
-          menuButton(() => showRunMenu(this.app, run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2 ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
-        ]),
+        canPeek ? h('button.icon-btn.shop-map', { type: 'button', ariaLabel: t('pause.viewMap'), title: t('pause.viewMap'), onclick: () => this.app.peekMap() }, icon('daily')) : h('span'),
+        h(`div.gold-pill${prev && prev.gold !== run.gold ? '.pop' : ''}`, null, String(run.gold)),
       ]),
-      // После последней ночи финального созвездия впереди победа, а не карта
-      run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2
-        ? h('button.map-peek', { type: 'button', onclick: () => this.app.peekMap() }, `☾ ${t('pause.viewMap')} →`)
-        : null,
-      h('section.shop-section', { dataset: { shop: 'omens' } }, [sectionHead(t('shop.omens')), omenCards]),
-      h('section.shop-section', { dataset: { shop: 'items' } }, [
-        sectionHead(t(shop.items.some((i) => i.kind === 'ritual') ? 'shop.items' : 'shop.itemsCharts'), t('combos.yours'), () => showCombos(run, this.app.profile.combosFound)),
-        itemCards,
+      // Середина прокручивается сама; шапка и кнопки на месте — ничего не прячется под панелью
+      h('div.shop-body', null, [
+      h('div.shop-goods', null, [
+        h('section.shop-section', { dataset: { shop: 'omens' } }, [h('h2.shop-label', null, t('shop.omens')), h('div.ware-list', null, omenRows)]),
+        goods.length
+          ? h('section.shop-section', { dataset: { shop: 'items' } }, [
+              h('div.shop-label-row', null, [
+                h('h2.shop-label', null, t(hasRituals || packRows.length ? 'shop.goods' : 'shop.itemsCharts')),
+                h('button.link-btn.shop-combos', { type: 'button', onclick: () => showCombos(run, this.app.profile.combosFound) }, t('combos.yours')),
+              ]),
+              h('div.ware-list', null, goods),
+            ])
+          : null,
       ]),
-      shop.packs.length ? h('section.shop-section', null, [sectionHead(t('shop.packs')), packCards]) : null,
-      // Своё — внизу одной панелью: Знамения (порядок важен) и колода
-      h('section.shop-section.inventory', null, [
-        h('div.inventory-part', null, [
-          sectionHead(`${t('shop.yourOmens')} · ${run.omens.length}/${slots}`, t('scoring.button'), () => showHelp({ focus: 'order' })),
+      h('div.shop-lower', null, [
+        h('section.shop-section.shop-owned', null, [
+          h('div.shop-label-row', null, [h('h2.shop-label', null, t('shop.yourOmens')), h('span.shop-count', null, `${run.omens.length}/${slots}`)]),
           owned,
-          misordered
-            ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
-            : h('p.hint', null, run.omens.length > 1 ? t('shop.dragHint') : t('shop.omensEmptyHint')),
+          ownedHint,
         ]),
         this.deckPart(),
       ]),
-      h('div.shop-actions', null, [
-        button(withCoin(t('shop.reroll', { n: shop.rerollCost })), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), { variant: 'secondary', disabled: run.gold < shop.rerollCost }),
+      ]),
+      h('footer.shop-actions', null, [
+        button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
+          variant: 'secondary', disabled: run.gold < shop.rerollCost, ariaLabel: t('shop.reroll', { n: shop.rerollCost }), className: 'reroll',
+        }),
         tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
     this.el.replaceChildren(...sections.filter((x): x is HTMLElement => x !== null));
+    this.el.classList.toggle('short', this.availHeight() < 700);
+    this.el.querySelector('.shop-body')?.scrollTo({ top: keepScroll });
     this.prev = { gold: run.gold, omenUids: new Set(run.omens.map((o) => o.uid)), offers };
   }
 
-  private itemCard(item: ShopItem, onBuy: () => void): HTMLElement {
+  /** Высота экрана без системных зон (вырез, кнопки Telegram): по ней включается плотный вид. */
+  private availHeight(): number {
+    const cs = getComputedStyle(this.el);
+    return this.el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  }
+
+  /** Что даёт товар: имя, уровень у звёздной карты, бонус строкой, значок. */
+  private wareInfo(item: ShopItem): { icon: HTMLCanvasElement; name: string; level?: string; bonus: string } {
     const run = this.run;
-    let icon: HTMLCanvasElement;
-    let title: string;
-    let desc: string;
-    let tag = '';
-    let tagClass = '';
-    let badge: HTMLElement | null = null;
-    let kindBadge: HTMLElement | null = null;
     if (item.kind === 'omen') {
       const def = omenDef(item.omenId);
-      icon = canvasImg(omenSigil(item.omenId, 72, dpr()), 72);
       const info = named('omen', item.omenId, def.vars?.(def.initialData?.() ?? {}) ?? {});
-      title = info.name;
-      desc = info.desc;
-      tag = t(`rarity.${def.rarity}`);
-      tagClass = `r${def.rarity}`;
-      // Значок «+ / ×» у названия; словами — в описании, второй строкой не повторяем
-      kindBadge = omenBadge(def.kind);
-    } else if (item.kind === 'chart') {
-      icon = canvasImg(chartIcon(item.combo, 72, dpr()), 72);
+      return { icon: canvasImg(omenSigil(item.omenId, 48, dpr()), 48), name: info.name, bonus: info.desc };
+    }
+    if (item.kind === 'chart') {
       const level = run.comboLevels[item.combo];
       const def = COMBOS[item.combo];
-      title = t('shop.chartName', { combo: t(`combo.${item.combo}`) });
-      desc = t('shop.chartDesc', { combo: t(`combo.${item.combo}`), from: level, to: level + 1, light: def.levelLight, mult: def.levelMult });
-      tag = t(`comboDesc.${item.combo}`);
-    } else if (item.kind === 'pack') {
-      icon = canvasImg(packIcon(item.pack, 72, dpr()), 72);
-      const info = named('pack', item.pack);
-      title = info.name;
-      desc = info.desc;
-    } else {
-      icon = canvasImg(ritualIcon(item.ritualId, 72, dpr()), 72);
-      const info = named('ritual', item.ritualId);
-      title = info.name;
-      desc = info.desc;
-      // Глиф: короткая анимация в справочнике и правило «один глиф на карту»
-      if (item.ritualId.startsWith('glyph-')) {
-        const glyph = item.ritualId.slice('glyph-'.length);
-        badge = h('button.link-btn', { type: 'button', onclick: () => showHelp({ focus: `glyph-${glyph}` }) }, t('shop.glyphHow'));
-      }
+      return {
+        icon: canvasImg(chartIcon(item.combo, 48, dpr()), 48),
+        name: t('shop.chartName', { combo: t(`combo.${item.combo}`) }),
+        level: t('shop.chartLevel', { from: level, to: level + 1 }),
+        bonus: t('shop.chartBonus', { combo: t(`combo.${item.combo}`), light: def.levelLight, mult: def.levelMult }),
+      };
     }
+    if (item.kind === 'pack') {
+      const info = named('pack', item.pack);
+      return { icon: canvasImg(packIcon(item.pack, 48, dpr()), 48), name: info.name, bonus: info.desc };
+    }
+    const info = named('ritual', item.ritualId);
+    return { icon: canvasImg(ritualIcon(item.ritualId, 48, dpr()), 48), name: info.name, bonus: info.desc };
+  }
+
+  /** Товар — одна строка: крупный знак, имя, бонус строкой, цена. */
+  private wareRow(item: ShopItem, onBuy: () => void): HTMLElement {
+    const run = this.run;
+    const info = this.wareInfo(item);
     const affordable = run.gold >= item.price;
     const full = (item.kind === 'omen' || (item.kind === 'pack' && item.pack === 'omen')) && run.omens.length >= omenSlots(run);
-    const card = h(`div.shop-item${item.sold ? '.sold' : ''}`, null, [
-      h('div.shop-icon', null, icon),
-      h('div.shop-info', null, [
-        h('div.shop-name', null, kindBadge ? [kindBadge, ' ', title] : title),
-        tag ? h(`div.shop-tag.${tagClass || 'plain'}`, null, tag) : null,
-        h('div.shop-desc', null, rich(desc)),
-        badge,
+    // Глиф: короткая анимация в справочнике и правило «один глиф на карту»
+    const glyph = item.kind === 'ritual' && item.ritualId.startsWith('glyph-') ? item.ritualId.slice('glyph-'.length) : null;
+    return h(`article.ware${item.sold ? '.sold' : ''}`, null, [
+      h('div.ware-icon', null, info.icon),
+      h('div.ware-name', null, [info.name, info.level ? h('span.ware-level', null, info.level) : null]),
+      h('div.ware-bonus', null, [
+        bonusLine(info.bonus),
+        glyph ? h('button.link-btn.ware-how', { type: 'button', onclick: () => showHelp({ focus: `glyph-${glyph}` }) }, t('shop.glyphHow')) : null,
       ]),
       item.sold
-        ? h('div.sold-label', null, t('shop.sold'))
-        : button(withCoin(String(item.price)), onBuy, {
+        ? h('div.sold-label', null, [icon('check'), t('shop.sold')])
+        : button(full ? t('shop.noSlotsShort') : !affordable ? t('shop.noGoldShort') : withCoin(String(item.price)), onBuy, {
             // Цена — второстепенная кнопка: главная на экране одна, «Следующая ночь»
             variant: 'secondary',
-            className: 'price',
+            className: `price${full || !affordable ? ' why' : ''}`,
             disabled: !affordable || full,
             title: full ? t('shop.slotsFull') : !affordable ? t('shop.noGold') : '',
-            ariaLabel: t('shop.buyLabel', { name: title, n: item.price }),
+            ariaLabel: t('shop.buyLabel', { name: info.name, n: item.price }),
           }),
     ]);
-    return card;
+  }
+
+  /** Своё Знамение: лист с бонусом и продажей (продажа — с подтверждением). */
+  private showOwned(uid: number): void {
+    const o = this.run.omens.find((x) => x.uid === uid);
+    if (!o) return;
+    const def = omenDef(o.id);
+    const { name, desc } = named('omen', o.id, def.vars?.(o.data ?? {}) ?? {});
+    const price = sellPrice(o.id);
+    const m = modal(
+      [
+        h('div.owned-sheet', null, [canvasImg(omenSigil(o.id, 64, dpr()), 64), bonusLine(desc)]),
+        h('div.owned-sheet-acts', null, [
+          button(t('shop.sell', { n: price }), () => confirmDialog(
+            t('shop.sellConfirm', { name, n: price }),
+            () => {
+              m.close();
+              this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: this.run.ante }));
+            },
+            'danger',
+            { yes: t('shop.sell', { n: price }), no: t('shop.keep') },
+          ), { variant: 'secondary' }),
+          button(t('shop.keep'), () => m.close()),
+        ]),
+      ],
+      { title: name, sheet: true, className: 'owned-omen-sheet' },
+    );
   }
 
   private buyItem(item: ShopItem, slot: number): void {
@@ -283,19 +295,20 @@ export class ShopScreen implements Screen {
     });
   }
 
-  /** Колода: постоянная услуга «Убрать карту» — раз за визит, чтобы колоду можно было чистить. */
+  /** Колода: посмотреть и постоянная услуга «Убрать карту» — раз за визит, чтобы чистить колоду. */
   private deckPart(): HTMLElement {
     const run = this.run;
     const price = banishServicePrice(run);
     const used = !!run.shop?.banishUsed;
-    return h('div.inventory-part', null, [
-      sectionHead(t('shop.deckTitle', { n: run.deck.length }), t('shop.viewDeck'), () => showDeck(run)),
-      h('div.deck-service', null, [
-        button(used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' })), () => {
-          this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1);
-        }, { variant: 'secondary', className: 'small', disabled: price === null || run.gold < price }),
-        h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
-      ]),
+    const banish = h('button.ware-light', {
+      type: 'button',
+      disabled: used || price === null || run.gold < (price ?? 0),
+      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1),
+    }, [icon('cut'), used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' }))]);
+    return h('section.shop-section.shop-deck', null, [
+      h('div.shop-label-row', null, [h('h2.shop-label', null, t('night.deck')), h('span.shop-count', null, String(run.deck.length))]),
+      h('div.ware-lights', null, [h('button.ware-light', { type: 'button', onclick: () => showDeck(run) }, [icon('deck'), t('shop.viewDeck')]), banish]),
+      h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
     ]);
   }
 
@@ -341,50 +354,49 @@ export class ShopScreen implements Screen {
     );
   }
 
-  /** Открытый пакет: три варианта, взять один или пропустить. */
+  /** Открытый пакет — сцена «Выбери одно»: три варианта строками, взять один или пропустить. */
   private showPack(): void {
     const open = this.run.shop?.openPack;
     if (!open) return;
     this.app.svc.audio.ignite(1);
     let handle: ModalHandle | null = null;
-    const options = open.options.map((id, i) => {
+    const full = open.pack === 'omen' && this.run.omens.length >= omenSlots(this.run);
+    const rows = open.options.map((id, i) => {
       let icon: HTMLCanvasElement;
-      let info: { name: string; desc: string };
-      let tag: HTMLElement | null = null;
+      let name: string;
+      let bonus: string;
+      let level: string | null = null;
       if (open.pack === 'omen') {
-        icon = canvasImg(omenSigil(id, 64, dpr()), 64);
-        info = named('omen', id);
-        const rarity = omenDef(id).rarity;
-        tag = h(`div.shop-tag.r${rarity}`, null, t(`rarity.${rarity}`));
+        const def = omenDef(id);
+        icon = canvasImg(omenSigil(id, 48, dpr()), 48);
+        ({ name, desc: bonus } = named('omen', id, def.vars?.(def.initialData?.() ?? {}) ?? {}));
       } else if (open.pack === 'chart') {
-        icon = canvasImg(chartIcon(id as ComboId, 64, dpr()), 64);
-        const level = this.run.comboLevels[id as ComboId];
+        icon = canvasImg(chartIcon(id as ComboId, 48, dpr()), 48);
+        const lv = this.run.comboLevels[id as ComboId];
         const def = COMBOS[id as ComboId];
-        info = {
-          name: t(`combo.${id}`),
-          desc: t('shop.chartDesc', { combo: t(`combo.${id}`), from: level, to: level + 1, light: def.levelLight, mult: def.levelMult }),
-        };
+        name = t(`combo.${id}`);
+        level = t('shop.chartLevel', { from: lv, to: lv + 1 });
+        bonus = t('shop.chartBonus', { combo: t(`combo.${id}`), light: def.levelLight, mult: def.levelMult });
       } else {
-        icon = canvasImg(ritualIcon(id, 64, dpr()), 64);
-        info = named('ritual', id);
+        icon = canvasImg(ritualIcon(id, 48, dpr()), 48);
+        ({ name, desc: bonus } = named('ritual', id));
       }
-      const full = open.pack === 'omen' && this.run.omens.length >= omenSlots(this.run);
-      return h('div.shop-item.pack-option', { style: { animationDelay: `${i * 0.08}s` } }, [
-        h('div.shop-icon', null, icon),
-        h('div.shop-info', null, [h('div.shop-name', null, info.name), tag, h('div.shop-desc', null, rich(info.desc))]),
-        button(t('shop.take'), () => this.takeFromPack(i, id, handle!), { disabled: full, title: full ? t('shop.slotsFull') : '' }),
+      return h('article.ware', { style: { animationDelay: `${i * 0.08}s` } }, [
+        h('div.ware-icon', null, icon),
+        h('div.ware-name', null, [name, level ? h('span.ware-level', null, level) : null]),
+        h('div.ware-bonus', null, bonusLine(bonus)),
+        button(full ? t('shop.noSlotsShort') : t('shop.take'), () => this.takeFromPack(i, id, handle!), { disabled: full, title: full ? t('shop.slotsFull') : '', className: 'take' }),
       ]);
     });
-    handle = modal(
-      [
-        h('div.shop-row', null, options),
-        h('div.row.end', null, button(t('shop.skip'), () => {
-          handle?.close();
-          this.act((r) => skipPack(r), 'click');
-        }, { variant: 'ghost' })),
-      ],
-      { title: t('shop.packTitle'), dismissable: false, className: 'pack-modal' },
-    );
+    handle = sceneWindow({
+      className: 'pack-scene',
+      label: t('shop.packTitle'),
+      mid: [sceneRibbon(t('shop.packTitle'), `${named('pack', open.pack).name} · ${t('shop.oneOfThree')}`), h('div.ware-list', null, rows)],
+      acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
+        handle?.close();
+        this.act((r) => skipPack(r), 'click');
+      }, true))],
+    });
   }
 
   private takeFromPack(index: number, id: string, handle: ModalHandle): void {
