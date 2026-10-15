@@ -30,6 +30,9 @@ interface NightPlan {
  * Карта главы — «Восхождение» (RD.2): три ночи звёздами на одной линии, снизу Сумерки,
  * наверху Затмение, небо к нему темнеет. У каждой главы своя расстановка (`map-layout.ts`).
  */
+/** Своя маска на каждую отрисовку: id в документе должны быть уникальны. */
+let maskSeq = 0;
+
 export class MapScreen implements Screen {
   private el!: HTMLElement;
   private resize?: ResizeObserver;
@@ -191,9 +194,21 @@ export class MapScreen implements Screen {
 
   private drawLine(svg: SVGSVGElement, path: HTMLElement, placed: Placed, at: number, animate: boolean, current: HTMLElement): void {
     svg.setAttribute('viewBox', `0 0 ${path.clientWidth} ${path.clientHeight}`);
-    svg.innerHTML = placed.curves
-      .map(([a, c, b], i) => `<path class="${i < at ? 'done' : i === at ? 'draw' : 'next'}" d="M${a[0]} ${a[1]} Q${c[0]} ${c[1]} ${b[0]} ${b[1]}"/>`)
-      .join('');
+    // Путь идёт от центра к центру, а фон звёзд полупрозрачный: маска вырезает линию под
+    // каждым кружком (с зазором), чтобы она не просвечивала внутри узла
+    const holes = [...path.querySelectorAll<HTMLElement>('.map-star')].map((star, i) => {
+      const [x, y] = placed.centers[i]!;
+      return `<circle cx="${x}" cy="${y}" r="${star.offsetWidth / 2 + 4}" fill="#000"/>`;
+    });
+    const mask = `map-line-mask-${++maskSeq}`;
+    svg.innerHTML =
+      `<defs><mask id="${mask}" maskUnits="userSpaceOnUse" x="-50" y="-50" width="${path.clientWidth + 100}" height="${path.clientHeight + 100}">` +
+      `<rect x="-50" y="-50" width="${path.clientWidth + 100}" height="${path.clientHeight + 100}" fill="#fff"/>${holes.join('')}</mask></defs>` +
+      `<g mask="url(#${mask})">` +
+      placed.curves
+        .map(([a, c, b], i) => `<path class="${i < at ? 'done' : i === at ? 'draw' : 'next'}" d="M${a[0]} ${a[1]} Q${c[0]} ${c[1]} ${b[0]} ${b[1]}"/>`)
+        .join('') +
+      '</g>';
     // Небо темнеет к Затмению: свет короны над его звездой
     const e = placed.centers[2]!;
     const R = path.getBoundingClientRect();
