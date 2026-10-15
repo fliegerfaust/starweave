@@ -181,12 +181,13 @@ test('атлас на обычном сайте без покупок', async ({
   expect(errors).toEqual([]);
 });
 
-test('архив: календарь без атласа и у владельца', async ({ page }) => {
+test('архив: журнал без атласа и у владельца', async ({ page }) => {
   const errors = await boot(page);
   await page.evaluate(() => (window as unknown as W).starweave.goArchive());
-  await page.waitForSelector('.archive-grid');
+  await page.waitForSelector('.arc-log');
   await fits(page, '.archive');
-  await expect(page.locator('.archive-locked')).toBeVisible();
+  // Без атласа прошлый день мягко ведёт в атлас
+  await expect(page.locator('.arc-note')).toBeVisible();
   await shot(page, '22-archive');
   await page.evaluate(() => {
     const app = (window as unknown as W).starweave;
@@ -194,9 +195,68 @@ test('архив: календарь без атласа и у владельц�
     app.profile.archive = { '2026-10-03': { ante: 4, best: 812 }, '2026-10-05': { ante: 8, best: 2400, won: true }, '2026-10-01': { ante: 2, best: 120 } };
     return app.goArchive();
   });
-  await page.waitForSelector('.archive-play');
-  await page.click('.archive-day.played >> nth=0');
-  await expect(page.locator('.archive-play')).toHaveText(/Сыграть ещё раз/);
+  await page.waitForSelector('.arc-log');
+  await page.click('.arc-row:has(.arc-best:not(.none))');
+  await expect(page.locator('.arc-cta .btn')).toHaveText(/Сыграть ещё раз/);
   await shot(page, '22b-archive-owned');
+  expect(errors).toEqual([]);
+});
+
+/**
+ * «Журнал наблюдений» на каждом устройстве: без атласа, с атласом и итогами, с атласом без
+ * игр; ru и en. Ничего не вылезает, кнопка на экране, середина не под ней, на ПК без пустого
+ * поля; касание строки внизу журнала не сбрасывает прокрутку.
+ */
+test('архив: состояния без вылезаний, прокрутка держится', async ({ page }) => {
+  const errors = await boot(page);
+  const failures: string[] = [];
+  for (const lang of ['ru', 'en'] as const) {
+    for (const st of ['free', 'owned', 'fresh']) {
+      await page.evaluate(async ({ lang, st }) => {
+        const { setLang } = await import('/src/i18n/index.ts');
+        setLang(lang);
+        const app = (window as unknown as W).starweave;
+        if (st !== 'free') app.purchases.add('atlas');
+        app.profile.archive = st === 'fresh' ? {} : { '2026-10-14': { ante: 3, best: 412 }, '2026-10-12': { ante: 5, best: 980 }, '2026-10-10': { ante: 8, best: 2400, won: true }, '2026-10-09': { ante: 2, best: 160 }, '2026-10-05': { ante: 6, best: 1310 } };
+        await app.goArchive();
+      }, { lang, st });
+      await page.waitForSelector('.arc-log');
+      await settle(page);
+      const res = await page.evaluate(() => {
+        const out: string[] = [];
+        const root = document.querySelector<HTMLElement>('.archive')!;
+        for (const el of root.querySelectorAll<HTMLElement>('*')) {
+          if (el.childElementCount || !el.textContent?.trim() || el.closest('.arc-meta')) continue;
+          if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) out.push(`обрезано: ${el.textContent.trim().slice(0, 24)}`);
+        }
+        const cta = root.querySelector('.arc-cta')!.getBoundingClientRect();
+        const body = root.querySelector('.arc-body')!.getBoundingClientRect();
+        if (cta.bottom > innerHeight + 1) out.push('кнопка за экраном');
+        if (body.bottom > cta.top + 1) out.push('середина под кнопкой');
+        if (matchMedia('(min-width: 900px) and (min-height: 561px)').matches) {
+          const top = root.querySelector('.arc-top')!.getBoundingClientRect().top;
+          const gap = innerHeight - cta.bottom;
+          if (Math.abs(top - gap) > 90 && Math.min(top, gap) > 60) out.push(`ПК: пусто сверху ${Math.round(top)}, снизу ${Math.round(gap)}`);
+        }
+        return out;
+      });
+      const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('за экраном') && !p.includes('arc-log') && !p.includes('arc-body'));
+      const kept = await page.evaluate(async () => {
+        const sc = [...document.querySelectorAll<HTMLElement>('.arc-log, .arc-body')].find((e) => e.scrollHeight > e.clientHeight + 2);
+        if (!sc) return true;
+        sc.scrollTop = sc.scrollHeight;
+        const before = sc.scrollTop;
+        const rows = [...document.querySelectorAll<HTMLElement>('.arc-row')];
+        rows[rows.length - 1]!.click();
+        await new Promise((r) => setTimeout(r, 50));
+        const again = [...document.querySelectorAll<HTMLElement>('.arc-log, .arc-body')].find((e) => e.scrollHeight > e.clientHeight + 2)!;
+        return Math.abs(again.scrollTop - before) < 2 || again.scrollTop >= again.scrollHeight - again.clientHeight - 2;
+      });
+      const all = [...res, ...audit, ...(kept ? [] : ['прокрутка сбросилась'])];
+      if (all.length) failures.push(`${lang} ${st}: ${all.slice(0, 3).join('; ')}`);
+      if (lang === 'ru') await shot(page, `27-archive-${st}`);
+    }
+  }
+  expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });

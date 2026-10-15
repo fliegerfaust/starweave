@@ -1462,7 +1462,7 @@ html.calm .dome-shutter { transition: none; }
 .observatory.still, .observatory.still .dome-shutter, .observatory.still .dome-name { animation: none; transition: none; }
 html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
 @media (prefers-reduced-motion: reduce) {
-  .btn, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
+  .btn { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
 
 /* ─── Ландшафт: HUD колонкой слева ────────────────────────────────────── */
@@ -1796,36 +1796,7 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .section-head h2 { margin: 0; }
 .section-head .link-btn { font-size: 13px; padding: 2px 0; white-space: nowrap; }
 
-/* ─── Архив: общий каркас с заголовком ───────────────────────────────── */
-
-.archive {
-  position: absolute;
-  inset: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: calc(10px + var(--safe-top)) 16px 0;
-  animation: fade-in 0.35s ease;
-}
-.archive > * { width: min(460px, 100%); flex: none; }
-.atlas-top { display: flex; }
-.atlas-top .btn { padding-left: 10px; padding-right: 14px; }
-.atlas-title {
-  margin: 0;
-  text-align: center;
-  font: 400 clamp(32px, 10vw, 44px)/1 var(--font-display);
-  letter-spacing: 0.1em;
-  padding-left: 0.1em;
-  text-transform: uppercase;
-  color: #ffe2a3;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 22px rgb(var(--gold-rgb) / 0.4);
-  text-wrap: balance;
-}
-.atlas-lede { margin: 10px auto 0; max-width: 34ch; text-align: center; color: var(--ink-dim); font-size: 14px; line-height: 1.45; text-wrap: pretty; }
+/* ─── Мелочи атласа и меню ────────────────────────────────────────────── */
 
 .sky-swatch { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 
@@ -1833,78 +1804,141 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .sky-item.atlas-sky { opacity: 1; cursor: pointer; border-color: rgb(var(--gold-rgb) / 0.35); }
 .sky-item.atlas-sky .sky-name { color: #ffe2a3; }
 
-/* ─── Архив вызовов ───────────────────────────────────────────────────── */
+/* ─── Архив вызовов: «Журнал наблюдений» (RD.6) ───────────────────────── */
+/* Дни строками от свежего: номер вызова, дата и знак Затмения главы I, восемь делений глав,
+   лучший ход. Сегодняшний — первым. Шапка и кнопка на месте, журнал листается сам. На
+   телефоне выбранная строка раскрывается описанием Затмения; на ПК и в невысоком ландшафте
+   справа — панель дня и сводка месяца. */
 
-.archive { gap: 18px; }
-.archive-head { text-align: center; }
-.archive-months { display: flex; flex-direction: column; gap: 22px; }
-.archive-month-name { margin: 0 0 10px; font: 400 22px/1 var(--font-display); letter-spacing: 0.04em; }
-.archive-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.archive-wd { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); padding-bottom: 2px; }
-.archive-day {
-  aspect-ratio: 1;
-  min-width: 0;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(18, 16, 50, 0.78);
-  box-shadow: inset 0 0 0 1px var(--line);
-  color: var(--ink);
+.archive {
+  --gold-hi: #ffe6a8;
+  --ink-faint: #8a85b8;
+  --brass: rgb(var(--gold-rgb) / 0.3);
+  --hair: rgb(var(--gold-rgb) / 0.16);
+  --won: #ffd77a;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  line-height: 1;
-  cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.12s ease, background 0.2s ease;
+  gap: 10px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: calc(8px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
+  animation: fade-in 0.35s ease;
 }
-button.archive-day:active { transform: scale(0.94); }
-.archive-day b { font-size: 15px; font-weight: 800; }
-.archive-day small { font-size: 11px; font-weight: 700; color: var(--ink-dim); min-height: 10px; }
-.archive-day.out { background: none; box-shadow: none; color: rgba(165, 160, 207, 0.28); cursor: default; }
-.archive-day.played { background: rgb(var(--gold-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35); }
-.archive-day.played small { color: #ffe2a3; }
-.archive-day.won { background: radial-gradient(circle at 50% 30%, rgb(var(--gold-rgb) / 0.35), rgb(var(--gold-rgb) / 0.08) 70%); }
-.archive-day.won small { color: var(--gold); font-size: 12px; }
-.archive-day.today { background: none; box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.5); cursor: default; }
-.archive-day.today b { color: var(--light); }
-.archive-day.today small { font-size: 10px; color: var(--light); text-transform: uppercase; letter-spacing: 0.04em; }
-.archive-day.on { box-shadow: inset 0 0 0 2px var(--gold), 0 0 16px rgb(var(--gold-rgb) / 0.3); }
-.archive-day:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.arc-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding-bottom: 8px;
+  background: radial-gradient(50% 1.5px at 50% 100%, rgb(255 230 168 / 0.6), transparent) bottom / 100% 2px no-repeat; }
+.arc-back { justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--ink-dim); font: 700 14px/1 var(--font-body); cursor: pointer; }
+.arc-back .icon { width: 18px; height: 18px; }
+.arc-plaque { margin: 0; font: 400 17px/1.15 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; }
+.arc-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 16px; align-content: start; margin-inline: -4px; padding: 0 4px 14px;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent); }
+.arc-section { margin: 6px 0 4px; display: flex; align-items: center; gap: 10px; font: 400 13px/1.2 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.arc-section:first-child { margin-top: 0; }
+.arc-section::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.arc-section small { order: 2; font: 600 12px/1.25 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
 
-@media (max-width: 359px) {
-  .archive-grid { gap: 4px; }
-  .archive-day { border-radius: 9px; }
-  .archive-day b { font-size: 13px; }
-}
-.archive-detail {
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
-  padding: 16px 16px calc(12px + var(--safe-bottom));
-  border-radius: 20px 20px 0 0;
-  background: linear-gradient(180deg, rgb(var(--panel-head-rgb) / 0.97), rgba(12, 11, 34, 0.98));
-  border: 1px solid var(--line);
-  border-bottom: 0;
-  box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 3;
-}
-.archive-detail-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.archive-detail-n { font: 400 24px/1 var(--font-display); color: #ffe2a3; }
-.archive-detail-date { font-size: 13px; color: var(--ink-dim); }
-.archive-detail-result { margin: 0; font-size: 14px; color: var(--ink); }
-.archive-play { width: 100%; }
-.archive-locked p { margin: 0 0 8px; font-size: 13px; color: var(--ink-dim); }
+/* Строка дня */
+.arc-log { display: grid; align-content: start; }
+.arc-row { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; width: 100%; padding: 10px 6px; border: 0; border-radius: 14px; background: none; color: inherit; text-align: left; cursor: pointer; }
+.arc-row { position: relative; }
+/* Разделитель — прямой линией над строкой, а не тенью по скруглённым углам */
+.arc-row + .arc-row::before { content: ''; position: absolute; top: 0; left: 6px; right: 6px; height: 1px; background: var(--hair); }
+.arc-row.on { background: rgb(var(--gold-rgb) / 0.07); box-shadow: inset 0 0 0 1.5px rgb(var(--gold-rgb) / 0.55); }
+.arc-row.on::before, .arc-row.on + .arc-row::before { display: none; }
+.arc-row.today { background: radial-gradient(80% 120% at 0% 50%, rgb(var(--gold-rgb) / 0.1), transparent); }
+.arc-row.today.on { background: rgb(var(--gold-rgb) / 0.09); }
+.arc-n { grid-row: span 2; display: grid; justify-items: center; }
+.arc-n b { font: 400 26px/1.1 var(--font-display); color: var(--gold-hi); font-variant-numeric: lining-nums; }
+.arc-row.today .arc-n b { color: var(--gold); }
+.arc-n small { font: 700 10px/1.2 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.arc-meta { display: flex; align-items: center; gap: 8px; min-width: 0; font: 600 13px/1.2 var(--font-body); color: var(--ink); white-space: nowrap; }
+.arc-meta canvas { flex: none; }
+.arc-meta span { overflow: hidden; text-overflow: ellipsis; color: var(--ink-dim); font-weight: 500; }
+.arc-best { grid-row: span 2; text-align: right; font: 800 15px/1.1 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.arc-best small { display: block; font: 600 10.5px/1.2 var(--font-body); color: var(--ink-faint); }
+.arc-best.won { color: var(--won); }
+.arc-best.none { color: var(--ink-faint); font-weight: 600; }
+.arc-chapters { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; align-self: start; }
+.arc-chapters i { height: 4px; border-radius: 2px; background: rgb(var(--violet-rgb) / 0.16); }
+.arc-chapters i.lit { background: rgb(var(--gold-rgb) / 0.75); }
+.arc-chapters.won i { background: var(--won); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.6); }
+.arc-chapters.dim { opacity: 0.5; }
+.arc-more { grid-column: 2 / -1; margin-top: 4px; font: 500 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: pretty; }
+.arc-more b { color: #e9dcff; font-weight: 700; }
 
-.archive-legend { margin: 8px auto 0; max-width: 36ch; font-size: 12px; line-height: 1.4; color: var(--ink-dim); text-align: center; }
-/* Невысокий телефон (iPhone SE): заголовок в строку, крест меньше — табличка видна над кнопкой */
-@media (max-height: 700px) and (min-height: 521px) {
-  .atlas-title { font-size: clamp(26px, 8.4vw, 44px); letter-spacing: 0.06em; padding-left: 0.06em; }
-  .atlas-lede { margin-top: 6px; font-size: 13px; }
+/* Панель дня и сводка месяца — на телефоне их заменяет раскрытая строка */
+.arc-side { display: none; gap: 22px; align-content: start; }
+.arc-day { display: grid; gap: 10px; }
+.arc-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.arc-day-n { margin: 0; font: 400 26px/1.1 var(--font-display); letter-spacing: 0.04em; color: var(--gold-hi); }
+.arc-date { font: 600 13px/1.2 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+.arc-res { margin: 0; font: 600 14.5px/1.35 var(--font-body); color: var(--ink); }
+.arc-res.won { color: var(--won); }
+.arc-res.none { color: var(--ink-dim); font-weight: 500; }
+.arc-eclipse { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 2px 14px; align-items: center; }
+.arc-eclipse canvas { grid-row: span 2; }
+.arc-eclipse small { font: 700 10.5px/1.2 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+.arc-eclipse span { font: 500 13px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: pretty; }
+.arc-eclipse span b { color: #e9dcff; font-weight: 700; }
+.arc-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 14px; box-shadow: inset 0 1px 0 var(--hair); }
+.arc-sum div { display: grid; gap: 4px; align-content: start; }
+.arc-sum b { font: 400 30px/1.1 var(--font-display); color: var(--gold-hi); font-variant-numeric: lining-nums tabular-nums; }
+.arc-sum b small { font-size: 0.55em; color: var(--ink-faint); }
+.arc-sum span { font: 600 12px/1.3 var(--font-body); color: var(--ink-faint); }
+
+/* Кнопка внизу */
+.arc-cta { flex: none; display: grid; gap: 8px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--hair); }
+.arc-cta .btn { width: 100%; min-height: 56px; white-space: nowrap; }
+.arc-cta .btn-primary { font-size: 17px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(var(--gold-rgb) / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }
+.arc-cta .btn-row .icon { width: 17px; height: 17px; fill: currentColor; stroke: none; }
+.arc-note { margin: 0; text-align: center; font: 500 13px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.arc-note b { color: var(--gold-hi); font-weight: 700; }
+.arc-pr { display: inline-flex; align-items: center; gap: 3px; padding-left: 10px; margin-left: 2px; box-shadow: inset 1px 0 0 var(--brass); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 360px) {
+  .arc-plaque { font-size: 15px; letter-spacing: 0.14em; padding-left: 0.14em; }
+  .arc-row { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 10px; }
+  .arc-meta span { display: none; }
 }
+
+/* ПК: журнал слева, панель дня и сводка справа; блок по центру, кнопка пилюлей под ним */
+@media (min-width: 900px) and (min-height: 561px) {
+  .archive { max-width: 1060px; padding: calc(28px + var(--safe-top)) 40px calc(28px + var(--safe-bottom)); gap: 18px; justify-content: safe center; }
+  .arc-body { flex: 0 1 auto; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 36px; align-items: start; overflow: hidden; -webkit-mask-image: none; mask-image: none; padding-bottom: 0; }
+  .arc-log { max-height: min(600px, calc(100vh - 230px)); overflow-y: auto; overscroll-behavior: contain; padding-right: 6px;
+    -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent); }
+  .arc-side { display: grid; padding-left: 28px; box-shadow: inset 1px 0 0 var(--hair); }
+  .arc-more { display: none; }
+  .arc-day { gap: 14px; }
+  .arc-day-n { font-size: 40px; }
+  .arc-res { font-size: 17px; }
+  .arc-chapters i { height: 5px; }
+  .arc-side .arc-chapters i { height: 6px; }
+  .arc-eclipse { grid-template-columns: 64px minmax(0, 1fr); gap: 4px 16px; }
+  .arc-eclipse canvas { width: 64px !important; height: 64px !important; }
+  .arc-eclipse span { font-size: 15px; }
+  .arc-sum b { font-size: 40px; }
+  .arc-cta { justify-items: center; box-shadow: none; padding-top: 4px; }
+  .arc-cta .btn { max-width: 440px; }
+}
+/* Невысокий ландшафт: журнал слева, панель дня справа закреплена, кнопка справа внизу */
+@media (orientation: landscape) and (max-height: 560px) {
+  .archive { max-width: none; gap: 6px; padding-top: calc(4px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
+  .arc-top { padding-bottom: 4px; }
+  .arc-body { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px 24px; align-items: start; }
+  .arc-side { display: grid; position: sticky; top: 0; gap: 12px; }
+  .arc-more { display: none; }
+  .arc-day-n { font-size: 22px; }
+  .arc-sum { padding-top: 8px; }
+  .arc-sum b { font-size: 24px; }
+  .arc-cta { grid-template-columns: minmax(0, 1fr) minmax(0, 340px); align-items: center; padding-top: 6px; }
+  .arc-cta > .btn { grid-column: 2; grid-row: 1; min-height: 48px; }
+  .arc-cta > .arc-note { grid-row: 1; text-align: left; }
+}
+
 
 /* ─── Звёздный атлас: «Разворот» (RD.5) ───────────────────────────────── */
 /* Экран стора: обложка товара — живое небо, латунная рубашка и карты с глифами веером;
@@ -2265,7 +2299,6 @@ html.large-text body, html.large-text .modal-text, html.large-text .help-list, h
 html.large-text .coach-text, html.large-text .tip-desc, html.large-text .scene-tip, html.large-text .score-step { font-size: 17px; }
 html.large-text .hint, html.large-text .bonus-line, html.large-text .g-desc, html.large-text .calc-caption, html.large-text .card-info,
 html.large-text .preview, html.large-text .tut-memo-caption { font-size: 15px; }
-html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label,
-html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
+html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label, html.large-text .combo-level { font-size: 13px; }
 html.large-text .combo-name { font-size: 21px; }
 
