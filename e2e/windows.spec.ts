@@ -70,13 +70,22 @@ test('окна ночи: всё на экране, кнопки видны, ни
           .filter((b) => { const r = b.getBoundingClientRect(); return r.top < -1 || r.bottom > vh + 1 || r.left < -1 || r.right > vw + 1; })
           .map((b) => b.innerText.trim().split('\n')[0]);
         const shown = !!document.querySelector('.modal-panel.scene, .modal-panel.sheet, .discovery');
-        return { out, shown };
+        // «Строки» (RD.12): в середине итогов нет плашек — ни заливок, ни рамок вокруг блоков
+        const plates = [...document.querySelectorAll<HTMLElement>('.scene-mid *')]
+          .filter((el) => !el.closest('svg') && !el.matches('.coin, .scene-bar, .scene-bar i, .scene-gold .coin'))
+          .filter((el) => { const bg = getComputedStyle(el).backgroundColor; const a = /rgba?\(([^)]+)\)/.exec(bg)?.[1]?.split(',')[3]; return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && (a === undefined || Number(a) > 0.02); })
+          .map((el) => el.className);
+        const wide = document.body.classList.contains('landscape') && innerHeight > 560
+          ? [...document.querySelectorAll<HTMLElement>('.scene-acts > .btn')].filter((b) => b.getBoundingClientRect().width > 360).length : 0;
+        return { out, shown, plates, wide };
       });
       const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('.hud') && !p.includes('.actions') && !p.includes('div.modal-head') && !p.includes('div.deck-back «'));
       // Шапка листа и подложка «Назад» нарочно идут от края до края (липкие при прокрутке)
       const tag = `${lang} ${state}`;
       if (!res.shown) failures.push(`${tag}: окно не открылось`);
       if (res.out.length) failures.push(`${tag}: кнопки за экраном — ${res.out.join(', ')}`);
+      if (res.plates.length) failures.push(`${tag}: плашки в итогах — ${res.plates.slice(0, 3).join(', ')}`);
+      if (res.wide) failures.push(`${tag}: растянута кнопка итогов`);
       if (audit.length) failures.push(`${tag}: ${audit.slice(0, 3).join('; ')}`);
       if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/win-${state}.png` });
     }
