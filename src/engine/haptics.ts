@@ -9,7 +9,19 @@
  * Если ничего нет — молча ничего не делаем.
  */
 
-export type HapticKind = 'tap' | 'select' | 'place' | 'ignite' | 'cross' | 'success' | 'error' | 'heavy';
+export type HapticKind =
+  | 'tap'
+  | 'select'
+  | 'place'
+  | 'ignite'
+  | 'cross'
+  | 'success'
+  | 'error'
+  | 'heavy'
+  // Подсчёт: цифра вылетела из карты — свет, множитель, «×» (по нарастающей)
+  | 'count'
+  | 'countMult'
+  | 'countX';
 
 const PATTERNS: Record<HapticKind, number | number[]> = {
   tap: 6,
@@ -20,6 +32,9 @@ const PATTERNS: Record<HapticKind, number | number[]> = {
   success: [16, 50, 16, 50, 34],
   error: [40, 30, 40],
   heavy: 55,
+  count: 8,
+  countMult: 14,
+  countX: 26,
 };
 
 interface NativeHaptics {
@@ -85,7 +100,14 @@ export class Haptics {
         else void native.impact({ style: 'LIGHT' });
         break;
       case 'place':
+      case 'count':
         void native.impact({ style: 'LIGHT' });
+        break;
+      case 'countMult':
+        void native.impact({ style: 'MEDIUM' });
+        break;
+      case 'countX':
+        void native.impact({ style: 'HEAVY' });
         break;
       case 'ignite':
         void native.impact({ style: 'MEDIUM' });
