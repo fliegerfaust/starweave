@@ -3,7 +3,6 @@ import { LANGS, dict, getLang, t, type Lang } from '@/i18n';
 import type { Card, ComboId, RunState } from '@/core/types';
 import { SUITS } from '@/core/types';
 import type { App } from '@/game/app';
-import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { Haptics } from '@/engine/haptics';
 import { SPEEDS } from '@/meta/settings';
 import { canFullscreen, enterFullscreen } from '@/platform/fullscreen';
@@ -87,11 +86,6 @@ export function showDeck(run: RunState): void {
 /** Справка — одно окно с вкладками (созвездия, ночь, Обсерватория, глифы). */
 export function showHelp(opts: import('./guide').GuideOptions = {}): void {
   void import('./guide').then(({ showGuide }) => showGuide(opts));
-}
-
-/** «Собрано 4 из 10» — прогресс коллекции созвездий. */
-export function collectedLine(found: readonly ComboId[]): HTMLElement {
-  return h('p.combo-collected', null, t('discovery.collected', { n: found.length, total: COLLECTIBLE_COMBOS.length }));
 }
 
 /** Справка на вкладке созвездий: уровни забега и коллекция игрока. */
