@@ -1,5 +1,5 @@
 import { omenMedal } from '@/ui/hud';
-import { burnDemo, crossDemo, formulaDemo, lineDemo, pop, stage } from '@/ui/screens/guide';
+import { burnDemo, crossDemo, formulaDemo, lineDemo, pop, stage } from '@/ui/guide-demos';
 import { cardThumb } from '@/ui/screens/common';
 import { h } from '@/ui/dom';
 import type { Card, Suit } from '@/core/types';
