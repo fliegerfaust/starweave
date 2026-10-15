@@ -12,6 +12,11 @@ export class PreviewStage {
   readonly el: HTMLCanvasElement;
   private readonly sky = new Starfield();
   private back = 'classic';
+  /** Прежняя рубашка — до середины переворота карт. */
+  private prevBack = 'classic';
+  private flipT = 1;
+  /** Сколько снизу занимает подпись поверх сцены: веер встаёт по центру неба над ней. */
+  bottomInset = 0;
   private raf = 0;
   private last = 0;
   private time = 0;
@@ -39,7 +44,11 @@ export class PreviewStage {
   }
 
   setBack(id: string): void {
+    if (id === this.back) return;
+    // Новая рубашка — карты переворачиваются (без анимации — просто сменяются)
+    this.prevBack = this.back;
     this.back = id;
+    this.flipT = this.opts.reduceMotion || !this.w ? 1 : 0;
   }
 
   destroy(): void {
@@ -60,11 +69,13 @@ export class PreviewStage {
 
   private frame = (now: number): void => {
     this.raf = requestAnimationFrame(this.frame);
-    if (!this.w) return;
+    // Вкладка закрыта — сцена ждёт вне документа и не рисует
+    if (!this.w || !this.el.isConnected) return;
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0;
     this.last = now;
     const still = this.opts.reduceMotion;
     this.time += still ? 0 : dt;
+    this.flipT = Math.min(1, this.flipT + dt / 0.5);
     this.sky.update(still ? 0 : dt);
     const ctx = this.el.getContext('2d')!;
     ctx.setTransform(this.scale, 0, 0, this.scale, 0, 0);
@@ -75,18 +86,31 @@ export class PreviewStage {
   private drawCards(ctx: CanvasRenderingContext2D): void {
     const n = this.opts.cards ?? 3;
     if (!n) return;
-    const cw = Math.min(this.w * 0.24, this.h * 0.42);
+    // Веер — по центру неба над подписью: ширина веера ~2.5 карты, высота ~60% неба
+    const avail = this.h - this.bottomInset;
+    const cw = Math.min(this.w * 0.3, (this.w * 0.82) / 2.5, avail * 0.6 * CARD_ASPECT);
     const ch = cw / CARD_ASPECT;
-    const img = cardBack(Math.round(cw), this.scale, this.back);
+    // Переворот: карта сжимается к ребру и раскрывается уже с новой рубашкой
+    const flip = this.flipT < 1 ? Math.abs(Math.cos(Math.PI * this.flipT)) : 1;
+    const img = cardBack(Math.round(cw), this.scale, this.flipT < 0.5 ? this.prevBack : this.back);
     const pad = Math.ceil(cw * CARD_PAD);
     const cx = this.w / 2;
-    const cy = this.h * 0.56;
+    const cy = avail / 2 - cw * 0.04;
     const float = Math.sin(this.time * 1.1) * 4;
+    // Мягкое золотое свечение за веером — дышит
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, cw * 1.9);
+    const a = 0.22 + 0.1 * Math.sin(this.time * 1.3);
+    glow.addColorStop(0, `rgba(246,194,91,${a})`);
+    glow.addColorStop(0.55, `rgba(246,194,91,${a * 0.3})`);
+    glow.addColorStop(1, 'rgba(246,194,91,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(cx - cw * 2, cy - cw * 2, cw * 4, cw * 4);
     for (let i = 0; i < n; i++) {
       const k = i - (n - 1) / 2;
       ctx.save();
       ctx.translate(cx + k * cw * 0.55, cy + Math.abs(k) * cw * 0.12 + float * (i === 1 ? 1 : 0.6));
       ctx.rotate(k * 0.22);
+      if (flip < 1) ctx.scale(Math.max(0.04, flip), 1);
       ctx.shadowColor = 'rgba(0,0,0,0.55)';
       ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 10;
