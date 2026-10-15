@@ -27,6 +27,8 @@ const PATHS = {
   bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/>',
   infinity: '<path d="M7 9a3 3 0 1 0 0 6c3 0 7-6 10-6a3 3 0 1 1 0 6c-3 0-7-6-10-6Z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  // Обсерватория
+  cut: '<path d="M6 6l12 12M6 18 18 6"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;
