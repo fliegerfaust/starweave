@@ -326,10 +326,9 @@ export class MenuScreen implements Screen {
     };
     // Новичку — меньше выбора: архив и кодекс появятся после первого забега
     const items = [
-      item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound })),
+      item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound, profile: app.profile })),
       item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.startTutorial())),
       app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.goArchive()) : null,
-      app.profile.runs > 0 ? item('codex', t('menu.codex'), lib.codex, () => void import('./codex').then(({ showCodex }) => showCodex(app))) : null,
       item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
     ];
     const m = modal(

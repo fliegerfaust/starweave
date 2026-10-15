@@ -1,12 +1,15 @@
 import { bossSigil, chartIcon, omenSigil, ritualIcon } from '@/art/sigil';
 import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { COMBO_IDS, GLYPHS, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
-import { COLLECTIBLE_COMBOS } from '@/meta/profile';
-import { dict, format, named, t } from '@/i18n';
+import { COLLECTIBLE_COMBOS, type Profile } from '@/meta/profile';
+import { BOSS_LIST } from '@/core/content/bosses';
+import { OMEN_LIST } from '@/core/content/omens';
+import { SKY_LIST } from '@/core/content/skies';
+import { dict, format, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { suitPath } from '@/art/glyphs';
 import { SUIT_COLORS } from '@/art/palette';
-import { canvasImg, dpr, h } from '../dom';
+import { canvasImg, dpr, h, type Child } from '../dom';
 import { icon } from '../icons';
 import { modal } from '../widgets';
 import { cardThumb } from './common';
@@ -19,7 +22,7 @@ import { cardThumb } from './common';
  * абзацами. На телефоне доска закреплена, листается список; на ПК — доска слева.
  */
 
-export type GuideTab = 'combos' | 'night' | 'shop' | 'glyphs';
+export type GuideTab = 'combos' | 'night' | 'shop' | 'glyphs' | 'collection';
 
 export interface GuideOptions {
   /** id раздела (например, `glyph-echo`, `cross`, `omens`): вкладка и строка подберутся сами. */
@@ -31,9 +34,11 @@ export interface GuideOptions {
   found?: readonly ComboId[];
   /** Нижним листом поверх ночи: доска игры остаётся видна. */
   sheet?: boolean;
+  /** Профиль игрока: с ним во Справочнике есть вкладка «Коллекция» (бывший Кодекс). */
+  profile?: Profile;
 }
 
-const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs'];
+const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
 const STEP_IDS = ['place', 'line', 'score', 'cross', 'burn', 'eclipse'] as const;
 const SHOP_IDS = ['omens', 'order', 'charts', 'rituals', 'gold'] as const;
 /** Старые id разделов (фокус из подсказок ночи и обучения) → шаг ночи. */
@@ -94,7 +99,11 @@ export function showGuide(opts: GuideOptions = {}): void {
     else if ((SHOP_IDS as readonly string[]).includes(focus)) { tab = 'shop'; shopSel = focus as typeof shopSel; }
     else if (focus in STEP_OF) { tab = 'night'; step = STEP_OF[focus]!; auto = false; }
     else if ((COMBO_IDS as readonly string[]).includes(focus)) { tab = 'combos'; combo = focus as ComboId; }
+    else if (focus === 'collection' && opts.profile) tab = 'collection';
   }
+  const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
+  // Коллекция: выбранное Знамение или Затмение — крупно на доске
+  let pick: { kind: 'omen' | 'boss'; id: string } | null = null;
   track('guide_open', { focus: focus ?? tab });
   const g = dict().guide;
   const levelOf = (id: ComboId) => opts.levels?.[id] ?? 1;
@@ -278,6 +287,67 @@ export function showGuide(opts: GuideOptions = {}): void {
   }
   const section = (title: string, sub: string | null) => h('h3.gb-section', null, [title, sub ? h('small', null, sub) : null]);
 
+  // ─── Коллекция (бывший Кодекс) ───────────────────────────────────────────
+  const c = dict().codex;
+  const collSigil = (kind: 'omen' | 'boss', id: string, size: number) => canvasImg(kind === 'omen' ? omenSigil(id, size, dpr()) : bossSigil(id, size, dpr()), size);
+  /** Описание без «(сейчас +{x})» — вне забега текущего значения нет. */
+  const effect = (text: string) => text.replace(/\s*\([^)]*\{x\}[^)]*\)/, '').replace('{x}', '…');
+  const collectionBoard = (): [HTMLElement, Child[]] => {
+    const p = opts.profile!;
+    if (!pick) {
+      const omen = OMEN_LIST.find((x) => p.seenOmens.includes(x.id)) ?? OMEN_LIST[0]!;
+      pick = { kind: 'omen', id: omen.id };
+    }
+    const known = (pick.kind === 'omen' ? p.seenOmens : p.seenBosses).includes(pick.id);
+    const big = collSigil(pick.kind, pick.id, 72);
+    big.classList.add('gb-big');
+    if (!known) big.classList.add('unknown');
+    const info = named(pick.kind, pick.id);
+    const kind = pick.kind === 'omen' ? OMEN_LIST.find((x) => x.id === pick!.id)?.kind ?? null : null;
+    const tally = known
+      ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, effect(info.desc))]
+      : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
+    return [h('div.gb-stage', null, big), tally];
+  };
+  const collectionList = (): HTMLElement[] => {
+    const p = opts.profile!;
+    const grid = (kind: 'omen' | 'boss') => {
+      const list = kind === 'omen' ? OMEN_LIST : BOSS_LIST;
+      const seen = kind === 'omen' ? p.seenOmens : p.seenBosses;
+      const el = h('div.gb-sigils');
+      for (const x of list) {
+        const isSeen = seen.includes(x.id);
+        const on = pick?.kind === kind && pick.id === x.id;
+        const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}`, {
+          type: 'button',
+          attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : c.unknown },
+        }, collSigil(kind, x.id, 40));
+        b.addEventListener('click', (e) => {
+          if (on) return;
+          pick = { kind, id: x.id };
+          render();
+          if (e.detail === 0) body.querySelector<HTMLElement>('.gb-sigils .on')?.focus({ preventScroll: true });
+        });
+        el.append(b);
+      }
+      return [section(kind === 'omen' ? c.omens : c.bosses, format(c.opened, { n: seen.length, total: list.length })), el];
+    };
+    // Итоги игрока — строками «подпись · число», без плашек
+    const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
+    const stats = h('div.gb-statrows', null, [
+      stat(c.sRuns, num(p.runs)), stat(c.sWins, num(p.wins)), stat(c.sAnte, String(p.bestAnte)),
+      stat(c.sBest, num(p.bestPlacement)), stat(c.sLines, num(p.totalLines)), stat(format(c.sOmens, { total: OMEN_LIST.length }), String(p.seenOmens.length)),
+    ]);
+    const skies = h('div.gb-list');
+    for (const skyDef of SKY_LIST) {
+      const open = p.unlockedSkies.includes(skyDef.id);
+      const info = named('sky', skyDef.id);
+      skies.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
+    }
+    const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
+    return [...grid('omen'), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+  };
+
   let shownTab: GuideTab | null = null;
   function render(): void {
     timers.forEach(clearTimeout);
@@ -289,8 +359,8 @@ export function showGuide(opts: GuideOptions = {}): void {
       el.setAttribute('aria-selected', String(on));
       el.tabIndex = on ? 0 : -1;
     });
-    const [vis, tally] = tab === 'combos' ? comboBoard() : tab === 'night' ? nightBoard() : tab === 'shop' ? shopBoard() : glyphBoard();
-    const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : glyphList();
+    const [vis, tally] = tab === 'combos' ? comboBoard() : tab === 'night' ? nightBoard() : tab === 'shop' ? shopBoard() : tab === 'glyphs' ? glyphBoard() : collectionBoard();
+    const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : collectionList();
     // Широкая сцена (Обсерватория) — подпись под ней
     const board = h(`div.gb-board${tab === 'shop' ? '.stack' : ''}`, null, [vis, h('div.gb-tally', { attrs: { 'aria-live': 'polite' } }, tally)]);
     body.replaceChildren(h('div.gb-pin', null, board), h('div.gb-scroll', null, below));
@@ -300,7 +370,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     if (tab === 'night' && auto && !reduced()) later(() => { step = (step + 1) % g.steps.length; render(); }, 3200);
   }
 
-  TABS.forEach((id, i) => {
+  tabs.forEach((id, i) => {
     const b = h('button.gb-tab', { type: 'button', dataset: { tab: id }, attrs: { role: 'tab' } }, g.tabs[id]!);
     b.addEventListener('click', () => {
       if (tab === id) return;
@@ -311,7 +381,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!d) return;
       e.preventDefault();
-      tab = TABS[(i + d + TABS.length) % TABS.length]!;
+      tab = tabs[(i + d + tabs.length) % tabs.length]!;
       render();
       tabsBar.querySelector<HTMLElement>('.gb-tab.on')?.focus();
     });

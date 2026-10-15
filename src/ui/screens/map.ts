@@ -107,7 +107,7 @@ export class MapScreen implements Screen {
       h('div.map-belt', null, [h('span.map-section', null, t('map.omens')), omens]),
       h('footer.map-dock', null, [
         h('div.map-lights', null, [
-          h('button.map-light', { type: 'button', onclick: () => showHelp({ levels: run.comboLevels, found: this.app.profile.combosFound }) }, [icon('guide'), t('guide.button')]),
+          h('button.map-light', { type: 'button', onclick: () => showHelp({ levels: run.comboLevels, found: this.app.profile.combosFound, profile: this.app.profile }) }, [icon('guide'), t('guide.button')]),
           h('button.map-light', { type: 'button', onclick: () => showDeck(run) }, [icon('deck'), t('night.deck'), h('span.n', null, String(run.deck.length))]),
         ]),
         primary,

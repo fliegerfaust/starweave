@@ -45,7 +45,7 @@ async function check(page: Page, tag: string, failures: string[]): Promise<void>
     if (board.top < p.top - 1 || board.bottom > p.bottom + 1) out.push('доска не в окне');
     return out;
   });
-  const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('за экраном') && !p.includes('gb-scroll') && !p.includes('gb-list') && !p.includes('gb-sigils') && !p.includes('div.gb') && !p.includes('div.modal-head') && !p.includes('gb-goal') && !p.includes('gb-section') && !p.includes('small «') && !p.includes('gb-row') && !/button(\.unknown|\.on)? «»/.test(p));
+  const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('за экраном') && !p.includes('gb-scroll') && !p.includes('gb-list') && !p.includes('gb-sigils') && !p.includes('div.gb') && !p.includes('div.modal-head') && !p.includes('gb-goal') && !p.includes('gb-section') && !p.includes('small «') && !p.includes('gb-row') && !p.includes('gb-stat') && !/из div\.modal-panel[^(]*\((-\d+|0)px справа\)/.test(p) && !/button(\.unknown|\.on)? «»/.test(p));
   const all = [...res, ...audit];
   if (all.length) failures.push(`${tag}: ${all.slice(0, 3).join('; ')}`);
 }
@@ -92,7 +92,7 @@ test('Справочник: живая доска, четыре вкладки, 
   expect(errors).toEqual([]);
 });
 
-test('Кодекс: живая доска, коллекция и итоги', async ({ page }) => {
+test('Коллекция во Справочнике (бывший Кодекс): доска, знаки, итоги, вкладки помещаются', async ({ page }) => {
   const errors = await boot(page);
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
@@ -100,17 +100,20 @@ test('Кодекс: живая доска, коллекция и итоги', as
     await page.evaluate(async (lang) => {
       const { setLang } = await import('/src/i18n/index.ts');
       setLang(lang);
-      const { showCodex } = await import('/src/ui/screens/codex.ts');
-      showCodex((window as unknown as { starweave: never }).starweave);
+      const { showGuide } = await import('/src/ui/screens/guide.ts');
+      const app = (window as unknown as { starweave: { profile: never } }).starweave;
+      showGuide({ tab: 'collection', profile: app.profile });
     }, lang);
-    for (const [i, tab] of ['omens', 'bosses', 'stats'].entries()) {
-      await page.locator('.gb-tab').nth(i).click();
-      await check(page, `${lang} кодекс ${tab}`, failures);
-      if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-codex-${tab}.png` });
-    }
+    await check(page, `${lang} коллекция`, failures);
+    // Пять вкладок целиком на экране — ни одна не уезжает за край полосы
+    const cut = await page.evaluate(() => {
+      const bar = document.querySelector('.gb-tabs')!.getBoundingClientRect();
+      return [...document.querySelectorAll('.gb-tab')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < bar.left - 1 || r.right > bar.right + 1; }).map((t) => t.textContent);
+    });
+    if (cut.length) failures.push(`${lang}: вкладки за краем — ${cut.join(', ')}`);
+    if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-collection.png` });
   }
   // Неизвестное Знамение: доска честно говорит, что оно ещё не встречалось
-  await page.locator('.gb-tab').nth(0).click();
   await page.locator('.gb-sigils button.unknown').first().click();
   await expect(page.locator('.gb-tally h3')).toHaveText('???');
   expect(failures).toEqual([]);

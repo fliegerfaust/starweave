@@ -208,7 +208,7 @@ export class ShopScreen implements Screen {
       h('div.ware-name', null, [info.name, info.level ? h('span.ware-level', null, info.level) : null]),
       h('div.ware-bonus', null, [
         bonusLine(info.bonus),
-        glyph ? h('button.link-btn.ware-how', { type: 'button', onclick: () => showHelp({ focus: `glyph-${glyph}` }) }, t('shop.glyphHow')) : null,
+        glyph ? h('button.link-btn.ware-how', { type: 'button', onclick: () => showHelp({ focus: `glyph-${glyph}`, profile: this.app.profile }) }, t('shop.glyphHow')) : null,
       ]),
       item.sold
         ? h('div.sold-label', null, [icon('check'), t('shop.sold')])
