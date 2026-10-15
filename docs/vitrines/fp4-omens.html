@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Знамения и созвездия</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --night-0: #05061a;
+  --night-1: #0c0d2c;
+  --night-2: #191641;
+  --panel: rgb(14 12 38 / 0.82);
+  --panel-solid: #0e0c26;
+  --ink: #eae6ff;
+  --ink-dim: #a5a0cf;
+  --ink-faint: #8a85b8;
+  --gold: #f6c25b;
+  --gold-hi: #ffe6a8;
+  --gold-deep: #e09a2f;
+  --gold-rgb: 246 194 91;
+  --light: #7fe0ff;
+  --mult: #ff6b8b;
+  --hair: rgb(246 194 91 / 0.2);
+  --line: rgb(234 230 255 / 0.08);
+  --font-display: 'Forum', 'Times New Roman', serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 60% at 50% 0%, #191641 0%, #0c0d2c 38%, #05061a 100%) fixed, var(--night-0);
+  color: var(--ink);
+  font: 400 14px/1.5 var(--font-body);
+  overflow-x: hidden;
+}
+svg, img { display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px 64px; }
+
+/* Шапка-табличка */
+.top { text-align: center; padding: 34px 0 6px; }
+.top h1 { margin: 0; font: 400 clamp(26px, 6.4vw, 38px)/1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-hi); }
+.sill { height: 2px; width: min(420px, 80%); margin: 14px auto 0; background: radial-gradient(50% 100% at 50% 50%, rgb(255 230 168 / 0.9), rgb(246 194 91 / 0.35) 45%, transparent 100%); }
+.top p { max-width: 640px; margin: 14px auto 0; color: var(--ink-dim); text-wrap: pretty; }
+
+/* Подписи разделов: капитель Forum и линия до края */
+.label { display: flex; align-items: center; gap: 12px; margin: 34px 0 14px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.label small { font: 600 11.5px/1 var(--font-body); letter-spacing: 0.02em; text-transform: none; color: var(--ink-faint); }
+
+/* Сравнение рядом */
+.compare { display: grid; gap: 2px; padding: 6px 0; }
+.cmp-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cmp-row:last-child { border-bottom: 0; }
+.cmp-row b { font: 400 13px/1.1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-hi); }
+.cmp-row b small { display: block; margin-top: 4px; font: 600 11px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.cmp-icons { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.cmp-icons .sep { width: 1px; height: 28px; background: var(--line); margin: 0 2px; }
+
+/* Вкладки вариантов */
+.tabs-wrap { position: sticky; top: 0; z-index: 5; margin: 26px -16px 0; padding: 10px 16px; background: linear-gradient(180deg, rgb(8 8 30 / 0.96) 70%, rgb(8 8 30 / 0)); }
+.tabs { display: flex; gap: 6px; max-width: 560px; margin: 0 auto; padding: 4px; border-radius: 999px; background: var(--panel-solid); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.tabs button { flex: 1; min-height: 44px; border: 0; border-radius: 999px; background: none; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; padding: 0 6px; white-space: nowrap; }
+.tabs button.on { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 55%, #e09a2f); box-shadow: 0 0 0 1px rgba(255,230,160,.5) inset; }
+
+.variant { display: none; }
+.variant.on { display: block; }
+.v-head { text-align: center; margin: 26px auto 0; max-width: 720px; }
+.v-head h2 { margin: 0; font: 400 30px/1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-hi); }
+.v-head .idea { margin: 14px 0 0; font: 600 15px/1.45 var(--font-body); color: var(--ink); text-wrap: balance; }
+.v-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 18px auto 0; max-width: 860px; text-align: left; }
+.v-notes div { padding: 4px 16px; border-left: 1px solid var(--line); }
+.v-notes div:first-child { border-left: 0; }
+.v-notes b { display: block; font: 800 11px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+.v-notes span { color: var(--ink-dim); font-size: 13px; line-height: 1.45; text-wrap: pretty; }
+
+/* Сетка Знамений */
+.omen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 6px; }
+.o-cell { display: grid; justify-items: center; gap: 6px; padding: 12px 4px 14px; border-radius: 16px; }
+.o-cell .nm { font: 700 13.5px/1.2 var(--font-body); color: var(--ink); text-align: center; min-height: 2.4em; display: grid; place-items: center; text-wrap: balance; }
+.o-cell .small { display: flex; align-items: center; gap: 10px; }
+.o-cell .kind { font: 600 11px/1 var(--font-body); color: var(--ink-faint); }
+.o-cell .kind i { font-style: normal; font-weight: 800; }
+.k-light { color: var(--light); } .k-mult { color: var(--mult); } .k-gold { color: var(--gold-hi); }
+.rar { margin: 18px 0 6px; font: 800 11px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* Созвездия */
+.combo-list { display: grid; grid-template-columns: 1fr; gap: 0; }
+.combo { display: grid; grid-template-columns: 116px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.combo .t b { display: block; font: 700 15.5px/1.2 var(--font-body); color: var(--ink); }
+.combo .t small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.35; color: var(--ink-dim); text-wrap: pretty; }
+.combo .n { font: 800 17px/1 var(--font-body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.combo .n .l { color: var(--light); } .combo .n .m { color: var(--mult); } .combo .n .x { color: var(--ink-faint); margin: 0 4px; font-weight: 600; }
+.combo .ic { width: 116px; height: 68px; }
+.combo-list.now .combo { grid-template-columns: 52px minmax(0, 1fr) auto; }
+.combo-list.now .combo .ic { width: 48px; height: 48px; }
+
+/* Звёздные карты, ритуалы, Затмения */
+.iconrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 12px 6px; }
+.iconrow .it { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.iconrow .it span { font: 600 11.5px/1.25 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.boss-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 6px; }
+.boss-grid .it { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.boss-grid .it b { font: 700 13px/1.2 var(--font-body); }
+.boss-grid .it small { font-size: 11.5px; line-height: 1.3; color: var(--ink-faint); text-wrap: balance; }
+
+/* «В игре» — куски экранов */
+.mocks { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.mocks .col { display: grid; gap: 18px; min-width: 0; }
+.mock { border-radius: 24px; padding: 16px; background: radial-gradient(120% 90% at 50% 0%, #1d1a4a 0%, #0c0d2c 55%, #070820 100%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.16); min-width: 0; }
+.mock-cap { font: 600 11.5px/1 var(--font-body); color: var(--ink-faint); margin: 0 0 12px; letter-spacing: 0.02em; }
+.belt { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; }
+.belt .sec { font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.belt .slots { display: flex; gap: 6px; align-items: center; }
+.slot { width: 44px; height: 44px; display: grid; place-items: center; position: relative; flex: none; }
+.slot.empty { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); }
+.slot.empty::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.35); }
+.badge { position: absolute; right: -3px; bottom: -3px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 999px; display: grid; place-items: center; font: 800 11px/1 var(--font-body); color: #fff; box-shadow: 0 0 0 2px #0c0d2c; }
+.badge.light { background: var(--light); color: #062030; } .badge.mult { background: var(--mult); } .badge.xmult { background: linear-gradient(135deg, #ff6b8b, #ffb347); } .badge.rule { background: #c39bff; } .badge.gold { background: var(--gold); color: #2a1a02; }
+.mapline { display: flex; align-items: center; gap: 0; margin: 4px 4px 16px; }
+.mapline i { flex: 1; height: 0; border-top: 1.6px solid #f6c25b; margin: 0 6px; }
+.mapline i.dash { border-top: 1.6px dashed rgb(246 194 91 / 0.5); }
+.mstar { flex: none; border-radius: 50%; background: radial-gradient(circle, #fff3c8, #f6c25b 45%, #a7681a); box-shadow: 0 0 14px rgb(246 194 91 / .55); }
+.mboss { display: grid; justify-items: center; gap: 4px; flex: none; }
+.mboss small { font: 400 11px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: #fff1dc; }
+
+.ware { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: radial-gradient(100% 120% at 50% 0%, rgb(var(--gold-rgb) / 0.06), transparent 60%), var(--panel); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18); }
+.ware + .ware { margin-top: 10px; }
+.ware b { display: block; font: 700 15.5px/1.2 var(--font-body); }
+.ware b em { font-style: normal; font-weight: 600; font-size: 13px; color: var(--ink-faint); margin-left: 4px; }
+.ware .bonus { margin-top: 3px; font-size: 13px; line-height: 1.4; color: var(--ink); text-wrap: pretty; }
+.ware .bonus .c { color: var(--ink-dim); }
+.ware .bonus .l { color: var(--light); font-weight: 800; } .ware .bonus .m { color: var(--mult); font-weight: 800; }
+.price { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 999px; background: var(--panel-solid); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.55); font: 800 17px/1 var(--font-body); color: var(--gold-hi); }
+.coin { width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff0c4, #f6c25b 45%, #b97a1e); box-shadow: inset 0 0 0 1px rgb(120 70 10 / 0.5); flex: none; }
+
+.frame { border-radius: 18px; padding: 10px 12px 12px; background: radial-gradient(90% 70% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 65%), rgb(8 7 24 / 0.9); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.f-top { display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.medal { width: 36px; height: 36px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4); display: grid; place-items: center; color: var(--gold); font: 700 15px/1 var(--font-body); }
+.burger { width: 14px; height: 10px; background: linear-gradient(var(--gold) 0 0) top / 100% 1.6px no-repeat, linear-gradient(var(--gold) 0 0) center / 100% 1.6px no-repeat, linear-gradient(var(--gold) 0 0) bottom / 100% 1.6px no-repeat; }
+.plaque { text-align: center; font: 400 14px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.plaque .sill { margin-top: 7px; width: 70%; height: 1.5px; }
+.f-rule { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; color: var(--ink-dim); }
+.f-rule b { color: #fff1dc; font-weight: 700; }
+.f-score { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 8px; }
+.f-score .big { font: 800 30px/1 var(--font-body); font-variant-numeric: tabular-nums; }
+.f-score .big small { font-size: 14px; font-weight: 700; color: var(--ink-faint); margin-left: 4px; }
+.f-cols { display: flex; gap: 0; }
+.f-cols div { padding: 0 10px; border-left: 1px solid var(--line); text-align: center; }
+.f-cols div:first-child { border-left: 0; }
+.f-cols small { display: block; font: 800 9.5px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.f-cols b { font: 800 18px/1.2 var(--font-body); }
+.bar { height: 4px; border-radius: 4px; margin: 8px 0 10px; background: rgb(255 255 255 / 0.07); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 44%; background: linear-gradient(90deg, #e09a2f, #ffe6a8); border-radius: 4px; }
+.f-omens { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.f-omens .row { display: flex; gap: 6px; }
+.f-omens .slot { width: 36px; height: 36px; }
+.gold-pill { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4); font: 800 15px/1 var(--font-body); color: var(--gold-hi); }
+
+.foot { margin-top: 44px; color: var(--ink-faint); font-size: 12.5px; text-align: center; }
+
+@media (max-width: 640px) {
+  .omen-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+  .o-cell { padding: 10px 0 12px; }
+  .o-cell .nm { font-size: 12.5px; }
+  .o-cell .big { width: 88px; height: 88px; }
+  .v-notes { grid-template-columns: 1fr; gap: 10px; }
+  .v-notes div { border-left: 0; padding: 0; }
+  .combo { grid-template-columns: 96px minmax(0, 1fr); gap: 4px 12px; }
+  .combo .ic { width: 96px; height: 56px; grid-row: span 2; }
+  .combo .n { font-size: 15px; }
+  .combo-list.now .combo .ic { width: 44px; height: 44px; }
+  .combo-list.now .combo { grid-template-columns: 48px minmax(0, 1fr); }
+  .mocks { grid-template-columns: minmax(0, 1fr); }
+  .cmp-row { grid-template-columns: 1fr; gap: 8px; }
+  .cmp-row b small { display: inline; margin-left: 8px; }
+  .tabs button { font-size: 12.5px; }
+  .iconrow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .boss-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 380px) {
+  .mock { padding: 14px 12px; }
+  .belt .slots { gap: 4px; }
+  .slot { width: 40px; height: 40px; }
+}
+@media (min-width: 900px) {
+  .combo-list { grid-template-columns: 1fr 1fr; column-gap: 36px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Знамения и созвездия</h1>
+    <div class="sill"></div>
+    <p>Знаки Знамений, схемы созвездий, Затмения, звёздные карты и ритуалы — три трактовки в языке «Латунной обсерватории» и как сейчас. Всё нарисовано кодом, размеры реальные: 96, 44 и 32 px.</p>
+  </header>
+
+  <div class="label">Рядом <small>одни и те же 9 Знамений на 44 и 32 px</small></div>
+  <div class="compare" id="compare"></div>
+
+  <div class="tabs-wrap"><nav class="tabs" id="tabs"></nav></div>
+  <main id="variants"></main>
+  <p class="foot">Витрина RD · Знамения и созвездия · 16.10.2026</p>
+</div>
+
+<script>
+const NOW = /*NOW_DATA*/{};
+const { PI, cos, sin, round, max, min } = Math;
+const r2 = (n) => round(n * 100) / 100;
+const pt = (x, y) => `${r2(x)} ${r2(y)}`;
+let UID = 0;
+const uid = () => `u${++UID}`;
+
+/* ───────── Данные игры (src/core/content, src/i18n/ru.ts) ───────── */
+const OMENS = [
+  ['sunWorship', 1, 'mult', 'Солнцепоклонник'], ['moonTide', 1, 'light', 'Лунный прилив'], ['starlight', 1, 'mult', 'Звёздный свет'], ['cometTrail', 1, 'light', 'Хвост кометы'],
+  ['twinStars', 1, 'mult', 'Двойная звезда'], ['tripod', 1, 'mult', 'Треножник'], ['ladder', 1, 'mult', 'Звёздная лестница'], ['monochrome', 1, 'mult', 'Монохром'],
+  ['lowTide', 1, 'light', 'Отлив'], ['highNoon', 1, 'mult', 'Зенит'], ['horizon', 1, 'mult', 'Горизонт'], ['pillar', 1, 'mult', 'Столп'],
+  ['stardust', 1, 'mult', 'Звёздная пыль'], ['scatterbrain', 1, 'mult', 'Россыпь удачи'], ['binary', 1, 'mult', 'Двойная система'], ['abacus', 1, 'rule', 'Счёты'],
+  ['pyre', 1, 'rule', 'Костёр'], ['ember', 1, 'mult', 'Тлеющий уголь'], ['miser', 1, 'gold', 'Скупец'],
+  ['evenKeel', 2, 'xmult', 'Чётность'], ['oddity', 2, 'xmult', 'Нечётность'], ['crossroads', 2, 'xmult', 'Перекрёсток'], ['diagonalSight', 2, 'rule', 'Косой взгляд'],
+  ['cornerstone', 2, 'rule', 'Краеугольный камень'], ['momentum', 2, 'mult', 'Разгон'], ['patientSky', 2, 'mult', 'Терпеливое небо'], ['nightOwl', 2, 'xmult', 'Сова'],
+  ['prismLens', 2, 'rule', 'Линза'], ['shortcut', 2, 'rule', 'Короткий путь'], ['wideSky', 2, 'rule', 'Широкое небо'], ['tithe', 2, 'gold', 'Десятина'],
+  ['constellationMap', 2, 'mult', 'Картограф'], ['echoChamber', 2, 'rule', 'Отзвук'], ['hoarder', 2, 'mult', 'Скопидом'], ['rainbow', 2, 'xmult', 'Радуга'],
+  ['alchemist', 2, 'rule', 'Алхимик'], ['gambler', 2, 'xmult', 'Игрок'],
+  ['glassCannon', 3, 'xmult', 'Стеклянная пушка'], ['supernovaSeed', 3, 'xmult', 'Семя сверхновой'], ['collapsar', 3, 'xmult', 'Коллапсар'], ['corona', 3, 'xmult', 'Корона'], ['doubleStar', 3, 'xmult', 'Двойная звезда'],
+];
+const OMEN = Object.fromEntries(OMENS.map(([id, rarity, kind, name]) => [id, { id, rarity, kind, name }]));
+const KIND_RU = { light: ['+', 'свет', 'k-light'], mult: ['+', 'множитель', 'k-mult'], xmult: ['×', 'множитель', 'k-mult'], rule: ['', 'особое', ''], gold: ['', 'золото', 'k-gold'] };
+const BOSSES = [
+  ['void', 'Пустота', 'Две клетки запечатаны'], ['eclipse-sun', 'Затмение Солнца', 'Солнце не светит'], ['eclipse-moon', 'Затмение Луны', 'Луна не светит'],
+  ['eclipse-star', 'Затмение Звёзд', 'Звезда не светит'], ['eclipse-comet', 'Затмение Кометы', 'Комета не светит'], ['fog', 'Туман', 'Ранги в руке скрыты'],
+  ['drought', 'Засуха', '−1 карта в руке'], ['shortNight', 'Короткая ночь', '−5 ходов'], ['silence', 'Безмолвие', 'Сжигать нельзя'],
+  ['gravity', 'Тяготение', 'Ряды не вспыхивают'], ['judge', 'Судья', 'Россыпь без очков'], ['wane', 'Ущерб', 'Множитель ×0.5'], ['hunger', 'Голод', 'Созвездие — 1 золото'],
+];
+const COMBOS = [
+  ['scatter', 'Россыпь', 'Ничего не совпало', 5, 1], ['pair', 'Пара', 'Два одинаковых ранга', 10, 2], ['twoPair', 'Две пары', 'Две пары рангов', 20, 2],
+  ['mirror', 'Зеркало', 'Ранги симметричны: A B B A', 35, 3], ['triple', 'Тройка', 'Три одинаковых ранга', 30, 3], ['straight', 'Стрит', 'Ранги подряд, в любом порядке', 30, 4],
+  ['flush', 'Флеш', 'Все карты одной масти', 35, 4], ['cascade', 'Каскад', 'Ранги подряд по порядку в линии', 50, 5], ['quartet', 'Квартет', 'Четыре одинаковых ранга', 60, 7],
+  ['starFlush', 'Звёздный флеш', 'Стрит одной масти', 100, 8], ['supernova', 'Сверхновая', 'Каскад одной масти', 150, 10],
+];
+const EX = {
+  scatter: [[2, 'sun'], [5, 'moon'], [9, 'star'], [7, 'comet']], pair: [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet']],
+  twoPair: [[4, 'sun'], [8, 'moon'], [4, 'star'], [8, 'comet']], mirror: [[2, 'sun'], [6, 'moon'], [6, 'star'], [2, 'comet']],
+  triple: [[7, 'sun'], [7, 'moon'], [2, 'star'], [7, 'comet']], straight: [[5, 'sun'], [3, 'moon'], [6, 'star'], [4, 'comet']],
+  flush: [[2, 'sun'], [9, 'sun'], [4, 'sun'], [7, 'sun']], cascade: [[3, 'sun'], [4, 'moon'], [5, 'star'], [6, 'comet']],
+  quartet: [[8, 'sun'], [8, 'moon'], [8, 'star'], [8, 'comet']], starFlush: [[6, 'moon'], [4, 'moon'], [7, 'moon'], [5, 'moon']],
+  supernova: [[3, 'star'], [4, 'star'], [5, 'star'], [6, 'star']],
+};
+const RITUALS = [['transmute-sun', 'Обращение в Солнце'], ['transmute-moon', 'Обращение в Луну'], ['ascend', 'Возвышение'], ['descend', 'Угасание'], ['banish', 'Изгнание'], ['twin', 'Близнец']];
+const SUIT = { sun: ['#f6c25b', '#ffe6a8', '#4a2c06'], moon: ['#8fd0ff', '#e0f3ff', '#0b2440'], star: ['#c39bff', '#efe2ff', '#24124a'], comet: ['#ff7f62', '#ffd8cc', '#481408'] };
+
+/* Семьи по смыслу: цвет поля говорит, о чём Знамение */
+const FAM = {
+  sun: { base: '#f2a93b', deep: '#3e1f04', hi: '#ffe6a8' },
+  moon: { base: '#4f9be0', deep: '#071a36', hi: '#d9f0ff' },
+  star: { base: '#9468e8', deep: '#1c0d40', hi: '#eadcff' },
+  comet: { base: '#e5633f', deep: '#3a0e06', hi: '#ffd3c4' },
+  lapis: { base: '#4362d8', deep: '#0b1150', hi: '#d6deff' },
+  malachite: { base: '#1f9e84', deep: '#032a26', hi: '#c6f5e8' },
+  silver: { base: '#7d86b8', deep: '#141834', hi: '#eef1ff' },
+  gold: { base: '#c98a22', deep: '#2e1a02', hi: '#ffe6a8' },
+  wine: { base: '#a63a6e', deep: '#2a0a20', hi: '#ffd6e6' },
+};
+const OMEN_FAM = {
+  sunWorship: 'sun', highNoon: 'sun', moonTide: 'moon', lowTide: 'moon', starlight: 'star', stardust: 'star', collapsar: 'star', cometTrail: 'comet', pyre: 'comet', ember: 'comet',
+  twinStars: 'lapis', tripod: 'lapis', ladder: 'lapis', monochrome: 'lapis', scatterbrain: 'lapis', binary: 'lapis', rainbow: 'lapis', supernovaSeed: 'lapis', constellationMap: 'lapis',
+  horizon: 'malachite', pillar: 'malachite', crossroads: 'malachite', diagonalSight: 'malachite', cornerstone: 'malachite', shortcut: 'malachite', prismLens: 'malachite', doubleStar: 'malachite',
+  abacus: 'silver', momentum: 'silver', patientSky: 'silver', nightOwl: 'silver', wideSky: 'silver', echoChamber: 'silver', glassCannon: 'silver',
+  miser: 'gold', tithe: 'gold', hoarder: 'gold', alchemist: 'gold', corona: 'gold',
+  evenKeel: 'wine', oddity: 'wine', gambler: 'wine',
+};
+const KIND_COL = { light: '#7fe0ff', mult: '#ff6b8b', xmult: '#ff6b8b', gold: '#f6c25b' };
+
+/* ───────── Геометрия: пути в квадрате [-50, 50] ───────── */
+const circ = (x, y, r) => `M${pt(x - r, y)}A${r2(r)} ${r2(r)} 0 1 0 ${pt(x + r, y)}A${r2(r)} ${r2(r)} 0 1 0 ${pt(x - r, y)}Z`;
+const ell = (x, y, rx, ry) => `M${pt(x - rx, y)}A${r2(rx)} ${r2(ry)} 0 1 0 ${pt(x + rx, y)}A${r2(rx)} ${r2(ry)} 0 1 0 ${pt(x - rx, y)}Z`;
+const poly = (n, r, rot = -PI / 2, x = 0, y = 0) => 'M' + Array.from({ length: n }, (_, i) => pt(x + cos(rot + (i / n) * 2 * PI) * r, y + sin(rot + (i / n) * 2 * PI) * r)).join('L') + 'Z';
+const shape = (a) => 'M' + a.map(([x, y]) => pt(x, y)).join('L') + 'Z';
+const line = (a) => 'M' + a.map(([x, y]) => pt(x, y)).join('L');
+const rect = (x, y, w, h) => shape([[x, y], [x + w, y], [x + w, y + h], [x, y + h]]);
+const rrect = (x, y, w, h, r) => `M${pt(x + r, y)}H${r2(x + w - r)}A${r2(r)} ${r2(r)} 0 0 1 ${pt(x + w, y + r)}V${r2(y + h - r)}A${r2(r)} ${r2(r)} 0 0 1 ${pt(x + w - r, y + h)}H${r2(x + r)}A${r2(r)} ${r2(r)} 0 0 1 ${pt(x, y + h - r)}V${r2(y + r)}A${r2(r)} ${r2(r)} 0 0 1 ${pt(x + r, y)}Z`;
+function sparkle(x, y, r, n = 4, w = 0.28) {
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * PI - PI / 2, b = ((i + 1) / n) * 2 * PI - PI / 2, m = (a + b) / 2;
+    if (!i) d += 'M' + pt(x + cos(a) * r, y + sin(a) * r);
+    d += 'Q' + pt(x + cos(m) * r * w, y + sin(m) * r * w) + ' ' + pt(x + cos(b) * r, y + sin(b) * r);
+  }
+  return d + 'Z';
+}
+function sunRays(x, y, r) {
+  const a = [];
+  for (let i = 0; i < 24; i++) {
+    const ang = (i / 24) * 2 * PI - PI / 2;
+    const rad = i % 2 === 0 ? (i % 4 === 0 ? r : r * 0.8) : r * 0.58;
+    a.push([x + cos(ang) * rad, y + sin(ang) * rad]);
+  }
+  return shape(a);
+}
+function crescent(x, y, r) {
+  const R = r * 0.92, cx2 = x + R * 0.52, cy2 = y - R * 0.18, R2 = R * 0.82;
+  const dx = cx2 - x, dy = cy2 - y, d = Math.hypot(dx, dy);
+  const l = (R * R - R2 * R2 + d * d) / (2 * d), h = Math.sqrt(max(0, R * R - l * l));
+  const mx = x + (dx * l) / d, my = y + (dy * l) / d;
+  const p1 = [mx + (h * dy) / d, my - (h * dx) / d], p2 = [mx - (h * dy) / d, my + (h * dx) / d];
+  return `M${pt(...p1)}A${r2(R)} ${r2(R)} 0 1 0 ${pt(...p2)}A${r2(R2)} ${r2(R2)} 0 0 1 ${pt(...p1)}Z`;
+}
+function comet(x, y, r) {
+  const hx = x + r * 0.38, hy = y - r * 0.38, hr = r * 0.36;
+  const ang = Math.atan2(hy - (y + r), hx - (x - r));
+  const nx = cos(ang + PI / 2), ny = sin(ang + PI / 2);
+  let d = 'M' + pt(hx + nx * hr, hy + ny * hr);
+  for (const t of [{ len: 1, off: 0 }, { len: 0.72, off: 0.8 }, { len: 0.72, off: -0.8 }]) {
+    const tx = hx - cos(ang) * r * 1.55 * t.len + nx * hr * t.off * 0.9, ty = hy - sin(ang) * r * 1.55 * t.len + ny * hr * t.off * 0.9;
+    d += 'L' + pt(tx, ty) + 'L' + pt(hx + nx * hr * t.off * 0.35, hy + ny * hr * t.off * 0.35);
+  }
+  d += 'L' + pt(hx - nx * hr, hy - ny * hr) + `A${r2(hr)} ${r2(hr)} 0 0 1 ${pt(hx + nx * hr, hy + ny * hr)}Z`;
+  return d;
+}
+const flame = (s, x = 0, y = 0) => `M${pt(x, y - s)}C${pt(x + s * 0.9, y - s * 0.2)} ${pt(x + s * 0.7, y + s * 0.9)} ${pt(x, y + s * 0.9)}C${pt(x - s * 0.7, y + s * 0.9)} ${pt(x - s * 0.9, y - s * 0.1)} ${pt(x - s * 0.15, y - s * 0.35)}C${pt(x - s * 0.1, y)} ${pt(x, y - s * 0.5)} ${pt(x, y - s)}Z`;
+const arcP = (x, y, r, a0, a1) => `M${pt(x + cos(a0) * r, y + sin(a0) * r)}A${r2(r)} ${r2(r)} 0 ${a1 - a0 > PI ? 1 : 0} 1 ${pt(x + cos(a1) * r, y + sin(a1) * r)}`;
+const coinP = (x, y, r) => circ(x, y, r) + sparkle(x, y, r * 0.55, 4, 0.3);
+
+/* Части знака: f — заливка, s — линия, c — прорезь цветом поля (разделяет перекрытия) */
+const MOTIF = {
+  sunWorship: (s) => [{ f: sunRays(0, 0, s * 1.08) }, { c: circ(0, 0, s * 0.5), w: s * 0.08 }],
+  moonTide: (s) => [{ f: crescent(-s * 0.12, 0, s * 1.08) }],
+  starlight: (s) => [{ f: sparkle(0, 0, s * 1.12, 4, 0.27) }, { f: circ(s * 0.72, -s * 0.72, s * 0.11) }, { f: circ(-s * 0.7, s * 0.68, s * 0.08) }],
+  cometTrail: (s) => [{ f: comet(0, 0, s * 1.02) }],
+  twinStars: (s) => [{ f: sparkle(-s * 0.46, 0, s * 0.58) }, { f: sparkle(s * 0.46, 0, s * 0.58) }],
+  tripod: (s) => [{ s: shape([[0, -s * 0.72], [s * 0.74, s * 0.55], [-s * 0.74, s * 0.55]]), w: s * 0.08 }, { f: circ(0, -s * 0.72, s * 0.24) + circ(s * 0.74, s * 0.55, s * 0.24) + circ(-s * 0.74, s * 0.55, s * 0.24) }],
+  ladder: (s) => { const h = [0.35, 0.6, 0.85, 1.1], w = (s * 1.8) / 4; return [{ f: h.map((k, i) => rect(-s * 0.9 + i * w + w * 0.15, s * 0.8 - k * s * 1.4, w * 0.7, k * s * 1.4)).join('') }]; },
+  monochrome: (s) => [{ f: [0, 1, 2, 3].map((i) => poly(4, s * 0.3, -PI / 2, (-0.75 + i * 0.5) * s, -s * 0.08)).join('') }, { s: line([[-s * 0.95, s * 0.48], [s * 0.95, s * 0.48]]), w: s * 0.08 }],
+  lowTide: (s) => [{ s: [0, 1].map((k) => line(Array.from({ length: 21 }, (_, i) => [-s + (i / 20) * s * 2, (k - 0.5) * s * 0.62 + sin(i * 0.8) * s * 0.17]))).join(''), w: s * 0.15 }],
+  highNoon: (s) => [{ f: sunRays(0, -s * 0.26, s * 0.72) }, { s: line([[-s * 0.95, s * 0.78], [s * 0.95, s * 0.78]]), w: s * 0.12 }],
+  horizon: (s) => [{ f: rect(-s, -s * 0.0, s * 2, s * 0.16) + `M${pt(-s * 0.48, 0)}A${r2(s * 0.48)} ${r2(s * 0.48)} 0 0 1 ${pt(s * 0.48, 0)}Z` }, { s: [-0.5, 0, 0.5].map((k) => line([[sin(k) * s * 0.66, -cos(k) * s * 0.66], [sin(k) * s * 0.9, -cos(k) * s * 0.9]])).join(''), w: s * 0.1 }, { s: line([[-s * 0.6, s * 0.42], [s * 0.6, s * 0.42]]), w: s * 0.08 }],
+  pillar: (s) => [{ f: rect(-s * 0.13, -s, s * 0.26, s * 2) + rect(-s * 0.42, -s, s * 0.84, s * 0.2) + rect(-s * 0.42, s * 0.8, s * 0.84, s * 0.2) }],
+  stardust: (s) => [{ f: [[-0.42, -0.3, 0.34], [0.38, -0.48, 0.24], [0.12, 0.38, 0.42], [-0.52, 0.55, 0.2]].map(([x, y, r]) => sparkle(x * s, y * s, r * s)).join('') }],
+  scatterbrain: (s) => [{ f: Array.from({ length: 7 }, (_, i) => { const a = i * 2.4, k = s * 0.66 * ((i % 3) / 3 + 0.4); return circ(cos(a) * k, sin(a) * k, s * 0.13); }).join('') }],
+  binary: (s) => [{ s: ell(0, 0, s * 0.95, s * 0.36), w: s * 0.08, tr: 'rotate(-18)' }, { c: circ(-s * 0.36, 0, s * 0.36), w: s * 0.12 }, { f: circ(-s * 0.36, 0, s * 0.36) }, { c: circ(s * 0.48, 0, s * 0.22), w: s * 0.12 }, { f: circ(s * 0.48, 0, s * 0.22) }],
+  abacus: (s) => [{ s: [-1, 0, 1].map((r) => line([[-s, r * s * 0.6], [s, r * s * 0.6]])).join(''), w: s * 0.08 }, { f: [-1, 0, 1].flatMap((r) => [0, 1, 2].map((i) => circ((-0.6 + i * 0.36 + r * 0.16) * s, r * s * 0.6, s * 0.16))).join('') }],
+  pyre: (s) => [{ f: flame(s * 1.02) }, { c: flame(s * 0.42, 0, s * 0.42), w: s * 0.09 }],
+  ember: (s) => [{ f: flame(s * 0.72, -s * 0.08, s * 0.22) }, { f: circ(s * 0.6, -s * 0.62, s * 0.13) + circ(-s * 0.58, -s * 0.38, s * 0.09) + circ(s * 0.3, -s * 0.98, s * 0.07) }],
+  miser: (s) => [{ f: coinP(0, 0, s * 0.82), rule: 'evenodd' }, { c: circ(0, 0, s * 0.66), w: s * 0.06 }],
+  tithe: (s) => [{ f: coinP(-s * 0.32, -s * 0.24, s * 0.55), rule: 'evenodd' }, { c: circ(s * 0.32, s * 0.28, s * 0.55), w: s * 0.16 }, { f: coinP(s * 0.32, s * 0.28, s * 0.55), rule: 'evenodd' }],
+  hoarder: (s) => [0, 1, 2, 3].flatMap((i) => { const y = s * 0.62 - i * s * 0.36; return [{ c: ell(0, y, s * 0.68, s * 0.24), w: s * 0.12 }, { f: ell(0, y, s * 0.68, s * 0.24) }]; }),
+  evenKeel: (s) => [{ f: rect(-s * 0.82, -s * 0.52, s * 0.52, s * 0.52) + rect(s * 0.3, -s * 0.52, s * 0.52, s * 0.52) + rect(-s * 0.9, s * 0.18, s * 1.8, s * 0.18) + shape([[0, s * 0.36], [s * 0.28, s * 0.8], [-s * 0.28, s * 0.8]]) }],
+  oddity: (s) => [{ f: poly(5, s * 0.9) }, { c: poly(5, s * 0.5), w: s * 0.08 }],
+  crossroads: (s) => [{ f: rect(-s, -s * 0.12, s * 2, s * 0.24) + rect(-s * 0.12, -s, s * 0.24, s * 2) }, { c: sparkle(0, 0, s * 0.56, 4, 0.32), w: s * 0.14, tr: 'rotate(45)' }, { f: sparkle(0, 0, s * 0.56, 4, 0.32), tr: 'rotate(45)' }],
+  diagonalSight: (s) => [{ f: `M${pt(-s, 0)}Q${pt(0, -s * 0.95)} ${pt(s, 0)}Q${pt(0, s * 0.95)} ${pt(-s, 0)}Z` + circ(0, 0, s * 0.34), rule: 'evenodd' }, { f: circ(0, 0, s * 0.16) }],
+  cornerstone: (s) => [{ f: [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, y]) => rect(x * s * 0.62 - s * 0.24, y * s * 0.62 - s * 0.24, s * 0.48, s * 0.48)).join('') }, { s: rect(-s * 0.2, -s * 0.2, s * 0.4, s * 0.4), w: s * 0.07 }],
+  momentum: (s) => [{ f: [-1, 0, 1].map((k) => { const x = k * s * 0.52, q = s * 0.55; return shape([[x - q * 0.3, -q * 1.6], [x + q * 0.55, 0], [x - q * 0.3, q * 1.6], [x - q * 0.62, q * 1.6], [x + q * 0.22, 0], [x - q * 0.62, -q * 1.6]]); }).join('') }],
+  patientSky: (s) => [{ f: shape([[-s * 0.58, -s * 0.86], [s * 0.58, -s * 0.86], [0, 0], [s * 0.58, s * 0.86], [-s * 0.58, s * 0.86], [0, 0]]) }, { s: line([[-s * 0.8, -s * 0.98], [s * 0.8, -s * 0.98]]) + line([[-s * 0.8, s * 0.98], [s * 0.8, s * 0.98]]), w: s * 0.11 }],
+  nightOwl: (s) => [{ f: circ(-s * 0.42, -s * 0.05, s * 0.38) + circ(-s * 0.42, -s * 0.05, s * 0.15) + circ(s * 0.42, -s * 0.05, s * 0.38) + circ(s * 0.42, -s * 0.05, s * 0.15), rule: 'evenodd' }, { f: shape([[-s * 0.14, s * 0.38], [s * 0.14, s * 0.38], [0, s * 0.7]]) }, { s: line([[-s * 0.85, -s * 0.62], [-s * 0.42, -s * 0.46], [0, -s * 0.6], [s * 0.42, -s * 0.46], [s * 0.85, -s * 0.62]]), w: s * 0.09 }],
+  prismLens: (s) => [{ s: line([[-s * 1.02, s * 0.14], [-s * 0.3, s * 0.1]]), w: s * 0.08 }, { f: shape([[-s * 0.05, -s * 0.8], [s * 0.66, s * 0.6], [-s * 0.76, s * 0.6]]) }, { s: line([[s * 0.36, s * 0.08], [s * 1.02, -s * 0.22]]) + line([[s * 0.44, s * 0.26], [s * 1.02, s * 0.36]]), w: s * 0.08 }],
+  shortcut: (s) => [{ s: `M${pt(-s * 0.8, s * 0.55)}Q${pt(0, -s * 1.15)} ${pt(s * 0.8, s * 0.55)}`, w: s * 0.15 }, { f: circ(-s * 0.8, s * 0.6, s * 0.2) + circ(s * 0.8, s * 0.6, s * 0.2) }, { f: circ(0, s * 0.6, s * 0.1), o: 0.6 }],
+  wideSky: (s) => { const card = rrect(-s * 0.36, -s * 0.62, s * 0.72, s * 1.08, s * 0.12); return [{ f: card, tr: `rotate(-24 0 ${r2(s * 0.8)})` }, { c: card, w: s * 0.14, tr: `rotate(24 0 ${r2(s * 0.8)})` }, { f: card, tr: `rotate(24 0 ${r2(s * 0.8)})` }, { c: card, w: s * 0.14 }, { f: card }]; },
+  constellationMap: (s) => { const p = [[-0.82, 0.5], [-0.3, -0.18], [0.22, 0.32], [0.76, -0.6]].map(([x, y]) => [x * s, y * s]); return [{ s: line(p), w: s * 0.08 }, { f: p.map(([x, y], i) => (i === 3 ? sparkle(x, y, s * 0.34) : circ(x, y, s * 0.15))).join('') }]; },
+  echoChamber: (s) => [{ f: circ(-s * 0.55, 0, s * 0.18) }, { s: [1, 2, 3].map((i) => arcP(-s * 0.55, 0, s * 0.42 * i, -0.75, 0.75)).join(''), w: s * 0.11 }],
+  rainbow: (s) => ['#ff7f62', '#f6c25b', '#8fd0ff', '#c39bff'].map((col, i) => ({ s: arcP(0, s * 0.45, s * (0.98 - i * 0.22), PI, 2 * PI), w: s * 0.13, col })),
+  alchemist: (s) => [{ f: shape([[-s * 0.2, -s * 0.8], [s * 0.2, -s * 0.8], [s * 0.2, -s * 0.18], [s * 0.78, s * 0.86], [-s * 0.78, s * 0.86], [-s * 0.2, -s * 0.18]]) }, { s: line([[-s * 0.34, -s * 0.94], [s * 0.34, -s * 0.94]]), w: s * 0.1 }, { c: line([[-s * 0.5, s * 0.4], [s * 0.5, s * 0.4]]), w: s * 0.08 }],
+  gambler: (s) => [{ f: rrect(-s * 0.76, -s * 0.76, s * 1.52, s * 1.52, s * 0.26) + [[-0.38, -0.38], [0, 0], [0.38, 0.38]].map(([x, y]) => circ(x * s, y * s, s * 0.14)).join(''), rule: 'evenodd', tr: 'rotate(-10)' }],
+  glassCannon: (s) => [{ f: shape([[0, -s * 1.02], [s * 0.58, 0], [0, s * 1.02], [-s * 0.58, 0]]) }, { c: line([[-s * 0.3, -s * 0.34], [s * 0.1, s * 0.04], [-s * 0.06, s * 0.5]]), w: s * 0.1 }, { s: line([[s * 0.72, -s * 0.7], [s * 0.95, -s * 0.92]]) + line([[-s * 0.75, s * 0.68], [-s * 0.95, s * 0.88]]), w: s * 0.08 }],
+  supernovaSeed: (s) => [{ f: sparkle(0, 0, s * 1.06, 8, 0.32) }, { c: circ(0, 0, s * 0.22), w: s * 0.08 }],
+  collapsar: (s) => [{ s: line(Array.from({ length: 64 }, (_, i) => { const a = i * 0.25, r = s * 1.02 * (1 - i / 64); return [cos(a) * r, sin(a) * r]; })), w: s * 0.1 }, { f: circ(0, 0, s * 0.12) }],
+  corona: (s) => [{ f: sunRays(0, 0, s * 1.06) + circ(0, 0, s * 0.42), rule: 'evenodd' }],
+  doubleStar: (s) => [{ f: sparkle(-s * 0.32, -s * 0.26, s * 0.66) }, { c: sparkle(s * 0.36, s * 0.32, s * 0.54), w: s * 0.14 }, { f: sparkle(s * 0.36, s * 0.32, s * 0.54) }],
+};
+const BOSS_MOTIF = {
+  void: (s) => [{ f: rect(-s * 0.85, -s * 0.85, s * 0.78, s * 0.78) + rect(s * 0.07, s * 0.07, s * 0.78, s * 0.78) }, { s: rect(s * 0.07, -s * 0.85, s * 0.78, s * 0.78) + rect(-s * 0.85, s * 0.07, s * 0.78, s * 0.78), w: s * 0.07, o: 0.5 }],
+  fog: (s) => [{ s: [0, 1, 2].map((k) => line(Array.from({ length: 21 }, (_, i) => [-s + (i / 20) * s * 2, (k - 1) * s * 0.6 + sin(i * 0.8 + k) * s * 0.16]))).join(''), w: s * 0.14 }],
+  drought: (s) => [{ f: `M${pt(0, -s)}Q${pt(s * 0.92, s * 0.22)} ${pt(0, s * 0.92)}Q${pt(-s * 0.92, s * 0.22)} ${pt(0, -s)}Z` }, { c: line([[-s * 0.18, -s * 0.12], [s * 0.12, s * 0.2], [-s * 0.1, s * 0.56]]), w: s * 0.12 }],
+  shortNight: (s) => [{ s: circ(0, 0, s * 0.86), w: s * 0.1 }, { f: `M0 0L${pt(0, -s * 0.86)}` + `A${r2(s * 0.86)} ${r2(s * 0.86)} 0 0 1 ${pt(cos(PI * 0.2) * s * 0.86, sin(PI * 0.2) * s * 0.86)}Z` }],
+  silence: (s) => [{ f: flame(s * 0.8) }, { c: line([[-s, -s], [s, s]]), w: s * 0.3 }, { s: line([[-s * 0.95, -s * 0.95], [s * 0.95, s * 0.95]]), w: s * 0.12 }],
+  gravity: (s) => [{ s: line([[0, -s], [0, s * 0.7]]) + line([[-s * 0.55, s * 0.2], [0, s * 0.82], [s * 0.55, s * 0.2]]), w: s * 0.15 }, { s: line([[-s * 0.7, -s * 1.0], [s * 0.7, -s * 1.0]]), w: s * 0.1 }],
+  judge: (s) => [{ s: line([[0, -s], [0, s * 0.82]]) + line([[-s * 0.85, -s * 0.5], [s * 0.85, -s * 0.5]]) + line([[-s * 0.4, s * 0.86], [s * 0.4, s * 0.86]]), w: s * 0.11 }, { f: `M${pt(-s * 0.3, 0)}A${r2(s * 0.3)} ${r2(s * 0.3)} 0 0 1 ${pt(-s * 0.9, 0)}Z` + `M${pt(s * 0.9, 0)}A${r2(s * 0.3)} ${r2(s * 0.3)} 0 0 1 ${pt(s * 0.3, 0)}Z` }],
+  wane: (s) => [{ s: circ(0, 0, s * 0.84), w: s * 0.1 }, { f: `M${pt(0, -s * 0.84)}A${r2(s * 0.84)} ${r2(s * 0.84)} 0 0 1 ${pt(0, s * 0.84)}Z` }],
+  hunger: (s) => [{ f: `M0 0L${pt(cos(0.6) * s * 0.86, sin(0.6) * s * 0.86)}A${r2(s * 0.86)} ${r2(s * 0.86)} 0 1 1 ${pt(cos(-0.6) * s * 0.86, sin(-0.6) * s * 0.86)}Z` }, { c: circ(s * 0.05, -s * 0.42, s * 0.11), w: s * 0.1 }],
+};
+const SUIT_MOTIF = {
+  sun: (s) => [{ f: sunRays(0, 0, s) }, { c: circ(0, 0, s * 0.48), w: s * 0.08 }],
+  moon: (s) => [{ f: crescent(-s * 0.1, 0, s) }],
+  star: (s) => [{ f: sparkle(0, 0, s * 1.05, 4, 0.28) }],
+  comet: (s) => [{ f: comet(0, 0, s) }],
+};
+const bossMotif = (id, s) => (id.startsWith('eclipse-') ? SUIT_MOTIF[id.slice(8)](s) : BOSS_MOTIF[id](s));
+const RIT_MOTIF = {
+  ascend: (s) => [{ f: shape([[0, -s], [s * 0.8, 0], [s * 0.3, 0], [s * 0.3, s], [-s * 0.3, s], [-s * 0.3, 0], [-s * 0.8, 0]]) }],
+  descend: (s) => [{ f: shape([[0, s], [s * 0.8, 0], [s * 0.3, 0], [s * 0.3, -s], [-s * 0.3, -s], [-s * 0.3, 0], [-s * 0.8, 0]]) }],
+  banish: (s) => [{ s: line([[-s * 0.7, -s * 0.7], [s * 0.7, s * 0.7]]) + line([[s * 0.7, -s * 0.7], [-s * 0.7, s * 0.7]]), w: s * 0.26 }],
+  twin: (s) => [{ f: rrect(-s * 0.85, -s * 0.8, s, s * 1.3, s * 0.16) }, { c: rrect(-s * 0.15, -s * 0.5, s, s * 1.3, s * 0.16), w: s * 0.16 }, { f: rrect(-s * 0.15, -s * 0.5, s, s * 1.3, s * 0.16), o: 0.75 }],
+};
+const ritMotif = (id, s) => (id.startsWith('transmute-') ? SUIT_MOTIF[id.slice(10)](s).map((p) => ({ ...p, col: p.f ? 'suit:' + id.slice(10) : p.col })) : RIT_MOTIF[id](s));
+
+/* Отрисовка частей знака. mode: solid — залитый знак; line — гравюра (контур + лёгкая заливка). */
+function drawParts(parts, o) {
+  return parts.map((p) => {
+    const tr = p.tr ? ` transform="${p.tr}"` : '';
+    const op = p.o ? ` opacity="${p.o}"` : '';
+    let col = p.col && !p.col.startsWith('suit:') ? p.col : o.paint;
+    if (p.col && p.col.startsWith('suit:') && o.suitPaint) col = o.suitPaint(p.col.slice(5));
+    if (p.c) return o.noCut ? '' : `<path d="${p.c}" fill="none" stroke="${o.cut}" stroke-width="${r2(p.w * (o.cutK ?? 1))}" stroke-linejoin="round" stroke-linecap="round"${tr}/>`;
+    if (p.s) return `<path d="${p.s}" fill="none" stroke="${col}" stroke-width="${r2(max(p.w * (o.sk ?? 1), o.minW ?? 0))}" stroke-linecap="round" stroke-linejoin="round"${tr}${op}/>`;
+    if (o.mode === 'line') return `<path d="${p.f}" fill="${col}" fill-opacity="${o.lineFill}" fill-rule="${p.rule ?? 'nonzero'}" stroke="${col}" stroke-width="${o.lineW}" stroke-linejoin="round"${tr}${op}/>`;
+    return `<path d="${p.f}" fill="${col}" fill-rule="${p.rule ?? 'nonzero'}"${tr}${op}/>`;
+  }).join('');
+}
+/* Силуэт для тени/свечения: всё одной краской, без прорезей */
+const silhouette = (parts, paint, extra = 0) => parts.map((p) => {
+  const tr = p.tr ? ` transform="${p.tr}"` : '';
+  if (p.c) return '';
+  if (p.s) return `<path d="${p.s}" fill="none" stroke="${paint}" stroke-width="${r2(p.w + extra)}" stroke-linecap="round" stroke-linejoin="round"${tr}/>`;
+  return `<path d="${p.f}" fill="${paint}" fill-rule="${p.rule ?? 'nonzero'}" stroke="${extra ? paint : 'none'}" stroke-width="${extra}" stroke-linejoin="round"${tr}/>`;
+}).join('');
+
+const mix = (a, b, t) => { const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16)), pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16)); return '#' + pa.map((v, i) => round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const svg = (size, body, vb = '-50 -50 100 100', h = size) => `<svg viewBox="${vb}" width="${size}" height="${h}" aria-hidden="true">${body}</svg>`;
+const blurF = (id, sd) => `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${sd}"/></filter>`;
+
+/* ───────── Схема созвездия: 4 карты линии, высота звезды — ранг, цвет — масть ───────── */
+function scheme(combo, W, H, pad) {
+  const ex = EX[combo];
+  const xs = ex.map((_, i) => pad + (i * (W - 2 * pad)) / 3);
+  const top = H * 0.2, bot = H * 0.84;
+  const y = (r) => bot - ((r - 1) / 8) * (bot - top);
+  const stars = ex.map(([r, su], i) => ({ x: xs[i], y: y(r), r, su, on: true }));
+  const links = []; let dashed = false;
+  const arc = (i, j, lift) => { const a = stars[i], b = stars[j]; return `M${pt(a.x, a.y)}Q${pt((a.x + b.x) / 2, a.y - lift)} ${pt(b.x, b.y)}`; };
+  const L = H * 0.2;
+  const byRank = (idx) => idx.slice().sort((a, b) => ex[a][0] - ex[b][0]);
+  switch (combo) {
+    case 'scatter': stars.forEach((s) => (s.on = false)); break;
+    case 'pair': links.push(arc(0, 1, L * 0.8)); stars[2].on = stars[3].on = false; break;
+    case 'twoPair': links.push(arc(0, 2, L), arc(1, 3, L)); break;
+    case 'mirror': links.push(arc(1, 2, L * 0.8), arc(0, 3, L * 1.1)); break;
+    case 'triple': links.push(arc(0, 1, L * 0.8), arc(1, 3, L * 0.9)); stars[2].on = false; break;
+    case 'quartet': links.push(line(stars.map((s) => [s.x, s.y]))); break;
+    case 'straight': case 'starFlush': links.push(line(byRank([0, 1, 2, 3]).map((i) => [stars[i].x, stars[i].y]))); dashed = true; break;
+    case 'cascade': case 'supernova': links.push(line(stars.map((s) => [s.x, s.y]))); break;
+    case 'flush': links.push(`M${pt(stars[0].x, bot + H * 0.08)}L${pt(stars[3].x, bot + H * 0.08)}`); break;
+  }
+  return { stars, links, dashed, burst: combo === 'supernova', flushBar: combo === 'flush' || combo === 'starFlush' || combo === 'supernova', bot };
+}
+
+/* ───────── Вариант 1 — «Эмаль» ───────── */
+const ENAMEL = {
+  key: 'enamel', name: 'Эмаль',
+  idea: 'Эмалевый медальон в латунной оправе: цвет поля — тема Знамения, золотой рельефный знак, камешек внизу оправы — цвет формулы.',
+  notes: [['Чем хорош', 'Самый «ювелирный» и дорогой: латунь из рамок игры стала оправой, у каждой темы своя эмаль. Вместо розового «+» поверх — камешек в оправе.'], ['Как читается', 'На 32 px работают цвет эмали и крупный золотой силуэт; оправа и гильоше уходят, остаётся рельеф.'], ['Риск', 'Пять медальонов в ряд — плотный блок золота; на шапке ночи оправа должна быть тоньше (36 px).']],
+  omen(id, size) {
+    const o = OMEN[id], f = FAM[OMEN_FAM[id]], small = size < 40, s = 23.5;
+    const g = { bez: uid(), en: uid(), gold: uid(), rim: uid(), gem: uid() };
+    const rare = o.rarity === 3;
+    const parts = MOTIF[id](s);
+    let b = `<defs>
+      <linearGradient id="${g.bez}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${rare ? '#fff6d8' : '#fff0c4'}"/><stop offset=".3" stop-color="${rare ? '#f2b84e' : '#dca546'}"/><stop offset=".56" stop-color="${rare ? '#9a5410' : '#7d5214'}"/><stop offset=".8" stop-color="${rare ? '#ffcf6a' : '#e8b85a'}"/><stop offset="1" stop-color="#fff2cc"/></linearGradient>
+      <radialGradient id="${g.en}" cx=".5" cy=".3" r=".78"><stop offset="0" stop-color="${mix(f.base, '#ffffff', 0.08)}"/><stop offset=".5" stop-color="${mix(f.base, f.deep, 0.5)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient>
+      <radialGradient id="${g.rim}" cx=".5" cy=".5" r=".5"><stop offset=".78" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+      <linearGradient id="${g.gold}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d6"/><stop offset=".45" stop-color="#f6c25b"/><stop offset="1" stop-color="#b8751c"/></linearGradient>
+    </defs>`;
+    b += `<circle r="49" fill="#000" opacity=".35" cy="1.2"/>`;
+    b += `<circle r="47" fill="url(#${g.bez})"/>`;
+    if (!small) b += `<circle r="46.3" fill="none" stroke="#fff7dc" stroke-opacity=".55" stroke-width=".8"/>`;
+    b += `<circle r="${small ? 40 : 41}" fill="url(#${g.en})"/>`;
+    if (!small) {
+      b += `<g stroke="${f.hi}" stroke-opacity=".07" stroke-width=".7">` + Array.from({ length: 48 }, (_, i) => { const a = (i / 48) * 2 * PI; return `<line x1="${r2(cos(a) * 9)}" y1="${r2(sin(a) * 9)}" x2="${r2(cos(a) * 40)}" y2="${r2(sin(a) * 40)}"/>`; }).join('') + `</g>`;
+    }
+    b += `<circle r="${small ? 40 : 41}" fill="url(#${g.rim})"/>`;
+    b += `<circle r="${small ? 40.2 : 41.2}" fill="none" stroke="#2a1804" stroke-opacity=".8" stroke-width="1.4"/>`;
+    // рельеф: тень снизу, затем золото
+    const k = size < 40 ? 1.24 : size < 60 ? 1.1 : 1;
+    b += `<g transform="scale(${k})"><g transform="translate(0 2)" opacity=".55">${silhouette(parts, '#000')}</g>`;
+    b += drawParts(parts, { paint: `url(#${g.gold})`, cut: mix(f.base, f.deep, 0.55), suitPaint: (su) => SUIT[su][0] }) + `</g>`;
+    // редкость: бусины на оправе / звезда сверху
+    if (o.rarity >= 2 && !small) b += `<g fill="#fff4d0" opacity=".85">` + Array.from({ length: 20 }, (_, i) => { const a = (i / 20) * 2 * PI - PI / 2; if (abs(a - PI / 2) < 0.2 || (rare && abs(a + PI / 2) < 0.2)) return ''; return `<circle cx="${r2(cos(a) * 44)}" cy="${r2(sin(a) * 44)}" r="1.05"/>`; }).join('') + `</g>`;
+    if (rare) b += `<path d="${sparkle(0, -44, small ? 7 : 6.2, 4, 0.3)}" fill="#fffbe8" stroke="#8a5a14" stroke-width=".6"/>`;
+    // вид: камешек в оправе снизу
+    const kc = KIND_COL[o.kind];
+    if (kc) {
+      const r = small ? 6.6 : 5.4;
+      b += `<defs><radialGradient id="${g.gem}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="${kc}"/><stop offset="1" stop-color="${mix(kc, '#000000', 0.45)}"/></radialGradient></defs>`;
+      const gp = o.kind === 'xmult' ? poly(4, r * 1.3, -PI / 2, 0, 44) : circ(0, 44, r);
+      b += `<path d="${gp}" fill="url(#${g.gem})" stroke="#3a2406" stroke-width="1"/>`;
+    }
+    return svg(size, b);
+  },
+  boss(id, size) {
+    const small = size < 40, s = 21, g = { bez: uid(), en: uid(), pearl: uid(), rim: uid() };
+    const suit = id.startsWith('eclipse-') ? id.slice(8) : null;
+    const parts = bossMotif(id, s);
+    let b = `<defs>
+      <linearGradient id="${g.bez}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset=".35" stop-color="#d8cdb8"/><stop offset=".58" stop-color="#7d7466"/><stop offset=".82" stop-color="#efe5d2"/><stop offset="1" stop-color="#fffaf0"/></linearGradient>
+      <radialGradient id="${g.en}" cx=".5" cy=".32" r=".8"><stop offset="0" stop-color="#26213e"/><stop offset=".6" stop-color="#0d0b1c"/><stop offset="1" stop-color="#030208"/></radialGradient>
+      <linearGradient id="${g.pearl}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${suit ? SUIT[suit][1] : '#fffaf0'}"/><stop offset="1" stop-color="${suit ? SUIT[suit][0] : '#cbbfa8'}"/></linearGradient>
+    </defs>`;
+    b += `<circle r="49" fill="#000" opacity=".4" cy="1.2"/><circle r="47" fill="url(#${g.bez})"/>`;
+    b += `<circle r="${small ? 40 : 41}" fill="url(#${g.en})"/><circle r="${small ? 40.2 : 41.2}" fill="none" stroke="#2c271f" stroke-width="1.4"/>`;
+    if (!small) b += `<g fill="#fffaf0">` + Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * 2 * PI; return `<circle cx="${r2(cos(a) * 44)}" cy="${r2(sin(a) * 44)}" r="1.5"/>`; }).join('') + `</g>`;
+    if (suit) b += `<circle r="30" fill="${SUIT[suit][0]}" opacity=".12"/>`;
+    const k = size < 40 ? 1.24 : size < 60 ? 1.1 : 1;
+    b += `<g transform="scale(${k})"><g transform="translate(0 2)" opacity=".6">${silhouette(parts, '#000')}</g>${drawParts(parts, { paint: `url(#${g.pearl})`, cut: '#0d0b1c' })}</g>`;
+    return svg(size, b);
+  },
+  chart(combo, size) {
+    const small = size < 40, g = { bez: uid(), en: uid() }, f = FAM.lapis;
+    const sc = scheme(combo, 64, 54, 9);
+    let b = `<defs><linearGradient id="${g.bez}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0c4"/><stop offset=".3" stop-color="#dca546"/><stop offset=".56" stop-color="#7d5214"/><stop offset=".8" stop-color="#e8b85a"/><stop offset="1" stop-color="#fff2cc"/></linearGradient>
+      <radialGradient id="${g.en}" cx=".5" cy=".25" r=".9"><stop offset="0" stop-color="${mix(f.base, '#ffffff', .06)}"/><stop offset=".55" stop-color="${mix(f.base, f.deep, .55)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient></defs>`;
+    b += `<rect x="-47" y="-47" width="94" height="94" rx="16" fill="#000" opacity=".35" transform="translate(0 1.2)"/><rect x="-46" y="-46" width="92" height="92" rx="15" fill="url(#${g.bez})"/><rect x="-40" y="-40" width="80" height="80" rx="10" fill="url(#${g.en})" stroke="#2a1804" stroke-width="1.2"/>`;
+    b += `<g transform="translate(-32 -29)">${enamelScheme(sc, small ? 1.45 : 1.2, small)}</g>`;
+    return svg(size, b);
+  },
+  ritual(id, size) {
+    const small = size < 40, g = { bez: uid(), en: uid(), gold: uid() }, f = FAM.wine;
+    const parts = ritMotif(id, 17);
+    let b = `<defs><linearGradient id="${g.bez}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0c4"/><stop offset=".3" stop-color="#dca546"/><stop offset=".56" stop-color="#7d5214"/><stop offset=".8" stop-color="#e8b85a"/><stop offset="1" stop-color="#fff2cc"/></linearGradient>
+      <radialGradient id="${g.en}" cx=".5" cy=".25" r=".9"><stop offset="0" stop-color="${mix(f.base, '#ffffff', .05)}"/><stop offset=".55" stop-color="${mix(f.base, f.deep, .55)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient>
+      <linearGradient id="${g.gold}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d6"/><stop offset=".45" stop-color="#f6c25b"/><stop offset="1" stop-color="#b8751c"/></linearGradient></defs>`;
+    b += `<path d="${rrect(-33, -47, 66, 94, 11)}" fill="#000" opacity=".35" transform="translate(0 1.2)"/><path d="${rrect(-32, -46, 64, 92, 10)}" fill="url(#${g.bez})"/><path d="${rrect(-26, -40, 52, 80, 6)}" fill="url(#${g.en})" stroke="#2a1804" stroke-width="1.2"/>`;
+    const k = size < 40 ? 1.2 : 1;
+    b += `<g transform="scale(${k})"><g transform="translate(0 2)" opacity=".55">${silhouette(parts, '#000')}</g>${drawParts(parts, { paint: `url(#${g.gold})`, cut: mix(f.base, f.deep, .55), suitPaint: (su) => SUIT[su][0] })}</g>`;
+    return svg(size, b);
+  },
+  comboIcon(combo, w, h) {
+    const g = { bez: uid(), en: uid() }, f = FAM.lapis;
+    const sc = scheme(combo, 112, 62, 16);
+    let b = `<defs><linearGradient id="${g.bez}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0c4"/><stop offset=".3" stop-color="#dca546"/><stop offset=".56" stop-color="#7d5214"/><stop offset=".8" stop-color="#e8b85a"/><stop offset="1" stop-color="#fff2cc"/></linearGradient>
+      <radialGradient id="${g.en}" cx=".5" cy=".2" r="1"><stop offset="0" stop-color="${mix(f.base, '#ffffff', .04)}"/><stop offset=".5" stop-color="${mix(f.base, f.deep, .6)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient></defs>`;
+    b += `<rect x="1" y="1" width="114" height="66" rx="12" fill="url(#${g.bez})"/><rect x="4.5" y="4.5" width="107" height="59" rx="9" fill="url(#${g.en})" stroke="#2a1804" stroke-width="1"/>`;
+    b += `<g transform="translate(2 3)">${enamelScheme(sc, 1, false)}</g>`;
+    return svg(w, b, '0 0 116 68', h);
+  },
+};
+const abs = Math.abs;
+function enamelScheme(sc, k, small) {
+  const gold = uid();
+  let b = `<defs><linearGradient id="${gold}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="70"><stop offset="0" stop-color="#ffe6a8"/><stop offset="1" stop-color="#d99a35"/></linearGradient></defs>`;
+  if (sc.flushBar) b += `<path d="M${pt(sc.stars[0].x - 4, sc.bot + 7)}H${r2(sc.stars[3].x + 4)}" stroke="${SUIT[sc.stars[0].su][0]}" stroke-width="${2.4 * k}" stroke-linecap="round" opacity=".9"/>`;
+  b += sc.links.map((d) => `<path d="${d}" fill="none" stroke="url(#${gold})" stroke-width="${2 * k}" stroke-linecap="round" stroke-linejoin="round"${sc.dashed ? ` stroke-dasharray="${3 * k} ${3 * k}"` : ''}/>`).join('');
+  for (const s of sc.stars) {
+    const r = (s.on ? 7.6 : 5.2) * k;
+    b += `<g opacity="${s.on ? 1 : 0.45}"><path d="${sparkle(s.x, s.y + 1, r, 4, 0.3)}" fill="#000" opacity=".5"/><path d="${sparkle(s.x, s.y, r, 4, 0.3)}" fill="${SUIT[s.su][0]}"/><circle cx="${s.x}" cy="${s.y}" r="${r * 0.22}" fill="#fff"/></g>`;
+  }
+  if (sc.burst) { const t = sc.stars[3]; b += `<path d="${sparkle(t.x, t.y, 13, 8, 0.25)}" fill="none" stroke="#ffe6a8" stroke-width="1" opacity=".8"/>`; }
+  return b;
+}
+
+/* ───────── Вариант 2 — «Гравюра» ───────── */
+const ENGRAVE = {
+  key: 'engrave', name: 'Гравюра',
+  idea: 'Астролябия: глубокий цвет темы, знак — тонкая светящаяся золотая гравировка, по кольцу — деления и дуга цвета формулы.',
+  notes: [['Чем хорош', 'Ближе всех к языку 0.5: латунь — линия, а не заливка; кольца и деления как у купола. Самый спокойный ряд на экране.'], ['Как читается', 'Ореол цвета темы за знаком даёт глубину; на 32 px линии толстеют, заливка знака плотнее — силуэт держится.'], ['Риск', 'Тонкая линия слабее заливки: на ярком небе и в мелком размере знак тише, чем у «Эмали».']],
+  omen(id, size) {
+    const o = OMEN[id], f = FAM[OMEN_FAM[id]], small = size < 40, s = 25 * (size < 40 ? 1.16 : size < 60 ? 1.06 : 1);
+    const g = { disc: uid(), aura: uid(), blur: uid() };
+    const parts = MOTIF[id](s);
+    const gold = '#ffe2a0';
+    let b = `<defs>
+      <radialGradient id="${g.disc}" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="${mix(f.base, f.deep, 0.35)}"/><stop offset=".62" stop-color="${f.deep}"/><stop offset="1" stop-color="${mix(f.deep, '#05061a', 0.6)}"/></radialGradient>
+      <radialGradient id="${g.aura}"><stop offset="0" stop-color="${f.base}" stop-opacity=".5"/><stop offset="1" stop-color="${f.base}" stop-opacity="0"/></radialGradient>
+      ${blurF(g.blur, small ? 2.6 : 2)}
+    </defs>`;
+    b += `<circle r="47.5" fill="url(#${g.disc})"/>`;
+    b += `<circle r="32" fill="url(#${g.aura})"/>`;
+    b += `<circle r="46.2" fill="none" stroke="${gold}" stroke-opacity=".9" stroke-width="${small ? 2.6 : 1.5}"/>`;
+    if (!small) {
+      b += `<circle r="40.5" fill="none" stroke="${gold}" stroke-opacity=".38" stroke-width=".8"/>`;
+      if (size >= 56) b += `<g stroke="${gold}" stroke-opacity=".42" stroke-width=".7">` + Array.from({ length: 60 }, (_, i) => { const a = (i / 60) * 2 * PI; const r0 = i % 5 === 0 ? 41.8 : 43.2; return `<line x1="${r2(cos(a) * r0)}" y1="${r2(sin(a) * r0)}" x2="${r2(cos(a) * 45.2)}" y2="${r2(sin(a) * 45.2)}"/>`; }).join('') + `</g>`;
+    }
+    // свечение знака цветом темы
+    b += `<g filter="url(#${g.blur})" opacity="${small ? .7 : .5}">${silhouette(parts, f.base, small ? 3 : 2.4)}</g>`;
+    b += drawParts(parts, { paint: gold, cut: f.deep, mode: 'line', lineFill: small ? 0.7 : 0.16, lineW: small ? 3.4 : 2.2, minW: small ? 3.6 : 2.2, suitPaint: (su) => SUIT[su][0] });
+    // вид — дуга на кольце снизу
+    const kc = KIND_COL[o.kind];
+    if (kc) {
+      const span = o.kind === 'gold' ? 0.3 : 0.42;
+      b += `<path d="${arcP(0, 0, 46.2, PI / 2 - span, PI / 2 + span)}" fill="none" stroke="${kc}" stroke-width="${small ? 4.2 : 3}" stroke-linecap="round"/>`;
+      if (o.kind === 'xmult') b += `<path d="${arcP(0, 0, small ? 40.5 : 41.5, PI / 2 - 0.3, PI / 2 + 0.3)}" fill="none" stroke="${kc}" stroke-width="${small ? 3 : 1.8}" stroke-linecap="round"/>`;
+    }
+    // редкость — звёздочки на кольце сверху
+    const n = o.rarity;
+    for (let i = 0; i < n; i++) {
+      if (small && n < 3) break;
+      const a = -PI / 2 + (i - (n - 1) / 2) * 0.24;
+      b += `<path d="${sparkle(cos(a) * 46.2, sin(a) * 46.2, small ? 7.5 : 4.6, 4, 0.3)}" fill="#fff6dc" stroke="${f.deep}" stroke-width="1"/>`;
+    }
+    return svg(size, b);
+  },
+  boss(id, size) {
+    const small = size < 40, s = 20, g = { glow: uid(), blur: uid() };
+    const suit = id.startsWith('eclipse-') ? id.slice(8) : null;
+    const pearl = suit ? SUIT[suit][1] : '#fff1dc';
+    const parts = bossMotif(id, s);
+    let seed = 0; for (const ch of id) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    let b = `<defs><radialGradient id="${g.glow}"><stop offset=".55" stop-color="${suit ? SUIT[suit][0] : '#ffeed2'}" stop-opacity=".55"/><stop offset="1" stop-color="#ffeed2" stop-opacity="0"/></radialGradient>${blurF(g.blur, 2)}</defs>`;
+    b += `<circle r="50" fill="url(#${g.glow})"/>`;
+    b += `<g stroke="#fff1dc" stroke-opacity=".6" stroke-width="${small ? 1.4 : 0.8}">` + Array.from({ length: small ? 16 : 32 }, (_, i) => { const ang = (i / (small ? 16 : 32)) * 2 * PI + 0.1; const len = 41 + ((seed >> (i % 24)) & 3) * 2.2; return `<line x1="${r2(cos(ang) * 37)}" y1="${r2(sin(ang) * 37)}" x2="${r2(cos(ang) * len)}" y2="${r2(sin(ang) * len)}"/>`; }).join('') + `</g>`;
+    b += `<circle r="36" fill="#05040d"/><circle r="36" fill="none" stroke="#fff1dc" stroke-width="${small ? 2.6 : 1.4}"/>`;
+    if (!small) b += `<circle r="31.5" fill="none" stroke="#fff1dc" stroke-opacity=".25" stroke-width=".7"/>`;
+    b += `<g filter="url(#${g.blur})" opacity=".7">${silhouette(parts, suit ? SUIT[suit][0] : '#ffeed2', 2)}</g>`;
+    b += drawParts(parts, { paint: pearl, cut: '#05040d', mode: 'line', lineFill: small ? 0.7 : 0.25, lineW: small ? 3.2 : 2, minW: small ? 3.4 : 2 });
+    return svg(size, b);
+  },
+  chart(combo, size) {
+    const small = size < 40, f = FAM.lapis, g = { bg: uid() };
+    const sc = scheme(combo, 70, 58, 9);
+    let b = `<defs><radialGradient id="${g.bg}" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="${mix(f.base, f.deep, .4)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient></defs>`;
+    b += `<rect x="-46" y="-46" width="92" height="92" rx="12" fill="url(#${g.bg})" stroke="#ffe2a0" stroke-width="${small ? 2.6 : 1.5}"/>`;
+    if (!small) b += `<rect x="-40.5" y="-40.5" width="81" height="81" rx="8" fill="none" stroke="#ffe2a0" stroke-opacity=".35" stroke-width=".8"/>`;
+    b += `<g transform="translate(-35 -31)">${engraveScheme(sc, small ? 1.5 : 1.2, small)}</g>`;
+    return svg(size, b);
+  },
+  ritual(id, size) {
+    const small = size < 40, f = FAM.wine, g = { bg: uid(), blur: uid() };
+    const parts = ritMotif(id, 17.5);
+    let b = `<defs><radialGradient id="${g.bg}" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="${mix(f.base, f.deep, .35)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient>${blurF(g.blur, 2)}</defs>`;
+    b += `<path d="${rrect(-32, -46, 64, 92, 9)}" fill="url(#${g.bg})" stroke="#ffe2a0" stroke-width="${small ? 2.6 : 1.5}"/>`;
+    if (!small) b += `<path d="${rrect(-27, -41, 54, 82, 5)}" fill="none" stroke="#ffe2a0" stroke-opacity=".35" stroke-width=".8"/>`;
+    b += `<g filter="url(#${g.blur})">${silhouette(parts, f.hi, 2)}</g>`;
+    b += drawParts(parts, { paint: '#ffe2a0', cut: f.deep, mode: 'line', lineFill: small ? .7 : .26, lineW: small ? 3.2 : 2.1, minW: small ? 3.4 : 2.1, suitPaint: (su) => SUIT[su][0] });
+    return svg(size, b);
+  },
+  comboIcon(combo, w, h) {
+    const sc = scheme(combo, 112, 62, 16);
+    const g = uid();
+    let b = `<defs><radialGradient id="${g}" cx=".5" cy=".9" r=".9"><stop offset="0" stop-color="#2a3a8a" stop-opacity=".55"/><stop offset="1" stop-color="#2a3a8a" stop-opacity="0"/></radialGradient></defs>`;
+    b += `<rect x="0" y="0" width="116" height="68" rx="12" fill="url(#${g})"/>`;
+    b += `<path d="M 6 66 A 52 52 0 0 1 110 66" fill="none" stroke="#ffe2a0" stroke-opacity=".18" stroke-width=".8"/>`;
+    b += `<g transform="translate(2 3)">${engraveScheme(sc, 1, false)}</g>`;
+    return svg(w, b, '0 0 116 68', h);
+  },
+};
+function engraveScheme(sc, k, small) {
+  const bl = uid();
+  let b = `<defs>${blurF(bl, 1.6)}</defs>`;
+  if (sc.flushBar) b += `<path d="M${pt(sc.stars[0].x - 3, sc.bot + 7)}H${r2(sc.stars[3].x + 3)}" stroke="${SUIT[sc.stars[0].su][0]}" stroke-width="${1.4 * k}" stroke-linecap="round" stroke-dasharray="${small ? 'none' : '0.1 3.4'}" opacity=".9"/>`;
+  b += sc.links.map((d) => `<path d="${d}" fill="none" stroke="#ffe2a0" stroke-width="${1.3 * k}" stroke-linecap="round" stroke-linejoin="round"${sc.dashed ? ` stroke-dasharray="${3 * k} ${2.6 * k}"` : ''}/>`).join('');
+  for (const s of sc.stars) {
+    const r = (s.on ? 7.4 : 5) * k;
+    const c = SUIT[s.su][0];
+    b += `<g opacity="${s.on ? 1 : 0.4}"><circle cx="${s.x}" cy="${s.y}" r="${r * 1.1}" fill="${c}" filter="url(#${bl})" opacity=".8"/><path d="${sparkle(s.x, s.y, r, 4, 0.22)}" fill="${SUIT[s.su][1]}"/></g>`;
+  }
+  if (sc.burst) { const t = sc.stars[3]; b += `<g stroke="#ffe2a0" stroke-width=".8" opacity=".85">` + Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * 2 * PI; return `<line x1="${r2(t.x + cos(a) * 9)}" y1="${r2(t.y + sin(a) * 9)}" x2="${r2(t.x + cos(a) * 14)}" y2="${r2(t.y + sin(a) * 14)}"/>`; }).join('') + `</g>`; }
+  return b;
+}
+
+/* ───────── Вариант 3 — «Самоцвет» ───────── */
+const GEM_SHAPE = {
+  light: () => circ(0, 0, 43),
+  mult: () => rrect(-40, -40, 80, 80, 19),
+  xmult: () => poly(4, 48.5),
+  rule: () => poly(6, 46, -PI / 2),
+  gold: () => poly(8, 45, -PI / 2 + PI / 8),
+};
+const GEM_VERTS = { light: 8, mult: 4, xmult: 4, rule: 6, gold: 8 };
+function gemFacets(kind, scale) {
+  const n = GEM_VERTS[kind];
+  const off = kind === 'gold' ? -PI / 2 + PI / 8 : kind === 'mult' ? -PI / 4 : -PI / 2;
+  const R = kind === 'mult' ? 50 : kind === 'xmult' ? 48.5 : 44;
+  const r = R * scale;
+  let d = '';
+  for (let i = 0; i < n; i++) { const a = off + (i / n) * 2 * PI; d += `M${pt(cos(a) * r, sin(a) * r)}L${pt(cos(a) * R * 0.92, sin(a) * R * 0.92)}`; }
+  const table = kind === 'light' ? circ(0, 0, r) : kind === 'mult' ? rrect(-r * 0.7, -r * 0.7, r * 1.4, r * 1.4, r * 0.3) : poly(n, r, off);
+  return { d, table };
+}
+const GEM = {
+  key: 'gem', name: 'Самоцвет',
+  idea: 'Огранённый камень со светом внутри: огранка — что делает (круг — свет, подушка — +множитель, ромб — ×, шестигранник — правило, восьмигранник — золото), цвет — тема.',
+  notes: [['Чем хорош', 'Самый сочный: свет идёт изнутри камня, как от звезды. Вид Знамения читается формой, без бейджа поверх — это учит без слов.'], ['Как читается', 'На 32 px различаются огранка, цвет и светящийся силуэт; огранка и крапаны уходят, остаётся камень и свет.'], ['Риск', 'Разные силуэты в ряду живее, но и пестрее; новичку надо один раз объяснить огранку (строкой в Справочнике).']],
+  omen(id, size) {
+    const o = OMEN[id], f = FAM[OMEN_FAM[id]], small = size < 40;
+    const s = (o.kind === 'xmult' ? 19 : 21.5) * (size < 40 ? 1.14 : size < 60 ? 1.06 : 1);
+    const g = { body: uid(), core: uid(), lum: uid(), blur: uid(), spec: uid() };
+    const parts = MOTIF[id](s);
+    const sh = GEM_SHAPE[o.kind]();
+    const fac = gemFacets(o.kind, 0.6);
+    let b = `<defs>
+      <radialGradient id="${g.body}" cx=".42" cy=".36" r=".72"><stop offset="0" stop-color="${mix(f.base, f.deep, 0.15)}"/><stop offset=".55" stop-color="${mix(f.base, f.deep, 0.62)}"/><stop offset="1" stop-color="${mix(f.deep, '#000', 0.25)}"/></radialGradient>
+      <radialGradient id="${g.core}"><stop offset="0" stop-color="${f.base}" stop-opacity=".95"/><stop offset=".6" stop-color="${f.base}" stop-opacity=".25"/><stop offset="1" stop-color="${f.base}" stop-opacity="0"/></radialGradient>
+      <linearGradient id="${g.lum}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="${f.hi}"/></linearGradient>
+      <radialGradient id="${g.spec}" cx=".3" cy=".22" r=".35"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      ${blurF(g.blur, small ? 3 : 2.6)}
+    </defs>`;
+    b += `<path d="${sh}" fill="#000" opacity=".45" transform="translate(0 2)"/>`;
+    b += `<path d="${sh}" fill="url(#${g.body})"/>`;
+    b += `<circle r="30" fill="url(#${g.core})"/>`;
+    if (!small) b += `<path d="${fac.d}" stroke="#fff" stroke-opacity=".13" stroke-width=".8"/><path d="${fac.table}" fill="#fff" fill-opacity=".04" stroke="#fff" stroke-opacity=".16" stroke-width=".8"/>`;
+    b += `<path d="${sh}" fill="url(#${g.spec})"/>`;
+    // оправа — тонкая латунь
+    b += `<path d="${sh}" fill="none" stroke="#f6c25b" stroke-opacity=".95" stroke-width="${small ? 2.6 : 1.6}"/>`;
+    if (o.rarity >= 2 && !small) b += `<path d="${sh}" fill="none" stroke="#ffe6a8" stroke-opacity=".45" stroke-width=".8" transform="scale(.9)"/>`;
+    // свет изнутри: размытый ореол цвета темы + светлый знак
+    const k = size < 40 ? 1.24 : size < 60 ? 1.1 : 1;
+    b += `<g transform="scale(${k})"><g filter="url(#${g.blur})">${silhouette(parts, f.base, 3)}</g><g filter="url(#${g.blur})" opacity=".8">${silhouette(parts, f.hi, 0)}</g>`;
+    b += drawParts(parts, { paint: `url(#${g.lum})`, cut: mix(f.base, f.deep, 0.4), suitPaint: (su) => SUIT[su][1] }) + `</g>`;
+    if (o.rarity === 3) b += `<path d="${sparkle(29, -30, small ? 10 : 8, 4, 0.22)}" fill="#fff" />`;
+    return svg(size, b);
+  },
+  boss(id, size) {
+    const small = size < 40, s = 19, g = { body: uid(), halo: uid(), blur: uid(), lum: uid() };
+    const suit = id.startsWith('eclipse-') ? id.slice(8) : null;
+    const tint = suit ? SUIT[suit][0] : '#ffeed2';
+    const parts = bossMotif(id, s);
+    let b = `<defs>
+      <radialGradient id="${g.halo}"><stop offset=".6" stop-color="${tint}" stop-opacity=".6"/><stop offset=".8" stop-color="${tint}" stop-opacity=".18"/><stop offset="1" stop-color="${tint}" stop-opacity="0"/></radialGradient>
+      <radialGradient id="${g.body}" cx=".4" cy=".34" r=".75"><stop offset="0" stop-color="#2a2540"/><stop offset=".6" stop-color="#0b0916"/><stop offset="1" stop-color="#000"/></radialGradient>
+      <linearGradient id="${g.lum}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="${suit ? SUIT[suit][1] : '#f3e3c6'}"/></linearGradient>
+      ${blurF(g.blur, 2.6)}</defs>`;
+    b += `<circle r="50" fill="url(#${g.halo})"/>`;
+    b += `<circle r="38" fill="url(#${g.body})"/>`;
+    if (!small) b += `<g stroke="#fff" stroke-opacity=".08" stroke-width=".8">` + Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * 2 * PI; return `<line x1="${r2(cos(a) * 22)}" y1="${r2(sin(a) * 22)}" x2="${r2(cos(a) * 36)}" y2="${r2(sin(a) * 36)}"/>`; }).join('') + `<circle r="22" fill="none"/></g>`;
+    b += `<circle r="38" fill="none" stroke="#fff1dc" stroke-width="${small ? 2.6 : 1.6}"/>`;
+    b += `<g filter="url(#${g.blur})">${silhouette(parts, tint, 3)}</g>${drawParts(parts, { paint: `url(#${g.lum})`, cut: '#0b0916' })}`;
+    return svg(size, b);
+  },
+  chart(combo, size) {
+    const small = size < 40, f = FAM.lapis, g = { body: uid(), spec: uid() };
+    const sc = scheme(combo, 64, 54, 8);
+    let b = `<defs><radialGradient id="${g.body}" cx=".42" cy=".36" r=".75"><stop offset="0" stop-color="${mix(f.base, f.deep, .3)}"/><stop offset=".6" stop-color="${mix(f.base, f.deep, .72)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient>
+      <radialGradient id="${g.spec}" cx=".3" cy=".22" r=".35"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>`;
+    const sh = rrect(-44, -44, 88, 88, 14);
+    b += `<path d="${sh}" fill="#000" opacity=".45" transform="translate(0 2)"/><path d="${sh}" fill="url(#${g.body})"/><path d="${sh}" fill="url(#${g.spec})"/><path d="${sh}" fill="none" stroke="#f6c25b" stroke-width="${small ? 2.6 : 1.6}"/>`;
+    b += `<g transform="translate(-32 -28)">${gemScheme(sc, small ? 1.45 : 1.2, small)}</g>`;
+    return svg(size, b);
+  },
+  ritual(id, size) {
+    const small = size < 40, f = FAM.wine, g = { body: uid(), blur: uid(), lum: uid(), spec: uid() };
+    const parts = ritMotif(id, 17);
+    const sh = rrect(-31, -45, 62, 90, 10);
+    let b = `<defs><radialGradient id="${g.body}" cx=".42" cy=".36" r=".75"><stop offset="0" stop-color="${mix(f.base, f.deep, .2)}"/><stop offset=".6" stop-color="${mix(f.base, f.deep, .65)}"/><stop offset="1" stop-color="${f.deep}"/></radialGradient>
+      <linearGradient id="${g.lum}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="${f.hi}"/></linearGradient>
+      <radialGradient id="${g.spec}" cx=".3" cy=".18" r=".4"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>${blurF(g.blur, 2.6)}</defs>`;
+    b += `<path d="${sh}" fill="#000" opacity=".45" transform="translate(0 2)"/><path d="${sh}" fill="url(#${g.body})"/><path d="${sh}" fill="url(#${g.spec})"/><path d="${sh}" fill="none" stroke="#f6c25b" stroke-width="${small ? 2.6 : 1.6}"/>`;
+    b += `<g filter="url(#${g.blur})">${silhouette(parts, f.base, 3)}</g>${drawParts(parts, { paint: `url(#${g.lum})`, cut: mix(f.base, f.deep, .5), suitPaint: (su) => SUIT[su][1] })}`;
+    return svg(size, b);
+  },
+  comboIcon(combo, w, h) {
+    const sc = scheme(combo, 112, 62, 16);
+    const g = uid();
+    let b = `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15123a"/><stop offset="1" stop-color="#0a0920"/></linearGradient></defs>`;
+    b += `<rect x="0" y="0" width="116" height="68" rx="12" fill="url(#${g})"/>`;
+    b += `<g transform="translate(2 3)">${gemScheme(sc, 1, false)}</g>`;
+    return svg(w, b, '0 0 116 68', h);
+  },
+};
+function gemScheme(sc, k, small) {
+  const bl = uid(), th = uid();
+  let b = `<defs>${blurF(bl, 2.2)}<linearGradient id="${th}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="116" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#ffe6a8" stop-opacity=".95"/></linearGradient></defs>`;
+  if (sc.flushBar) b += `<path d="M${pt(sc.stars[0].x - 4, sc.bot + 7)}H${r2(sc.stars[3].x + 4)}" stroke="${SUIT[sc.stars[0].su][0]}" stroke-width="${2 * k}" stroke-linecap="round" filter="url(#${bl})"/><path d="M${pt(sc.stars[0].x - 4, sc.bot + 7)}H${r2(sc.stars[3].x + 4)}" stroke="${SUIT[sc.stars[0].su][1]}" stroke-width="${1 * k}" stroke-linecap="round"/>`;
+  b += sc.links.map((d) => `<path d="${d}" fill="none" stroke="#ffd98a" stroke-width="${3.2 * k}" stroke-linecap="round" filter="url(#${bl})" opacity=".8"/><path d="${d}" fill="none" stroke="url(#${th})" stroke-width="${1.2 * k}" stroke-linecap="round" stroke-linejoin="round"${sc.dashed ? ` stroke-dasharray="${3 * k} ${2.6 * k}"` : ''}/>`).join('');
+  for (const s of sc.stars) {
+    const r = (s.on ? 7.6 : 5.2) * k;
+    const [c, hi] = SUIT[s.su];
+    b += `<g opacity="${s.on ? 1 : 0.4}"><circle cx="${s.x}" cy="${s.y}" r="${r * 1.2}" fill="${c}" filter="url(#${bl})"/><path d="${poly(4, r, -PI / 2, s.x, s.y)}" fill="${c}" stroke="${hi}" stroke-width=".8"/><path d="${poly(4, r * 0.42, -PI / 2, s.x, s.y)}" fill="#fff"/></g>`;
+  }
+  if (sc.burst) { const t = sc.stars[3]; b += `<path d="${sparkle(t.x, t.y, 15, 8, 0.2)}" fill="#fff" opacity=".55" filter="url(#${bl})"/>`; }
+  return b;
+}
+
+/* ───────── «Сейчас» — арт из игры ───────── */
+const img = (key, size) => (NOW[key] ? `<img src="${NOW[key]}" width="${size}" height="${size}" alt="">` : `<span style="width:${size}px;height:${size}px;display:block"></span>`);
+const CURRENT = {
+  key: 'now', name: 'Сейчас',
+  idea: 'Как в игре сейчас (0.5.1): кольца редкости бирюзой, синим и оранжевым, сидированный орнамент, розовый значок вида поверх в рядах.',
+  notes: [['Что хорошо', 'Знаки уже узнаваемые и разные; Затмения — тёмный диск с короной.'], ['Что не так', 'Цвета колец не из палитры 0.5 (мятный, сиреневый, оранжевый), латуни нет; звёздные карты — случайная ломаная, не схема созвездия.'], ['В рядах', 'Значок вида «+ × ✦ ●» поверх медали — тот самый бейдж, от которого ушли в Обсерватории.']],
+  omen: (id, size) => img('omen-' + id, size),
+  boss: (id, size) => img('boss-' + id, size),
+  chart: (c, size) => img('chart-' + c, size),
+  ritual: (id, size) => img('ritual-' + id, size),
+  comboIcon: (c, w) => img('chart-' + c, w > 60 ? 48 : 44),
+  badge: true,
+};
+
+const VARIANTS = [ENAMEL, ENGRAVE, GEM, CURRENT];
+
+/* ───────── Разметка ───────── */
+const coin = '<span class="coin"></span>';
+function slot(v, id, size) {
+  if (!id) return `<div class="slot empty" style="width:${size}px;height:${size}px"></div>`;
+  const k = OMEN[id].kind;
+  const badge = v.badge ? `<span class="badge ${k}">${{ light: '+', mult: '+', xmult: '×', rule: '✦', gold: '●' }[k]}</span>` : '';
+  return `<div class="slot" style="width:${size}px;height:${size}px">${v.omen(id, size)}${badge}</div>`;
+}
+function mocks(v) {
+  const belt = ['stardust', 'twinStars', 'glassCannon', 'miser', null];
+  const head = ['sunWorship', 'ladder', 'nightOwl', 'corona', null];
+  const star = (sz) => `<span class="mstar" style="width:${sz}px;height:${sz}px"></span>`;
+  const mapLine = `<div class="mapline">${star(26)}<i class="lit"></i>${star(26)}<i class="dash"></i><span class="mboss">${v.boss('eclipse-moon', 56)}<small>Затмение</small></span></div>`;
+  const map = `<div class="mock"><p class="mock-cap">Карта главы — строка «Знамения» (44 px, один слот пуст)</p>${mapLine}
+      <div class="belt"><span class="sec">Знамения</span><div class="slots">${belt.map((id) => slot(v, id, 44)).join('')}</div></div></div>`;
+  const shop = `<div class="mock"><p class="mock-cap">Обсерватория — товары (56 px)</p>
+      <div class="ware">${v.omen('stardust', 56)}<div><b>Звёздная пыль</b><div class="bonus"><span class="c">Каждое созвездие:</span> <span class="m">+4</span> к множителю</div></div><span class="price">4 ${coin}</span></div>
+      <div class="ware">${v.omen('glassCannon', 56)}<div><b>Стеклянная пушка</b><div class="bonus"><span class="c">Каждое созвездие:</span> множитель <span class="m">×3</span>, в руке на 1 карту меньше</div></div><span class="price">10 ${coin}</span></div>
+      <div class="ware">${v.chart('pair', 56)}<div><b>Карта: Пара <em>ур. 1 → 2</em></b><div class="bonus"><span class="l">+15</span> света, <span class="m">+1</span> к множителю</div></div><span class="price">3 ${coin}</span></div>
+      <div class="ware">${v.ritual('transmute-moon', 56)}<div><b>Обращение в Луну</b><div class="bonus">До 3 карт становятся Луной</div></div><span class="price">3 ${coin}</span></div></div>`;
+  const head2 = `<div class="mock"><p class="mock-cap">Шапка ночи — Затмение и ряд Знамений (36 px)</p>
+      <div class="frame"><div class="f-top"><span class="medal"><span class="burger"></span></span><div class="plaque">Глава II · Затмение<div class="sill"></div></div><span class="medal">?</span></div>
+        <div class="f-rule">${v.boss('eclipse-moon', 24)}<span><b>Затмение Луны.</b> Карты Луны не дают света</span></div>
+        <div class="f-score"><div class="big">1 240<small>/ 2 800</small></div><div class="f-cols"><div><small>Ходы</small><b>12</b></div><div><small>Сжечь</small><b>2</b></div></div></div>
+        <div class="bar"><i></i></div>
+        <div class="f-omens"><div class="row">${head.map((id) => slot(v, id, 36)).join('')}</div><span class="gold-pill">14 ${coin}</span></div></div></div>`;
+  return `<div class="mocks"><div class="col">${map}${head2}</div><div class="col">${shop}</div></div>`;
+}
+function variantHTML(v) {
+  const groups = [[1, 'Обычные'], [2, 'Необычные'], [3, 'Редкие']];
+  let h = `<section class="variant" id="v-${v.key}" data-key="${v.key}"><div class="v-head"><h2>«${v.name}»</h2><p class="idea">${v.idea}</p></div>
+    <div class="v-notes">${v.notes.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>`;
+  h += `<div class="label">В игре</div>${mocks(v)}`;
+  h += `<div class="label">Знамения <small>96 px · и на 44 и 32</small></div>`;
+  for (const [r, title] of groups) {
+    h += `<div class="rar">${title}</div><div class="omen-grid">` + OMENS.filter((o) => o[1] === r).map(([id, , kind, name]) => {
+      const [sym, word, cls] = KIND_RU[kind];
+      return `<div class="o-cell"><div class="big">${v.omen(id, 96).replace('width="96" height="96"', 'width="100%" height="100%"')}</div><div class="nm">${name}</div><div class="small">${v.omen(id, 44)}${v.omen(id, 32)}</div><div class="kind"><i class="${cls}">${sym}</i> ${word}</div></div>`;
+    }).join('') + `</div>`;
+  }
+  h += `<div class="label">Созвездия <small>как в Справочнике: высота звезды — ранг, цвет — масть, связь — что совпало</small></div>`;
+  h += `<div class="combo-list${v.key === 'now' ? ' now' : ''}">` + COMBOS.map(([id, name, desc, l, m]) => `<div class="combo"><div class="ic">${v.key === 'now' ? '' : v.comboIcon(id, '100%', '100%')}</div><div class="t"><b>${name}</b><small>${desc}</small></div><div class="n"><span class="l">${l}</span><span class="x">×</span><span class="m">${m}</span></div></div>`).join('') + `</div>`;
+  h += `<div class="label">Звёздные карты <small>48 px — та же схема созвездия</small></div><div class="iconrow">` + COMBOS.map(([id, name]) => `<div class="it">${v.chart(id, 48)}<span>${name}</span></div>`).join('') + `</div>`;
+  h += `<div class="label">Ритуалы <small>48 px — форма карты: ритуал меняет карты</small></div><div class="iconrow">` + RITUALS.map(([id, name]) => `<div class="it">${v.ritual(id, 48)}<span>${name}</span></div>`).join('') + `</div>`;
+  h += `<div class="label">Затмения <small>64 px · жемчужная корона, без красного</small></div><div class="boss-grid">` + BOSSES.map(([id, name, d]) => `<div class="it">${v.boss(id, 64)}<b>${name}</b><small>${d}</small></div>`).join('') + `</div>`;
+  return h + `</section>`;
+}
+
+const CMP = ['sunWorship', 'moonTide', 'ladder', 'stardust', 'pyre', 'miser', 'nightOwl', 'glassCannon', 'corona'];
+document.getElementById('compare').innerHTML = VARIANTS.map((v) => `<div class="cmp-row"><b>${v.key === 'now' ? 'Сейчас' : '«' + v.name + '»'}<small>${v.key === 'now' ? 'в игре' : ''}</small></b><div class="cmp-icons">${CMP.map((id) => v.omen(id, 44)).join('')}<span class="sep"></span>${CMP.slice(0, 5).map((id) => v.omen(id, 32)).join('')}</div></div>`).join('');
+document.getElementById('variants').innerHTML = VARIANTS.map(variantHTML).join('');
+const tabs = document.getElementById('tabs');
+tabs.innerHTML = VARIANTS.map((v) => `<button type="button" data-k="${v.key}">${v.key === 'now' ? 'Сейчас' : '«' + v.name + '»'}</button>`).join('');
+function show(k) {
+  if (!VARIANTS.some((v) => v.key === k)) k = 'enamel';
+  document.querySelectorAll('.variant').forEach((el) => el.classList.toggle('on', el.dataset.key === k));
+  tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
+}
+tabs.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; history.replaceState(null, '', '#' + b.dataset.k); show(b.dataset.k); });
+show(location.hash.slice(1));
+addEventListener('hashchange', () => show(location.hash.slice(1)));
+</script>
+</body>
+</html>
