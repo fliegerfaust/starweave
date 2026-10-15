@@ -969,7 +969,8 @@ body {
 /* Невысокий ландшафт: товары двумя колонками, своё и кнопки — строкой внизу */
 @media (orientation: landscape) and (max-height: 560px) {
   .shop { max-width: none; gap: 6px; padding-top: calc(6px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
-  .shop-body { gap: 10px; }
+  /* Свободная высота — поровну сверху и снизу, без пустого поля над кнопками (RD.13) */
+  .shop-body { gap: 10px; align-content: safe center; }
   .shop-top { padding-bottom: 6px; }
   .shop-goods, .shop-lower { grid-template-columns: 1fr 1fr; gap: 0 24px; align-content: start; }
   .ware { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 6px 2px; gap: 1px 12px; }
