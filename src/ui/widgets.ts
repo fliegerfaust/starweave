@@ -150,11 +150,22 @@ export function modal(
   return { el: panel, close };
 }
 
-export function confirmDialog(text: string, onYes: () => void, variant: ButtonVariant = 'danger', labels?: { yes: string; no: string }): void {
+/**
+ * Подтверждение — «Табличка» (RD.10): заголовок-табличка, короткий текст, при надобности
+ * строка о том, что пропадёт, и две кнопки — на телефоне поровну, на ПК по своей ширине.
+ */
+export function confirmDialog(
+  text: string,
+  onYes: () => void,
+  variant: ButtonVariant = 'danger',
+  labels?: { yes: string; no: string },
+  opts: { title?: string; extra?: Node | null } = {},
+): void {
   const m = modal(
     [
-      h('p.modal-text', null, text),
-      h('div.row.gap.end', null, [
+      h('p.modal-text.confirm-text', null, text),
+      opts.extra ?? null,
+      h('div.win-acts', null, [
         button(labels?.no ?? t('confirm.no'), () => m.close(), { variant: 'secondary' }),
         button(labels?.yes ?? t('confirm.yes'), () => {
           m.close();
@@ -162,17 +173,21 @@ export function confirmDialog(text: string, onYes: () => void, variant: ButtonVa
         }, { variant }),
       ]),
     ],
-    { className: 'narrow' },
+    { className: 'narrow confirm', ...(opts.title ? { title: opts.title } : {}) },
   );
 }
 
 let toastTimer = 0;
 
-/** Короткое сообщение внизу экрана. */
-export function toast(text: string, kind: 'info' | 'warn' = 'info'): void {
+/**
+ * Короткое сообщение — латунная пилюля (RD.10). Вне ночи — сверху под вырезом; в ночи —
+ * посреди неба, чтобы не закрывать счёт и ходы в шапке. Можно передать значок или миниатюру.
+ */
+export function toast(text: string, kind: 'info' | 'warn' = 'info', lead?: Node): void {
   const root = document.getElementById('ui')!;
   root.querySelector('.toast')?.remove();
-  const el = h(`div.toast.toast-${kind}`, { attrs: { role: 'status', 'aria-live': 'polite' } }, text);
+  const night = !!document.querySelector('.hud');
+  const el = h(`div.toast.toast-${kind}${night ? '.mid' : ''}`, { attrs: { role: 'status', 'aria-live': 'polite' } }, [lead ?? null, h('span', null, text)]);
   root.append(el);
   if (kind === 'warn') playSound('deny');
   window.clearTimeout(toastTimer);
@@ -202,10 +217,13 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
     const r = el.getBoundingClientRect();
     const tr = tip.getBoundingClientRect();
     const x = Math.min(window.innerWidth - tr.width - 8, Math.max(8, r.left + r.width / 2 - tr.width / 2));
-    const below = r.bottom + 8 + tr.height < window.innerHeight;
-    const y = below ? r.bottom + 8 : r.top - tr.height - 8;
+    const below = r.bottom + 10 + tr.height < window.innerHeight;
+    const y = below ? r.bottom + 10 : r.top - tr.height - 10;
     tip.style.left = `${x}px`;
     tip.style.top = `${y}px`;
+    // Носик таблички смотрит на элемент
+    tip.classList.add(below ? 'below' : 'above');
+    tip.style.setProperty('--nose', `${Math.min(tr.width - 16, Math.max(16, r.left + r.width / 2 - x))}px`);
     activeTip = tip;
   };
   el.addEventListener('pointerenter', (e) => {

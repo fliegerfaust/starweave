@@ -207,20 +207,27 @@ body {
 .toast {
   position: fixed;
   left: 50%;
-  top: 44%;
+  top: calc(14px + var(--safe-top));
   transform: translateX(-50%);
-  max-width: min(92vw, 440px);
-  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: min(calc(100vw - 32px), 440px);
+  padding: 9px 18px;
   border-radius: 999px;
-  background: rgba(20, 18, 54, 0.94);
-  border: 1px solid var(--line);
-  font-size: 14px;
+  background: rgb(14 12 40 / 0.95);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45), 0 12px 30px rgb(0 0 0 / 0.5);
+  font: 600 14px/1.3 var(--font-body);
   text-align: center;
   z-index: 40;
-  animation: toast-in 0.25s ease;
-  pointer-events: none;
+  animation: toast-drop 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
 }
-.toast-warn { border-color: rgb(var(--danger-rgb) / 0.6); color: #ffd0da; }
+/* В ночи — посреди неба: шапку со счётом и ходами не закрываем */
+.toast.mid { top: 44%; animation-name: toast-in; }
+.toast .sky-fan { margin: -4px -4px -4px -8px; }
+.toast-warn { box-shadow: inset 0 0 0 1px rgb(var(--danger-rgb) / 0.6), 0 12px 30px rgb(0 0 0 / 0.5); color: #ffd0da; }
 .toast.out { opacity: 0; transition: opacity 0.25s; }
 
 .tooltip {
@@ -228,13 +235,16 @@ body {
   z-index: 50;
   max-width: 260px;
   padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(14, 12, 40, 0.97);
-  border: 1px solid var(--line);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  border-radius: 16px;
+  background: rgb(14 12 40 / 0.97);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 14px 40px rgb(0 0 0 / 0.5);
   pointer-events: none;
   animation: fade-in 0.12s ease;
 }
+/* Носик таблички смотрит на элемент (RD.10) */
+.tooltip::after { content: ''; position: absolute; left: var(--nose, 50%); width: 12px; height: 12px; margin-left: -6px; transform: rotate(45deg); background: #120f33; }
+.tooltip.above::after { bottom: -6px; box-shadow: inset -1px -1px 0 rgb(var(--gold-rgb) / 0.3); }
+.tooltip.below::after { top: -6px; box-shadow: inset 1px 1px 0 rgb(var(--gold-rgb) / 0.3); }
 .tip-title { font: 400 20px/1.1 var(--font-display); margin-bottom: 2px; }
 .tip-title.boss { color: #ff9cb0; }
 .tip-rarity { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
@@ -756,8 +766,8 @@ body {
 .menu-handle:hover { color: var(--ink); }
 .menu-foot { display: flex; justify-content: center; }
 .menu-foot:empty { display: none; }
-.home-link { font-size: 14px; padding: 6px 10px; }
-.home-steps { margin: 0 0 14px; padding-left: 20px; line-height: 1.5; display: flex; flex-direction: column; gap: 6px; }
+.home-link { gap: 6px; font-size: 14px; padding: 6px 10px; }
+.home-link .icon { width: 15px; height: 15px; }
 
 .icon { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -793,24 +803,6 @@ body {
   .menu-buttons .menu-primary { grid-column: 1 / -1; width: min(320px, 100%); min-height: 48px; }
   .menu-handle { grid-column: 1 / -1; padding-top: 4px; }
 }
-
-.sky-list { display: flex; flex-direction: column; gap: 8px; }
-.sky-item {
-  pointer-events: auto;
-  text-align: left;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: rgba(30, 26, 80, 0.5);
-  color: var(--ink);
-  cursor: pointer;
-  font-family: var(--font-body);
-}
-.sky-item.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset, 0 0 20px rgb(var(--gold-rgb) / 0.2); }
-.sky-item.locked { opacity: 1; cursor: not-allowed; }
-.sky-name { font: 400 20px/1.1 var(--font-display); margin-bottom: 2px; }
-.sky-desc { font-size: 13px; color: var(--ink-dim); }
-.sky-list.compact .sky-item { cursor: default; }
 
 /* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */
 /* Спокойно (решение Дениса): товар — одна строка — крупный знак, имя, бонус строкой текста
@@ -1331,8 +1323,6 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 
 /* ─── Настройки и Кодекс ──────────────────────────────────────────────── */
 
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.field-label { font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
 /* Ползунок: дорожка тонкая, но цель касания по высоте 44 px, бегунок 26 px */
 .slider { width: 100%; height: 44px; margin: 0; accent-color: var(--gold); background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
 .slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: rgb(var(--violet-rgb) / 0.25); }
@@ -1340,28 +1330,6 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .slider::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--gold); }
 .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; margin-top: -10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px rgb(var(--gold-rgb) / 0.2); }
 .slider::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: var(--gold); }
-.segmented { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
-.seg {
-  flex: 1;
-  border: 0;
-  border-radius: 9px;
-  padding: 8px 10px;
-  font: 700 13px/1 var(--font-body);
-  color: var(--ink-dim);
-  background: transparent;
-  cursor: pointer;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.seg.on { color: #1a1206; background: var(--gold); }
-.segmented.tabs { margin-bottom: 12px; flex-wrap: nowrap; overflow-x: auto; }
-/* Гаснет только край, за которым ещё есть вкладки (edgeFade) */
-.segmented.tabs.fade-end { mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent); }
-.segmented.tabs.fade-start { mask-image: linear-gradient(90deg, transparent, #000 36px); -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px); }
-.segmented.tabs.fade-start.fade-end { mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
-.segmented.tabs .seg { flex: 1 0 auto; padding: 8px 9px; font-size: 13px; }
 
 /* «Новое созвездие!» — лента поперёк неба, как подпись созвездия (живёт 2,6 с, касание закрывает) */
 .discovery {
@@ -1389,6 +1357,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes toast-drop { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @keyframes omen-fire {
   0% { transform: scale(1) rotate(0); filter: brightness(1); }
@@ -1671,8 +1640,6 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .sky-swatch { border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 
 /* Вход в атлас из меню */
-.sky-item.atlas-sky { opacity: 1; cursor: pointer; border-color: rgb(var(--gold-rgb) / 0.35); }
-.sky-item.atlas-sky .sky-name { color: #ffe2a3; }
 
 /* ─── Архив вызовов: «Журнал наблюдений» (RD.6) ───────────────────────── */
 /* Дни строками от свежего: номер вызова, дата и знак Затмения главы I, восемь делений глав,
@@ -2369,8 +2336,6 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 
 
 /* Закрытое небо: условие открытия — самая полезная строка, её не гасим */
-.sky-item.locked:not(.atlas-sky) .sky-name { opacity: 0.55; }
-.sky-item.locked .sky-desc { color: var(--ink-dim); }
 
 /* ─── Монета (аудит, пакет E): один знак золота везде ─────────────────── */
 .with-coin { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
@@ -2427,3 +2392,135 @@ html.large-text .hint, html.large-text .bonus-line, html.large-text .calc-captio
 html.large-text .preview { font-size: 15px; }
 html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label { font-size: 13px; }
 
+
+/* ─── Окна главной: «Табличка» (RD.10) ───────────────────────────────── */
+/* Окно по центру: заголовок-табличка с подоконником, строки через волосяные линии, кнопки
+   на телефоне поровну, на ПК и в ландшафте — по своей ширине. Небо — веером своих карт. */
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) {
+  --hair: rgb(var(--gold-rgb) / 0.16);
+  --ink-faint: #8a85b8;
+  padding: 18px 20px;
+  border: 0;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgb(25 22 65 / 0.97), rgb(12 11 34 / 0.98));
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 30px 60px -20px rgb(0 0 0 / 0.8);
+}
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head { margin: -18px -20px 10px; padding: 18px 56px 14px; background: #19163f; border-radius: 24px 24px 0 0; }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head:not(.bare)::after { display: none; }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head::before { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 1.5px; background: radial-gradient(closest-side, rgb(255 230 168 / 0.85), transparent); }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-title { font: 400 22px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe6a8; text-shadow: none; text-wrap: balance; }
+.modal-panel.confirm .confirm-text { text-align: center; margin: 4px 0 0; }
+.modal-text.dim { color: var(--ink-dim); font-size: 13.5px; }
+.win-label { font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-dim); }
+.win-acts { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.win-acts .btn { flex: 1 1 0; min-width: 0; padding-inline: 12px; white-space: nowrap; }
+.win-acts .btn-ghost { flex: none; }
+.win-acts.center { justify-content: center; }
+.win-acts.center .btn { flex: 0 1 260px; }
+body.landscape .win-acts { justify-content: flex-end; }
+body.landscape .win-acts.center { justify-content: center; }
+body.landscape .win-acts .btn { flex: none; min-width: 150px; }
+
+/* Веер карт неба */
+.sky-fan { --cw: 25px; position: relative; display: inline-block; flex: none; width: calc(var(--cw) * 1.9); height: calc(var(--cw) * 1.5); }
+.sky-fan-card { position: absolute; left: 50%; bottom: 0; transform-origin: 50% 115%; line-height: 0; filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.5)); }
+.sky-fan.off .sky-fan-card { filter: grayscale(0.85) brightness(0.55); }
+.sky-fan-lock { position: absolute; left: 50%; top: 55%; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgb(10 9 32 / 0.92); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); color: #ffe6a8; }
+.sky-fan-lock .icon { width: 14px; height: 14px; }
+
+/* Выбор неба и сложности */
+.modal-panel.sky-win { width: min(400px, 100%); }
+.sky-rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.sky-row button { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) 28px; align-items: center; gap: 12px; padding: 8px 10px 8px 6px; border: 0; border-radius: 14px; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.sky-row + .sky-row { box-shadow: 0 -1px 0 var(--hair); }
+.sky-row.on, .sky-row.on + .sky-row { box-shadow: none; }
+.sky-row.on button { background: radial-gradient(120% 140% at 0% 50%, rgb(var(--gold-rgb) / 0.12), transparent 70%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.sky-row b { display: block; font: 700 15px/1.2 var(--font-body); }
+.sky-row.on b { color: #ffe6a8; }
+.sky-row small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.35; color: var(--ink-dim); text-wrap: pretty; }
+.sky-row.sky-locked button { cursor: default; }
+.sky-row.sky-locked b { color: var(--ink-dim); }
+.sky-row.sky-locked small { color: var(--ink-faint); }
+.sky-row.sky-atlas small { color: #ffd98c; }
+.sky-mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-faint); }
+.sky-mark .icon { width: 15px; height: 15px; }
+.sky-row.on .sky-mark { background: var(--gold); color: #1a1206; }
+.sky-row.on .sky-mark .icon { stroke-width: 2.2; }
+.sky-row.sky-atlas .sky-mark { color: var(--gold); }
+.sky-hero { display: none; }
+.sky-stake { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; box-shadow: 0 -1px 0 var(--hair); }
+.sky-stake-top { display: flex; justify-content: space-between; align-items: baseline; }
+.sky-stake-top b { font: 700 14px/1 var(--font-body); color: #ffe6a8; }
+.sky-dots { position: relative; display: flex; justify-content: space-between; }
+.sky-dots::before { content: ''; position: absolute; left: 18px; right: 18px; top: 50%; height: 1px; background: rgb(var(--gold-rgb) / 0.25); }
+.sky-dots button { position: relative; width: 36px; height: 36px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: pointer; }
+.sky-dots i { width: 12px; height: 12px; border-radius: 50%; background: #0e0c26; box-shadow: inset 0 0 0 1.5px rgb(var(--gold-rgb) / 0.55); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+.sky-dots button.past i { background: rgb(var(--gold-rgb) / 0.55); }
+.sky-dots button.on i { background: var(--gold); box-shadow: 0 0 0 4px rgb(var(--gold-rgb) / 0.18); transform: scale(1.15); }
+.sky-dots button.locked { cursor: default; }
+.sky-dots button.locked i { box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.25); }
+.sky-effect { margin: 0; min-height: 1.4em; font-size: 13px; color: var(--ink-dim); }
+@media (max-height: 700px) {
+  .sky-row:not(.on) small { display: none; }
+  .sky-row button { padding-block: 6px; }
+}
+@media (max-height: 600px) {
+  .modal-panel.sky-win { padding: 14px 16px; }
+  .modal-panel.sky-win .modal-head { margin: -14px -16px 8px; padding: 14px 50px 10px; }
+  .sky-row button { padding-block: 4px; }
+  .sky-stake { margin-top: 10px; padding-top: 10px; gap: 4px; }
+  .sky-win .win-acts { margin-top: 10px; }
+}
+/* ПК и ландшафт: у выбранного неба своя колонка с большим веером */
+body.landscape .modal-panel.sky-win { width: min(760px, 100%); }
+body.landscape .sky-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+body.landscape .sky-hero { display: grid; justify-items: center; gap: 6px; padding-top: 10px; text-align: center; }
+body.landscape .sky-hero h3 { margin: 6px 0 0; font: 400 20px/1.1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: #ffe6a8; }
+body.landscape .sky-hero p { margin: 0; max-width: 32ch; font-size: 13.5px; color: var(--ink-dim); }
+@media (max-height: 520px) {
+  body.landscape .modal-panel.sky-win { padding: 12px 16px; }
+  body.landscape .modal-panel.sky-win .modal-head { margin: -12px -16px 6px; padding: 12px 50px 8px; }
+  body.landscape .sky-win .modal-title { font-size: 18px; }
+  body.landscape .sky-row button { padding-block: 4px; }
+  body.landscape .sky-row small { display: none; }
+  body.landscape .sky-hero { padding-top: 0; }
+  body.landscape .sky-hero h3 { font-size: 17px; margin-top: 2px; }
+  body.landscape .sky-hero p { display: none; }
+  body.landscape .sky-stake { margin-top: 6px; padding-top: 6px; gap: 2px; }
+  body.landscape .sky-win .win-acts { margin-top: 6px; }
+  body.landscape .sky-win .win-acts .btn { min-height: 44px; }
+}
+
+/* Вызов от друга: два крупных числа и колода */
+@media (max-height: 520px) {
+  .modal-panel:is(.confirm, .challenge, .home-hint) { padding: 12px 18px; }
+  .modal-panel:is(.confirm, .challenge, .home-hint) .modal-head { margin: -12px -18px 6px; padding: 12px 50px 8px; }
+  .modal-panel:is(.confirm, .challenge, .home-hint) .modal-title { font-size: 18px; }
+  .win-stats { margin: 0 0 6px; }
+  .win-stats b { font-size: 22px; }
+  .modal-panel.challenge .modal-text { margin: 0; font-size: 13.5px; line-height: 1.4; }
+  .deck-line, .run-line { margin-top: 6px; padding: 6px 12px; }
+  .win-acts { margin-top: 8px; }
+  .win-acts .btn { min-height: 44px; }
+  .win-steps li { padding: 3px 0; grid-template-columns: 32px 1fr; font-size: 13px; }
+  .win-ring { width: 32px; height: 32px; }
+}
+.win-stats { display: grid; grid-template-columns: 1fr 1fr; margin: 4px 0 14px; }
+.win-stats div { display: grid; justify-items: center; gap: 4px; padding: 6px 0; }
+.win-stats div + div { box-shadow: -1px 0 0 var(--hair); }
+.win-stats b { font: 800 28px/1 var(--font-body); font-variant-numeric: tabular-nums; color: #ffe6a8; }
+.win-stats small { font: 800 11px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.deck-line, .run-line { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--hair); font-size: 13.5px; color: var(--ink-dim); }
+.deck-line b { color: var(--ink); font-weight: 700; }
+.run-line-text { display: grid; gap: 2px; }
+.run-line-text b { color: var(--ink); font-size: 14.5px; }
+.run-line-omens { display: flex; margin-left: auto; }
+.run-line-omens > * + * { margin-left: -8px; }
+
+/* «На весь экран»: шаги со значками в кольце */
+.win-steps { list-style: none; margin: 10px 0 0; padding: 0; display: grid; }
+.win-steps li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; padding: 8px 0; font-size: 14px; line-height: 1.4; }
+.win-steps li + li { box-shadow: 0 -1px 0 var(--hair); }
+.win-ring { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: rgb(14 12 34 / 0.8); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.win-ring .icon { width: 20px; height: 20px; }
+.win-ring.app { border-radius: 11px; background: linear-gradient(160deg, #2b2470, #0d0b2a); }
