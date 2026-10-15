@@ -577,7 +577,8 @@ export class Presenter {
       kind = 'gold';
     }
     if (!text) return;
-    const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.3 : 0;
+    // Над верхней кромкой карты: цифра не закрывает ранг в углу
+    const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.5 : 0;
     // Цифра по размеру карты: на телефоне крупнее прежнего, на ПК не раздувается
     const size = Math.round(Math.min(40, Math.max(28, scene.layout.cardH * 0.36)) * (kind === 'xmult' ? 1.2 : 1));
     floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
