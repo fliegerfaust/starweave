@@ -36,7 +36,7 @@ test('главная: арка под safe area, без пустот, кнопк
   });
   expect(m.scope, 'щель под вырезом').toBeGreaterThanOrEqual(safe.top);
   expect(Math.abs(m.slitTop - m.scope), 'купол нарисован от той же точки').toBeLessThan(1);
-  if (m.vh > 600) expect(m.scrolls, 'пульт без прокрутки').toBe(false);
+  if (m.vh > 600 || landscape) expect(m.scrolls, 'пульт без прокрутки').toBe(false);
   expect(m.gap, 'нет пустоты над «Библиотекой»').toBeLessThan(48);
   expect(m.handleBottom, '«Библиотека» над нижним вырезом').toBeLessThanOrEqual(m.vh - safe.bottom);
   if (landscape) expect(m.primary, 'главная кнопка не растянута').toBeLessThanOrEqual(340);

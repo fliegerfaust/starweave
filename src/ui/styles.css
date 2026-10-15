@@ -781,7 +781,7 @@ body {
 }
 /* Телефон в ландшафте: щель узкая и низкая, название в одну строку */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
-  .observatory { --slit-w: min(220px, 26vw); --slit-h: 44dvh; }
+  .observatory { --slit-w: min(220px, 26vw); --slit-h: 30dvh; }
   .menu-plate { font-size: clamp(28px, 5vw, 40px); }
   .logo-word { display: inline; }
   .logo-word + .logo-word::before { content: ' '; }
