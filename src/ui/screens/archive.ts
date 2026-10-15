@@ -117,7 +117,7 @@ export class ArchiveScreen implements Screen {
     const { name, desc } = named('boss', boss);
     const on = date === this.selected;
     const best = isToday && !r ? h('span.arc-best.none', null, t('archive.today'))
-      : r ? h(`span.arc-best${r.won ? '.won' : ''}`, null, [r.won ? '✦ ' : '', num(r.best), h('small', null, t('archive.bestMove'))])
+      : r ? h(`span.arc-best${r.won ? '.won' : ''}`, null, [r.won ? icon('check', 'icon arc-won') : '', num(r.best), h('small', null, t('archive.bestMove'))])
       : h('span.arc-best.none', null, '—');
     const row = h(`button.arc-row${isToday ? '.today' : ''}${on ? '.on' : ''}`, {
       type: 'button',

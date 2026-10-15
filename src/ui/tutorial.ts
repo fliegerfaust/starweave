@@ -2,6 +2,7 @@ import type { App } from '@/game/app';
 import { saveProfile } from '@/meta/profile';
 import { t } from '@/i18n';
 import { h } from './dom';
+import { icon } from './icons';
 import { button } from './widgets';
 
 export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss';
@@ -33,7 +34,7 @@ export function coach(app: App, step: TutorialStep): void {
     return;
   }
   const el = h('div.coach', null, [
-    h('div.coach-icon', null, '✦'),
+    h('div.coach-icon', null, icon('midnight')),
     h('div.coach-text', null, t(`tutorial.${step}`)),
     button(t('tutorial.gotIt'), () => dismiss(app, step), { variant: 'secondary', className: 'small' }),
   ]);

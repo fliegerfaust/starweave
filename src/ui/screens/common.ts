@@ -135,7 +135,8 @@ export function showSettings(app: App, onChange?: () => void): void {
   /** Строка: подпись (и пояснение) слева, управление справа; подпись связана с управлением. */
   const row = (title: string, sub: string | null, control: HTMLElement) => {
     const id = `st-${++seq}`;
-    control.setAttribute('aria-labelledby', id);
+    // Подпись — самому полю ввода (ползунок в обёртке иначе читается без названия)
+    (control.querySelector('input') ?? control).setAttribute('aria-labelledby', id);
     return h('div.st-row', null, [h('span.st-lbl', null, [h('b', { id }, title), sub ? h('small', null, sub) : null]), control]);
   };
   const toggle = (on: boolean, set: (v: boolean) => void) => {
@@ -257,11 +258,6 @@ export function showSettings(app: App, onChange?: () => void): void {
     title: c.title,
     className: 'settings-modal',
   });
-}
-
-/** Заголовок экрана: декоративная строка со звёздочками. */
-export function screenTitle(text: string, sub?: string): HTMLElement {
-  return h('div.screen-title', null, [h('div.title-ornament', null, '✦'), h('h1', null, text), sub ? h('div.screen-sub', null, sub) : null]);
 }
 
 /** Кнопка-бургер для экранов забега. */
