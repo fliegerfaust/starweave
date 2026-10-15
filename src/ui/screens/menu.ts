@@ -78,6 +78,8 @@ export class MenuScreen implements Screen {
     this.drawDome();
     this.resize = new ResizeObserver(() => this.drawDome());
     this.resize.observe(this.el);
+    // Высота щели зависит от пульта под ней (шрифты, ссылка «На весь экран») — следим и за ней
+    this.resize.observe(this.scope);
     this.wireLibrarySwipe();
     // Любая кнопка меню — жест пользователя: в нём можно развернуть игру на весь экран.
     // Перехват, потому что кнопки гасят всплытие
@@ -113,13 +115,15 @@ export class MenuScreen implements Screen {
     const W = this.el.clientWidth, H = this.el.clientHeight;
     const sw = this.scope.offsetWidth, sh = this.scope.offsetHeight;
     if (!W || !H || !sw) return;
+    // Щель начинается под safe area (чёлка, Dynamic Island, шапка Telegram)
+    const y0 = this.scope.offsetTop - this.scroller.scrollTop;
     const x0 = (W - sw) / 2, x1 = x0 + sw;
     const r = sw / 2;
-    const slit = `M${x0},${sh} V${r} A${r},${r} 0 0 1 ${x1},${r} V${sh}`;
+    const slit = `M${x0},${y0 + sh} V${y0 + r} A${r},${r} 0 0 1 ${x1},${y0 + r} V${y0 + sh}`;
     let ribs = '';
     for (let i = 1; i <= 9; i++) {
       const ry = sh * 0.55 + i * i * (H / 70);
-      ribs += `<ellipse cx="${W / 2}" cy="${-sh * 0.25}" rx="${ry * 1.25}" ry="${ry}"/>`;
+      ribs += `<ellipse cx="${W / 2}" cy="${y0 - sh * 0.25}" rx="${ry * 1.25}" ry="${ry}"/>`;
     }
     const R = Math.max(W, H) * 1.05;
     for (let i = -6; i <= 6; i++) {
@@ -136,10 +140,11 @@ export class MenuScreen implements Screen {
       </defs>
       <g mask="url(#dome-cut)"><rect width="${W}" height="${H}" fill="url(#dome-spill)"/><g fill="none" stroke="#f6c25b" stroke-opacity="0.08" stroke-width="1">${ribs}</g></g>
       <path d="${slit}" fill="none" stroke="#f6c25b" stroke-opacity="0.55" stroke-width="1.5"/>
-      <rect x="${x0 - 30}" y="${sh - 1}" width="${sw + 60}" height="2" fill="url(#dome-sill)"/>`;
+      <rect x="${x0 - 30}" y="${y0 + sh - 1}" width="${sw + 60}" height="2" fill="url(#dome-sill)"/>`;
     this.el.style.setProperty('--slit-x', `${x0}px`);
     this.el.style.setProperty('--slit-px', `${sw}px`);
     this.el.style.setProperty('--slit-hpx', `${sh}px`);
+    this.el.style.setProperty('--slit-top', `${y0}px`);
   }
 
   /** Следующее созвездие: звёзды проступают, тянутся линии, затем подпись. */

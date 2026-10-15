@@ -576,7 +576,8 @@ body {
 
 .observatory {
   --slit-w: 50vw;
-  --slit-h: 48dvh;
+  /* Наименьшая высота щели; свободное место она забирает сама */
+  --slit-h: 34dvh;
   --hair: rgb(var(--gold-rgb) / 0.2);
   position: absolute;
   inset: 0;
@@ -587,9 +588,9 @@ body {
 /* Створки щели: расходятся один раз за сессию и уезжают под оболочку */
 .dome-shutter {
   position: absolute;
-  top: 0;
+  top: var(--slit-top, 0px);
   z-index: 0;
-  height: var(--slit-h);
+  height: var(--slit-hpx, var(--slit-h));
   width: calc(var(--slit-w) / 2 + 1px);
   background:
     repeating-linear-gradient(180deg, transparent 0 46px, rgb(var(--gold-rgb) / 0.16) 46px 47px),
@@ -608,9 +609,12 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   display: grid;
-  grid-template-rows: var(--slit-h) auto 1fr auto;
+  /* Щель забирает свободную высоту: на высоком экране неба больше, а пульт стоит вплотную
+     к табличке — без пустоты между кнопками и «Библиотекой». Сверху — safe area: арка не
+     уходит под чёлку, Dynamic Island и шапку Telegram */
+  grid-template-rows: minmax(var(--slit-h), 1fr) auto auto auto;
   justify-items: center;
-  padding: 0 20px calc(12px + var(--safe-bottom));
+  padding: var(--safe-top) calc(20px + env(safe-area-inset-right, 0px)) calc(12px + var(--safe-bottom)) calc(20px + env(safe-area-inset-left, 0px));
   /* Меню прокручивается: касание фона должно попадать в него, а не в холст под ним */
   pointer-events: auto;
   overscroll-behavior: contain;
@@ -760,13 +764,13 @@ body {
 
 /* Невысокие экраны: щель ниже, слоган прячется — пульт влезает без прокрутки */
 @media (max-height: 720px) {
-  .observatory { --slit-h: 38dvh; }
+  .observatory { --slit-h: 32dvh; }
   .menu-buttons { gap: 10px; padding-top: 14px; }
   .tagline { display: none; }
 }
 /* Десктоп: узкая высокая щель по центру, главная кнопка ровно по её ширине — без «ушей» */
 @media (min-width: 860px) and (min-aspect-ratio: 1/1) and (min-height: 600px) {
-  .observatory { --slit-w: min(300px, 26vw); --slit-h: 54dvh; }
+  .observatory { --slit-w: min(300px, 26vw); --slit-h: 44dvh; }
   .menu-plate { font-size: clamp(54px, 5vw, 76px); }
   .logo-word { display: inline; }
   .logo-word + .logo-word::before { content: ' '; }
@@ -777,16 +781,17 @@ body {
 }
 /* Телефон в ландшафте: щель узкая и низкая, название в одну строку */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
-  .observatory { --slit-w: min(220px, 26vw); --slit-h: 44dvh; }
+  .observatory { --slit-w: min(220px, 26vw); --slit-h: 30dvh; }
   .menu-plate { font-size: clamp(28px, 5vw, 40px); }
   .logo-word { display: inline; }
   .logo-word + .logo-word::before { content: ' '; }
   .dome-name { bottom: calc(clamp(28px, 5vw, 40px) * 0.9 + 10px); }
   .tagline { display: none; }
-  /* Атлас и лёгкие режимы — в один ряд под кнопкой, чтобы пульт влез в 375 px высоты */
-  .menu-buttons { width: min(560px, 100%); flex-flow: row wrap; justify-content: center; gap: 8px 12px; padding-top: 12px; }
-  .menu-buttons .menu-primary { flex-basis: 100%; min-height: 48px; }
-  .menu-handle { flex-basis: 100%; padding-top: 4px; }
+  /* Атлас и лёгкие режимы — в один ряд под кнопкой, чтобы пульт влез в 375 px высоты.
+     Главная кнопка — по своей ширине, не во всё окно (правило Дениса) */
+  .menu-buttons { display: grid; grid-template-columns: auto auto; justify-content: center; justify-items: center; align-items: center; width: 100%; gap: 8px 12px; padding-top: 12px; }
+  .menu-buttons .menu-primary { grid-column: 1 / -1; width: min(320px, 100%); min-height: 48px; }
+  .menu-handle { grid-column: 1 / -1; padding-top: 4px; }
 }
 
 .sky-list { display: flex; flex-direction: column; gap: 8px; }
