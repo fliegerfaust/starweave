@@ -202,7 +202,8 @@ export const en: Dict = {
     watchFormula: 'Two threes make a Pair: 10 light and multiplier 2. Each card adds its rank to light. Total = light × multiplier.',
     menuButton: 'Tutorial',
     menuSub: '2 minutes',
-    offer: 'New here? A short tutorial — 2 minutes.',
+    offerTitle: 'New here?',
+    offer: 'A short tutorial — 2 minutes.',
     offerSkip: 'Just play',
   },
   ads: {

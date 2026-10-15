@@ -2425,7 +2425,13 @@ body.landscape .win-acts .btn { flex: none; min-width: 150px; }
 .sky-fan-lock .icon { width: 14px; height: 14px; }
 
 /* Выбор неба и сложности */
-.modal-panel.sky-win { width: min(400px, 100%); }
+/* Окно — колонкой: список небес прокручивается, сложность и кнопки всегда на экране
+   (в Telegram шапка с кнопками съедает высоту, медиа-запросы по высоте её не видят) */
+.modal-panel.sky-win { width: min(400px, 100%); display: flex; flex-direction: column; overflow: hidden; }
+.modal-panel.sky-win .modal-head { flex: none; }
+.sky-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.sky-rows { flex: 0 1 auto; min-height: 96px; overflow-y: auto; overscroll-behavior: contain; }
+.sky-side { flex: none; }
 .sky-rows { list-style: none; margin: 0; padding: 0; display: grid; }
 .sky-row button { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) 28px; align-items: center; gap: 12px; padding: 8px 10px 8px 6px; border: 0; border-radius: 14px; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .sky-row + .sky-row { box-shadow: 0 -1px 0 var(--hair); }
@@ -2469,7 +2475,8 @@ body.landscape .win-acts .btn { flex: none; min-width: 150px; }
 }
 /* ПК и ландшафт: у выбранного неба своя колонка с большим веером */
 body.landscape .modal-panel.sky-win { width: min(760px, 100%); }
-body.landscape .sky-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+body.landscape .sky-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; overflow-y: auto; }
+body.landscape .sky-rows { overflow: visible; }
 body.landscape .sky-hero { display: grid; justify-items: center; gap: 6px; padding-top: 10px; text-align: center; }
 body.landscape .sky-hero h3 { margin: 6px 0 0; font: 400 20px/1.1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: #ffe6a8; }
 body.landscape .sky-hero p { margin: 0; max-width: 32ch; font-size: 13.5px; color: var(--ink-dim); }
