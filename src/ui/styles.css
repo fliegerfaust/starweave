@@ -1563,10 +1563,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .btn.tut-allow { animation: tut-glow 1.4s ease-in-out infinite; }
 @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0.7); } 50% { box-shadow: 0 0 0 8px rgb(var(--gold-rgb) / 0); } }
 
-.legal { font-size: 14px; line-height: 1.55; }
-.legal h1 { font: 400 26px/1.2 var(--font-display); color: var(--gold); margin: 0 0 8px; }
-.legal h2 { font-size: 16px; margin: 18px 0 6px; }
-.legal ul { padding-left: 20px; margin: 6px 0; }
 
 /* ─── Эффекты в описаниях — цвета формулы ─────────────────────────────── */
 /* Строчный элемент: длинная плашка переносится вместе с текстом и не вылезает за карточку,
@@ -2396,7 +2392,7 @@ html.large-text .field-label, html.large-text .stat-label, html.large-text .calc
 /* ─── Окна главной: «Табличка» (RD.10) ───────────────────────────────── */
 /* Окно по центру: заголовок-табличка с подоконником, строки через волосяные линии, кнопки
    на телефоне поровну, на ПК и в ландшафте — по своей ширине. Небо — веером своих карт. */
-.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) {
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win, .legal-win) {
   --hair: rgb(var(--gold-rgb) / 0.16);
   --ink-faint: #8a85b8;
   padding: 18px 20px;
@@ -2405,10 +2401,10 @@ html.large-text .field-label, html.large-text .stat-label, html.large-text .calc
   background: linear-gradient(180deg, rgb(25 22 65 / 0.97), rgb(12 11 34 / 0.98));
   box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 30px 60px -20px rgb(0 0 0 / 0.8);
 }
-.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head { margin: -18px -20px 10px; padding: 18px 56px 14px; background: #19163f; border-radius: 24px 24px 0 0; }
-.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head:not(.bare)::after { display: none; }
-.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-head::before { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 1.5px; background: radial-gradient(closest-side, rgb(255 230 168 / 0.85), transparent); }
-.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win) .modal-title { font: 400 22px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe6a8; text-shadow: none; text-wrap: balance; }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win, .legal-win) .modal-head { margin: -18px -20px 10px; padding: 18px 56px 14px; background: #19163f; border-radius: 24px 24px 0 0; }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win, .legal-win) .modal-head:not(.bare)::after { display: none; }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win, .legal-win) .modal-head::before { content: ''; position: absolute; left: 10%; right: 10%; bottom: 0; height: 1.5px; background: radial-gradient(closest-side, rgb(255 230 168 / 0.85), transparent); }
+.modal-panel:is(.confirm, .challenge, .home-hint, .sky-win, .legal-win) .modal-title { font: 400 22px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe6a8; text-shadow: none; text-wrap: balance; }
 .modal-panel.confirm .confirm-text { text-align: center; margin: 4px 0 0; }
 .modal-text.dim { color: var(--ink-dim); font-size: 13.5px; }
 .win-label { font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-dim); }
@@ -2524,3 +2520,26 @@ body.landscape .sky-hero p { margin: 0; max-width: 32ch; font-size: 13.5px; colo
 .win-ring { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--gold); background: rgb(14 12 34 / 0.8); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
 .win-ring .icon { width: 20px; height: 20px; }
 .win-ring.app { border-radius: 11px; background: linear-gradient(160deg, #2b2470, #0d0b2a); }
+
+/* ─── Юридические тексты в игре: «Табличка» (RD.11) ─────────────────── */
+.modal-panel.legal-win { width: min(560px, 100%); max-height: min(820px, 100%); display: flex; flex-direction: column; overflow: hidden; padding: 18px 0 0; }
+.modal-panel.legal-win .modal-head { position: relative; top: 0; flex: none; margin: -18px 0 0; }
+.modal-panel.legal-win .modal-title { font-size: clamp(15px, 4.6vw, 19px); letter-spacing: 0.12em; }
+.legal-scroll { flex: 1; min-height: 0; overflow: auto; padding: 4px 20px 16px; overscroll-behavior: contain; }
+.legal-doc { font-size: 14.5px; line-height: 1.6; color: var(--ink); }
+.legal-doc .legal-ed { margin: 12px 0 10px; text-align: center; font-size: 13.5px; color: var(--ink-faint); }
+.legal-doc p { margin: 0 0 12px; text-wrap: pretty; }
+.legal-doc ul { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.legal-doc li { position: relative; padding-left: 22px; text-wrap: pretty; }
+.legal-doc li::before { content: ''; position: absolute; left: 4px; top: 0.72em; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.6); }
+.legal-doc strong { color: #ffe6a8; font-weight: 700; }
+.legal-doc h2 { margin: 22px 0 12px; display: flex; align-items: center; gap: 12px; font: 400 13.5px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: #ffe6a8; }
+.legal-doc h2 .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 13px/1 var(--font-body); letter-spacing: 0; color: var(--gold); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.legal-doc h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.legal-foot { flex: none; display: flex; justify-content: center; padding: 10px 16px 12px; box-shadow: 0 -1px 0 var(--hair); background: #0f0d2b; }
+.legal-foot .btn { min-width: 150px; min-height: 46px; }
+@media (max-height: 520px) {
+  .modal-panel.legal-win .modal-head { padding: 10px 50px 8px; }
+  .legal-foot { padding: 6px 14px; }
+  .legal-foot .btn { min-height: 40px; }
+}
