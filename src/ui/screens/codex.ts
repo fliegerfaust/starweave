@@ -5,6 +5,7 @@ import { SKY_LIST } from '@/core/content/skies';
 import type { App } from '@/game/app';
 import { dict, format, named, num } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
+import { icon } from '../icons';
 import { modal } from '../widgets';
 
 type Tab = 'omens' | 'bosses' | 'stats';
@@ -72,7 +73,7 @@ export function showCodex(app: App): void {
     for (const sky of SKY_LIST) {
       const open = p.unlockedSkies.includes(sky.id);
       const info = named('sky', sky.id);
-      list.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : `🔒 ${info.name}`), h('small', null, info.desc)])));
+      list.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
     }
     const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
     return [board, [h('h3.gb-section', null, [c.skies, h('small', null, format(c.opened, { n: openN, total: SKY_LIST.length }))]), list]];

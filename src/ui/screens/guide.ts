@@ -4,7 +4,10 @@ import { COMBO_IDS, GLYPHS, type Card, type ComboId, type Glyph, type Suit } fro
 import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { dict, format, named, t } from '@/i18n';
 import { track } from '@/analytics';
+import { suitPath } from '@/art/glyphs';
+import { SUIT_COLORS } from '@/art/palette';
 import { canvasImg, dpr, h } from '../dom';
+import { icon } from '../icons';
 import { modal } from '../widgets';
 import { cardThumb } from './common';
 
@@ -42,6 +45,22 @@ let fakeId = -9000;
 const CELL = 34;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('calm');
 const thumb = (rank: number, suit: Suit, w = CELL, glyph?: Glyph) => cardThumb({ id: fakeId--, rank, suit, ...(glyph ? { glyph } : {}) } as Card, w);
+
+/** Четыре масти рисунком — вместо символов ☀ ☾ ✦ ☄ (у них нет нужного вида в шрифтах). */
+function suitMarks(): HTMLCanvasElement {
+  const r = dpr();
+  const c = document.createElement('canvas');
+  c.width = 72 * r;
+  c.height = 16 * r;
+  const ctx = c.getContext('2d')!;
+  ctx.scale(r, r);
+  (['sun', 'moon', 'star', 'comet'] as Suit[]).forEach((suit, i) => {
+    suitPath(ctx, suit, 9 + i * 18, 8, 6.5);
+    ctx.fillStyle = SUIT_COLORS[suit].main;
+    ctx.fill();
+  });
+  return canvasImg(c, 72, 16);
+}
 
 /** Число цветом формулы: свет, множитель, итог, золото. */
 const chip = (cls: 'l' | 'm' | 't' | 'g' | 'w', text: string) => h(`b.gb-chip.${cls}`, null, text);
@@ -122,7 +141,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       const got = !!found && id !== 'scatter' && found.includes(id);
       const miss = !!found && id !== 'scatter' && !got;
       list.append(row(id === combo, miss, [
-        h('b', null, [t(`combo.${id}`), got ? h('span.gb-ok', { attrs: { 'aria-label': '✓' } }, '✓') : null, lvl > 1 ? h('span.gb-lv', null, t('combos.level', { n: lvl })) : null]),
+        h('b', null, [t(`combo.${id}`), got ? h('span.gb-ok', { attrs: { 'aria-label': t('combos.found') } }, icon('check')) : null, lvl > 1 ? h('span.gb-lv', null, t('combos.level', { n: lvl })) : null]),
         h('small', null, dict().comboDesc[id]),
       ], h('span.gb-base', null, [h('span.light-text', null, String(b.light)), h('span.gb-x', null, '×'), h('span.mult-text', null, String(b.mult))]), () => { combo = id; render(); }));
     }
@@ -231,7 +250,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       radiant: chips(chip('l', '+30'), w.light),
       echo: chips(chip('l', `+${r}`), chip('l', `+${r}`), w.twice),
       glass: chips(chip('m', '×2'), w.mult, chip('w', '1/4'), w.breaks),
-      prism: chips(chip('l', '☀ ☾ ✦ ☄'), w.anySuit),
+      prism: chips(h('b.gb-chip.l.gb-suits', null, suitMarks()), w.anySuit),
     };
     return [h('div.gb-stage', null, line), [h('h3', null, t(`glyph.${glyph}`)), h('p', null, dict().glyphDesc[glyph]), tally[glyph]]];
   };
