@@ -343,6 +343,10 @@ export const en: Dict = {
   },
   settings: {
     title: 'Settings',
+    groups: { sound: 'Sound', game: 'Game', look: 'Look', other: 'Other' } as Record<string, string>,
+    hapticsSub: 'Feedback on touch',
+    reduceMotionSub: 'No flashes or shakes',
+    resetSub: 'All progress and the current run',
     language: 'Language',
     sfx: 'Sound',
     music: 'Music',
@@ -353,7 +357,7 @@ export const en: Dict = {
     quality: 'Board sharpness',
     qualityAuto: 'Auto',
     qualityMax: 'Maximum',
-    qualityNow: 'Now {now}× of {max}×. “Auto” lowers sharpness only if the device can’t keep up.',
+    qualityShort: 'Now {now}× of {max}×',
     reduceMotion: 'Reduce motion',
     largeText: 'Text size',
     textNormal: 'Normal',
@@ -362,8 +366,6 @@ export const en: Dict = {
     terms: 'Terms of use',
     reset: 'Reset progress',
     resetConfirm: 'Delete all progress and the current run?',
-    on: 'On',
-    off: 'Off',
   },
   pause: {
     title: 'Paused',

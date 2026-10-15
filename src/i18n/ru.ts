@@ -346,6 +346,10 @@ export const ru = {
   },
   settings: {
     title: 'Настройки',
+    groups: { sound: 'Звук', game: 'Игра', look: 'Вид', other: 'Прочее' } as Record<string, string>,
+    hapticsSub: 'Отклик при касании',
+    reduceMotionSub: 'Без вспышек и тряски',
+    resetSub: 'Весь прогресс и текущий забег',
     language: 'Язык',
     sfx: 'Звуки',
     music: 'Музыка',
@@ -356,7 +360,7 @@ export const ru = {
     quality: 'Чёткость поля',
     qualityAuto: 'Авто',
     qualityMax: 'Максимум',
-    qualityNow: 'Сейчас {now}× из {max}×. «Авто» снижает чёткость, только если телефон не успевает рисовать.',
+    qualityShort: 'Сейчас {now}× из {max}×',
     reduceMotion: 'Меньше движения',
     largeText: 'Размер текста',
     textNormal: 'Обычный',
@@ -365,8 +369,6 @@ export const ru = {
     terms: 'Условия использования',
     reset: 'Сбросить прогресс',
     resetConfirm: 'Удалить весь прогресс и текущий забег?',
-    on: 'Вкл',
-    off: 'Выкл',
   },
   pause: {
     title: 'Пауза',
