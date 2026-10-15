@@ -6,7 +6,6 @@ import { t } from '@/i18n';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
-import { cardPic, stepPic } from './pictos';
 import { track } from '@/analytics';
 
 /** Что экраны сообщают режиссёру. */
@@ -56,7 +55,10 @@ export class TutorialDirector {
   private timers = new Set<number>();
   /** Пересчитать подсветку и палец текущего шага (после поворота экрана). */
   private reposition: (() => void) | null = null;
-  private readonly onResize = () => window.setTimeout(() => this.reposition?.(), 60);
+  private readonly onResize = () => window.setTimeout(() => {
+    this.reposition?.();
+    this.overlay.layout();
+  }, 60);
 
   constructor(private readonly app: App) {
     this.overlay = new TutorialOverlay(() => this.app.skipTutorial());
@@ -78,8 +80,17 @@ export class TutorialDirector {
     if (e.type === 'night') {
       this.scene = e.scene;
       this.hud = e.hud;
+      // Подсказка встаёт в просвет между небом и рукой (или на шапку)
+      const scene = e.scene;
+      this.overlay.setDock(() => {
+        const board = scene.layout.board;
+        return { boardBottom: board.y + board.h, handTop: scene.handAreaRect().y };
+      });
     }
-    if (e.type === 'shop') this.shopRoot = e.root;
+    if (e.type === 'shop') {
+      this.shopRoot = e.root;
+      this.overlay.setDock(null);
+    }
     const seq = ++this.seq;
     this.history.push({ seq, e });
     if (this.history.length > 50) this.history.shift();
@@ -153,7 +164,7 @@ export class TutorialDirector {
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
-    await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next'), pic: stepPic(key) });
+    await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next') });
   }
 
   private get night() {
@@ -175,13 +186,15 @@ export class TutorialDirector {
     this.step += 1;
     this.mark(key);
     this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
-    this.overlay.spotlight(null);
+    // Цель — клетка: рамка и нить ведут к ней, палец показывает жест
+    this.overlay.spotlight(scene.cellRect(cell), 4);
     this.reposition = () => {
       const from = scene.handRect(id);
+      this.overlay.spotlight(scene.cellRect(cell), 4);
       if (from && !scene.busy) this.overlay.point(center(from), center(scene.cellRect(cell)));
     };
     this.reposition();
-    await this.overlay.say(t(`tut.${key}`), { place, pic: cardPic(code) });
+    await this.overlay.say(t(`tut.${key}`), { place });
     // Как только карта легла — убираем пузырь, чтобы он не закрывал подсчёт
     const watch = this.every(50, () => {
       if (scene.busy) {
@@ -194,6 +207,7 @@ export class TutorialDirector {
     this.clear(watch);
     this.reposition = null;
     this.overlay.point(null);
+    this.overlay.spotlight(null);
     scene.setGuide({});
     return events;
   }
@@ -231,9 +245,9 @@ export class TutorialDirector {
     this.step += 1;
     this.overlay.setProgress(this.step, TOTAL_STEPS);
     this.mark('burn');
-    this.overlay.spotlight(null);
+    this.overlay.spotlight(elementRect(this.hud!.burnBtn), 4);
     this.sync();
-    await this.overlay.say(t('tut.burn'), { place: 'top', pic: stepPic('burn') });
+    await this.overlay.say(t('tut.burn'), { place: 'top' });
     const burnBtn = this.hud!.burnBtn;
     const waitSelect = this.every(200, () => {
       this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
@@ -242,6 +256,7 @@ export class TutorialDirector {
     this.clear(waitSelect);
     this.reposition = null;
     this.overlay.point(null);
+    this.overlay.spotlight(null);
     scene.setGuide({});
 
     // Крест
@@ -341,7 +356,7 @@ export class TutorialDirector {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
-        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next'), pic: stepPic('watchFormula') }),
+        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') }),
         new Promise<void>((resolve) => (this.releaseGate = resolve)),
       ]);
       this.releaseGate = null;
@@ -362,9 +377,5 @@ export class TutorialDirector {
       }
     });
   }
-
-  // ─── Наглядные вставки ─────────────────────────────────────────────────
-
-
 
 }

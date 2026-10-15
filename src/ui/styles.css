@@ -253,9 +253,9 @@ body {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 18px;
-  background: linear-gradient(135deg, rgba(60, 40, 140, 0.96), rgba(24, 20, 70, 0.96));
-  border: 1px solid rgb(var(--gold-rgb) / 0.5);
-  box-shadow: 0 0 40px rgb(var(--gold-rgb) / 0.2);
+  /* Подсказка первых забегов — в языке «Нити к цели»: тёмная плашка с латунной кромкой */
+  background: rgb(16 13 48 / 0.96);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5), 0 12px 30px rgb(0 0 0 / 0.5);
   pointer-events: auto;
   /* Ниже окон (20) нельзя — плашка над HUD; окна сами убирают плашку при открытии */
   z-index: 18;
@@ -264,8 +264,8 @@ body {
   animation: toast-in 0.3s ease;
 }
 .coach.out { opacity: 0; transition: opacity 0.2s; }
-.coach-icon { color: var(--gold); font-size: 22px; text-shadow: 0 0 12px var(--gold); }
-.coach-text { flex: 1; font-size: 14px; line-height: 1.4; }
+.coach-icon { color: #ffe6a8; font-size: 18px; text-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.8); }
+.coach-text { flex: 1; font: 600 14px/1.4 var(--font-body); color: var(--ink); }
 /* Невысокий экран: плашка компактнее, чтобы помещаться между небом и кнопками */
 @media (max-height: 620px) {
   .coach { padding: 8px 12px; gap: 8px; }
@@ -1397,7 +1397,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
    иначе пропадает полезная обратная связь (счёт, появление подсказок) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-  .tut-spot.on::after, .dome-name, .dome-figure line, .dome-figure circle { animation: none !important; }
+  .tut-spot.on::after, .tut-thread path, .tut-chain i, .dome-name, .dome-figure line, .dome-figure circle { animation: none !important; }
   .dome-figure line { stroke-dashoffset: 0; }
   .dome-figure circle { opacity: 1; }
   .dome-shutter { transition: none; }
@@ -1405,7 +1405,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 }
 /* То же по настройке игры «Меньше тряски» — для тех, у кого не включено в системе */
 html.calm *, html.calm *::before, html.calm *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-html.calm .tut-spot.on::after, html.calm .dome-figure line, html.calm .dome-figure circle { animation: none !important; }
+html.calm .tut-spot.on::after, html.calm .tut-thread path, html.calm .tut-chain i, html.calm .dome-figure line, html.calm .dome-figure circle { animation: none !important; }
 html.calm .dome-figure line { stroke-dashoffset: 0; }
 html.calm .dome-figure circle { opacity: 1; }
 html.calm .dome-shutter { transition: none; }
@@ -1469,49 +1469,6 @@ body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right
 
 .arrow { color: var(--ink-dim); }
 
-/* ─── Картинки обучения: линия, формула, крест, сжигание (guide-demos.ts) ── */
-
-.g-stage { position: relative; flex: none; width: 112px; height: 84px; border-radius: 12px; background: rgba(5, 5, 20, 0.6); display: grid; place-items: center; overflow: hidden; }
-.g-card { display: grid; place-items: center; }
-.g-card .card-thumb { width: 62px !important; height: 89px !important; margin: -8px !important; }
-.g-card.bob { animation: g-bob 2s ease-in-out infinite; }
-.g-card.shake { animation: g-shake 2.4s ease-in-out infinite; }
-.g-pop { position: absolute; left: 50%; top: 38%; font: 800 16px/1 var(--font-body); text-shadow: 0 0 8px currentColor, 0 2px 4px #000; opacity: 0; animation: g-pop 1.6s ease-out infinite; transform: translateX(-50%); white-space: nowrap; }
-.g-pop.light { color: var(--light); }
-.g-pop.mult { color: var(--mult); }
-.g-pop.gold { color: var(--gold); }
-.g-pop.warn { color: #ffd0da; font-size: 12px; }
-.g-line { display: flex; gap: 2px; }
-.g-line .card-thumb { width: 26px !important; height: 38px !important; margin: -3px !important; }
-.g-line .g-card.fill { opacity: 0; animation: g-fill 3s ease infinite; }
-.g-line .d1 { animation-delay: 0.3s !important; }
-.g-line .d2 { animation-delay: 0.6s !important; }
-.g-line .d3 { animation-delay: 0.9s !important; }
-.g-glow { position: absolute; inset: 0; background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.6), transparent 70%); opacity: 0; animation: g-flash 3s ease infinite; }
-.g-formula { display: flex; align-items: center; gap: 3px; font-weight: 800; font-size: 12px; }
-.g-box { padding: 3px 5px; border-radius: 7px; font: 400 17px/1 var(--font-display); color: #04131b; }
-.g-box.light { background: #7fe0ff; }
-.g-box.mult { background: #ff8aa3; color: #2a0510; }
-.g-box.total { background: var(--gold); animation: g-bump 1.6s ease infinite; }
-.g-grid { display: grid; grid-template-columns: repeat(3, 20px); gap: 3px; }
-.g-cell { width: 20px; height: 20px; border-radius: 4px; border: 1px dashed rgb(var(--violet-rgb) / 0.35); font: 800 8px/20px var(--font-body); text-align: center; color: var(--gold); }
-.g-cell.on { background: rgba(195, 155, 255, 0.55); border-style: solid; }
-.g-cell.x { border: 1px solid var(--gold); animation: g-bump 1.6s ease infinite; }
-.g-stage.burn { grid-template-columns: 1fr 1fr; }
-.g-card.burn { animation: g-burn 2.4s ease-in infinite; }
-.g-card.fresh { opacity: 0; animation: g-fresh 2.4s ease infinite; }
-
-.g-coin { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.8); animation: g-flip 1.6s ease-in-out infinite; }
-@keyframes g-bob { 0%, 100% { transform: translateY(2px); } 50% { transform: translateY(-3px); } }
-@keyframes g-pop { 0% { opacity: 0; transform: translate(-50%, 6px) scale(0.6); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); } 60% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -26px) scale(1); } }
-@keyframes g-shake { 0%, 55%, 100% { transform: none; filter: none; } 60% { transform: translateX(-2px) rotate(-3deg); } 65% { transform: translateX(2px) rotate(3deg); filter: brightness(1.6); } 70% { transform: none; } }
-@keyframes g-fill { 0% { opacity: 0; transform: translateY(14px); } 12%, 70% { opacity: 1; transform: none; } 85%, 100% { opacity: 0; transform: scale(1.2); } }
-@keyframes g-flash { 0%, 50% { opacity: 0; } 62% { opacity: 1; } 85%, 100% { opacity: 0; } }
-@keyframes g-bump { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes g-burn { 0% { opacity: 1; filter: none; transform: none; } 40% { filter: sepia(1) saturate(4) hue-rotate(-20deg) brightness(1.4); } 60%, 100% { opacity: 0; transform: translateY(-14px) scale(0.8); } }
-@keyframes g-fresh { 0%, 55% { opacity: 0; transform: translateY(16px); } 75%, 100% { opacity: 1; transform: none; } }
-@keyframes g-flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.2); } }
-
 .icon-btn.q { font: 800 18px/1 var(--font-body); color: var(--ink); }
 /* Пульс — отдельным кольцом: рамка кнопки (inset-тень) остаётся на месте */
 .icon-btn.q.attn { color: var(--gold); box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.7) inset; }
@@ -1552,63 +1509,50 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 
 /* ─── Обучение ────────────────────────────────────────────────────────── */
 .tut-layer { position: fixed; inset: 0 0 auto; height: var(--app-h, 100%); pointer-events: none; z-index: 30; }
+/* «Нить к цели» (RD.9): лёгкое затемнение с окном на цель и золотой рамкой — небо и рука
+   почти не гаснут; к цели от подсказки тянется бегущая золотая нить. */
 .tut-spot {
   position: fixed;
-  border-radius: 16px;
-  box-shadow: 0 0 0 200vmax rgba(3, 3, 14, 0.62), 0 0 0 2px rgb(var(--gold-rgb) / 0.9), 0 0 30px rgb(var(--gold-rgb) / 0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgb(3 3 14 / 0.3), 0 0 0 2px #ffe6a8, 0 0 22px rgb(var(--gold-rgb) / 0.7);
   opacity: 0;
   transition: left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease, opacity 0.3s ease;
 }
 .tut-spot.on { opacity: 1; }
-/* «Дыхание» рамки — свечением псевдоэлемента через opacity: тень в 200vmax больше
-   не перерисовывает весь экран каждый кадр */
-.tut-spot::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 3px rgba(255, 224, 150, 1), 0 0 40px rgb(var(--gold-rgb) / 0.7); opacity: 0; }
-.tut-spot.on::after { animation: tut-breathe 2s ease-in-out infinite; }
+/* «Дыхание» рамки — свечением псевдоэлемента через opacity: тень в 200vmax не перерисовывает экран */
+.tut-spot::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 4px rgb(255 230 168 / 0.5), 0 0 30px rgb(var(--gold-rgb) / 0.9); opacity: 0; }
+.tut-spot.on::after { animation: tut-breathe 1.8s ease-in-out infinite; }
 @keyframes tut-breathe { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+.tut-thread { position: fixed; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.tut-thread path { fill: none; stroke: #ffe6a8; stroke-width: 1.6; stroke-dasharray: 5 6; animation: tut-dash 1.2s linear infinite; filter: drop-shadow(0 0 4px rgb(var(--gold-rgb) / 0.8)); }
+.tut-thread circle { fill: #ffe6a8; }
+@keyframes tut-dash { to { stroke-dashoffset: -22; } }
 .tut-bubble {
   position: fixed;
-  /* Центр — полями, а не translateX(-50%): анимация появления меняет transform и
-     раньше на время анимации сбивала центровку — пузырь «выезжал» справа рывком */
+  /* Центр — полями: анимация появления меняет transform и не сбивает центровку */
   left: 0;
   right: 0;
   margin: 0 auto;
-  width: min(440px, calc(100vw - 20px));
-  padding: 14px 16px 10px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, rgba(64, 44, 150, 0.98), rgba(22, 18, 64, 0.98));
-  border: 1px solid rgb(var(--gold-rgb) / 0.6);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgb(var(--gold-rgb) / 0.15);
+  width: min(380px, calc(100vw - 24px));
+  padding: 12px 16px 8px;
+  border-radius: 16px;
+  background: rgb(16 13 48 / 0.96);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5), 0 12px 30px rgb(0 0 0 / 0.5);
   pointer-events: auto;
-  font-size: 15px;
-  line-height: 1.45;
   display: none;
 }
-.tut-bubble.on { display: block; }
-.tut-bubble.top { top: calc(10px + var(--safe-top)); }
-.tut-bubble.bottom { bottom: calc(10px + var(--safe-bottom)); }
-/* Картинка шага: суть видна без чтения — уменьшенные анимации справочника и карты игры */
-.tut-say { display: flex; align-items: center; gap: 12px; }
-.tut-say .tut-text { flex: 1; min-width: 0; }
-.tut-pic-wrap { flex: none; width: 100px; height: 75px; border-radius: 10px; overflow: hidden; }
-.tut-pic-wrap > .g-stage { transform: scale(0.893); transform-origin: top left; }
-.tut-pic-card, .tut-pic-hand { display: flex; gap: 4px; align-items: center; justify-content: center; }
-.tut-pic-card .card-thumb { animation: g-bob 2.4s ease-in-out infinite; }
-.tut-pic-target { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.tut-pic-target b { font: 400 30px/1 var(--font-display); color: var(--gold); text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.5); }
-.tut-pic-bar { width: 72px; height: 6px; border-radius: 3px; background: rgb(var(--violet-rgb) / 0.2); overflow: hidden; position: relative; }
-.tut-pic-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--light), var(--gold)); transform-origin: left; animation: tut-fill 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
-@keyframes tut-fill { 0% { transform: scaleX(0); } 70%, 100% { transform: scaleX(1); } }
-.tut-pic-q { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font: 800 22px/1 var(--font-body); color: var(--gold); background: rgba(40, 36, 100, 0.8); box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.7) inset; animation: tut-glow 1.8s ease-in-out infinite; }
-.tut-bubble.pop { animation: bubble-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
-.tut-bubble.top.pop { animation-name: bubble-in-top; }
-/* Появляется на месте: лёгкий сдвиг от края, у которого стоит, и проявление */
-@keyframes bubble-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
-@keyframes bubble-in-top { from { opacity: 0; transform: translateY(-8px) scale(0.98); } to { opacity: 1; transform: none; } }
-.tut-bubble::before { content: '✦'; position: absolute; left: -9px; top: -11px; font-size: 22px; color: var(--gold); text-shadow: 0 0 12px var(--gold); }
-.tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.tut-progress { font-size: 0; color: var(--ink-dim); position: relative; width: 64px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
-.tut-skip { margin-right: auto; border: 0; background: none; color: var(--ink-dim); font: 600 12px/1 var(--font-body); text-decoration: underline; cursor: pointer; padding: 6px 0; }
-.tut-actions .btn { margin-left: auto; }
+.tut-bubble[style*="left"] { right: auto; margin: 0; }
+.tut-bubble.on { display: flex; flex-direction: column; justify-content: center; }
+.tut-text { font: 600 14.5px/1.4 var(--font-body); color: var(--ink); text-align: center; text-wrap: balance; }
+.tut-text b { color: #ffe6a8; }
+.tut-bubble.pop { animation: bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.tut-ticks { display: flex; gap: 3px; flex: 0 1 auto; min-width: 0; }
+.tut-ticks i { flex: 0 1 10px; min-width: 3px; width: 10px; height: 3px; border-radius: 2px; background: rgb(var(--violet-rgb) / 0.25); }
+.tut-ticks i.on { background: rgb(var(--gold-rgb) / 0.85); }
+.tut-skip { margin-left: auto; white-space: nowrap; border: 0; background: none; color: var(--ink-faint, #8a85b8); font: 600 12.5px/1 var(--font-body); cursor: pointer; }
+.tut-actions .tut-next { margin-left: 4px; min-height: 40px; padding: 0 18px; border-radius: 999px; font-size: 14.5px; }
 .tut-combo { display: flex; align-items: baseline; gap: 8px; font-weight: 700; }
 .tut-combo-desc { flex: 1; font-size: 12px; font-weight: 500; color: var(--ink-dim); }
 .tut-finger {
@@ -2418,7 +2362,6 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 .map-peek, .tut-skip { min-height: 44px; display: inline-flex; align-items: center; margin-top: -12px; margin-bottom: -12px; }
 .tut-next { min-height: 44px; padding: 8px 22px; font-size: 15px; }
 
-.tut-progress::before { content: ''; position: absolute; inset: 0; background: var(--gold); border-radius: 4px; transform: scaleX(var(--p, 0)); transform-origin: left center; transition: transform 0.3s ease; }
 
 /* Закрытое небо: условие открытия — самая полезная строка, её не гасим */
 .sky-item.locked:not(.atlas-sky) .sky-name { opacity: 0.55; }
@@ -2451,21 +2394,20 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 @media (max-width: 340px) { .hud-chapter { display: none; } }
 
 /* «Обучение пройдено»: подарок и памятки картинками — без чтения */
-.tut-done { text-align: center; }
-.tut-gift { margin: 4px 0 16px; padding: 14px 12px 10px; border-radius: 16px; background: radial-gradient(120% 100% at 50% 0%, rgb(var(--gold-rgb) / 0.18), rgb(var(--gold-rgb) / 0.04)); box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.35) inset; }
-.tut-gift-items { display: flex; justify-content: center; align-items: center; gap: 22px; }
-.tut-gift-item { display: flex; flex-direction: column; align-items: center; gap: 6px; animation: rise-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.tut-gift-item .coin.big { width: 34px; height: 34px; }
-.tut-gift-n { font: 400 30px/1 var(--font-display); color: var(--gold); text-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.5); }
-.tut-gift-caption { margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--gold); }
-.tut-memos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 18px; }
-.tut-memo { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.tut-memo-pic { height: 74px; display: grid; place-items: center; }
-.tut-memo-caption { font-size: 13px; line-height: 1.3; font-weight: 600; color: var(--ink); }
-.tut-memo-cell { width: 50px; height: 72px; border-radius: 6px; border: 1.5px solid rgba(255, 214, 120, 0.8); background: rgba(30, 26, 80, 0.5); box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.tut-memo-x { font: 400 16px/1 var(--font-display); color: #ffd678; }
-.tut-memo-name { font: 700 11px/1 var(--font-body); color: var(--gold); }
-.tut-memo-chip { width: 13px; height: 18px; border-radius: 3px; border: 1px solid #c39bff; color: #eadcff; font: 400 12px/16px var(--font-display); }
+/* «Обучение пройдено» (RD.9): цепочка выученных приёмов, подарок, кнопки по своей ширине */
+.modal-panel.tut-done { text-align: center; display: grid; gap: 14px; justify-items: center; background: linear-gradient(180deg, #1d1852, #0d0b2a 80%); border: 0; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4), 0 30px 80px rgb(0 0 0 / 0.6); }
+.tut-done-title { margin: 0; font: 400 30px/1.1 var(--font-display); letter-spacing: 0.06em; color: #ffe6a8; text-shadow: 0 0 24px rgb(var(--gold-rgb) / 0.4); text-wrap: balance; }
+.tut-done-sub { margin: -6px 0 0; font: 600 13.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.tut-chain { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: relative; padding-top: 4px; }
+.tut-chain::before { content: ''; position: absolute; left: 10%; right: 10%; top: 14px; height: 1.5px; background: linear-gradient(90deg, #ffe6a8, rgb(var(--gold-rgb) / 0.4)); }
+.tut-chain span { position: relative; display: grid; justify-items: center; gap: 6px; font: 700 11px/1.2 var(--font-body); color: var(--ink-dim); }
+.tut-chain i { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, #ffe6a8 45%, rgb(var(--gold-rgb) / 0) 72%); box-shadow: 0 0 12px 3px rgb(var(--gold-rgb) / 0.5); animation: tut-light 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d); }
+@keyframes tut-light { from { transform: scale(0.3); opacity: 0; } }
+.tut-gift { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); font: 700 13px/1.3 var(--font-body); color: var(--ink-dim); }
+.tut-gift b { font: 800 22px/1.3 var(--font-body); color: #ffe6a8; }
+.tut-gift .coin.big { width: 24px; height: 24px; }
+.tut-done-acts { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.tut-done-acts .btn { min-height: 50px; padding-inline: 22px; }
 
 /* Только для скринридера */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -2477,6 +2419,6 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 html.large-text body, html.large-text .modal-text, html.large-text .tut-bubble, html.large-text .toast,
 html.large-text .coach-text, html.large-text .tip-desc, html.large-text .scene-tip { font-size: 17px; }
 html.large-text .hint, html.large-text .bonus-line, html.large-text .calc-caption, html.large-text .card-info,
-html.large-text .preview, html.large-text .tut-memo-caption { font-size: 15px; }
+html.large-text .preview { font-size: 15px; }
 html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label { font-size: 13px; }
 

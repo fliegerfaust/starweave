@@ -1,47 +1,31 @@
-import { bossSigil } from '@/art/sigil';
 import type { App } from '@/game/app';
-import { t } from '@/i18n';
-import { canvasImg, dpr, h } from '../dom';
+import { dict, t } from '@/i18n';
+import { h } from '../dom';
 import { button, modal } from '../widgets';
-import { screenTitle } from './common';
 
 /**
- * Подарок из обучения картинкой: монета с числом — читается без слов.
- * Только если первый забег ещё впереди.
+ * «Обучение пройдено» (RD.9, «Нить к цели»): выученные приёмы цепочкой — загораются по
+ * очереди, как ночи на карте главы; подарок монетой; две кнопки по своей ширине (без
+ * растянутой «Начать забег» на широком экране).
  */
-function giftRow(app: App): HTMLElement | null {
-  const gift = app.profile.tutorialGift;
-  if (!gift || app.hasSave) return null;
-  return h('div.tut-gift', null, [
-    h('div.tut-gift-items', null, [
-      h('div.tut-gift-item', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b.tut-gift-n', null, String(gift.gold))]),
-    ]),
-    h('div.tut-gift-caption', null, t('tut.giftCaption')),
-  ]);
-}
-
-/** Памятка: картинка и подпись в пару слов — то, что пригодится в первой ночи. */
-function memo(visual: HTMLElement, caption: string): HTMLElement {
-  return h('div.tut-memo', null, [h('div.tut-memo-pic', { attrs: { 'aria-hidden': 'true' } }, visual), h('div.tut-memo-caption', null, caption)]);
-}
-
-/** Золотая клетка с подписью созвездия — как на небе. */
-function forecastCell(): HTMLElement {
-  return h('div.tut-memo-cell', null, [h('span.tut-memo-x', null, '×2'), h('span.tut-memo-name', null, t('combo.pair')), h('span.tut-memo-chip', null, '7')]);
-}
-
-/** Поздравление после обучения и переход в первый настоящий забег. */
 export function showTutorialDone(app: App): void {
+  const learned = dict().tut.learned;
+  const chain = h('div.tut-chain', { attrs: { 'aria-label': learned.join(', ') } }, learned.map((name, i) => {
+    const star = h('i');
+    star.style.setProperty('--d', `${0.2 + i * 0.15}s`);
+    return h('span', null, [star, name]);
+  }));
+  const gift = app.profile.tutorialGift;
+  const giftRow = gift && !app.hasSave
+    ? h('div.tut-gift', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b', null, `+${gift.gold}`), h('span', null, t('tut.giftCaption'))])
+    : null;
   const m = modal(
     [
-      screenTitle(t('tut.doneTitle')),
-      giftRow(app),
-      h('div.tut-memos', null, [
-        memo(forecastCell(), t('tut.memoCell')),
-        memo(h('span.tut-pic-q', null, '?'), t('tut.memoGuide')),
-        memo(canvasImg(bossSigil('eclipse-moon', 52, dpr()), 52), t('tut.memoEclipse')),
-      ]),
-      h('div.row.center.wrap', null, [
+      h('h2.tut-done-title', null, t('tut.doneTitle')),
+      h('p.tut-done-sub', null, t('tut.doneSub')),
+      chain,
+      giftRow,
+      h('div.tut-done-acts', null, [
         button(t('over.menu'), () => {
           m.close();
           void app.goMenu();
