@@ -12,7 +12,6 @@ export const ru = {
     newRun: 'Новый забег',
     daily: 'Вызов дня',
     dailyDone: 'Вызов дня пройден',
-    codex: 'Кодекс',
     settings: 'Настройки',
     howTo: 'Справочник',
     chooseSky: 'Выбери небо',
@@ -31,10 +30,9 @@ export const ru = {
     library: 'Библиотека',
     libraryOpen: 'Открыть библиотеку',
     lib: {
-      guide: 'Правила и все созвездия',
+      guide: 'Правила, созвездия и коллекция',
       tutorial: 'Пройти ещё раз',
       archive: 'Прошлые вызовы дня',
-      codex: 'Знамения и открытия',
       settings: 'Звук, язык, вид',
     },
     /** Подпись созвездия в щели купола на главной. */
@@ -164,7 +162,7 @@ export const ru = {
     ritualNote: 'Луна: карта меняет масть',
     goldRows: ['Награда за ночь', 'Остаток ходов и сжиганий', 'Проценты: 10 в кармане', 'Итого'],
     glyphTally: { atFlare: 'при вспышке', toMult: 'к множителю', light: 'света', twice: 'ранг дважды', mult: 'множитель', breaks: 'разобьётся', anySuit: 'любая масть' },
-    tabs: { combos: 'Созвездия', night: 'Ночь', shop: 'Обсерватория', glyphs: 'Глифы' },
+    tabs: { combos: 'Созвездия', night: 'Ночь', shop: 'Обсерватория', glyphs: 'Глифы', collection: 'Коллекция' },
     button: 'Справочник',
   },
   tut: {
@@ -325,7 +323,6 @@ export const ru = {
     status: 'Очки {score} из {target}, ходов {moves}.',
   },
   codex: {
-    title: 'Кодекс',
     kinds: { mult: '+ к множителю', xmult: '× множитель', light: '+ свет', rule: 'правило', gold: 'золото' } as Record<string, string>,
     eclipse: 'Затмение',
     unknownOmen: 'Ещё не встречалось. Появится в Обсерватории — и откроется здесь.',

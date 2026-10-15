@@ -12,7 +12,6 @@ export const en: Dict = {
     newRun: 'New run',
     daily: 'Daily challenge',
     dailyDone: 'Daily done',
-    codex: 'Codex',
     settings: 'Settings',
     howTo: 'Guide',
     chooseSky: 'Choose your sky',
@@ -30,10 +29,9 @@ export const en: Dict = {
     library: 'Library',
     libraryOpen: 'Open the library',
     lib: {
-      guide: 'Rules and every constellation',
+      guide: 'Rules, constellations and collection',
       tutorial: 'Play it again',
       archive: 'Past daily challenges',
-      codex: 'Omens and discoveries',
       settings: 'Sound, language, look',
     },
     skyName: 'In the sky: {name}',
@@ -161,7 +159,7 @@ export const en: Dict = {
     ritualNote: 'Moon: the card changes suit',
     goldRows: ['Night reward', 'Moves and burns left', 'Interest: 10 in pocket', 'Total'],
     glyphTally: { atFlare: 'on flare', toMult: 'to multiplier', light: 'light', twice: 'rank counts twice', mult: 'multiplier', breaks: 'may break', anySuit: 'any suit' },
-    tabs: { combos: 'Constellations', night: 'Night', shop: 'Observatory', glyphs: 'Glyphs' },
+    tabs: { combos: 'Constellations', night: 'Night', shop: 'Observatory', glyphs: 'Glyphs', collection: 'Collection' },
     button: 'Guide',
   },
   tut: {
@@ -322,7 +320,6 @@ export const en: Dict = {
     status: 'Points {score} of {target}, {moves} moves left.',
   },
   codex: {
-    title: 'Codex',
     kinds: { mult: '+ multiplier', xmult: '× multiplier', light: '+ light', rule: 'rule', gold: 'gold' } as Record<string, string>,
     eclipse: 'Eclipse',
     unknownOmen: 'Not met yet. It will show up in the Observatory — and open here.',

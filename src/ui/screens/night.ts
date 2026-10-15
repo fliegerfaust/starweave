@@ -97,7 +97,7 @@ export class NightScreen implements Screen {
 
   /** «?»: посреди ночи нужнее всего созвездия; подпись о глифе ведёт в справочник. */
   private guide(focus?: string): void {
-    if (focus) showHelp({ focus, levels: this.run.comboLevels, found: this.app.profile.combosFound });
+    if (focus) showHelp({ focus, levels: this.run.comboLevels, found: this.app.profile.combosFound, profile: this.app.profile });
     else showCombos(this.run, this.app.profile.combosFound, true);
     const p = this.app.profile;
     if (!p.tutorial.includes('guideSeen')) {
@@ -211,7 +211,7 @@ export class NightScreen implements Screen {
         h('div.pause-acts', null, [
           button(t('pause.resume'), () => m.close()),
           h('div.scene-lights', null, [
-            lightButton('guide', t('pause.help'), () => showHelp({ levels: this.run.comboLevels, found: this.app.profile.combosFound })),
+            lightButton('guide', t('pause.help'), () => showHelp({ levels: this.run.comboLevels, found: this.app.profile.combosFound, profile: this.app.profile })),
             lightButton('settings', t('settings.title'), () => showSettings(this.app, () => this.hud.sync(this.run, { score: false }))),
           ]),
           h('div.scene-lights', null, lightButton('flag', t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
