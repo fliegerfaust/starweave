@@ -366,8 +366,9 @@ export class TutorialDirector {
     this.every(120, () => {
       const calc = document.querySelector('.calc.show');
       if (calc) {
-        // Панель появляется с анимацией — меряем на каждом тике
-        this.overlay.spotlight(elementRect(calc), 6);
+        // Панель выезжает снизу на 14px — рамку и нить ставим сразу на её место, а не
+        // догоняем рывками по тикам
+        this.overlay.spotlight(settledRect(calc), 6);
         // Пузырь с прошлого шага не должен закрывать подсчёт
         if (!this.formulaShown && !gateOpen) this.overlay.hideBubble();
         this.formulaShown = true;
@@ -378,4 +379,13 @@ export class TutorialDirector {
     });
   }
 
+}
+
+/** Прямоугольник элемента без сдвига по Y из его текущей анимации появления. */
+function settledRect(el: Element): Rect | null {
+  const r = elementRect(el);
+  if (!r) return null;
+  const transform = getComputedStyle(el).transform;
+  const shift = transform === 'none' ? 0 : new DOMMatrix(transform).m42;
+  return { ...r, y: r.y - shift };
 }
