@@ -14,7 +14,7 @@ import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { showCombos, showDeck, showHelp, showSettings } from './common';
 import { icon } from '../icons';
-import { chapterChain, lightButton, sceneRibbon, sceneTally, sceneWindow, statsTable } from '../scene-window';
+import { chapterChain, lightButton, sceneRibbon, sceneRows, sceneTally, sceneWindow, statsTable } from '../scene-window';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
 export class NightScreen implements Screen {
@@ -53,9 +53,12 @@ export class NightScreen implements Screen {
       });
       this.scene.build();
       const scene = this.scene;
-      setCoachDock(() =>
-        this.scene === scene ? { handTop: scene.handAreaRect().y, boardBottom: scene.layout.board.y + scene.layout.board.h } : null,
-      );
+      setCoachDock(() => {
+        if (this.scene !== scene) return null;
+        const hand = scene.handAreaRect();
+        const board = scene.layout.board;
+        return { handTop: hand.y, boardBottom: board.y + board.h, board, hand };
+      });
       this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
@@ -232,12 +235,9 @@ export class NightScreen implements Screen {
       [t('reward.burns'), reward.burns],
       [t('reward.interest'), reward.interest],
     ];
-    const chips = h('div.scene-chips', null, rows
-      .filter(([, value], i) => value > 0 || i === 0)
-      .map(([label, value], i) => {
-        window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
-        return h('span', { style: { animationDelay: `${0.35 + i * 0.12}s` } }, [`${label} `, h('b', null, `+${value}`)]);
-      }));
+    const shown = rows.filter(([, value], i) => value > 0 || i === 0);
+    shown.forEach((_, i) => window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120));
+    const chips = sceneRows(shown.map(([label, value]) => [label, `+${value}`]), { gold: true, total: [t('reward.total'), `+${reward.total}`] });
     // Авторский момент: золото набегает до итога (в «Меньше движения» — сразу итог)
     const count = h('span', null, `+${reward.total}`);
     const calm = this.app.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -326,7 +326,7 @@ export class NightScreen implements Screen {
       mid: [
         sceneRibbon(t('over.lostTitle'), run.daily ? `${t('menu.daily')} · ${reached}` : reached, true),
         night ? sceneTally(night.score, night.target) : null,
-        isRecord ? h('div.scene-badge', null, [icon('star'), t('over.newRecord', { n: num(run.stats.bestPlacement) })]) : null,
+        isRecord ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
         this.challengeVersus(false),
         h('p.scene-tip', null, [icon('bulb'), h('span', null, lostTip(run))]),
         statsTable(run),
@@ -351,7 +351,7 @@ export class NightScreen implements Screen {
       mid: [
         chapterChain(),
         sceneRibbon(t('over.winTitle'), t('over.winSub', { sky: named('sky', run.skyId).name, stake: stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal') })),
-        run.stats.bestPlacement > this.app.bestBefore ? h('div.scene-badge', null, [icon('star'), t('over.newRecord', { n: num(run.stats.bestPlacement) })]) : null,
+        run.stats.bestPlacement > this.app.bestBefore ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
         this.challengeVersus(true),
         statsTable(run),
       ],
