@@ -2,28 +2,60 @@ import type { App } from '@/game/app';
 import { saveProfile } from '@/meta/profile';
 import { t } from '@/i18n';
 import { h } from './dom';
-import { icon } from './icons';
-import { button } from './widgets';
 
 export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss';
 
 const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
-/** Где рука и где кончается небо (CSS px) — плашка встаёт между ними, не закрывая HUD. */
+let ring: HTMLElement | null = null;
+let thread: SVGSVGElement | null = null;
+
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+/** Где на ночи небо и рука (CSS px): плашка встаёт в просвет между ними, нить ведёт к цели. */
 export interface CoachDock {
   handTop: number;
   boardBottom: number;
+  board: Box;
+  hand: Box;
 }
 let dock: (() => CoachDock | null) | null = null;
 
-/** Экран ночи сообщает, где рука и небо; без него плашка — над нижними кнопками экрана. */
+/** Экран ночи сообщает, где рука и небо; без него — Обсерватория и карта главы. */
 export function setCoachDock(fn: (() => CoachDock | null) | null): void {
   dock = fn;
 }
 
+const box = (sel: string): Box | null => {
+  const el = document.querySelector(sel);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return r.width ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+};
+
+/** Цель подсказки: о чём она говорит — то и обводим рамкой, к тому ведём нить. */
+function targetOf(step: TutorialStep): Box | null {
+  const d = dock?.();
+  switch (step) {
+    case 'place': return d?.hand ?? null;
+    case 'fillLine':
+    case 'cross': return d?.board ?? null;
+    case 'target': return box('.hud-score-wrap');
+    case 'combos': return box('.hud .icon-btn.q');
+    case 'burn': return box('.burn-btn');
+    case 'shop': return box('.owned-omens');
+    case 'boss': return box('.map-node.eclipse .map-star') ?? box('.map-node.eclipse');
+  }
+}
+
 /**
- * Подсказка обучения: показывается один раз за всё время, только в первых забегах.
- * Не блокирует игру — плашка над рукой (или над нижними кнопками), не поверх счёта и цели.
+ * Подсказка первых забегов — «Нить» (RD.12, выбор Дениса): тёмная плашка с латунной кромкой
+ * и тихим «Понятно», цель — в дышащей золотой рамке, от плашки к цели бежит золотая нить.
+ * Экран не затемняется, плашка цель не закрывает. Один раз за всё время, в первых забегах.
  * Пока открыто окно, подсказки не показываются: окно важнее.
  */
 export function coach(app: App, step: TutorialStep): void {
@@ -33,36 +65,102 @@ export function coach(app: App, step: TutorialStep): void {
     if (!queue.includes(step)) queue.push(step);
     return;
   }
-  const el = h('div.coach', null, [
-    h('div.coach-icon', null, icon('midnight')),
-    h('div.coach-text', null, t(`tutorial.${step}`)),
-    button(t('tutorial.gotIt'), () => dismiss(app, step), { variant: 'secondary', className: 'small' }),
-  ]);
+  const ok = h('button.coach-ok', { type: 'button' }, t('tutorial.gotIt'));
+  ok.addEventListener('click', () => dismiss(app, step));
+  const el = h('div.coach', { attrs: { role: 'status', 'aria-live': 'polite' } }, [h('div.coach-text', null, t(`tutorial.${step}`)), ok]);
   el.dataset.step = step;
-  document.getElementById('ui')!.append(el);
+  ring = h('div.coach-ring', { attrs: { 'aria-hidden': 'true' } });
+  thread = document.createElementNS(SVG, 'svg');
+  thread.setAttribute('class', 'coach-thread');
+  thread.setAttribute('aria-hidden', 'true');
+  document.getElementById('ui')!.append(ring, thread, el);
   current = el;
-  place(el);
+  layoutCoach();
+  // Экран мог ещё раскладываться (шрифты, карта главы) — уточняем место чуть позже
+  setTimeout(layoutCoach, 450);
 }
 
-/**
- * Плашка — в просвет между небом и рукой. Если просвета нет (невысокий экран), она
- * ложится на HUD, но не на небо и руку: там то, о чём она говорит. В ландшафте — в левой
- * колонке под HUD (CSS), там пусто.
- */
-function place(el: HTMLElement): void {
+const SVG = 'http://www.w3.org/2000/svg';
+
+/** Место плашки, рамка и нить — пересчитываются при повороте и смене размера. */
+export function layoutCoach(): void {
+  const el = current;
+  if (!el || !ring || !thread) return;
+  const step = el.dataset.step as TutorialStep;
+  const target = targetOf(step);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const landscape = document.body.classList.contains('landscape');
   const d = dock?.();
-  if (!d || document.body.classList.contains('landscape')) return;
-  let top = d.handTop - el.offsetHeight - 8;
-  if (top < d.boardBottom + 4) {
-    // Просвета нет: подсказки про руку и небо закрывают HUD, а подсказка про цель
-    // (она о HUD) — нижние кнопки и край руки
-    const hud = document.querySelector('.hud')?.getBoundingClientRect();
-    const actions = document.querySelector('.actions')?.getBoundingClientRect();
-    if (el.dataset.step === 'target' && actions) top = actions.top - el.offsetHeight - 6;
-    else top = Math.max(4, (hud?.bottom ?? el.offsetHeight + 8) - el.offsetHeight);
+  el.style.top = '';
+  el.style.bottom = '';
+  const h = el.offsetHeight;
+  const hit = (top: number) => !!target && top < target.y + target.h + 6 && top + h > target.y - 6;
+  let top: number;
+  if (landscape && d) {
+    // Ландшафт: левая колонка под шапкой (ширину и край задаёт CSS)
+    const hud = box('.hud');
+    top = (hud ? hud.y + hud.h : 60) + 10;
+  } else if (d) {
+    const hud = box('.hud');
+    const gap = d.handTop - h - 10;
+    if (gap >= d.boardBottom + 4 && !hit(gap)) top = gap;
+    else if (target && hud && target.y < hud.y + hud.h) top = Math.max(hud.y + hud.h + 6, d.board.y + 4);
+    else top = Math.max(safeInset('top') + 4, hud ? hud.y + hud.h - h : 8);
+  } else {
+    // Обсерватория и карта главы: подальше от цели — сверху под шапкой или снизу над кнопками
+    const head = box('.shop-top, .map-top');
+    const foot = box('.shop-actions, .map-dock');
+    // В Обсерватории сверху товары — плашка сначала пробует место над кнопками
+    const low = step !== 'shop' && !!target && target.y + target.h / 2 > vh / 2;
+    top = low ? (head ? head.y + head.h + 10 : safeInset('top') + 10) : (foot ? foot.y - h - 12 : vh - h - 16 - safeInset('bottom'));
+    if (hit(top)) top = low ? (foot ? foot.y - h - 12 : vh - h - 16) : (head ? head.y + head.h + 10 : 10);
   }
+  el.style.top = `${Math.round(top)}px`;
   el.style.bottom = 'auto';
-  el.style.top = `${top}px`;
+  if (!target) {
+    ring.classList.remove('on');
+    thread.replaceChildren();
+    return;
+  }
+  const pad = step === 'combos' || step === 'boss' ? 4 : 6;
+  Object.assign(ring.style, { left: `${target.x - pad}px`, top: `${target.y - pad}px`, width: `${target.w + pad * 2}px`, height: `${target.h + pad * 2}px` });
+  ring.classList.toggle('round', step === 'combos' || step === 'boss');
+  ring.classList.add('on');
+  const b = el.getBoundingClientRect();
+  const t0 = { x: target.x - pad, y: target.y - pad, w: target.w + pad * 2, h: target.h + pad * 2 };
+  let path: string;
+  let end: { x: number; y: number };
+  if (b.right < t0.x) {
+    const sy = b.top + b.height / 2;
+    end = { x: t0.x - 2, y: t0.y + t0.h / 2 };
+    path = `M${b.right} ${sy} C ${b.right + 60} ${sy}, ${end.x - 60} ${end.y}, ${end.x} ${end.y}`;
+  } else {
+    const below = b.top >= t0.y + t0.h;
+    const sx = b.left + b.width / 2;
+    const sy = below ? b.top : b.bottom;
+    end = { x: Math.min(Math.max(sx, t0.x + 14), t0.x + t0.w - 14), y: below ? t0.y + t0.h + 2 : t0.y - 2 };
+    const mid = (sy + end.y) / 2;
+    path = `M${sx} ${sy} C ${sx} ${mid}, ${end.x} ${mid}, ${end.x} ${end.y}`;
+  }
+  thread.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+  const p = document.createElementNS(SVG, 'path');
+  p.setAttribute('d', path);
+  const dot = document.createElementNS(SVG, 'circle');
+  dot.setAttribute('cx', String(end.x));
+  dot.setAttribute('cy', String(end.y));
+  dot.setAttribute('r', '3.5');
+  thread.replaceChildren(p, dot);
+}
+window.addEventListener('resize', () => requestAnimationFrame(layoutCoach));
+
+/** Safe area в px: `--safe-top` — это env()/calc(var()), строкой не прочесть — меряем. */
+function safeInset(side: 'top' | 'bottom'): number {
+  const probe = h('div', { style: `position: fixed; visibility: hidden; pointer-events: none; height: var(--safe-${side}, 0px)` });
+  document.body.append(probe);
+  const px = probe.getBoundingClientRect().height;
+  probe.remove();
+  return px;
 }
 
 /** Подсказка устарела (игрок уже сделал то, о чём она) — убрать из очереди. */
@@ -80,15 +178,22 @@ function dismiss(app: App, step: TutorialStep): void {
   if (!app.profile.tutorial.includes(step)) app.profile.tutorial.push(step);
   saveProfile(app.profile);
   current?.classList.add('out');
-  const el = current;
-  setTimeout(() => el?.remove(), 200);
+  const parts = [current, ring, thread];
+  parts.forEach((p) => p?.classList.add('out'));
+  setTimeout(() => parts.forEach((p) => p?.remove()), 200);
   current = null;
+  ring = null;
+  thread = null;
   const next = queue.shift();
   if (next) setTimeout(() => coach(app, next), 250);
 }
 
 export function clearCoach(): void {
   current?.remove();
+  ring?.remove();
+  thread?.remove();
   current = null;
+  ring = null;
+  thread = null;
   queue.length = 0;
 }

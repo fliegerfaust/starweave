@@ -60,10 +60,21 @@ export function chapterChain(): SVGSVGElement {
   return svg;
 }
 
-/** Итоги забега гравированной табличкой. */
+/**
+ * Строки итогов — «Строки» (RD.12, выбор Дениса): подпись слева, число справа, между строками
+ * волосяные линии, итог — через латунную линию. Без плашек и заливок.
+ */
+export function sceneRows(rows: [string, string][], opts: { total?: [string, string]; gold?: boolean } = {}): HTMLElement {
+  return h('div.scene-rows', null, [
+    ...rows.map(([label, value], i) => h('div.scene-row', { style: { animationDelay: `${0.35 + i * 0.12}s` } }, [h('span', null, label), h(`b${opts.gold ? '.g' : ''}`, null, value)])),
+    opts.total ? h('div.scene-row.total', { style: { animationDelay: `${0.35 + rows.length * 0.12}s` } }, [h('span', null, opts.total[0]), h('b', null, opts.total[1])]) : null,
+  ]);
+}
+
+/** Итоги забега — двумя колонками «подпись · число» через волосяные линии. */
 export function statsTable(run: RunState): HTMLElement {
   const s = run.stats;
-  const item = (label: string, value: string) => h('div.stat-item', null, [h('div.stat-item-value', null, value), h('div.stat-item-label', null, label)]);
+  const item = (label: string, value: string) => h('div.stat-item', null, [h('span.stat-item-label', null, label), h('b.stat-item-value', null, value)]);
   return h('div.stats-grid', null, [
     item(t('over.nights'), String(s.nightsWon)),
     item(t('over.lines'), num(s.linesIgnited)),
