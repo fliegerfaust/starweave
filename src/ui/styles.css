@@ -1118,37 +1118,126 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
 .deck-card.disabled { opacity: 0.25; cursor: not-allowed; }
 .deck-card.selected { transform: translateY(-6px); filter: drop-shadow(0 0 10px var(--gold)); }
 
+/* ─── Окна ночи: «Сцена» (RD.3) ──────────────────────────────────────── */
+/* Итоги ночи — по небу во весь экран: лента с названием, крупная цифра, табличка итогов.
+   Середина прокручивается, кнопки всегда видны; в невысоком ландшафте — колонкой справа. */
+
+.modal-backdrop.scene { padding: calc(20px + var(--safe-top)) calc(18px + env(safe-area-inset-right, 0px)) calc(12px + var(--safe-bottom)) calc(18px + env(safe-area-inset-left, 0px));
+  place-items: stretch; background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.9), rgb(3 3 14 / 0.96)); backdrop-filter: none; }
+.modal-panel.scene { width: 100%; height: 100%; max-height: none; overflow: hidden; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; animation: fade-in 0.3s ease; }
+.scene-inner { height: 100%; width: min(420px, 100%); margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; }
+.scene-mid { align-self: center; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; display: grid; justify-items: center; gap: 18px; padding: 4px 0; }
+.scene-acts { display: grid; gap: 8px; }
+.scene-acts > .btn { width: 100%; }
+.scene-ribbon { position: relative; display: grid; place-items: center; gap: 7px; width: min(360px, 100%); padding: 14px 24px 15px;
+  background: linear-gradient(90deg, rgb(6 5 22 / 0), rgb(6 5 22 / 0.96) 14%, rgb(6 5 22 / 0.96) 86%, rgb(6 5 22 / 0)); animation: scene-unfurl 0.7s cubic-bezier(.16,1,.3,1) both; }
+.scene-ribbon::before, .scene-ribbon::after { content: ''; position: absolute; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.9), transparent); }
+.scene-ribbon::before { top: 0; }
+.scene-ribbon::after { bottom: 0; }
+.scene-ribbon b { font: 400 30px/1.05 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: #fff6e0; text-align: center; text-wrap: balance; text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.45); }
+.scene-ribbon small { font: 700 12.5px/1.35 var(--font-body); letter-spacing: 0.04em; color: #f2dfb6; text-align: center; text-wrap: balance; }
+.scene-ribbon.dim b { color: #d8d2f2; text-shadow: 0 0 12px rgb(150 140 255 / 0.35); }
+@keyframes scene-unfurl { from { transform: scaleX(0.3); opacity: 0; } }
+.scene-gold { display: inline-flex; align-items: center; gap: 12px; font: 800 64px/1 var(--font-body); color: #ffe6a8; text-shadow: 0 0 30px rgb(var(--gold-rgb) / 0.55); font-variant-numeric: tabular-nums; }
+.scene-gold .coin { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 16px rgb(var(--gold-rgb) / 0.7); }
+.scene-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.scene-chips span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; font: 600 12.5px/1 var(--font-body); color: var(--ink-dim); background: rgb(8 7 26 / 0.6); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18); animation: rise-in 0.35s ease both; }
+.scene-chips b { color: #ffe6a8; font-weight: 800; }
+.scene-tally { display: grid; gap: 7px; width: 100%; }
+.scene-nums { display: flex; align-items: baseline; justify-content: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.scene-nums b { font: 800 30px/1 var(--font-body); color: var(--ink); }
+.scene-nums span { font: 600 15px/1 var(--font-body); color: var(--ink-dim); }
+.scene-bar { height: 6px; border-radius: 3px; background: rgb(var(--violet-rgb) / 0.14); overflow: hidden; }
+.scene-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e09a2f, #ffe6a8); }
+.scene-tally.short .scene-bar i { background: linear-gradient(90deg, #8e5a2a, #e0a24f); }
+.scene-short { text-align: center; font: 700 13px/1.3 var(--font-body); color: #ffb3c0; }
+.scene-tip { margin: 0; width: 100%; display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: rgb(var(--gold-rgb) / 0.05); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18); font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); text-wrap: pretty; text-align: left; }
+.scene-tip .icon { width: 20px; height: 20px; color: var(--gold); }
+.scene-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font: 700 13px/1 var(--font-body); color: #ffe6a8; background: rgb(var(--gold-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.scene-badge .icon { width: 15px; height: 15px; }
+.scene .challenge-vs { width: 100%; margin: 0; }
+.scene-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.scene-pair.one { grid-template-columns: minmax(0, 1fr); }
+.scene-pair .btn { width: 100%; min-width: 0; padding-inline: 10px; }
+.scene-pair .btn .icon { display: none; }
+.scene-pair.one .btn .icon { display: inline-block; }
+/* Короткое свечение главной кнопки (DESIGN.md, The Short Glow Rule): длинное Safari обрезает прямоугольником */
+.scene-acts .btn-primary, .pause-acts .btn-primary, .map-primary.btn-primary { box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(var(--gold-rgb) / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }
+.btn-row { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-row .icon { width: 17px; height: 17px; }
+.ad-mark { width: 12px !important; height: 12px !important; fill: currentColor; stroke: none; }
+.scene-lights { display: flex; flex-wrap: wrap; justify-content: center; }
+.scene-light { pointer-events: auto; appearance: none; border: 0; background: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 4px 12px; color: var(--gold); font: 700 14px/1 var(--font-body); }
+.scene-light .icon { width: 17px; height: 17px; }
+.scene-light + .scene-light { box-shadow: inset 1px 0 0 rgb(var(--gold-rgb) / 0.18); }
+.scene-light.quiet { color: var(--ink-dim); }
+.scene-light:hover { color: #ffe6a8; }
+/* Победа: восемь глав загораются цепочкой созвездия */
+.scene-chain { width: min(340px, 100%); height: 74px; overflow: visible; }
+.scene-chain line { stroke: rgb(var(--gold-rgb) / 0.75); stroke-width: 1.3; stroke-dasharray: 60; stroke-dashoffset: 60; animation: chain-seg 0.35s ease forwards; }
+.scene-chain g { opacity: 0; animation: chain-star 0.4s ease forwards; }
+.scene-chain circle { fill: #fff; }
+.scene-chain .halo { fill: rgb(var(--gold-rgb) / 0.3); }
+.scene-chain text { font: 400 10px var(--font-display); fill: #ffe6a8; letter-spacing: 0.1em; text-anchor: middle; }
+@keyframes chain-seg { to { stroke-dashoffset: 0; } }
+@keyframes chain-star { to { opacity: 1; } }
+html.calm .scene-ribbon, html.calm .scene-chips span { animation: none; }
+html.calm .scene-chain line { animation: none; stroke-dashoffset: 0; }
+html.calm .scene-chain g { animation: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .scene-chain line { animation: none; stroke-dashoffset: 0; }
+  .scene-chain g { animation: none; opacity: 1; }
+}
+/* Невысокий экран (iPhone SE): совет прячется, итоги мельче */
+@media (max-height: 700px) {
+  .scene-mid:has(.stats-grid) .scene-tip { display: none; }
+  .scene .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scene .stat-item-value { font-size: 14px; }
+  .scene .stat-item-label { font-size: 9px; }
+  .scene .stat-item { padding: 8px 2px; }
+  .scene-mid { gap: 12px; }
+  .scene-gold { font-size: 52px; }
+}
+@media (max-width: 360px) { .scene .stat-item-value { font-size: 13px; } }
+/* Невысокий ландшафт: середина слева, кнопки колонкой справа */
+@media (orientation: landscape) and (max-height: 560px) {
+  .scene-inner { width: min(760px, 100%); grid-template-columns: minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); column-gap: 24px; align-items: center; }
+  .scene-mid { gap: 10px; }
+  .scene-tip { display: none; }
+  .scene .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .scene .stat-item { padding: 6px 2px; }
+  .scene .stat-item-value { font-size: 14px; }
+  .scene .stat-item-label { font-size: 9px; }
+  .scene-gold { font-size: 44px; }
+  .scene-gold .coin { width: 32px; height: 32px; }
+  .scene-ribbon b { font-size: 24px; }
+  .scene-chain { height: 56px; }
+  .scene-acts .scene-lights { flex-direction: column; align-items: center; }
+  .scene-acts .scene-light + .scene-light { box-shadow: none; }
+}
+
+/* Пауза — лист: где ты, «Продолжить», служебное лёгкими кнопками */
+.pause-where { margin: 0 0 14px; text-align: center; color: var(--ink-dim); font-size: 14px; font-variant-numeric: tabular-nums; }
+.pause-where b { color: var(--ink); }
+.pause-acts { display: grid; gap: 6px; }
+.pause-acts > .btn { width: 100%; }
+/* Колода — лист: масти рядами, легенда, «Назад» */
+.deck-legend { display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 12.5px; color: var(--ink-dim); }
+.deck-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; background: var(--gold); }
+.deck-legend i.used { background: rgb(var(--violet-rgb) / 0.3); }
+.deck-back { position: sticky; bottom: calc(-18px - var(--safe-bottom)); display: grid; margin: 14px -20px calc(-18px - var(--safe-bottom)); padding: 12px 20px calc(18px + var(--safe-bottom)); background: linear-gradient(180deg, rgb(11 10 36 / 0), #0b0a24 40%); }
+.deck-back .btn { width: 100%; }
+/* В листе масть — ровно девять карт в ряд по ширине листа */
+.modal-panel.deck .deck-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
+.modal-panel.deck .deck-card { width: 100%; height: auto; aspect-ratio: 0.7; }
+.modal-panel.deck .deck-card .card-thumb { width: 124% !important; height: auto !important; margin: -12% !important; }
+
 /* ─── Итоги ───────────────────────────────────────────────────────────── */
 
-.reward-score { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; color: var(--ink-dim); }
-.reward-score b { font: 400 28px/1 var(--font-display); color: #fff; }
-.reward-list { display: flex; flex-direction: column; gap: 6px; }
-.reward-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  animation: rise-in 0.35s ease both;
-}
-.reward-total { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 12px; font-weight: 700; }
-
-.over-sub { text-align: center; color: var(--ink-dim); margin-top: -6px; }
-.over-score { text-align: center; font: 400 26px/1.2 var(--font-display); margin: 6px 0 12px; }
-.badge.record {
-  margin: 0 auto 12px;
-  width: fit-content;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: rgb(var(--gold-rgb) / 0.15);
-  color: var(--gold);
-  font-weight: 800;
-  font-size: 13px;
-}
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.stat-item { padding: 10px 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); text-align: center; }
-.stat-item-value { font: 400 22px/1.1 var(--font-display); }
-.stat-item-label { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 1px; width: 100%; background: rgb(var(--gold-rgb) / 0.18); border-radius: 12px; overflow: hidden; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.18); }
+.stat-item { display: grid; justify-items: center; align-content: start; gap: 5px; min-width: 0; padding: 10px 4px; text-align: center; background: #100d2e; }
+.stat-item-value { font: 800 16px/1.1 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat-item-label { font: 800 9.5px/1.25 var(--font-body); letter-spacing: 0.04em; text-transform: uppercase; color: #8a85b8; }
 
 .screen-title { text-align: center; margin-bottom: 14px; }
 .screen-title h1 { margin: 0; font: 400 30px/1.15 var(--font-display); text-shadow: 0 0 24px rgb(var(--gold-rgb) / 0.45); }
@@ -1205,22 +1294,24 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
 .combo-item.missing .combo-name { color: var(--ink-dim); }
 .combo-collected { margin: -4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold); }
 
-/* «Новое созвездие!» — плашка над небом, поверх окон (живёт 2,6 с, касание закрывает) */
+/* «Новое созвездие!» — лента поперёк неба, как подпись созвездия (живёт 2,6 с, касание закрывает) */
 .discovery {
   position: fixed; left: 50%; top: calc(var(--board-top, 160px) + 12px); z-index: 60;
-  transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); padding: 14px 16px 12px;
-  border-radius: 18px; text-align: center; cursor: pointer; pointer-events: auto;
-  background: linear-gradient(180deg, rgba(44, 34, 98, 0.97), rgba(20, 16, 52, 0.97));
-  box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.55) inset, 0 14px 40px rgba(0, 0, 0, 0.55), 0 0 36px rgb(var(--gold-rgb) / 0.25);
-  animation: discovery-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform: translateX(-50%); width: min(340px, calc(100vw - 24px)); padding: 13px 26px 14px;
+  display: grid; justify-items: center; gap: 7px; text-align: center; cursor: pointer; pointer-events: auto;
+  background: linear-gradient(90deg, rgb(6 5 22 / 0), rgb(6 5 22 / 0.96) 14%, rgb(6 5 22 / 0.96) 86%, rgb(6 5 22 / 0));
+  animation: discovery-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+.discovery::before, .discovery::after { content: ''; position: absolute; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.9), transparent); }
+.discovery::before { top: 0; }
+.discovery::after { bottom: 0; }
 .discovery.out { animation: fade-out 0.22s ease forwards; }
-.discovery-kicker { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
-.discovery-name { margin: 4px 0 8px; font: 400 30px/1.05 var(--font-display); color: var(--ink); text-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.55); }
-.discovery-cards { display: flex; justify-content: center; gap: 5px; margin-bottom: 8px; }
-.discovery-desc { font-size: 13px; color: var(--ink-dim); }
-.discovery.cross .discovery-name { font-size: 36px; color: var(--gold); }
-@keyframes discovery-in { from { opacity: 0; transform: translate(-50%, -10px) scale(0.92); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.discovery-kicker { font: 800 10.5px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.discovery-name { font: 400 28px/1 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; text-transform: uppercase; color: #fff6e0; text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 0 0 12px rgb(var(--gold-rgb) / 0.45); }
+.discovery-cards { display: flex; justify-content: center; gap: 5px; }
+.discovery-desc { font-size: 13px; color: #c9c3ea; }
+.discovery.cross .discovery-name { font-size: 34px; color: var(--gold); }
+@keyframes discovery-in { from { opacity: 0; transform: translateX(-50%) scaleX(0.3); } to { opacity: 1; transform: translateX(-50%); } }
 .combo-base { font: 400 20px/1 var(--font-display); white-space: nowrap; }
 .help-list { padding-left: 20px; margin: 0; display: flex; flex-direction: column; gap: 8px; line-height: 1.45; }
 
@@ -1248,7 +1339,7 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
   .dome-figure line { stroke-dashoffset: 0; }
   .dome-figure circle { opacity: 1; }
   .dome-shutter { transition: none; }
-  .modal-panel, .toast, .coach, .atlas-plate.enter, .reward-row, .discovery, .tut-bubble.pop { animation-name: fade-in !important; }
+  .modal-panel, .toast, .coach, .atlas-plate.enter, .discovery, .tut-bubble.pop { animation-name: fade-in !important; }
 }
 /* То же по настройке игры «Меньше тряски» — для тех, у кого не включено в системе */
 html.calm *, html.calm *::before, html.calm *::after { animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
@@ -1260,7 +1351,7 @@ html.calm .dome-shutter { transition: none; }
 .observatory.still .dome-figure line { stroke-dashoffset: 0; }
 .observatory.still .dome-figure circle { opacity: 1; }
 .observatory.still, .observatory.still .dome-shutter, .observatory.still .dome-name { animation: none; transition: none; }
-html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate.enter, html.calm .reward-row, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
+html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-plate.enter, html.calm .discovery, html.calm .tut-bubble.pop { animation-name: fade-in !important; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
@@ -2121,14 +2212,18 @@ button.archive-day:active { transform: scale(0.94); }
 .modal-head .head-extra { margin: 12px -44px 0; }
 .modal-head .head-extra .segmented.tabs { margin: 0; }
 .modal-head .head-extra .segmented.tabs .seg { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
-.modal-panel.sheet .modal-title { font-size: 24px; }
+.modal-panel.sheet .modal-title { font: 400 24px/1 var(--font-display); letter-spacing: 0.14em; padding: 0 0 12px 0.14em; text-transform: uppercase; text-align: center; color: #ffe6a8;
+  background: radial-gradient(50% 1.5px at 50% 100%, rgb(255 230 168 / 0.7), transparent) bottom / 100% 2px no-repeat; }
 
 /* Нижний лист: справка поверх ночи, доска над ним остаётся видна */
 .modal-backdrop.sheet { place-items: end center; padding-bottom: 0; background: rgba(3, 3, 14, 0.3); backdrop-filter: none; }
 .modal-panel.sheet {
   max-height: min(64%, 640px);
-  border-radius: 22px 22px 0 0;
-  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  border: 0;
+  /* Латунная кромка, как у окон RD.0 */
+  background: linear-gradient(180deg, #15123d, #0b0a24);
+  box-shadow: inset 0 1px 0 rgb(var(--gold-rgb) / 0.5), inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 -20px 60px rgb(0 0 0 / 0.55);
   padding-bottom: calc(18px + var(--safe-bottom));
   animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -2201,15 +2296,12 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 .btn:disabled .coin { filter: grayscale(1); box-shadow: none; }
 
 /* ─── Итоговые окна (аудит, пакет F) ──────────────────────────────────── */
-.over-short { margin: 4px 0 0; text-align: center; color: var(--mult); font-weight: 700; font-size: 15px; }
-.over-tip { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; background: rgb(var(--light-rgb) / 0.07); box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.2); font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: pretty; }
 /* Вызов друга: его итог и свой; золото — побил, розовый — друг впереди */
 .challenge-vs { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; text-align: center; font-size: 14px; line-height: 1.5; color: var(--ink-dim); background: rgb(var(--violet-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.3); }
 .challenge-vs-title { font: 400 20px/1.2 var(--font-display); color: var(--ink); margin-bottom: 4px; }
 .challenge-vs.beat { background: rgb(var(--gold-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
 .challenge-vs.beat .challenge-vs-title { color: var(--gold); }
 .challenge-vs.behind .challenge-vs-title { color: var(--mult); }
-.over.victory .over-sub { text-align: center; color: var(--ink-dim); margin: -6px 0 10px; }
 
 /* ─── Полировка (аудит, пакет G) ──────────────────────────────────────── */
 /* Тесный заголовок HUD (ландшафт, узкие экраны) — только ночь, глава видна на карте */
@@ -2241,9 +2333,9 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 
 /* Крупный текст (настройка): основной текст 17 px, второстепенный 15, подписи 13 */
 html.large-text body, html.large-text .modal-text, html.large-text .help-list, html.large-text .tut-bubble, html.large-text .toast,
-html.large-text .coach-text, html.large-text .tip-desc, html.large-text .over-tip, html.large-text .score-step { font-size: 17px; }
+html.large-text .coach-text, html.large-text .tip-desc, html.large-text .scene-tip, html.large-text .score-step { font-size: 17px; }
 html.large-text .hint, html.large-text .shop-desc, html.large-text .g-desc, html.large-text .calc-caption, html.large-text .card-info,
-html.large-text .preview, html.large-text .tut-memo-caption, html.large-text .reward-row { font-size: 15px; }
+html.large-text .preview, html.large-text .tut-memo-caption { font-size: 15px; }
 html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label, html.large-text .shop-tag,
 html.large-text .sell-label, html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
 html.large-text .combo-name { font-size: 21px; }

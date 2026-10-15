@@ -97,7 +97,7 @@ export function edgeFade(el: HTMLElement): HTMLElement {
 /** Модальное окно поверх всего. Закрывается по кнопке, фону (если разрешено) или Escape. */
 export function modal(
   content: Child | Child[],
-  opts: { onClose?: () => void; dismissable?: boolean; className?: string; title?: string; sheet?: boolean; headExtra?: HTMLElement } = {},
+  opts: { onClose?: () => void; dismissable?: boolean; className?: string; title?: string; sheet?: boolean; scene?: boolean; headExtra?: HTMLElement } = {},
 ): ModalHandle {
   const root = document.getElementById('ui')!;
   const dismissable = opts.dismissable !== false;
@@ -120,7 +120,8 @@ export function modal(
   ]);
   if (opts.className) panel.classList.add(...opts.className.split(' '));
   if (opts.sheet) panel.classList.add('sheet');
-  const backdrop = h(`div.modal-backdrop${opts.sheet ? '.sheet' : ''}`, null, panel);
+  if (opts.scene) panel.classList.add('scene');
+  const backdrop = h(`div.modal-backdrop${opts.sheet ? '.sheet' : ''}${opts.scene ? '.scene' : ''}`, null, panel);
   const returnFocus = document.activeElement as HTMLElement | null;
   let closed = false;
   const close = () => {
