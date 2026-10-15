@@ -488,8 +488,10 @@ body {
 .calc-label { font: 800 10px/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; color: inherit; }
 .calc-x { font: 700 16px/1 var(--font-body); color: var(--ink-dim); }
 .calc-light, .calc-mult, .calc-total { font: 800 24px/1 var(--font-body); font-variant-numeric: tabular-nums; color: inherit; }
-.calc-light.bump, .calc-mult.bump, .calc-total.bump { animation: plate-bump 0.25s cubic-bezier(0.2, 1.8, 0.4, 1); }
-@keyframes plate-bump { 50% { transform: scale(1.18); } }
+.calc-light.bump, .calc-mult.bump, .calc-total.bump { animation: plate-bump 0.3s cubic-bezier(0.2, 1.8, 0.4, 1); }
+/* Цифра в ячейке принимает искру: подскок и короткий белый накал своим цветом */
+@keyframes plate-bump { 35% { transform: scale(1.26); color: #fff; text-shadow: 0 0 14px currentColor, 0 0 2px #fff; } }
+.score-orb.mote { left: -7px; top: -7px; width: 14px; height: 14px; box-shadow: 0 0 12px 3px var(--orb, #fff), 0 0 26px 6px rgb(255 255 255 / 0.12); }
 .calc-caption {
   margin: 8px auto 0;
   min-height: 16px;

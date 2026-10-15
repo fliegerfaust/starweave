@@ -376,13 +376,17 @@ export class Presenter {
       const steps = line.steps.slice(1);
       const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
       const seenCells = new Set<number>();
+      // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
+      this.moteTime = Math.min(0.16, stepDelay * 0.85);
       for (let i = 0; i < steps.length; i++) {
         await this.showStep(steps[i]!, i, seenCells);
-        await this.wait(stepDelay * this.stepPause);
+        await this.wait(Math.max(0.04, stepDelay * this.stepPause - this.moteTime));
       }
       hud.setCalcTotal(line.total);
       hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
-      floatText(this.world, center.x, center.y + 4, num(line.total), { size: 30, display: true, color: UI.gold, life: 1, rise: 30 });
+      // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
+      floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
+      this.scene.svc.haptics.play('countMult');
       this.audio.count(steps.length + 2, 'light');
       await this.wait(0.35);
     }
@@ -400,7 +404,7 @@ export class Presenter {
         let anchor: Pt = bc;
         if (step.source.kind === 'omen') anchor = hud.pulseOmen(step.source.uid) ?? bc;
         const label = step.source.kind === 'chain' ? t('night.chain', { n: step.xMult ?? 1 }) : `×${fmtX(step.xMult ?? 1)}`;
-        floatText(this.world, anchor.x, anchor.y + (anchor === bc ? 0 : 30), label, { size: step.source.kind === 'chain' ? 40 : 30, display: true, color: UI.mult, life: 1.2 });
+        floatText(this.world, anchor.x, anchor.y + (anchor === bc ? 0 : 30), label, { size: step.source.kind === 'chain' ? 44 : 34, color: UI.mult, life: 1.2, punch: true });
         hud.setCalc(sum, step.multAfter, 'mult');
         hud.setCalcTotal(Math.floor(sum * step.multAfter));
         hud.setCaption(
@@ -409,6 +413,7 @@ export class Presenter {
             : this.sourceCaption(step),
         );
         this.audio.count(10 + i, 'xmult');
+        this.scene.svc.haptics.play('countX');
         shake(this.world, 0.25);
         await this.wait(0.45);
       }
@@ -417,7 +422,7 @@ export class Presenter {
     // Итог влетает в счёт
     const board = scene.layout.board;
     if (score.lines.length > 1 || score.xMult !== 1) {
-      floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 44, display: true, color: UI.gold, life: 1.2 });
+      floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true });
     }
     // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
     hud.hideCalc();
@@ -572,11 +577,48 @@ export class Presenter {
       kind = 'gold';
     }
     if (!text) return;
-    const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.35 : 0;
-    floatText(this.world, anchor.x, anchor.y + offY, text, { size: kind === 'xmult' ? 34 : 28, color, life: 0.9 });
-    hud.setCalc(step.lightAfter, step.multAfter, kind === 'light' ? 'light' : kind === 'gold' ? undefined : 'mult');
+    const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.3 : 0;
+    // Цифра по размеру карты: на телефоне крупнее прежнего, на ПК не раздувается
+    const size = Math.round(Math.min(40, Math.max(28, scene.layout.cardH * 0.36)) * (kind === 'xmult' ? 1.2 : 1));
+    floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
     this.audio.count(index, kind);
+    this.scene.svc.haptics.play(kind === 'xmult' ? 'countX' : kind === 'mult' ? 'countMult' : 'count');
     if (kind === 'xmult') shake(this.world, 0.15);
+    const flashCell = kind === 'light' ? 'light' : kind === 'gold' ? undefined : 'mult';
+    if (cardEntity !== undefined) {
+      const col = SUIT_COLORS[this.world.req(cardEntity, CardView).card.suit];
+      burst(this.world, anchor.x, anchor.y + offY, col.main, { count: 8, speed: 200, size: 1.8, life: 0.45, gravity: 60, colors: [color, col.light, '#fff'] });
+    }
+    // Искра от карты в свою ячейку формулы: глаз видит, куда ушла цифра; число в ячейке
+    // меняется в момент её прилёта
+    const to = flashCell ? hud.calcAnchor(flashCell) : null;
+    if (!to || this.world.res.reduceMotion) {
+      hud.setCalc(step.lightAfter, step.multAfter, flashCell);
+      return;
+    }
+    await this.mote({ x: anchor.x, y: anchor.y + offY }, to, color);
+    hud.setCalc(step.lightAfter, step.multAfter, flashCell);
+  }
+
+  /** Сколько летит искра шага подсчёта, с. Шаг ждёт её прилёта — пауза между шагами короче на столько же. */
+  private moteTime = 0.16;
+
+  private async mote(from: Pt, to: Pt, color: string): Promise<void> {
+    const orb = document.createElement('div');
+    orb.className = 'score-orb mote';
+    orb.style.setProperty('--orb', color);
+    document.getElementById('ui')!.append(orb);
+    const mid = { x: (from.x + to.x) / 2 + (to.x > from.x ? -1 : 1) * 30, y: Math.min(from.y, to.y) - 20 };
+    const anim = orb.animate(
+      [
+        { transform: `translate(${from.x}px, ${from.y}px) scale(1.3)`, opacity: 1 },
+        { transform: `translate(${mid.x}px, ${mid.y}px) scale(0.9)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${to.x}px, ${to.y}px) scale(0.6)`, opacity: 0.9 },
+      ],
+      { duration: (this.moteTime * 1000) / this.speed, easing: 'cubic-bezier(0.5, 0, 0.75, 0.6)', fill: 'both' },
+    );
+    await Promise.race([anim.finished.catch(() => undefined), this.wait(this.moteTime * 1.5)]);
+    orb.remove();
   }
 
   // ─── Конец ночи ─────────────────────────────────────────────────────────

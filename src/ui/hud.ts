@@ -307,6 +307,13 @@ export class Hud {
     }
   }
 
+  /** Центр ячейки формулы на экране — туда прилетает искра шага подсчёта. */
+  calcAnchor(kind: 'light' | 'mult'): { x: number; y: number } | null {
+    if (!this.calc.classList.contains('show')) return null;
+    const r = (kind === 'light' ? this.calcLight : this.calcMult).getBoundingClientRect();
+    return r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
+  }
+
   /**
    * Поставить панель подсчёта сверху или снизу. Снизу — когда сверху она закрыла бы
    * вспыхнувшие карты (низкие экраны, линия в верхнем ряду).
