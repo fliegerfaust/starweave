@@ -103,7 +103,7 @@ export function showDeck(run: RunState): void {
   });
 }
 
-/** Справка — одно окно с вкладками (созвездия, ночь, Обсерватория, глифы). */
+/** Справка — одно окно с вкладками (созвездия, ночь, Обсерватория, глифы, коллекция). */
 export function showHelp(opts: import('./guide').GuideOptions = {}): void {
   void import('./guide').then(({ showGuide }) => showGuide(opts));
 }
@@ -111,11 +111,6 @@ export function showHelp(opts: import('./guide').GuideOptions = {}): void {
 /** Справка на вкладке созвездий: уровни забега и коллекция игрока. */
 export function showCombos(run: RunState, found: readonly ComboId[] = [], sheet = false): void {
   showHelp({ tab: 'combos', levels: run.comboLevels, found, sheet });
-}
-
-/** Кодекс (Знамения, Затмения, созвездия) — доступен и посреди забега. */
-export function showCodexFrom(app: App): void {
-  void import('./codex').then(({ showCodex }) => showCodex(app));
 }
 
 /**
@@ -274,8 +269,7 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
       h('div.stack', null, [
         button(t('pause.resume'), () => m.close()),
         ...extra,
-        button(t('guide.button'), () => showHelp({ levels: app.run?.comboLevels, found: app.profile.combosFound }), { variant: 'secondary' }),
-        button(t('menu.codex'), () => showCodexFrom(app), { variant: 'secondary' }),
+        button(t('guide.button'), () => showHelp({ levels: app.run?.comboLevels, found: app.profile.combosFound, profile: app.profile }), { variant: 'secondary' }),
         button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),
         button(t('pause.toMenu'), () => {
           m.close();
