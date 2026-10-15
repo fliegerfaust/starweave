@@ -72,6 +72,32 @@ test('обучение: нить к цели, подсказка не закры
   await page.waitForSelector('.tut-bubble.on .tut-next');
   await check(page, 'почти линия', failures);
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34-tut-almost.png` });
+
+  // Формула подсчёта: панель меряется по таймеру, а нить не пересоздаётся и не прыгает —
+  // иначе пунктир дёргается (баг из обучения на iPhone)
+  await page.click('.tut-next');
+  await page.waitForSelector('.tut-bubble.on');
+  // Подсчёт ждёт «Далее» — не ждём конца хода
+  await page.evaluate(() => {
+    const w = window as unknown as W;
+    const i = w.starweave.run.night.hand.findIndex((c) => c.rank === 5 && c.suit === 'comet');
+    void w.__scene.place(i, 15);
+  });
+  await page.waitForSelector('.calc.show');
+  await page.waitForSelector('.tut-bubble.on .tut-next');
+  const thread = await page.evaluate(async () => {
+    const first = document.querySelector('.tut-thread path');
+    const samples: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 150));
+      const dot = document.querySelector('.tut-thread circle');
+      samples.push(`${dot?.getAttribute('cx')},${dot?.getAttribute('cy')}`);
+    }
+    return { same: !!first && document.querySelector('.tut-thread path') === first, ends: new Set(samples.slice(2)).size };
+  });
+  expect(thread.same, 'нить на шаге формулы не пересоздаётся').toBe(true);
+  expect(thread.ends, 'конец нити стоит на месте').toBe(1);
+  await page.screenshot({ path: `e2e-results/${test.info().project.name}/34b-tut-formula.png` });
   expect(failures).toEqual([]);
 
   // «Обучение пройдено»: кнопки по своей ширине

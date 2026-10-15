@@ -38,6 +38,8 @@ export class TutorialOverlay {
   private readonly finger: HTMLElement;
   private readonly progress: HTMLElement;
   private readonly thread: SVGSVGElement;
+  private readonly threadPath: SVGPathElement;
+  private readonly threadDot: SVGCircleElement;
   private spotRect: Rect | null = null;
   private place: BubbleOptions['place'] = 'auto';
   private dock: (() => TutorialDock | null) | null = null;
@@ -50,6 +52,11 @@ export class TutorialOverlay {
     this.thread = document.createElementNS(SVG, 'svg');
     this.thread.setAttribute('class', 'tut-thread');
     this.thread.setAttribute('aria-hidden', 'true');
+    // Путь и точка живут всё время: пересоздание сбрасывало бег пунктира, и при замерах
+    // каждые 120 мс (панель подсчёта) нить дёргалась
+    this.threadPath = document.createElementNS(SVG, 'path');
+    this.threadDot = document.createElementNS(SVG, 'circle');
+    this.threadDot.setAttribute('r', '3.5');
     this.root = h('div.tut-layer', null, [this.spot, this.thread, this.finger, this.bubble]);
     document.getElementById('ui')!.append(this.root);
   }
@@ -65,7 +72,10 @@ export class TutorialOverlay {
 
   /** Подсветить прямоугольник (null — без затемнения и нити). */
   spotlight(rect: Rect | null, pad = 8): void {
-    this.spotRect = rect ? { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: rect.h + pad * 2 } : null;
+    const next = rect ? { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: rect.h + pad * 2 } : null;
+    // Цель могут мерить по таймеру — та же рамка не трогает ни подсказку, ни нить
+    if (sameRect(next, this.spotRect)) return;
+    this.spotRect = next;
     if (!this.spotRect) {
       this.spot.classList.remove('on');
     } else {
@@ -195,14 +205,17 @@ export class TutorialOverlay {
       d = `M${sx} ${sy} C ${sx} ${mid}, ${end.x} ${mid}, ${end.x} ${end.y}`;
     }
     this.thread.setAttribute('viewBox', `0 0 ${vw} ${window.innerHeight}`);
-    const path = document.createElementNS(SVG, 'path');
-    path.setAttribute('d', d);
-    const dot = document.createElementNS(SVG, 'circle');
-    dot.setAttribute('cx', String(end.x));
-    dot.setAttribute('cy', String(end.y));
-    dot.setAttribute('r', '3.5');
-    this.thread.replaceChildren(path, dot);
+    this.threadPath.setAttribute('d', d);
+    this.threadDot.setAttribute('cx', String(end.x));
+    this.threadDot.setAttribute('cy', String(end.y));
+    if (!this.threadPath.isConnected) this.thread.replaceChildren(this.threadPath, this.threadDot);
   }
+}
+
+/** Рамки совпадают с точностью до полпикселя (замер панели посреди анимации). */
+function sameRect(a: Rect | null, b: Rect | null): boolean {
+  if (!a || !b) return a === b;
+  return Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.w - b.w) < 0.5 && Math.abs(a.h - b.h) < 0.5;
 }
 
 /**
