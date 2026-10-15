@@ -836,24 +836,161 @@ body {
 .sky-desc { font-size: 13px; color: var(--ink-dim); }
 .sky-list.compact .sky-item { cursor: default; }
 
-/* ─── Лавка: общий каркас экрана ──────────────────────────────────────── */
+/* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */
+/* Спокойно (решение Дениса): товар — одна строка — крупный знак, имя, бонус строкой текста
+   (условие приглушено, число — цветом формулы, без плашек), цена. Своё — ниже. На ПК —
+   собранный блок по центру экрана, кнопки сразу под содержимым; в невысоком ландшафте —
+   товары двумя колонками, своё и кнопки — одной строкой внизу. */
 
 .shop {
+  --gold-hi: #ffe6a8;
+  --ink-faint: #8a85b8;
+  --brass: rgb(var(--gold-rgb) / 0.3);
+  --hair: rgb(var(--gold-rgb) / 0.16);
   position: absolute;
   inset: 0;
-  overflow-y: auto;
+  overflow: hidden;
   pointer-events: auto;
-  padding: calc(14px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  padding: calc(10px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   max-width: 620px;
   margin: 0 auto;
   animation: fade-in 0.35s ease;
 }
-.shop-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.shop-actions { display: flex; gap: 10px; flex-wrap: wrap; position: sticky; bottom: 0; padding-top: 6px; }
-.shop-actions .btn { min-height: 48px; }
+.shop-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding-bottom: 10px;
+  background: radial-gradient(50% 1.5px at 50% 100%, rgb(255 230 168 / 0.6), transparent) bottom / 100% 2px no-repeat; }
+.shop-top .icon-btn { width: 44px; height: 44px; border-radius: 50%; color: var(--gold); background: radial-gradient(circle at 50% 35%, rgb(var(--violet-rgb) / 0.12), rgb(8 7 26 / 0.6)); box-shadow: inset 0 0 0 1px var(--brass); }
+.shop-top .icon-btn .icon { width: 20px; height: 20px; }
+.shop-title { margin: 0; justify-self: center; font: 400 17px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; }
+.shop-top .gold-pill { height: 36px; padding: 0 13px 0 9px; color: var(--gold-hi); background: rgb(14 12 34 / 0.7); border: 0; box-shadow: inset 0 0 0 1px var(--brass); font-variant-numeric: tabular-nums; }
+.shop-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 18px; align-content: start; margin-inline: -4px; padding: 0 4px 14px;
+  /* Нижний край середины гаснет: обрезанная строка читается как «листается дальше», а не как вылезание */
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
+.shop-goods { display: grid; gap: 18px; align-items: start; }
+.shop-lower { display: grid; gap: 18px; align-items: start; }
+.shop.short .shop-lower { gap: 12px; }
+.shop-section { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.shop-label-row { display: flex; align-items: baseline; gap: 10px; }
+.shop-label-row .shop-label { flex: 1; }
+.shop-label { margin: 0; display: flex; align-items: center; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.shop-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.shop-count { font: 600 12px/1 var(--font-body); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.shop-combos { font-size: 12.5px; }
+
+.ware-list { display: grid; }
+.ware { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 3px 14px; align-items: center; padding: 11px 2px; animation: rise-in 0.35s ease both; }
+.ware + .ware { box-shadow: inset 0 1px 0 var(--hair); }
+.shop.settled .ware { animation: none; }
+.shop.settled .ware.fresh { animation: rise-in 0.35s ease both; }
+.shop.settled .ware.just-sold { animation: sold-out 0.4s ease both; }
+.ware-icon { grid-row: span 2; width: 48px; height: 48px; display: grid; place-items: center; }
+.ware-name { align-self: end; min-width: 0; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
+.ware-level { margin-left: 6px; font: 600 12.5px/1 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+.ware-bonus { grid-column: 2; align-self: start; min-width: 0; display: grid; justify-items: start; gap: 2px; }
+.ware > .btn, .ware > .sold-label { grid-column: 3; grid-row: 1 / span 2; }
+.ware .btn.price { min-height: 40px; min-width: 64px; padding: 0 14px; font: 800 15px/1 var(--font-body); color: var(--gold-hi); background: rgb(14 12 34 / 0.6); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); backdrop-filter: none; }
+.ware .btn.price.why { font: 700 11.5px/1 var(--font-body); color: var(--ink-faint); background: none; box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.2); padding: 0 10px; white-space: nowrap; }
+.ware .btn.take { min-height: 42px; }
+.ware .ware-how { margin: 0; min-height: 30px; padding: 2px 0; font-size: 12px; }
+.ware.sold .ware-icon, .ware.sold .ware-name, .ware.sold .ware-bonus { opacity: 0.4; }
+.sold-label { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 64px; font: 700 12.5px/1 var(--font-body); color: #9fe9c2; }
+.sold-label .icon { width: 15px; height: 15px; stroke-width: 2; }
+/* Бонус строкой: условие приглушено, число — цветом формулы */
+.bonus-line { font: 500 13.5px/1.35 var(--font-body); color: var(--ink); text-wrap: pretty; }
+.bn-when { color: var(--ink-faint, #8a85b8); }
+.bn-num { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bn-num.light { color: var(--light); }
+.bn-num.mult { color: var(--mult); }
+.bn-num.total, .bn-num.gold { color: #ffe6a8; }
+.bn-num.plain { color: var(--ink); }
+
+/* Свои Знамения: только знаки; порядок — слева направо; не на месте — тонкое кольцо */
+.shop-owned, .shop-deck { gap: 10px; }
+.owned-omens { display: flex; justify-content: space-between; gap: 6px; }
+.owned-omen { position: relative; width: 48px; height: 48px; transition: transform 0.15s ease; }
+.owned-omen .omen-slot { width: 48px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: grab; pointer-events: auto; }
+.owned-omen .omen-slot canvas { pointer-events: none; }
+.owned-omen.empty .omen-slot { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); cursor: default; }
+.owned-omen.empty .omen-slot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.3); }
+.owned-omen.misplaced::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(var(--mult-rgb) / 0.8); pointer-events: none; }
+.owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.owned-omen.reorder-dragging { z-index: 10; transition: none; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6)); }
+.owned-omen.reorder-dragging .omen-slot { cursor: grabbing; }
+.owned-omen.reorder-target::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--gold), 0 0 14px rgb(var(--gold-rgb) / 0.5); }
+.reorder-active .owned-omen:not(.reorder-dragging) { opacity: 0.85; }
+.shop .hint { margin: 0; font: 500 12.5px/1.4 var(--font-body); color: var(--ink-faint); text-wrap: pretty; }
+.shop .hint.order-warn { color: #f5c0cc; }
+.ware-lights { display: flex; flex-wrap: wrap; }
+.ware-light { pointer-events: auto; appearance: none; border: 0; background: none; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 4px 12px; color: var(--gold); font: 700 14px/1 var(--font-body); }
+.ware-light:first-child { padding-left: 0; }
+.ware-light + .ware-light { box-shadow: inset 1px 0 0 var(--hair); }
+.ware-light:disabled { color: var(--ink-faint); cursor: default; }
+.ware-light .icon { width: 17px; height: 17px; }
+.shop-deck { padding-bottom: 8px; }
+
+/* Низ: «Обновить» второй, «Следующая ночь» главной */
+.shop-actions { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--hair); }
+.shop-actions .btn { min-height: 54px; white-space: nowrap; }
+.shop-actions .btn.grow { min-width: 0; font-size: 16.5px; box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(var(--gold-rgb) / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }
+.shop-actions .btn.reroll { padding-inline: 16px; color: var(--gold-hi); background: rgb(14 12 34 / 0.85); box-shadow: inset 0 0 0 1px var(--brass); backdrop-filter: none; }
+/* Узкий телефон (320–360): компактнее, чтобы товары и своё были на первом экране */
+@media (max-width: 360px) {
+  .reroll-label { display: none; }
+  .ware { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 0; }
+  .ware-icon, .ware-icon canvas { width: 40px !important; height: 40px !important; }
+  .ware-name { font-size: 14px; }
+  .bonus-line { font-size: 12.5px; }
+  .ware .btn.price { min-width: 56px; padding: 0 10px; }
+  .owned-omen, .owned-omen .omen-slot { width: 44px; height: 44px; }
+  .shop-body, .shop-goods, .shop-lower { gap: 12px; }
+}
+
+/* Невысокий экран (iPhone SE, кнопки Telegram сверху): плотнее — по высоте без системных зон */
+.shop.short { gap: 8px; }
+.shop.short .shop-body { gap: 12px; }
+.shop.short .shop-goods { gap: 12px; }
+.shop.short .ware { padding: 8px 2px; }
+.shop.short .shop-owned .hint:not(.order-warn) { display: none; }
+.shop.short .shop-top { padding-bottom: 7px; }
+
+/* Лист своего Знамения: знак и бонус строкой, «Продать» и «Оставить» — поровну на всю ширину */
+.owned-sheet { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; margin: 4px 0 16px; }
+.owned-sheet .bonus-line { font-size: 15px; }
+.owned-sheet-acts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.owned-sheet-acts .btn { width: 100%; min-height: 50px; }
+
+/* Пакет — сцена «Выбери одно» */
+.pack-scene .ware-list { width: 100%; }
+
+/* ПК: собранный блок по центру экрана, без пустого поля; кнопки — сразу под содержимым */
+@media (min-width: 900px) and (min-height: 561px) {
+  .shop { max-width: 980px; padding: calc(32px + var(--safe-top)) 40px calc(32px + var(--safe-bottom)); gap: 22px; justify-content: safe center; }
+  .shop-body { flex: 0 1 auto; gap: 22px; }
+  .shop-goods, .shop-lower { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .shop-lower { display: grid; align-items: start; }
+  .ware { grid-template-columns: 56px minmax(0, 1fr) auto; padding: 13px 2px; }
+  .ware-icon { width: 56px; height: 56px; }
+  .ware-icon canvas { width: 56px !important; height: 56px !important; }
+  .ware-name { font-size: 16px; }
+  .bonus-line { font-size: 14px; }
+  .shop-actions { padding-top: 18px; grid-template-columns: auto minmax(0, 340px); justify-content: end; }
+}
+/* Невысокий ландшафт: товары двумя колонками, своё и кнопки — строкой внизу */
+@media (orientation: landscape) and (max-height: 560px) {
+  .shop { max-width: none; gap: 6px; padding-top: calc(6px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
+  .shop-body { gap: 10px; }
+  .shop-top { padding-bottom: 6px; }
+  .shop-goods, .shop-lower { grid-template-columns: 1fr 1fr; gap: 0 24px; align-content: start; }
+  .ware { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 6px 2px; gap: 1px 12px; }
+  .ware-icon, .ware-icon canvas { width: 40px !important; height: 40px !important; }
+  .ware-name { font-size: 14px; }
+  .bonus-line { font-size: 12.5px; }
+  .shop-lower { display: grid; padding-top: 6px; }
+  .shop-actions { grid-template-columns: auto minmax(0, 340px); justify-content: end; align-items: center; padding-top: 6px; }
+  .shop-actions .btn { min-height: 46px; }
+}
 
 /* ─── Карта главы: «Восхождение» (RD.2) ───────────────────────────────── */
 /* Три ночи — звёзды на одной линии, снизу Сумерки, наверху Затмение; небо к нему темнеет.
@@ -1052,41 +1189,13 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
 
 /* ─── Обсерватория ────────────────────────────────────────────────────── */
 
-.shop-title { margin: 0; font: 400 32px/1 var(--font-display); letter-spacing: 0.04em; }
-.shop-section h2 { font: 700 12px/1 var(--font-body); color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 8px; }
-.shop-row { display: flex; flex-direction: column; gap: 8px; }
-.shop-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(18, 16, 50, 0.78);
-  border: 1px solid var(--line);
-  animation: rise-in 0.35s ease both;
-}
-.shop-item:nth-child(2) { animation-delay: 0.06s; }
-.shop-item.sold { opacity: 0.4; }
 /* После входа экран пересобирается на каждое действие — карточки не «въезжают» заново */
-.shop.settled .shop-item { animation: none; }
-.shop.settled .shop-item.fresh { animation: rise-in 0.35s ease both; }
-.shop.settled .shop-item.just-sold { animation: sold-out 0.4s ease both; }
-.owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .gold-pill.pop { animation: bump 0.35s ease; }
 @keyframes sold-out { from { opacity: 1; } to { opacity: 0.4; } }
-.shop-icon { flex: none; width: 72px; height: 72px; display: grid; place-items: center; }
-.shop-info { flex: 1; min-width: 0; }
-.shop-name { font: 400 20px/1.1 var(--font-display); }
-.shop-tag { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin: 2px 0 4px; }
-.shop-tag.plain { color: var(--ink-dim); text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 12px; }
-.shop-desc { font-size: 13px; line-height: 1.35; color: var(--ink); }
 .btn.price { min-width: 64px; padding: 8px 14px; min-height: 44px; font-size: 17px; color: var(--gold); font-weight: 800; }
 
 .btn.price:disabled { color: var(--ink-dim); }
 .sold-label { color: var(--ink-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
-.owned-omens { display: grid; grid-template-columns: repeat(var(--slots, 5), minmax(0, 1fr)); gap: 10px; justify-items: center; }
-.owned-omen { display: flex; flex-direction: column; align-items: center; gap: 6px; transition: transform 0.15s ease; width: 100%; max-width: 64px; }
-.owned-omen .omen-slot { width: 100%; height: auto; max-width: 60px; aspect-ratio: 1; position: relative; }
 .owned-actions { display: flex; gap: 3px; }
 .mini {
   pointer-events: auto;
@@ -1356,15 +1465,6 @@ html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .atlas-pla
   .btn, .wardrobe-item, .archive-day { transition-property: opacity, filter, box-shadow, background, color !important; }
 }
 
-@media (min-width: 900px) {
-  .shop { padding-top: calc(28px + var(--safe-top)); }
-  /* Два предмета в ряд: в колонке 620px текст рвётся почти по слову */
-  .shop { max-width: 820px; }
-  .shop-row { flex-direction: row; }
-  /* Делим ряд поровну: длинное название или плашка не распирают карточку за край */
-  .shop-row > .shop-item { flex: 1 1 0; min-width: 0; }
-}
-
 /* ─── Ландшафт: HUD колонкой слева ────────────────────────────────────── */
 
 body.landscape .hud {
@@ -1406,7 +1506,7 @@ body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right
   color: #0b0a22;
   box-shadow: 0 0 0 2px #0b0a22;
 }
-.tip-kind .omen-badge, .shop-info .omen-badge, .order-row .omen-badge { position: static; display: inline-grid; box-shadow: none; margin-right: 6px; vertical-align: middle; }
+.tip-kind .omen-badge, .order-row .omen-badge { position: static; display: inline-grid; box-shadow: none; margin-right: 6px; vertical-align: middle; }
 .k-light { background: var(--light); }
 .k-mult { background: var(--mult); }
 .k-xmult { background: linear-gradient(135deg, #ff6b8b, #ffb347); }
@@ -1438,7 +1538,6 @@ body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right
 .order-row.good .order-mark { color: var(--ok); }
 .order-moral { font-weight: 700; color: var(--gold); margin: 6px 0 0; }
 .order-arrow { align-self: center; margin-top: -22px; color: var(--ink-dim); font-weight: 800; }
-.shop-tag .omen-badge { width: 15px; min-width: 15px; height: 15px; font-size: 10px; margin-right: 4px; }
 
 /* ─── Справочник ──────────────────────────────────────────────────────── */
 .g-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1641,7 +1740,6 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 .fx-mult { background: rgb(var(--mult-rgb) / 0.18); color: #ffb3c4; box-shadow: inset 0 0 0 1px rgb(var(--mult-rgb) / 0.5); }
 .fx-xmult { background: linear-gradient(90deg, rgb(var(--mult-rgb) / 0.25), rgba(255, 179, 71, 0.25)); color: #ffd0a8; box-shadow: inset 0 0 0 1px rgba(255, 179, 71, 0.55); }
 .fx-gold { background: rgb(var(--gold-rgb) / 0.18); color: #ffe6a8; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
-.shop-name .omen-badge { position: static; display: inline-grid; vertical-align: 2px; box-shadow: none; }
 
 /* Огоньки очков — поверх HUD */
 .score-orb {
@@ -1661,23 +1759,8 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
 /* ─── Свои Знамения: перетаскивание ───────────────────────────────────── */
 
 .omen-slot.draggable { cursor: grab; border-radius: 50%; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
-.order-num { position: absolute; left: -4px; top: -4px; z-index: 1; width: 18px; height: 18px; border-radius: 50%; background: #0b0a22; color: var(--ink-dim); font: 800 10px/18px var(--font-body); text-align: center; box-shadow: 0 0 0 1px var(--line); }
-.sell-btn { width: 100%; min-height: 36px; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; }
-.sell-label { font-size: 11px; font-weight: 700; color: var(--ink-dim); }
-.sell-price { font-size: 13px; font-weight: 800; color: var(--gold); }
-.sell-price::after { content: ''; display: inline-block; width: 9px; height: 9px; margin-left: 3px; border-radius: 50%; vertical-align: -1px; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); }
-.owned-omen.reorder-dragging { z-index: 10; transition: none; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6)); }
-.owned-omen.reorder-dragging .omen-slot { cursor: grabbing; }
-.owned-omen.reorder-target .omen-slot { box-shadow: 0 0 0 2px var(--gold), 0 0 18px rgb(var(--gold-rgb) / 0.5); }
-.reorder-active .owned-omen:not(.reorder-dragging) { opacity: 0.85; }
 body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15s; }
 
-.shop-actions {
-  margin: 0 -16px;
-  padding: 10px 16px calc(6px + var(--safe-bottom));
-  background: linear-gradient(180deg, rgba(5, 6, 26, 0), rgba(5, 6, 26, 0.92) 30%);
-  z-index: 3;
-}
 
 .hud-omens.none { display: none; }
 /* Невысокие экраны: рама компактнее, чтобы небо и рука остались крупными */
@@ -1710,8 +1793,6 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 
 
 /* Подсказка о порядке Знамений */
-.order-warn { color: #ffcf6b; background: rgba(255, 170, 60, 0.1); border: 1px solid rgba(255, 170, 60, 0.35); border-radius: 12px; padding: 8px 12px; }
-.owned-omen.misplaced .omen-slot { box-shadow: 0 0 0 2px #ffb03c, 0 0 16px rgba(255, 176, 60, 0.55); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }
 .link-btn { pointer-events: auto; border: 0; background: none; padding: 4px 0; color: var(--gold); font: 700 12px/1.2 var(--font-body); cursor: pointer; text-align: left; display: inline-flex; align-items: center; min-height: 44px; margin: -12px 0; font-size: 13px; }
 
 /* Заголовок раздела Обсерватории со ссылкой справа */
@@ -1719,12 +1800,6 @@ body.scoring .coach { opacity: 0; pointer-events: none; transition: opacity 0.15
 .section-head h2 { margin: 0; }
 .section-head .link-btn { font-size: 13px; padding: 2px 0; white-space: nowrap; }
 /* Своё: Знамения и колода одной панелью */
-.shop-section.inventory { padding: 14px; border-radius: 18px; background: rgba(18, 16, 50, 0.78); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
-.inventory-part + .inventory-part { padding-top: 14px; border-top: 1px solid var(--line); }
-.inventory .hint { margin: 10px 0 0; }
-.deck-service { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.deck-service .btn { flex: none; }
-.deck-service .hint { margin: 0; flex: 1 1 200px; }
 
 /* ─── Звёздный атлас ──────────────────────────────────────────────────── */
 
@@ -2209,6 +2284,10 @@ button.archive-day:active { transform: scale(0.94); }
 }
 .modal-head:not(.bare)::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; background: linear-gradient(180deg, rgb(var(--panel-head-rgb)), rgb(var(--panel-head-rgb) / 0)); pointer-events: none; }
 .modal-head .modal-title { margin: 0; }
+/* Шапка листа — цветом самого латунного листа, без полосы старого цвета */
+.modal-panel.sheet .modal-head { background: #15123d; border-radius: 24px 24px 0 0; }
+.modal-panel.sheet .modal-head:not(.bare)::after { background: linear-gradient(180deg, #15123d, rgb(21 18 61 / 0)); }
+body.landscape .modal-panel.sheet .modal-head { border-radius: 0 24px 0 0; }
 .modal-head .head-extra { margin: 12px -44px 0; }
 .modal-head .head-extra .segmented.tabs { margin: 0; }
 .modal-head .head-extra .segmented.tabs .seg { flex: 1 1 auto; min-width: 0; padding: 8px 6px; font-size: 13px; }
@@ -2334,10 +2413,10 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 /* Крупный текст (настройка): основной текст 17 px, второстепенный 15, подписи 13 */
 html.large-text body, html.large-text .modal-text, html.large-text .help-list, html.large-text .tut-bubble, html.large-text .toast,
 html.large-text .coach-text, html.large-text .tip-desc, html.large-text .scene-tip, html.large-text .score-step { font-size: 17px; }
-html.large-text .hint, html.large-text .shop-desc, html.large-text .g-desc, html.large-text .calc-caption, html.large-text .card-info,
+html.large-text .hint, html.large-text .bonus-line, html.large-text .g-desc, html.large-text .calc-caption, html.large-text .card-info,
 html.large-text .preview, html.large-text .tut-memo-caption { font-size: 15px; }
-html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label, html.large-text .shop-tag,
-html.large-text .sell-label, html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
+html.large-text .combo-desc, html.large-text .field-label, html.large-text .stat-label, html.large-text .calc-label,
+html.large-text .archive-day small, html.large-text .combo-level { font-size: 13px; }
 html.large-text .combo-name { font-size: 21px; }
 
 
