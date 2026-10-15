@@ -17,6 +17,16 @@ const PATHS = {
   check: '<path d="m6 12.5 4 4 8-9"/>',
   back: '<path d="M19 12H6M11 6l-6 6 6 6"/>',
   star: '<path d="m12 4 2.3 4.9 5.2.6-3.9 3.6 1.1 5.2L12 15.6l-4.7 2.7 1.1-5.2-3.9-3.6 5.2-.6Z"/>',
+  // Окна ночи
+  again: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.7M20 4v4.7h-4.7M20 12a8 8 0 0 1-13.7 5.6L4 15.3M4 20v-4.7h4.7"/>',
+  same: '<rect x="4" y="5" width="7" height="10" rx="1.5"/><rect x="13" y="9" width="7" height="10" rx="1.5"/><path d="m9 18 2 2 2-2"/>',
+  share: '<path d="M12 4v11M8 8l4-4 4 4M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+  duel: '<path d="M5 19 15 9M15 9V5h4v4h-4ZM19 19 9 9M9 9V5H5v4h4Z"/>',
+  home: '<path d="M4 11.5 12 5l8 6.5M6.5 10v9h11v-9"/>',
+  flag: '<path d="M6 21V4M6 4h11l-2 4 2 4H6"/>',
+  bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z"/>',
+  infinity: '<path d="M7 9a3 3 0 1 0 0 6c3 0 7-6 10-6a3 3 0 1 1 0 6c-3 0-7-6-10-6Z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

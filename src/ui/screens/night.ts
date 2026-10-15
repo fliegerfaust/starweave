@@ -1,4 +1,3 @@
-import { bossSigil } from '@/art/sigil';
 import { canDoubleReward, canRevive } from '@/core/run';
 import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
@@ -8,12 +7,14 @@ import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from
 import { COLLECTIBLE_COMBOS, dailyNumber, recordDiscoveries } from '@/meta/profile';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
-import { canvasImg, dpr, h } from '../dom';
+import { h } from '../dom';
 import { Hud } from '../hud';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
-import { screenTitle, showCombos, showDeck, showHelp, showSettings, statsGrid } from './common';
+import { showCombos, showDeck, showHelp, showSettings } from './common';
+import { icon } from '../icons';
+import { chapterChain, lightButton, sceneRibbon, sceneTally, sceneWindow, statsTable } from '../scene-window';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
 export class NightScreen implements Screen {
@@ -194,158 +195,190 @@ export class NightScreen implements Screen {
 
   // ─── Пауза ──────────────────────────────────────────────────────────────
 
+  /** Пауза — нижний лист (в ландшафте — панель слева): где ты, «Продолжить» и служебное. */
   private pause(): void {
+    const n = this.run.night;
     const m = modal(
       [
-        h('div.stack', null, [
+        n ? h('p.pause-where', null, [
+          `${t('night.constellation', { n: this.run.ante })} · ${t(`night.${n.kind}`)} · `,
+          h('b', null, num(n.score)),
+          ` ${t('over.of', { target: num(n.target) })} · ${t('map.moves')} ${n.movesLeft}`,
+        ]) : null,
+        h('div.pause-acts', null, [
           button(t('pause.resume'), () => m.close()),
-          button(t('pause.help'), () => showHelp({ levels: this.run.comboLevels, found: this.app.profile.combosFound }), { variant: 'secondary' }),
-          button(t('settings.title'), () => showSettings(this.app, () => this.hud.sync(this.run, { score: false })), { variant: 'secondary' }),
-          button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
+          h('div.scene-lights', null, [
+            lightButton('guide', t('pause.help'), () => showHelp({ levels: this.run.comboLevels, found: this.app.profile.combosFound })),
+            lightButton('settings', t('settings.title'), () => showSettings(this.app, () => this.hud.sync(this.run, { score: false }))),
+          ]),
+          h('div.scene-lights', null, lightButton('flag', t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
             m.close();
             this.app.abandonRun();
-          }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
+          }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), true)),
         ]),
       ],
-      { title: t('pause.title'), className: 'narrow' },
+      { title: t('pause.title'), sheet: true, className: 'pause' },
     );
   }
 
-  // ─── Оверлеи ────────────────────────────────────────────────────────────
+  // ─── Итоги: «Сцена» ─────────────────────────────────────────────────────
 
   private showReward(): void {
     const reward = this.run.reward!;
+    const night = this.run.night!;
     const rows: [string, number][] = [
       [t('reward.base'), reward.base],
       [t('reward.moves'), reward.moves],
       [t('reward.burns'), reward.burns],
       [t('reward.interest'), reward.interest],
     ];
-    const list = h('div.reward-list');
-    rows.forEach(([label, value], i) => {
-      if (value <= 0 && i > 0) return;
-      const row = h('div.reward-row', { style: { animationDelay: `${i * 0.12}s` } }, [h('span', null, label), h('span.gold-text', null, withCoin(`+${value}`))]);
-      list.append(row);
-      window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
-    });
-    const total = h('span.gold-text.big', null, '0');
-    // Итог сразу: кнопка «Забрать N» рядом уже называет его — «0» рядом с ней путал
-    total.textContent = String(reward.total);
-    this.overlay = modal(
-      [
-        h('div.reward-score', null, [h('span', null, t('night.score')), h('b', null, num(this.run.night!.score))]),
-        list,
-        h('div.reward-total', null, [h('span', null, t('night.gold')), total]),
-        h('div.row.center.wrap', null, [
-          this.app.platform.rewardedAvailable && canDoubleReward(this.run)
-            ? this.adButton(t('ads.double'), async () => {
-                if (await this.app.doubleReward()) {
-                  this.overlay?.close();
-                  this.overlay = null;
-                  this.showReward();
-                  return true;
-                }
-                return false;
-              })
-            : null,
-          button(withCoin(t('reward.collect', { n: reward.total })), () => {
-            this.overlay?.close();
-            this.overlay = null;
-            this.app.collectReward();
-          }),
-        ]),
+    const chips = h('div.scene-chips', null, rows
+      .filter(([, value], i) => value > 0 || i === 0)
+      .map(([label, value], i) => {
+        window.setTimeout(() => this.app.svc.audio.coin(), 200 + i * 120);
+        return h('span', { style: { animationDelay: `${0.35 + i * 0.12}s` } }, [`${label} `, h('b', null, `+${value}`)]);
+      }));
+    // Авторский момент: золото набегает до итога (в «Меньше движения» — сразу итог)
+    const count = h('span', null, `+${reward.total}`);
+    const calm = this.app.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!calm && reward.total > 1) {
+      let n = 0;
+      count.textContent = '+0';
+      const step = Math.max(40, Math.min(90, 700 / reward.total));
+      const tick = () => {
+        n += 1;
+        count.textContent = `+${n}`;
+        if (n < reward.total && count.isConnected) window.setTimeout(tick, step);
+      };
+      window.setTimeout(tick, 420);
+    }
+    const scene = sceneWindow({
+      className: 'reward',
+      label: t('reward.title'),
+      mid: [
+        sceneRibbon(t('reward.title'), t('reward.sub', { night: t(`night.${night.kind}`), score: num(night.score), target: num(night.target) })),
+        h('div.scene-gold', null, [h('span.coin'), count]),
+        chips,
       ],
-      { title: t('reward.title'), dismissable: false, className: 'narrow reward' },
-    );
-    this.app.tutorial?.emit({ type: 'reward', panel: this.overlay.el });
+      acts: [
+        button(withCoin(t('reward.collect', { n: reward.total })), () => {
+          this.overlay?.close();
+          this.overlay = null;
+          this.app.collectReward();
+        }),
+        this.app.platform.rewardedAvailable && canDoubleReward(this.run)
+          ? this.adButton(t('ads.double'), async () => {
+              if (await this.app.doubleReward()) {
+                this.overlay?.close();
+                this.overlay = null;
+                this.showReward();
+                return true;
+              }
+              return false;
+            })
+          : null,
+      ],
+    });
+    this.overlay = scene;
+    this.app.tutorial?.emit({ type: 'reward', panel: scene.acts });
   }
 
   private showGameOver(): void {
     const run = this.run;
     if (run.tutorial) {
       // Учебную ночь можно переиграть или пропустить — настоящий забег не трогаем
-      this.overlay = modal(
-        [
-          h('p.modal-text', null, t('tut.lost')),
-          h('div.row.center.wrap', null, [
-            button(t('tut.skip'), () => this.app.skipTutorial(), { variant: 'ghost' }),
-            button(t('tut.retry'), () => this.app.startTutorial('retry')),
-          ]),
+      this.overlay = sceneWindow({
+        className: 'over',
+        label: t('over.lostTitle'),
+        mid: [sceneRibbon(t('over.lostTitle'), t('tut.lost'), true)],
+        acts: [
+          button(t('tut.retry'), () => this.app.startTutorial('retry')),
+          h('div.scene-lights', null, lightButton('flag', t('tut.skip'), () => this.app.skipTutorial(), true)),
         ],
-        { title: t('over.lostTitle'), dismissable: false, className: 'narrow' },
-      );
+      });
       return;
     }
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
     const isRecord = run.stats.bestPlacement > this.app.bestBefore && run.stats.bestPlacement > 0;
-    const short = night ? Math.max(0, night.target - night.score) : 0;
-    this.overlay = modal(
-      [
-        h('div.over-sub', null, reached),
-        night ? h('div.over-score', null, `${num(night.score)} / ${num(night.target)}`) : null,
-        short ? h('p.over-short', null, t('over.short', { n: num(short) })) : null,
-        isRecord ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+    const revive = canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable);
+    const again = () => {
+      this.overlay?.close();
+      this.app.startRun(run.skyId);
+    };
+    // Тот же расклад: те же карты в том же порядке — понять, где можно было сыграть лучше.
+    // Вызов дня и так один на всех, у него своё «ещё раз» из архива
+    const same = run.daily
+      ? null
+      : button(h('span.btn-row', null, [icon('same'), t('over.sameDeal')]), () => {
+          this.overlay?.close();
+          this.app.startRun(run.skyId, false, run.stake ?? 0, run.seed);
+        }, { variant: 'secondary' });
+    const share = run.daily ? button(h('span.btn-row', null, [icon('share'), t('over.share')]), () => this.share(), { variant: 'secondary' }) : null;
+    // Главная — «Второй шанс», если он есть (решение Дениса); иначе «Ещё забег»
+    const primary = revive
+      ? this.adButton(t('ads.revive'), () => this.app.revive(), 'primary')
+      : button(h('span.btn-row', null, [icon('again'), t('over.again')]), again);
+    const pair = [revive ? button(h('span.btn-row', null, [icon('again'), t('over.again')]), again, { variant: 'secondary' }) : null, same ?? share].filter(Boolean) as HTMLElement[];
+    this.overlay = sceneWindow({
+      className: 'over',
+      label: t('over.lostTitle'),
+      mid: [
+        sceneRibbon(t('over.lostTitle'), run.daily ? `${t('menu.daily')} · ${reached}` : reached, true),
+        night ? sceneTally(night.score, night.target) : null,
+        isRecord ? h('div.scene-badge', null, [icon('star'), t('over.newRecord', { n: num(run.stats.bestPlacement) })]) : null,
         this.challengeVersus(false),
-        h('p.over-tip', null, lostTip(run)),
-        statsGrid(run),
-        canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable)
-          ? h('div.row.center', null, this.adButton(t('ads.revive'), () => this.app.revive(), 'primary'))
-          : null,
-        h('div.row.gap.center.wrap', null, [
-          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : this.challengeButton(false),
-          button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
-          // Тот же расклад: те же карты в том же порядке — понять, где можно было сыграть лучше.
-          // Вызов дня и так один на всех, у него своё «ещё раз» из архива
-          run.daily
-            ? null
-            : button(t('over.sameDeal'), () => {
-                this.overlay?.close();
-                this.app.startRun(run.skyId, false, run.stake ?? 0, run.seed);
-              }, { variant: 'secondary' }),
-          button(t('over.again'), () => {
-            this.overlay?.close();
-            this.app.startRun(run.skyId);
-          }),
-        ].filter(Boolean) as HTMLElement[]),
+        h('p.scene-tip', null, [icon('bulb'), h('span', null, lostTip(run))]),
+        statsTable(run),
       ],
-      { title: t('over.lostTitle'), dismissable: false, className: 'over' },
-    );
+      acts: [
+        primary,
+        pair.length ? h(`div.scene-pair${pair.length === 1 ? '.one' : ''}`, null, pair) : null,
+        h('div.scene-lights', null, [
+          run.daily ? null : this.challengeLight(false),
+          lightButton('home', t('over.menu'), () => this.app.abandonRun(), true),
+        ]),
+      ],
+    });
   }
 
   private showVictory(): void {
     const run = this.run;
-    this.overlay = modal(
-      [
-        screenTitle(t('over.winTitle')),
-        h('p.over-sub', null, t('over.winSub', { sky: named('sky', run.skyId).name, stake: (run.stake ?? 0) ? `✦${run.stake}` : t('menu.stakeNormal') })),
-        run.stats.bestPlacement > this.app.bestBefore ? h('div.badge.record', null, t('over.newRecord', { n: num(run.stats.bestPlacement) })) : null,
+    const stake = run.stake ?? 0;
+    this.overlay = sceneWindow({
+      className: 'over victory',
+      label: t('over.winTitle'),
+      mid: [
+        chapterChain(),
+        sceneRibbon(t('over.winTitle'), t('over.winSub', { sky: named('sky', run.skyId).name, stake: stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal') })),
+        run.stats.bestPlacement > this.app.bestBefore ? h('div.scene-badge', null, [icon('star'), t('over.newRecord', { n: num(run.stats.bestPlacement) })]) : null,
         this.challengeVersus(true),
-        statsGrid(run),
-        h('div.row.gap.center.wrap', null, [
-          run.daily ? button(t('over.share'), () => this.share(), { variant: 'secondary' }) : this.challengeButton(true),
-          button(t('over.menu'), () => this.app.abandonRun(), { variant: 'secondary' }),
-          button(t('over.endless'), () => {
-            this.overlay?.close();
-            this.overlay = null;
-            this.app.continueEndless();
-          }, { variant: 'secondary', sub: t('over.endlessSub') }),
-          // Главное после победы — следующий забег
-          button(t('over.again'), () => {
-            this.overlay?.close();
-            this.app.startRun(run.skyId, false, run.stake ?? 0);
-          }),
-        ].filter(Boolean) as HTMLElement[]),
+        statsTable(run),
       ],
-      { dismissable: false, className: 'over victory' },
-    );
+      acts: [
+        // Главное после победы — следующий забег
+        button(h('span.btn-row', null, [icon('again'), t('over.again')]), () => {
+          this.overlay?.close();
+          this.app.startRun(run.skyId, false, stake);
+        }),
+        button(h('span.btn-row', null, [icon('infinity'), t('over.endless')]), () => {
+          this.overlay?.close();
+          this.overlay = null;
+          this.app.continueEndless();
+        }, { variant: 'secondary', sub: t('over.endlessSub') }),
+        h('div.scene-lights', null, [
+          run.daily ? lightButton('share', t('over.share'), () => this.share()) : this.challengeLight(true),
+          lightButton('home', t('over.menu'), () => this.app.abandonRun(), true),
+        ]),
+      ],
+    });
   }
 
   /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */
   private adButton(label: string, action: () => Promise<boolean>, variant: 'primary' | 'secondary' = 'secondary'): HTMLButtonElement {
     // С атласом «второй шанс» без ролика — кнопка без значка рекламы
     const free = this.app.adFree && label === t('ads.revive');
-    const btn = button(free ? label : `▶ ${label}`, async () => {
+    const btn = button(h('span.btn-row', null, [free ? null : icon('play', 'icon ad-mark'), label]), async () => {
       btn.disabled = true;
       const ok = await action();
       if (!ok) {
@@ -371,12 +404,9 @@ export class NightScreen implements Screen {
   }
 
   /** «Бросить вызов»: ссылка на тот же расклад со своим итогом. В вызове дня — обычное «Поделиться». */
-  private challengeButton(won: boolean): HTMLElement | null {
+  private challengeLight(won: boolean): HTMLElement | null {
     if (this.run.tutorial) return null;
-    return button(t(this.run.challenge ? 'challenge.answer' : 'challenge.send'), () => this.sendChallenge(won), {
-      variant: 'secondary',
-      sub: t('challenge.sendSub'),
-    });
+    return lightButton('duel', t(this.run.challenge ? 'challenge.answer' : 'challenge.send'), () => this.sendChallenge(won));
   }
 
   private sendChallenge(won: boolean): void {
@@ -404,11 +434,6 @@ export class NightScreen implements Screen {
     } else {
       void navigator.clipboard?.writeText(full).then(() => toast(t('over.copied')));
     }
-  }
-
-  /** Используется картой созвездия — иконка Затмения. */
-  static bossIcon(id: string, size = 48): HTMLCanvasElement {
-    return canvasImg(bossSigil(id, size, dpr()), size);
   }
 }
 
