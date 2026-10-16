@@ -1814,7 +1814,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 .atl-tab.on { color: var(--gold-hi); }
 .atl-tab.on::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.95) 25%, rgb(255 230 168 / 0.95) 75%, transparent); }
 /* Подпись «Назад» — своим блоком: её можно спрятать на узком экране */
-.atl-back-lbl { display: inline-block; white-space: nowrap; }
+.atl-back-lbl { display: inline-block; white-space: nowrap; line-height: 1.25; } /* при 14px/1 буквы Manrope выше строки на 2px */
 /* Узкий телефон: «Назад» — одной стрелкой, табличке хватает места по центру */
 @media (max-width: 400px) {
   .atl-back-lbl { display: none; }
