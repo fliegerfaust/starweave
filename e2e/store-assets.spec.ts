@@ -85,6 +85,14 @@ for (const lang of ['ru', 'en'] as const) {
         await page.close();
       }
       copyFileSync('public/icons/icon-512.png', `${OUT}/yandex/icon-512.png`);
+      // Картинка описания бота (/setdescriptionpic) — без текста, одна на оба языка
+      if (lang === 'ru') {
+        const page = await browser.newPage({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 });
+        await page.goto('/?promo&desc');
+        await page.waitForTimeout(1200);
+        await page.screenshot({ path: `${OUT}/telegram/description-640x360.png`, scale: 'css' });
+        await page.close();
+      }
     });
 
     for (const [orient, viewport, scale] of [

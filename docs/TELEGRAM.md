@@ -36,8 +36,9 @@
    BotFather пришлёт ссылку вида `https://t.me/starweave_game_bot/play` — это ссылка на игру.
 3. `/setmenubutton` → бот → адрес `https://fliegerfaust.github.io/starweave/` → текст
    `Играть`. Кнопка появится в чате с ботом слева от поля ввода.
-4. (По желанию) `/setdescription` и `/setabouttext` — тексты бота; `/setuserpic` — иконка
-   `store/yandex/icon-512.png`.
+4. (По желанию) `/setdescription` и `/setabouttext` — тексты бота; `/setuserpic` — аватар
+   `store/telegram/avatar-1024.png`; `/setdescriptionpic` — картинка описания
+   `store/telegram/description-640x360.png`.
 5. (По желанию) в @BotFather → бот → Bot Settings → Configure Mini App → Enable: игра
    откроется из профиля бота кнопкой «Открыть».
 
@@ -126,10 +127,15 @@ gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
      challenge, duels with friends.`
 5. **Загрузочный экран.** @BotFather → `/mybots` → бот → Bot Settings → Configure Mini App →
    Configure Splash Screen → прислать файлом `store/telegram/splash.svg` (SVG 512×512, один
-   `<path>`: силуэт «пары карт»; пересоздать — `node scripts/make-splash.mjs`). Цвет фона —
+   `<path>`: силуэт знака «Печать»; пересоздать — `node scripts/make-splash.mjs`). Цвет фона —
    `#070818` для светлой и тёмной темы (тот же, что красит игра при запуске), цвет шапки — тот же.
    Проверить — «Open Splash Screen Preview».
-6. **Иконка бота** — `/setuserpic` → `store/yandex/icon-512.png` (если ещё не стоит).
+6. **Картинки бота (FP.9: знак «Печать», обложки «Купол»)** — заменить старые:
+   - аватар: `/setuserpic` → `store/telegram/avatar-1024.png`;
+   - картинка описания (видна в пустом чате над «Старт»): `/setdescriptionpic` →
+     `store/telegram/description-640x360.png` — одна на оба языка;
+   - обложка Mini App: `/myapps` → приложение → Edit Photo → `store/telegram/app-640x360-ru.png`;
+   - загрузочный экран — пункт 5 (новый `splash.svg`).
 7. **Проверка:** открыть профиль бота с другого аккаунта — кнопка «Открыть», превью
    листаются; в поиске Telegram на вкладке «Приложения» игра видна (у тех, кто её уже
    запускал).
