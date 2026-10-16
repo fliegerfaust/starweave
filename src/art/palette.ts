@@ -18,6 +18,14 @@ export const SUIT_COLORS: Record<Suit, SuitColors> = {
   comet: { main: '#ff7f62', light: '#ffd3c4', deep: '#3d110a', rgb: [255, 127, 98] },
 };
 
+/** Поле карты «Небо масти»: верх и низ градиента — глубокий цвет масти. */
+export const SUIT_FIELDS: Record<Suit, [string, string]> = {
+  sun: ['#5a3b14', '#1d1208'],
+  moon: ['#173a60', '#081226'],
+  star: ['#3a2566', '#110a25'],
+  comet: ['#5a2418', '#1c0a07'],
+};
+
 export const UI = {
   night0: '#05061a',
   night1: '#0c0d2c',
