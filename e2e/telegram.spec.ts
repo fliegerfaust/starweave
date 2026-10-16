@@ -79,3 +79,40 @@ test('Telegram Mini App', async ({ page }) => {
     .poll(() => page.evaluate(() => Object.keys((window as unknown as { __tg: { store: Record<string, string> } }).__tg.store)), { timeout: 8000 })
     .toContain('sw_index');
 });
+
+/** Реклама за награду в Telegram — AdsGram: досмотр даёт награду, пропуск — нет, звук на паузе. */
+test('Telegram: реклама за награду через AdsGram', async ({ page }) => {
+  test.skip(test.info().project.name !== 'iphone-15', 'достаточно одного устройства');
+  await page.addInitScript(() => {
+    (window as unknown as { Telegram: unknown }).Telegram = {
+      WebApp: {
+        version: '8.0', platform: 'ios', initData: '', initDataUnsafe: {},
+        isVersionAtLeast: () => true, ready() {}, expand() {}, onEvent() {}, openTelegramLink() {},
+      },
+    };
+  });
+  // Первый показ досмотрен, второй пропущен; во время показа запоминаем, молчит ли звук
+  await page.route('https://sad.adsgram.ai/js/sad.min.js', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: `window.__ads = { inits: [], shows: 0, muted: [] };
+        window.Adsgram = { init(p) { window.__ads.inits.push(p.blockId); return { show() {
+          const n = ++window.__ads.shows;
+          window.__ads.muted.push(window.starweave.adPlaying);
+          return n === 1 ? Promise.resolve({ done: true, state: 'destroy', error: false, description: '' })
+            : Promise.reject({ done: false, state: 'playing', error: false, description: 'The banner was skipped' });
+        } }; } };`,
+    }),
+  );
+  await page.goto('/#tgWebAppData=x&tgWebAppVersion=8.0&tgWebAppPlatform=ios');
+  await page.waitForFunction(() => !!document.querySelector('.menu-buttons .btn'));
+  type P = { platform: { rewardedAvailable: boolean; showRewarded(): Promise<boolean> }; adPlaying: boolean };
+  const res = await page.evaluate(async () => {
+    const app = (window as unknown as { starweave: P }).starweave;
+    const available = app.platform.rewardedAvailable;
+    const first = await app.platform.showRewarded();
+    const second = await app.platform.showRewarded();
+    return { available, first, second, after: app.adPlaying, ads: (window as unknown as { __ads: unknown }).__ads };
+  });
+  expect(res).toEqual({ available: true, first: true, second: false, after: false, ads: { inits: ['e2e'], shows: 2, muted: [true, true] } });
+});

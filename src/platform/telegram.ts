@@ -36,13 +36,29 @@ declare global {
   interface Window {
     Telegram?: { WebApp?: TelegramWebApp };
     telegramAnalytics?: { init(opts: { token: string; appName: string }): Promise<void> | void };
+    Adsgram?: { init(params: { blockId: string; debug?: boolean }): AdsgramController };
   }
+}
+
+/** Ответ AdsGram на показ (docs.adsgram.ai/publisher/typescript). */
+interface AdsgramResult {
+  done: boolean;
+  description: string;
+  state: 'load' | 'render' | 'playing' | 'destroy';
+  error: boolean;
+}
+
+interface AdsgramController {
+  /** Разрешается после досмотра (`done`), отклоняется при пропуске, ошибке или без рекламы. */
+  show(): Promise<AdsgramResult>;
 }
 
 const SDK_URL = 'https://telegram.org/js/telegram-web-app.js';
 /** Аналитика Telegram Mini Apps (TON Builders): запуски, удержание, место в каталоге. */
 const ANALYTICS_URL = 'https://tganalytics.xyz/index.js';
 const NIGHT = '#070818';
+/** Реклама за награду в Mini Apps — AdsGram; блок заводится в partner.adsgram.ai (docs/ADS.md). */
+const ADSGRAM_URL = 'https://sad.adsgram.ai/js/sad.min.js';
 
 /**
  * Запущены ли мы как Telegram Mini App. Telegram передаёт параметры запуска в адресе
@@ -79,11 +95,13 @@ function loadScript(src: string, timeoutMs = 0): Promise<void> {
  */
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
-  readonly rewardedAvailable = false;
   readonly interstitialAvailable = false;
+  /** Реклама за награду есть, если задан блок AdsGram (переменная `ADSGRAM_BLOCK_ID`). */
+  rewardedAvailable = false;
   payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
+  private ads: Promise<AdsgramController | null> | null = null;
 
   async init(): Promise<void> {
     try {
@@ -109,6 +127,7 @@ export class TelegramPlatform implements Platform {
     if (base && app.initData && app.isVersionAtLeast('6.1') && app.openInvoice) {
       this.payments = new StarsPayments({ initData: app.initData, openInvoice: (url, cb) => app.openInvoice!(url, cb) }, base);
     }
+    this.initAds();
     app.onEvent('deactivated', () => this.emitPause(true));
     app.onEvent('activated', () => this.emitPause(false));
     await this.initAnalytics();
@@ -134,6 +153,19 @@ export class TelegramPlatform implements Platform {
     }
   }
 
+  /**
+   * Скрипт AdsGram грузится в фоне и не задерживает запуск; кнопки рекламы видны сразу, а
+   * показ дождётся загрузки. Не загрузился — показ вернёт «без награды», игра сообщит об этом.
+   */
+  private initAds(): void {
+    const blockId = import.meta.env.VITE_ADSGRAM_BLOCK_ID;
+    if (!blockId) return;
+    this.rewardedAvailable = true;
+    this.ads = loadScript(ADSGRAM_URL, 15000)
+      .then(() => window.Adsgram?.init({ blockId }) ?? null)
+      .catch(() => null);
+  }
+
   ready(): void {
     this.app?.ready();
   }
@@ -144,7 +176,18 @@ export class TelegramPlatform implements Platform {
   async showInterstitial(): Promise<void> {}
 
   async showRewarded(): Promise<boolean> {
-    return false;
+    const ads = await this.ads;
+    if (!ads) return false;
+    // Звук и игра на паузе, пока идёт ролик
+    this.emitPause(true);
+    try {
+      const result = await ads.show();
+      return result.done;
+    } catch {
+      return false; // пропустил, ошибка или рекламы сейчас нет
+    } finally {
+      this.emitPause(false);
+    }
   }
 
   language(): Lang | null {

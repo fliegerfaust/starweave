@@ -16,6 +16,8 @@ export default defineConfig({
     command: 'npx vite --port 4180 --strictPort',
     url: 'http://localhost:4180',
     reuseExistingServer: true,
+    // Блок AdsGram для проверки рекламы в Telegram (скрипт AdsGram тест подменяет)
+    env: { VITE_ADSGRAM_BLOCK_ID: 'e2e' },
   },
   projects: [
     { name: 'iphone-se', use: { ...devices['iPhone SE'], browserName: 'webkit' } },
