@@ -2,7 +2,7 @@ import { omenDef } from '@/core/content/omens';
 import type { ComboId, Glyph } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
 import { drawGlyphBadge } from './card';
-import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
+import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -56,6 +56,11 @@ export function ritualIcon(id: string, size: number, scale: number): HTMLCanvasE
 /** Пакет: латунный конверт на эмали цвета содержимого, печать со знаком (см. enamel.ts). */
 export function packIcon(pack: string, size: number, scale: number): HTMLCanvasElement {
   return cached(`pack:${pack}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelPack(ctx, pack, size));
+}
+
+/** Знак покупки в списке «Что внутри» (без рекламы) — медальон «Эмали». */
+export function markIcon(id: string, size: number, scale: number): HTMLCanvasElement {
+  return cached(`mark:${id}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelMark(ctx, id, size));
 }
 
 export function clearSigilCache(): void {

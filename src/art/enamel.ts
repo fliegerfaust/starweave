@@ -714,3 +714,44 @@ function circleAt(ctx: Ctx, x: number, y: number, r: number): void {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, PI * 2);
 }
+
+// ─── Знаки покупок ───────────────────────────────────────────────────────────
+
+/** Знаки в списке «Что внутри»: без рекламы — экран ролика, перечёркнутый росчерком. */
+const MARK_MOTIF: Record<string, () => Part[]> = {
+  noads: () => [
+    { s: rrect(-19, -13, 38, 26, 5), w: 3.4 },
+    { f: shape([[-5, -7.5], [8.5, 0], [-5, 7.5]]) },
+    // Росчерк с прорезью цветом эмали — не сливается с экраном под ним
+    { c: line([[-22, -19], [22, 19]]), w: 9 },
+    { s: line([[-22, -19], [22, 19]]), w: 3.6 },
+  ],
+};
+
+/** Знак покупки — медальон «Эмали» серебряной темы без камня и редкости. */
+export function drawEnamelMark(ctx: Ctx, id: string, size: number): void {
+  const f = FAM.silver!;
+  const er = 41;
+  ctx.save();
+  stage(ctx, size);
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  circle(ctx, 49, 1.2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = brassBezel(ctx, -47, -47, 47, 47);
+  circle(ctx, 47);
+  ctx.fill();
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.4, 0, 0, -er * 0.4, er * 1.56), [[0, mix(f.base, '#ffffff', 0.08)], [0.5, mix(f.base, f.deep, 0.5)], [1, f.deep]]);
+  circle(ctx, er);
+  ctx.fill();
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, 0, 0, 0, 0, er), [[0.78, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]);
+  circle(ctx, er);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(42,24,4,0.8)';
+  ctx.lineWidth = 1.4;
+  circle(ctx, er + 0.2);
+  ctx.stroke();
+  relief(ctx, MARK_MOTIF[id]?.() ?? [], 22, size < 60 ? 1.18 : 1, 'gold', mix(f.base, f.deep, 0.6));
+  ctx.restore();
+}
