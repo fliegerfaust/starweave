@@ -220,6 +220,7 @@ export class TutorialDirector {
     await this.waitFor('dealt');
     this.watchFormula();
     const scene = this.night;
+    scene.setExplain(true);
     scene.setGuide({});
     scene.setStepPause(2.4);
 
@@ -315,6 +316,7 @@ export class TutorialDirector {
     root.classList.remove('tut-lock');
     await this.waitFor('dealt');
     const scene2 = this.night;
+    scene2.setExplain(true);
     scene2.setGuide({});
     await this.say('night2', { spot: elementRect(document.querySelector('.hud-omens')) });
     scene2.setGuide({ free: true });
@@ -362,7 +364,7 @@ export class TutorialDirector {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
-        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') }),
+        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', above: this.night.cellsRect(TUTORIAL_CELLS.pairRow), next: t('tut.next') }),
         new Promise<void>((resolve) => (this.releaseGate = resolve)),
       ]);
       this.releaseGate = null;

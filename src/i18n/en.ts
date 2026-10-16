@@ -101,6 +101,7 @@ export const en: Dict = {
     played: 'played · {n}',
   },
   calc: {
+    base: 'base: {combo}',
     light: 'light',
     mult: 'multiplier',
     total: 'score',

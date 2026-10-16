@@ -73,8 +73,8 @@ test('обучение: нить к цели, подсказка не закры
   await check(page, 'почти линия', failures);
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34-tut-almost.png` });
 
-  // Формула подсчёта: панель меряется по таймеру, а нить не пересоздаётся и не прыгает —
-  // иначе пунктир дёргается (баг из обучения на iPhone)
+  // Формула подсчёта (TU.3): подсказка над линией без нити через экран, не закрывает ни
+  // линию, ни формулу; под формулой — база Пары и фишки четырёх карт
   await page.click('.tut-next');
   await page.waitForSelector('.tut-bubble.on');
   // Подсчёт ждёт «Далее» — не ждём конца хода
@@ -85,19 +85,26 @@ test('обучение: нить к цели, подсказка не закры
   });
   await page.waitForSelector('.calc.show');
   await page.waitForSelector('.tut-bubble.on .tut-next');
-  const thread = await page.evaluate(async () => {
-    const first = document.querySelector('.tut-thread path');
-    const samples: string[] = [];
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 150));
-      const dot = document.querySelector('.tut-thread circle');
-      samples.push(`${dot?.getAttribute('cx')},${dot?.getAttribute('cy')}`);
-    }
-    return { same: !!first && document.querySelector('.tut-thread path') === first, ends: new Set(samples.slice(2)).size };
+  await page.waitForTimeout(700);
+  const formula = await page.evaluate(() => {
+    const w = window as unknown as W & { __scene: { cellsRect(c: number[]): Rect } };
+    const b = document.querySelector('.tut-bubble.on')!.getBoundingClientRect();
+    const hit = (r: { left: number; right: number; top: number; bottom: number }) => !(r.right <= b.left || r.left >= b.right || r.bottom <= b.top || r.top >= b.bottom);
+    const line = w.__scene.cellsRect([12, 13, 14, 15]);
+    return {
+      thread: !!document.querySelector('.tut-thread path'),
+      onLine: hit({ left: line.x, right: line.x + line.w, top: line.y, bottom: line.y + line.h }),
+      onCalc: hit(document.querySelector('.calc')!.getBoundingClientRect()),
+      parts: [...document.querySelectorAll('.calc-part')].map((e) => e.textContent),
+      dim: document.querySelectorAll('.calc-part.dim').length,
+    };
   });
-  expect(thread.same, 'нить на шаге формулы не пересоздаётся').toBe(true);
-  expect(thread.ends, 'конец нити стоит на месте').toBe(1);
+  expect(formula).toEqual({ thread: false, onLine: false, onCalc: false, parts: ['база: Пара10×2', '+3', '+3', '+7', '+5'], dim: 4 });
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34b-tut-formula.png` });
+  // После «Далее» фишки карт загораются по очереди
+  await page.click('.tut-bubble.on .tut-next');
+  await page.waitForFunction(() => document.querySelectorAll('.calc-part.dim').length === 0, null, { timeout: 20_000 });
+  await page.screenshot({ path: `e2e-results/${test.info().project.name}/34c-tut-parts.png` });
   expect(failures).toEqual([]);
 
   // «Обучение пройдено»: кнопки по своей ширине
