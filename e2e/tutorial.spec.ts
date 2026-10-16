@@ -118,3 +118,84 @@ test('обучение: нить к цели, подсказка не закры
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/35-tut-done.png` });
   expect(errors).toEqual([]);
 });
+
+/** Нажать «Далее» в подсказке, когда она появится. */
+async function next(page: Page): Promise<void> {
+  await page.waitForSelector('.tut-bubble.on .tut-next', { timeout: 20_000 });
+  await page.click('.tut-bubble.on .tut-next');
+}
+
+test('обучение до второй ночи: награда без подсказки, Знамение не закрыто (TU.1, TU.2)', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as Partial<W>).starweave && !!document.querySelector('.menu-buttons .btn'));
+  await page.evaluate(() => (window as unknown as W).starweave.startTutorial());
+  const failures: string[] = [];
+  const dir = `e2e-results/${test.info().project.name}`;
+
+  await next(page); // обзор
+  for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
+    await page.waitForSelector('.tut-bubble.on');
+    await place(page, code, cell);
+  }
+  await next(page); // почти линия
+  // Первый подсчёт ждёт «Далее» у формулы
+  await page.evaluate(() => {
+    const w = window as unknown as W;
+    const i = w.starweave.run.night.hand.findIndex((c) => c.rank === 5 && c.suit === 'comet');
+    void w.__scene.place(i, 15);
+  });
+  await page.waitForSelector('.calc.show');
+  await next(page);
+  await page.waitForFunction(() => !(window as unknown as W).__scene.busy, null, { timeout: 20_000 });
+  await next(page); // цель
+  await next(page); // «?»
+  // Сжечь единицу
+  await page.waitForSelector('.tut-bubble.on');
+  await page.evaluate(async () => {
+    const w = window as unknown as W & { __scene: { select(i: number): void; burnSelected(): Promise<void> } };
+    w.__scene.select(w.starweave.run.night.hand.findIndex((c) => c.rank === 1 && c.suit === 'moon'));
+    await w.__scene.burnSelected();
+  });
+  await next(page); // главный приём — дальше раскладывает сам
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Комет'), null, { timeout: 30_000 });
+  await place(page, '4c', 15);
+  await next(page); // клетка ×2
+  await page.waitForSelector('.tut-bubble.on');
+  await place(page, '9t', 3);
+
+  // Награда: подсказки и нити нет, светится только «Забрать»
+  await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
+  await page.waitForTimeout(700);
+  const reward = await page.evaluate(() => ({
+    bubble: !!document.querySelector('.tut-bubble.on'),
+    thread: !!document.querySelector('.tut-thread path'),
+    spot: !!document.querySelector('.tut-spot.on'),
+  }));
+  expect(reward, 'на итогах ночи только кнопка').toEqual({ bubble: false, thread: false, spot: false });
+  await page.screenshot({ path: `${dir}/36-tut-reward.png` });
+  await page.click('.btn.tut-allow');
+
+  // Обсерватория: купить Знамение и уйти в ночь
+  await next(page);
+  await page.waitForSelector('[data-shop="omen-0"] .btn.tut-allow');
+  await page.click('[data-shop="omen-0"] .btn.tut-allow');
+  await next(page);
+  await page.waitForSelector('[data-shop="next"].tut-allow');
+  await page.click('[data-shop="next"].tut-allow');
+
+  // Ночь 2: подсказка не на Знамении
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Знамение —'), null, { timeout: 30_000 });
+  await check(page, 'Знамение наверху', failures);
+  const onOmens = await page.evaluate(() => {
+    const s = document.querySelector('.tut-spot.on')!.getBoundingClientRect();
+    const o = document.querySelector('.hud-omens')!.getBoundingClientRect();
+    return s.left <= o.left && s.top <= o.top && s.right >= o.right && s.bottom >= o.bottom;
+  });
+  expect(onOmens, 'рамка — на Знамениях').toBe(true);
+  await page.screenshot({ path: `${dir}/37-tut-omen.png` });
+  expect(failures).toEqual([]);
+  expect(errors).toEqual([]);
+});

@@ -282,8 +282,11 @@ export class TutorialDirector {
     // Награда
     const reward = await this.waitFor('reward');
     scene.setStepPause(1);
-    await pause(400); // панель ещё «выпрыгивает» — меряем после анимации
-    await this.say('reward', { spot: elementRect(reward.panel), next: false });
+    // Экран итогов говорит сам за себя: без подсказки и нити, светится только «Забрать» (TU.2)
+    this.step += 1;
+    this.mark('reward');
+    this.overlay.hideBubble();
+    this.overlay.spotlight(null);
     reward.panel.querySelector<HTMLElement>('.btn')?.classList.add('tut-allow');
 
     // Обсерватория
@@ -306,6 +309,9 @@ export class TutorialDirector {
 
     // Ночь 2 — Знамение в деле (магазин заперт, пока игрок не ушёл из него)
     await this.waitFor('night');
+    // Рамка с кнопки Обсерватории не висит над раздачей
+    this.overlay.hideBubble();
+    this.overlay.spotlight(null);
     root.classList.remove('tut-lock');
     await this.waitFor('dealt');
     const scene2 = this.night;

@@ -46,7 +46,10 @@ export class Synth {
       if (this.ctx instanceof AudioContext && this.ctx.state === 'suspended') void this.ctx.resume();
       return;
     }
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    // Автотесты (Playwright) играют молча: звук из колонок мешает работать рядом.
+    // Запись роликов идёт через attachOffline — её это не касается
+    if (navigator.webdriver) return;
+    const Ctor = window.AudioContext ??(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
     this.build(new Ctor());
   }
