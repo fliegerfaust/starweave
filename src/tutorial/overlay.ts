@@ -169,7 +169,8 @@ export class TutorialOverlay {
       // в левой колонке под табло, поэтому подсказка — над линией на небе, по её ширине
       const a = this.above;
       if (landscape) {
-        const w = Math.min(Math.max(a.w + 24, 300), 440, vw - 16);
+        // По ширине линии: шире — заходит на руку, которая в ландшафте стоит справа от неба
+        const w = Math.min(Math.max(a.w + 24, 260), 440, vw - 16);
         b.style.width = `${w}px`;
         b.style.left = `${Math.round(Math.min(Math.max(8, a.x + a.w / 2 - w / 2), vw - w - 8))}px`;
       }
