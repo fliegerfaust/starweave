@@ -39,7 +39,7 @@ async function boot(): Promise<void> {
     const lang = params.get('lang');
     if (lang === 'en' || lang === 'ru') setLang(lang);
     const { showPromo } = await import('./dev/promo');
-    showPromo(ui);
+    showPromo(ui, params.has('desc'));
     return;
   }
   if (params.has('icon')) {
