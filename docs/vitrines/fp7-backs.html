@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Рубашки карт</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-0: #05061a;
+    --night-1: #0c0d2c;
+    --night-2: #191641;
+    --panel: #0e0c26;
+    --ink: #eae6ff;
+    --ink-dim: #a5a0cf;
+    --ink-faint: #8a85b8;
+    --gold: #f6c25b;
+    --gold-hi: #ffe6a8;
+    --brass-line: rgb(246 194 91 / .22);
+    --brass-strong: rgb(246 194 91 / .45);
+    --gutter: 16px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body {
+    background: radial-gradient(120% 60% at 50% 0%, #15123a 0%, var(--night-0) 60%) fixed, var(--night-0);
+    background-color: var(--night-0);
+    color: var(--ink);
+    font: 400 14px/1.5 Manrope, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px var(--gutter) 64px; }
+  header.top { text-align: center; padding: 18px 0 8px; }
+  h1 { font: 400 30px/1 Forum, serif; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-hi); margin: 0 0 14px; }
+  .sill { height: 2px; width: min(420px, 80%); margin: 0 auto 18px;
+    background: radial-gradient(closest-side, rgb(255 230 168 / .9), rgb(246 194 91 / .25) 60%, transparent); }
+  .lead { color: var(--ink-dim); max-width: 660px; margin: 0 auto; }
+  nav.jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; margin: 20px 0 6px; }
+  nav.jump a { color: var(--gold-hi); text-decoration: none; font-weight: 700; padding: 10px 14px; }
+  nav.jump a + a { border-left: 1px solid var(--brass-line); }
+  nav.jump a:hover { color: #fff; }
+  @media (max-width: 480px) { nav.jump a { padding: 8px 9px; font-size: 13px; } }
+
+  .label { font: 400 13px/1 Forum, serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi);
+    display: flex; align-items: center; gap: 12px; margin: 34px 0 18px; }
+  .label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--brass-line), transparent); }
+
+  section.variant { margin-top: 56px; padding-top: 8px; }
+  .vhead { text-align: center; margin: 40px 0 8px; }
+  .vname { font: 400 26px/1 Forum, serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); margin: 0 0 12px; }
+  .vname small { display: block; font: 800 11px/1 Manrope, sans-serif; letter-spacing: .14em; color: var(--ink-faint); margin-bottom: 10px; }
+  .videa { color: var(--ink); max-width: 720px; margin: 0 auto; }
+  .videa b { color: var(--gold-hi); font-weight: 700; }
+  .hr { height: 1px; background: linear-gradient(90deg, transparent, var(--brass-line), transparent); }
+
+  .slot { position: relative; flex: none; }
+  .slot canvas { position: absolute; display: block; }
+  .slot canvas.glint { pointer-events: none; mix-blend-mode: screen; }
+
+  .big { display: flex; flex-wrap: wrap; justify-content: center; gap: 26px var(--bg, 22px); }
+  .bcell { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .bcap { text-align: center; line-height: 1.35; }
+  .bcap b { display: block; font: 700 15.5px/1.2 Manrope; color: var(--ink); }
+  .bcap span { font-size: 13px; color: var(--ink-dim); white-space: nowrap; }
+  .bcap .num { color: var(--gold-hi); font-weight: 800; }
+  .tg { display: inline-block; width: 13px; height: 13px; vertical-align: -1px; margin-left: 3px; }
+
+  .real { display: grid; gap: 18px; }
+  .realrow { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .realrow .sz { width: 46px; font: 800 11px/1 Manrope; letter-spacing: .1em; color: var(--ink-faint); }
+  .realrow.small { gap: 10px; }
+  @media (max-width: 520px) { .realrow { gap: 2px; } .realrow.small { gap: 10px; } .realrow .sz { flex-basis: 100%; margin-bottom: 8px; } }
+  .note { color: var(--ink-dim); font-size: 13px; margin: 14px 0 0; max-width: 720px; }
+
+  .pair { display: grid; gap: 22px; }
+  .pairrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+  .flip { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+
+  .phones { display: grid; grid-template-columns: 1fr; gap: 34px; }
+  @media (min-width: 860px) { .phones { grid-template-columns: repeat(2, minmax(0, 390px)); justify-content: center; gap: 48px; } }
+  .phone { position: relative; width: 100%; max-width: 390px; margin: 0 auto; aspect-ratio: 390 / 844; border-radius: 44px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgb(246 194 91 / .25), 0 0 0 7px #0a0a18, 0 0 0 8px rgb(255 255 255 / .06), 0 30px 60px -20px rgb(0 0 0 / .8); }
+  .phone canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .phone-cap { text-align: center; color: var(--ink-faint); font-size: 12px; margin: 16px auto 0; max-width: 340px; }
+
+  .ctrl { display: flex; justify-content: center; margin: 22px 0 0; }
+  .ctrl button { font: 700 14px/1 Manrope; color: var(--gold-hi); background: rgb(14 12 38 / .82); border: 0; border-radius: 999px; padding: 12px 22px; min-height: 44px; cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgb(246 194 91 / .3); }
+  .ctrl button:hover { box-shadow: inset 0 0 0 1px rgb(246 194 91 / .5); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Рубашки карт</h1>
+    <div class="sill"></div>
+    <p class="lead">Пять рубашек в одном языке с лицом «Небо масти» и иконками «Эмаль»: глубокое поле, латунь, точная геометрия. Классика тихая, покупные заметно богаче, меценат — самая роскошная. Всё нарисовано кодом на canvas, как в игре; блик на крупных — только витрина, в игре рубашка рисуется один раз.</p>
+    <nav class="jump">
+      <a href="#now">Сейчас</a><a href="#v-enamel">«Эмаль»</a><a href="#v-engrave">«Гравюра»</a><a href="#v-jewel">«Ювелир»</a>
+    </nav>
+    <div class="ctrl"><button type="button" id="glintBtn">Остановить блик</button></div>
+  </header>
+  <div id="variants"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const TAU = Math.PI * 2;
+const { PI, cos, sin, sqrt, max, min, round, abs } = Math;
+const ASPECT = 0.7;
+const DPR = () => Math.min(3, window.devicePixelRatio || 1);
+
+// ─── Утилиты ───────────────────────────────────────────────────────────────
+const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mix = (a, b, t) => '#' + hex(a).map((v, i) => round(v + (hex(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const frac = (x) => x - Math.floor(x);
+function stops(g, list) { for (const [o, c] of list) g.addColorStop(o, c); return g; }
+const lin = (ctx, x0, y0, x1, y1, l) => stops(ctx.createLinearGradient(x0, y0, x1, y1), l);
+const rad = (ctx, x0, y0, r0, x1, y1, r1, l) => stops(ctx.createRadialGradient(x0, y0, r0, x1, y1, r1), l);
+
+function rr(ctx, x, y, w, h, r) {
+  const q = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + q, y);
+  ctx.arcTo(x + w, y, x + w, y + h, q);
+  ctx.arcTo(x + w, y + h, x, y + h, q);
+  ctx.arcTo(x, y + h, x, y, q);
+  ctx.arcTo(x, y, x + w, y, q);
+  ctx.closePath();
+}
+function rrPath(ctx, x, y, w, h, r) { // без beginPath — для evenodd-колец
+  const q = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + q, y);
+  ctx.arcTo(x + w, y, x + w, y + h, q);
+  ctx.arcTo(x + w, y + h, x, y + h, q);
+  ctx.arcTo(x, y + h, x, y, q);
+  ctx.arcTo(x, y, x + w, y, q);
+  ctx.closePath();
+}
+function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); }
+function sparklePath(ctx, x, y, r, n = 4, waist = 0.28, rot = 0) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU - PI / 2 + rot, b = ((i + 1) / n) * TAU - PI / 2 + rot, m = (a + b) / 2;
+    if (i === 0) ctx.moveTo(x + cos(a) * r, y + sin(a) * r);
+    ctx.quadraticCurveTo(x + cos(m) * r * waist, y + sin(m) * r * waist, x + cos(b) * r, y + sin(b) * r);
+  }
+  ctx.closePath();
+}
+function cometPath(ctx, x, y, r) {
+  const hx = x + r * 0.38, hy = y - r * 0.38, hr = r * 0.36;
+  const ang = Math.atan2(hy - (y + r), hx - (x - r));
+  const nx = cos(ang + PI / 2), ny = sin(ang + PI / 2);
+  ctx.moveTo(hx + nx * hr, hy + ny * hr);
+  for (const t of [{ len: 1, off: 0 }, { len: 0.72, off: 0.8 }, { len: 0.72, off: -0.8 }]) {
+    ctx.lineTo(hx - cos(ang) * r * 1.55 * t.len + nx * hr * t.off * 0.9, hy - sin(ang) * r * 1.55 * t.len + ny * hr * t.off * 0.9);
+    ctx.lineTo(hx + nx * hr * t.off * 0.35, hy + ny * hr * t.off * 0.35);
+  }
+  ctx.lineTo(hx - nx * hr, hy - ny * hr);
+  ctx.arc(hx, hy, hr, ang - PI / 2, ang + PI / 2, false);
+  ctx.closePath();
+}
+/** Лента с сужением к концам вдоль синусоиды (сияние). */
+function ribbonPath(ctx, x0, x1, yc, amp, th, waves, ph) {
+  const N = 48, top = [], bot = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, x = x0 + (x1 - x0) * t, y = yc + amp * sin(t * waves * TAU + ph);
+    const k = Math.pow(sin(PI * t), 0.7) * th / 2;
+    top.push([x, y - k]); bot.push([x, y + k]);
+  }
+  ctx.moveTo(top[0][0], top[0][1]);
+  for (const p of top) ctx.lineTo(p[0], p[1]);
+  for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+  ctx.closePath();
+}
+/** Хвост: кривая Безье с сужением от w0 к w1. */
+function taperPath(ctx, p0, p1, p2, w0, w1) {
+  const N = 36, L = [], R = [];
+  const at = (t) => [(1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0], (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, p = at(t), q = at(Math.min(1, t + 0.01)), o = at(Math.max(0, t - 0.01));
+    let tx = q[0] - o[0], ty = q[1] - o[1]; const d = Math.hypot(tx, ty) || 1; tx /= d; ty /= d;
+    const wd = (w0 + (w1 - w0) * t) / 2;
+    L.push([p[0] - ty * wd, p[1] + tx * wd]); R.push([p[0] + ty * wd, p[1] - tx * wd]);
+  }
+  ctx.moveTo(L[0][0], L[0][1]);
+  for (const p of L) ctx.lineTo(p[0], p[1]);
+  for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+  ctx.closePath();
+}
+
+// Металлы — те же градиенты, что у кромки лица (gildedStroke) и оправы «Эмали» (brassBezel)
+const GOLD = [[0, '#fff6d6'], [0.45, '#f6c25b'], [1, '#b8751c']];
+const BRASS = [[0, '#fff0c4'], [0.3, '#dca546'], [0.56, '#7d5214'], [0.8, '#e8b85a'], [1, '#fff2cc']];
+const BRASS_RARE = [[0, '#fff6d8'], [0.3, '#f2b84e'], [0.56, '#9a5410'], [0.8, '#ffcf6a'], [1, '#fff2cc']];
+const GILDED = [[0, '#ffe6a8'], [0.45, '#c8912f'], [0.7, '#f6c25b'], [1, '#9a6a22']];
+
+/** Тень под картой — как у лица: карта лежит на небе. */
+function cardShadow(ctx, w, h, fill) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = w * 0.08; ctx.shadowOffsetY = w * 0.025;
+  rr(ctx, 0, 0, w, h, w * 0.09); ctx.fillStyle = fill; ctx.fill();
+  ctx.restore();
+}
+/** Золочёная кромка — та же, что у лица «Небо масти». */
+function gildedEdge(ctx, w, h) {
+  rr(ctx, 0.75, 0.75, w - 1.5, h - 1.5, w * 0.09);
+  ctx.lineWidth = Math.max(1.2, w * 0.022); ctx.strokeStyle = lin(ctx, 0, 0, w, h, GILDED); ctx.stroke();
+}
+/** Золотой рельеф: тень-силуэт со сдвигом вниз, затем золото градиентом. */
+function relief(ctx, y0, y1, dy, draw, shadow = 0.55, paint) {
+  ctx.save(); ctx.translate(0, dy); ctx.globalAlpha *= shadow; draw('#000'); ctx.restore();
+  draw(paint || lin(ctx, 0, y0, 0, y1, GOLD));
+}
+function brassBand(ctx, w, h, a, b, rare) { // кольцо оправы между отступами a и b
+  ctx.beginPath();
+  rrPath(ctx, a, a, w - 2 * a, h - 2 * a, w * 0.09 - a * 0.6);
+  rrPath(ctx, b, b, w - 2 * b, h - 2 * b, w * 0.09 - b * 0.6);
+  ctx.fillStyle = lin(ctx, 0, 0, w, h, rare ? BRASS_RARE : BRASS);
+  ctx.fill('evenodd');
+}
+
+// ─── Самоцветы («Ювелир», камни в оправах) ─────────────────────────────────
+const GEM = {
+  aqua:     { hi: '#f0fffd', mid: '#5fd3cf', deep: '#08404c' },
+  sapphire: { hi: '#eef3ff', mid: '#5b82f2', deep: '#0a1658' },
+  emerald:  { hi: '#eafff3', mid: '#2fbf88', deep: '#053a28' },
+  amethyst: { hi: '#f7ecff', mid: '#a47be6', deep: '#2b1158' },
+  garnet:   { hi: '#ffe9ec', mid: '#c93a55', deep: '#3e0612' },
+  diamond:  { hi: '#ffffff', mid: '#efe9dc', deep: '#857b6a' },
+  pearl:    { hi: '#ffffff', mid: '#efe6d8', deep: '#8f826f' },
+};
+function cabochon(ctx, x, y, rx, ry, g, o = {}) {
+  ry = ry || rx;
+  const big = Math.max(rx, ry);
+  // Оправа с тенью
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = big * 0.5; ctx.shadowOffsetY = big * 0.18;
+  ctx.beginPath(); ctx.ellipse(x, y, rx + big * 0.26, ry + big * 0.26, 0, 0, TAU);
+  ctx.fillStyle = lin(ctx, x - rx, y - ry, x + rx, y + ry, o.rare ? BRASS_RARE : BRASS); ctx.fill();
+  ctx.restore();
+  if (o.claws) {
+    ctx.fillStyle = lin(ctx, x - rx, y - ry, x + rx, y + ry, BRASS_RARE);
+    for (let i = 0; i < 4; i++) { const a = PI / 4 + i * PI / 2; circle(ctx, x + cos(a) * (rx + big * 0.12), y + sin(a) * (ry + big * 0.12), big * 0.17); ctx.fill(); }
+  }
+  // Камень
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU);
+  ctx.fillStyle = rad(ctx, x - rx * 0.32, y - ry * 0.38, 0, x, y, big * 1.15, [[0, g.hi], [0.32, g.mid], [1, g.deep]]); ctx.fill();
+  // Свет, прошедший сквозь камень, — снизу
+  ctx.save(); ctx.globalAlpha = 0.55;
+  ctx.beginPath(); ctx.ellipse(x + rx * 0.12, y + ry * 0.5, rx * 0.55, ry * 0.32, 0, 0, TAU);
+  ctx.fillStyle = rad(ctx, x + rx * 0.12, y + ry * 0.5, 0, x + rx * 0.12, y + ry * 0.5, big * 0.55, [[0, g.hi], [1, 'rgba(255,255,255,0)']]); ctx.fill();
+  ctx.restore();
+  // Блик
+  ctx.beginPath(); ctx.ellipse(x - rx * 0.36, y - ry * 0.42, rx * 0.26, ry * 0.15, -0.6, 0, TAU);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+}
+/** Бриллиант круглой огранки сверху: таблица, грани, огонь. */
+function brilliant(ctx, x, y, R, g) {
+  const n = 8, st = TAU / n, a0 = -PI / 2;
+  const P = (r, i) => [x + cos(a0 + i * st) * r, y + sin(a0 + i * st) * r];
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = R * 0.4; ctx.shadowOffsetY = R * 0.12;
+  circle(ctx, x, y, R * 1.2); ctx.fillStyle = lin(ctx, x - R, y - R, x + R, y + R, BRASS_RARE); ctx.fill();
+  ctx.restore();
+  // Крапаны
+  ctx.fillStyle = lin(ctx, x - R, y - R, x + R, y + R, BRASS_RARE);
+  for (let i = 0; i < 6; i++) { const a = a0 + i * TAU / 6; circle(ctx, x + cos(a) * R * 1.05, y + sin(a) * R * 1.05, R * 0.13); ctx.fill(); }
+  circle(ctx, x, y, R); ctx.fillStyle = g.deep; ctx.fill();
+  const light = -2.3; // свет сверху слева
+  const shade = (ang) => 0.5 + 0.5 * cos(ang - light);
+  for (let i = 0; i < n; i++) {
+    const am = a0 + (i + 0.5) * st;
+    const T = [x + cos(am) * R * 0.56, y + sin(am) * R * 0.56];
+    const p1 = P(R, i), p2 = P(R, i + 1);
+    const m1 = [x + cos(a0 + (i + 0.25) * st) * R, y + sin(a0 + (i + 0.25) * st) * R];
+    const m2 = [x + cos(a0 + (i + 0.75) * st) * R, y + sin(a0 + (i + 0.75) * st) * R];
+    const tris = [[p1, m1, T, 0.15], [m1, m2, T, -0.1], [m2, p2, T, 0.2]];
+    for (const [a, b, c, k] of tris) {
+      const s = Math.min(1, Math.max(0, shade(am) + k + (i % 2 ? -0.12 : 0.08)));
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.closePath();
+      ctx.fillStyle = s > 0.5 ? mix(g.mid, g.hi, (s - 0.5) * 2) : mix(g.deep, g.mid, s * 2); ctx.fill();
+    }
+    // звёздные грани к таблице
+    const Tn = [x + cos(a0 + (i + 1.5) * st) * R * 0.56, y + sin(a0 + (i + 1.5) * st) * R * 0.56];
+    ctx.beginPath(); ctx.moveTo(T[0], T[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(Tn[0], Tn[1]); ctx.closePath();
+    const s2 = shade(a0 + (i + 1) * st);
+    ctx.fillStyle = mix(g.mid, g.hi, s2 * 0.8); ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+  }
+  // Таблица
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) { const am = a0 + (i + 0.5) * st; const p = [x + cos(am) * R * 0.56, y + sin(am) * R * 0.56]; i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+  ctx.closePath();
+  ctx.fillStyle = rad(ctx, x - R * 0.2, y - R * 0.25, 0, x, y, R * 0.6, [[0, '#ffffff'], [0.6, g.hi], [1, g.mid]]); ctx.fill();
+  ctx.lineWidth = Math.max(0.4, R * 0.025); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.stroke();
+  // Огонь: искра
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); sparklePath(ctx, x - R * 0.3, y - R * 0.34, R * 0.32, 4, 0.18); ctx.fill();
+}
+
+// ═══ Вариант 1: «Эмаль» ═════════════════════════════════════════════════════
+// Поле — эмаль поверх гильоше (как в иконках «Эмаль»), латунная оправа по краю,
+// в центре медальон с золотым рельефом. Характер рубашки — цвет эмали, узор гильоше и знак.
+const ENAMEL = {
+  classic:   { base: '#4a3aa4', deep: '#0e0a2c', hi: '#e3dcff', gil: 'rays',  rim: 0 },
+  astrolabe: { base: '#1a7c96', deep: '#03141c', hi: '#cdf3ff', gil: 'rings', rim: 1 },
+  patron:    { base: '#7c1d3e', deep: '#110209', hi: '#ffd9e4', gil: 'rose',  rim: 2 },
+  comet:     { base: '#3354cc', deep: '#070b3a', hi: '#d6e2ff', gil: 'flow',  rim: 1 },
+  aurora:    { base: '#168c76', deep: '#03221e', hi: '#c6f5e8', gil: 'waves', rim: 1 },
+};
+function guilloche(ctx, kind, w, h, col, a) {
+  const cx = w / 2, cy = h / 2;
+  ctx.save();
+  ctx.strokeStyle = col; ctx.globalAlpha = a; ctx.lineWidth = Math.max(0.5, w * 0.005);
+  ctx.beginPath();
+  if (kind === 'rays') {
+    for (let i = 0; i < 120; i++) { const t = (i / 120) * TAU; ctx.moveTo(cx + cos(t) * w * 0.05, cy + sin(t) * w * 0.05); ctx.lineTo(cx + cos(t) * h, cy + sin(t) * h); }
+  } else if (kind === 'rings') {
+    for (let r = w * 0.03; r < h * 0.75; r += w * 0.026) { ctx.moveTo(cx + r, cy); ctx.arc(cx, cy, r, 0, TAU); }
+  } else if (kind === 'rose') {
+    // Розетка гильоше: круги со смещёнными центрами, поверх — волны во всё поле
+    for (let i = 0; i < 40; i++) { const t = (i / 40) * TAU, R = w * 0.21; ctx.moveTo(cx + cos(t) * R + R, cy + sin(t) * R); ctx.arc(cx + cos(t) * R, cy + sin(t) * R, R, 0, TAU); }
+    for (let y = -w * 0.02; y < h + w * 0.04; y += w * 0.034) {
+      for (let x = 0; x <= w; x += w / 60) { const yy = y + sin((x / w) * TAU * 3 + y * 0.9 / w * 8) * w * 0.012; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+    }
+  } else if (kind === 'flow' || kind === 'waves') {
+    ctx.translate(cx, cy); ctx.rotate(kind === 'flow' ? -0.72 : 0);
+    const D = h * 0.8, step = w * (kind === 'flow' ? 0.03 : 0.034);
+    for (let y = -D; y <= D; y += step) {
+      for (let x = -D; x <= D; x += w / 40) {
+        const yy = y + sin(x / w * TAU * (kind === 'flow' ? 1.6 : 1.1) + y / w * 3.1) * w * (kind === 'flow' ? 0.018 : 0.03);
+        x === -D ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+      }
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+/** Эмалевый медальон в латунной оправе (как drawEnamelOmen, но в координатах карты). */
+function medallion(ctx, id, E, cx, cy, R, tiny) {
+  const er = R * 0.84, rare = E.rim === 2;
+  // Подвес астролябии — кольцо над оправой
+  if (id === 'astrolabe') {
+    ctx.save();
+    ctx.lineWidth = R * 0.075; ctx.strokeStyle = lin(ctx, cx - R * 0.2, cy - R * 1.3, cx + R * 0.2, cy - R, BRASS);
+    circle(ctx, cx, cy - R * 1.13, R * 0.13); ctx.stroke();
+    ctx.fillStyle = lin(ctx, cx - R * 0.2, cy - R * 1.1, cx + R * 0.2, cy - R * 0.9, BRASS);
+    rr(ctx, cx - R * 0.1, cy - R * 1.04, R * 0.2, R * 0.12, R * 0.04); ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = R * 0.22; ctx.shadowOffsetY = R * 0.07;
+  circle(ctx, cx, cy, R); ctx.fillStyle = lin(ctx, cx - R, cy - R, cx + R, cy + R, rare ? BRASS_RARE : BRASS); ctx.fill();
+  ctx.restore();
+  if (!tiny) { circle(ctx, cx, cy, R * 0.975); ctx.lineWidth = R * 0.018; ctx.strokeStyle = 'rgba(255,247,220,0.55)'; ctx.stroke(); }
+  const deep = mix(E.base, E.deep, 0.35);
+  circle(ctx, cx, cy, er);
+  ctx.fillStyle = rad(ctx, cx, cy - er * 0.4, 0, cx, cy - er * 0.4, er * 1.56, [[0, mix(deep, '#ffffff', 0.08)], [0.5, mix(deep, E.deep, 0.5)], [1, E.deep]]); ctx.fill();
+  if (!tiny) {
+    ctx.save(); ctx.strokeStyle = E.hi; ctx.globalAlpha = 0.08; ctx.lineWidth = R * 0.014; ctx.beginPath();
+    for (let i = 0; i < 48; i++) { const a = (i / 48) * TAU; ctx.moveTo(cx + cos(a) * er * 0.22, cy + sin(a) * er * 0.22); ctx.lineTo(cx + cos(a) * er, cy + sin(a) * er); }
+    ctx.stroke(); ctx.restore();
+  }
+  circle(ctx, cx, cy, er); ctx.fillStyle = rad(ctx, cx, cy, 0, cx, cy, er, [[0.78, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]); ctx.fill();
+  circle(ctx, cx, cy, er + R * 0.005); ctx.lineWidth = R * 0.035; ctx.strokeStyle = 'rgba(42,24,4,0.8)'; ctx.stroke();
+  // Деления на оправе астролябии
+  if (id === 'astrolabe' && !tiny) {
+    ctx.save(); ctx.strokeStyle = 'rgba(60,34,6,0.75)'; ctx.lineWidth = R * 0.016; ctx.beginPath();
+    for (let i = 0; i < 48; i++) { const a = (i / 48) * TAU, l = i % 4 === 0 ? 0.11 : 0.06; ctx.moveTo(cx + cos(a) * (R - R * 0.02), cy + sin(a) * (R - R * 0.02)); ctx.lineTo(cx + cos(a) * (R - R * l - R * 0.02), cy + sin(a) * (R - R * l - R * 0.02)); }
+    ctx.stroke(); ctx.restore();
+  }
+  // Бусины на оправе мецената
+  if (rare && !tiny) {
+    ctx.fillStyle = 'rgba(255,246,214,0.9)';
+    for (let i = 0; i < 24; i++) { const a = (i / 24) * TAU - PI / 2; if (abs(a + PI / 2) < 0.2) continue; circle(ctx, cx + cos(a) * R * 0.92, cy + sin(a) * R * 0.92, R * 0.03); ctx.fill(); }
+  }
+  // Золотой рельеф знака
+  const s = er * 0.6, dy = Math.max(0.6, R * 0.04);
+  const cut = mix(E.base, E.deep, 0.6);
+  ctx.save();
+  circle(ctx, cx, cy, er); ctx.clip();
+  if (id === 'classic') {
+    relief(ctx, cy - s, cy + s, dy, (p) => {
+      ctx.fillStyle = p; ctx.beginPath(); sparklePath(ctx, cx, cy, s * 1.15, 4, 0.26); ctx.fill();
+      if (!tiny) for (let i = 0; i < 4; i++) { const a = PI / 4 + i * PI / 2; circle(ctx, cx + cos(a) * s * 0.66, cy + sin(a) * s * 0.66, s * 0.07); ctx.fill(); }
+    });
+  } else if (id === 'astrolabe') {
+    relief(ctx, cy - s, cy + s, dy, (p) => {
+      ctx.strokeStyle = p; ctx.fillStyle = p; ctx.lineCap = 'round';
+      ctx.lineWidth = s * 0.1; circle(ctx, cx + s * 0.12, cy - s * 0.1, s * 0.66); ctx.stroke();
+      ctx.lineWidth = s * 0.05; circle(ctx, cx, cy, s * 0.36); ctx.stroke();
+      for (const [x, y, k] of [[-0.62, -0.42, 1], [0.38, -0.72, 0.8], [0.74, 0.3, 0.9], [-0.22, 0.62, 0.8], [-0.7, 0.22, 0.7]]) {
+        ctx.beginPath(); sparklePath(ctx, cx + x * s, cy + y * s, s * 0.17 * k, 4, 0.3); ctx.fill();
+      }
+      ctx.lineWidth = s * 0.14; ctx.beginPath(); ctx.moveTo(cx - s * 1.35, cy + s * 0.5); ctx.lineTo(cx + s * 1.35, cy - s * 0.5); ctx.stroke();
+      circle(ctx, cx, cy, s * 0.13); ctx.fill();
+    });
+  } else if (id === 'patron') {
+    relief(ctx, cy - s, cy + s, dy, (p) => {
+      ctx.fillStyle = p; ctx.beginPath(); sparklePath(ctx, cx, cy, s * 1.18, 8, 0.36); ctx.fill();
+    });
+    ctx.restore(); ctx.save();
+    brilliant(ctx, cx, cy, s * 0.36, GEM.diamond);
+  } else if (id === 'comet') {
+    relief(ctx, cy - s, cy + s, dy, (p) => { ctx.fillStyle = p; ctx.beginPath(); cometPath(ctx, cx - s * 0.1, cy + s * 0.1, s * 1.32); ctx.fill(); });
+  } else if (id === 'aurora') {
+    relief(ctx, cy - s, cy + s, dy, (p) => {
+      ctx.fillStyle = p;
+      ctx.beginPath(); ribbonPath(ctx, cx - er, cx + er, cy - s * 0.42, s * 0.16, s * 0.34, 1.1, 0.3); ctx.fill();
+      ctx.beginPath(); ribbonPath(ctx, cx - er, cx + er, cy + s * 0.12, s * 0.14, s * 0.26, 1.1, 1.2); ctx.fill();
+      ctx.beginPath(); ribbonPath(ctx, cx - er, cx + er, cy + s * 0.58, s * 0.12, s * 0.18, 1.1, 2.1); ctx.fill();
+      ctx.beginPath(); sparklePath(ctx, cx + s * 0.55, cy - s * 0.95, s * 0.2, 4, 0.3); ctx.fill();
+    });
+  }
+  ctx.restore();
+  // Звезда мецената наверху оправы
+  if (rare) {
+    ctx.save();
+    ctx.beginPath(); sparklePath(ctx, cx, cy - R, R * (tiny ? 0.26 : 0.2), 4, 0.3);
+    ctx.fillStyle = '#fffbe8'; ctx.fill(); ctx.lineWidth = R * 0.02; ctx.strokeStyle = '#8a5a14'; ctx.stroke();
+    ctx.restore();
+  }
+}
+function backEnamel(ctx, id, w, h) {
+  const E = ENAMEL[id], tiny = w < 62, cx = w / 2, cy = h / 2;
+  cardShadow(ctx, w, h, E.deep);
+  ctx.save(); rr(ctx, 0, 0, w, h, w * 0.09); ctx.clip();
+  ctx.fillStyle = rad(ctx, cx, h * 0.42, 0, cx, h * 0.42, h * 0.72, [[0, mix(E.base, '#ffffff', 0.05)], [0.5, mix(E.base, E.deep, 0.5)], [1, E.deep]]);
+  ctx.fillRect(0, 0, w, h);
+  if (!tiny) guilloche(ctx, E.gil, w, h, E.hi, E.gil === 'rose' ? 0.1 : 0.085);
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.12)'], [1, 'rgba(255,244,220,0)']]);
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+  // Оправа по краю
+  if (E.rim === 0) {
+    if (!tiny) { rr(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, w * 0.05); ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(255,232,180,0.32)'; ctx.stroke(); }
+  } else {
+    const a = w * 0.05, b = w * (E.rim === 2 ? 0.095 : 0.082);
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = w * 0.02; brassBand(ctx, w, h, a, b, E.rim === 2); ctx.restore();
+    rr(ctx, b, b, w - 2 * b, h - 2 * b, w * 0.09 - b * 0.6); ctx.lineWidth = Math.max(0.5, w * 0.006); ctx.strokeStyle = 'rgba(42,24,4,0.85)'; ctx.stroke();
+    if (E.rim === 2 && !tiny) {
+      // Бусины по оправе мецената
+      const m = (a + b) / 2, rb = w * 0.011;
+      ctx.fillStyle = 'rgba(255,248,224,0.95)';
+      const bead = (x, y) => { circle(ctx, x, y, rb); ctx.fill(); };
+      const nx = 11, ny = 16;
+      for (let i = 1; i < nx; i++) { const x = m + (i / nx) * (w - 2 * m); bead(x, m); bead(x, h - m); }
+      for (let i = 1; i < ny; i++) { const y = m + (i / ny) * (h - 2 * m); bead(m, y); bead(w - m, y); }
+    }
+  }
+  // Жемчуг по углам мецената
+  if (id === 'patron') {
+    const k = w * 0.175;
+    for (const [x, y] of [[k, k], [w - k, k], [k, h - k], [w - k, h - k]]) cabochon(ctx, x, y, w * (tiny ? 0.045 : 0.036), 0, GEM.pearl, { rare: true });
+  }
+  const R = w * (id === 'classic' ? 0.21 : 0.27) * (tiny ? 1.1 : 1);
+  medallion(ctx, id, E, cx, cy + (id === 'astrolabe' ? w * 0.03 : 0), R, tiny);
+  gildedEdge(ctx, w, h);
+}
+
+// ═══ Вариант 2: «Гравюра» ═══════════════════════════════════════════════════
+// Глубокое поле и тонкая латунная гравировка — карта неба из старого атласа.
+// Рамка — картографическая: двойная линия со шкалой. Золото заливкой — только у главного.
+const ENGRAVE = {
+  classic:   { f: ['#2b2168', '#0c0927'], grad: false },
+  astrolabe: { f: ['#0e4152', '#03111a'], grad: true },
+  patron:    { f: ['#251708', '#060403'], grad: true, foil: true },
+  comet:     { f: ['#18276e', '#060a28'], grad: true },
+  aurora:    { f: ['#0d3b37', '#05121b'], grad: true },
+};
+const INK = [255, 218, 150];
+function neatline(ctx, w, h, S, tiny, L) {
+  const i1 = w * 0.06, i2 = w * 0.1;
+  ctx.save();
+  ctx.lineWidth = L * 1.3; ctx.strokeStyle = rgba(INK, tiny ? 0.75 : 0.62);
+  ctx.strokeRect(i1, i1, w - 2 * i1, h - 2 * i1);
+  if (!S.grad) {
+    if (!tiny) { ctx.fillStyle = rgba(INK, 0.8); for (const [x, y] of [[i1, i1], [w - i1, i1], [i1, h - i1], [w - i1, h - i1]]) { ctx.beginPath(); sparklePath(ctx, x, y, w * 0.03, 4, 0.3); ctx.fill(); } }
+    ctx.restore(); return;
+  }
+  ctx.strokeRect(i2, i2, w - 2 * i2, h - 2 * i2);
+  // Шкала градусов между линиями — как на рамке старой карты
+  const bw = i2 - i1;
+  if (S.foil) { ctx.beginPath(); rrPath(ctx, i1, i1, w - 2 * i1, h - 2 * i1, 0); rrPath(ctx, i2, i2, w - 2 * i2, h - 2 * i2, 0); ctx.fillStyle = lin(ctx, 0, 0, w, h, GILDED); ctx.fill('evenodd'); }
+  ctx.strokeStyle = S.foil ? 'rgba(60,34,6,0.8)' : rgba(INK, tiny ? 0.6 : 0.5);
+  ctx.lineWidth = L * (S.foil ? 1 : 0.9);
+  ctx.beginPath();
+  const step = bw * (tiny ? 1.6 : 0.75);
+  const ticks = (len, along) => { const n = round(len / step); for (let k = 1; k < n; k++) { const t = i2 + (k / n) * len, l = k % 5 === 0 ? 1 : 0.5; along(t, l); } };
+  ticks(w - 2 * i2, (x, l) => { ctx.moveTo(x, i2); ctx.lineTo(x, i2 - bw * l); ctx.moveTo(x, h - i2); ctx.lineTo(x, h - i2 + bw * l); });
+  ticks(h - 2 * i2, (y, l) => { ctx.moveTo(i2, y); ctx.lineTo(i2 - bw * l, y); ctx.moveTo(w - i2, y); ctx.lineTo(w - i2 + bw * l, y); });
+  ctx.stroke();
+  ctx.lineWidth = L * 1.3; ctx.strokeStyle = rgba(INK, tiny ? 0.75 : 0.62);
+  // Углы — квадраты со звёздочкой
+  for (const [x, y] of [[i1, i1], [w - i2, i1], [i1, h - i2], [w - i2, h - i2]]) {
+    ctx.fillStyle = S.f[1]; ctx.fillRect(x, y, bw, bw); ctx.strokeRect(x, y, bw, bw);
+    if (!tiny) { ctx.fillStyle = S.foil ? lin(ctx, x, y, x + bw, y + bw, GOLD) : rgba(INK, 0.85); ctx.beginPath(); sparklePath(ctx, x + bw / 2, y + bw / 2, bw * 0.42, 4, 0.3); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function backEngrave(ctx, id, w, h) {
+  const S = ENGRAVE[id], tiny = w < 62, cx = w / 2, cy = h / 2;
+  const L = Math.max(0.55, w * 0.0058);
+  const ink = (a) => rgba(INK, tiny ? Math.min(1, a * 1.35) : a);
+  cardShadow(ctx, w, h, S.f[1]);
+  ctx.save(); rr(ctx, 0, 0, w, h, w * 0.09); ctx.clip();
+  ctx.fillStyle = lin(ctx, 0, 0, 0, h, [[0, S.f[0]], [1, S.f[1]]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, cx, cy, 0, cx, cy, w * 0.6, [[0, rgba(INK, 0.07)], [1, rgba(INK, 0)]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.1)'], [1, 'rgba(255,244,220,0)']]); ctx.fillRect(0, 0, w, h);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const star = (x, y, r, a = 0.9) => { ctx.fillStyle = ink(a); circle(ctx, x, y, r); ctx.fill(); };
+  if (id === 'classic') {
+    const R = w * 0.3;
+    ctx.lineWidth = L; ctx.strokeStyle = ink(0.55); circle(ctx, cx, cy, R); ctx.stroke();
+    if (!tiny) {
+      ctx.fillStyle = ink(0.7);
+      for (let i = 0; i < 48; i++) { const a = (i / 48) * TAU; circle(ctx, cx + cos(a) * R * 1.12, cy + sin(a) * R * 1.12, L * 0.75); ctx.fill(); }
+      ctx.strokeStyle = ink(0.3); ctx.beginPath();
+      for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU, l = i % 2 ? 0.62 : 0.94; ctx.moveTo(cx + cos(a) * R * 0.3, cy + sin(a) * R * 0.3); ctx.lineTo(cx + cos(a) * R * l, cy + sin(a) * R * l); }
+      ctx.stroke();
+      ctx.strokeStyle = ink(0.6); ctx.beginPath(); sparklePath(ctx, cx, cy, R * 0.62, 4, 0.3, PI / 4); ctx.stroke();
+    }
+    ctx.fillStyle = lin(ctx, 0, cy - R * 0.6, 0, cy + R * 0.6, GOLD);
+    ctx.beginPath(); sparklePath(ctx, cx, cy, R * (tiny ? 0.78 : 0.6), 4, 0.22); ctx.fill();
+  } else if (id === 'astrolabe') {
+    const R = w * 0.37, c2 = cy + w * 0.02;
+    ctx.save();
+    ctx.lineWidth = L * 1.6; ctx.strokeStyle = ink(0.85); circle(ctx, cx, c2, R); ctx.stroke();
+    ctx.lineWidth = L; circle(ctx, cx, c2, R * 0.86); ctx.stroke();
+    if (!tiny) {
+      ctx.beginPath();
+      for (let i = 0; i < 120; i++) { const a = (i / 120) * TAU, l = i % 10 === 0 ? 0.86 : i % 5 === 0 ? 0.9 : 0.94; ctx.moveTo(cx + cos(a) * R, c2 + sin(a) * R); ctx.lineTo(cx + cos(a) * R * l, c2 + sin(a) * R * l); }
+      ctx.strokeStyle = ink(0.6); ctx.stroke();
+      // Тимпан: тропики, альмукантараты, азимуты
+      ctx.save(); circle(ctx, cx, c2, R * 0.86); ctx.clip();
+      ctx.strokeStyle = ink(0.28);
+      for (const k of [0.32, 0.58]) { circle(ctx, cx, c2, R * k); ctx.stroke(); }
+      ctx.strokeStyle = ink(0.4);
+      for (let k = 0; k < 6; k++) { circle(ctx, cx, c2 - R * (0.12 + k * 0.07), R * (0.82 - k * 0.12)); ctx.stroke(); }
+      ctx.strokeStyle = ink(0.22); ctx.beginPath();
+      for (let k = -3; k <= 3; k++) { ctx.moveTo(cx, c2 - R * 0.55); ctx.quadraticCurveTo(cx + k * R * 0.32, c2 + R * 0.1, cx + k * R * 0.2, c2 + R * 0.9); }
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Эклиптика и рете
+    ctx.lineWidth = L * 2; ctx.strokeStyle = ink(0.9); circle(ctx, cx, c2 - R * 0.2, R * 0.55); ctx.stroke();
+    ctx.fillStyle = lin(ctx, 0, c2 - R, 0, c2 + R, GOLD);
+    for (const [x, y, k] of [[-0.6, -0.32, 1], [0.38, -0.66, 0.8], [0.66, 0.2, 0.9], [-0.18, 0.5, 0.85], [0.06, -0.12, 0.7], [-0.5, 0.2, 0.7]]) {
+      ctx.beginPath(); sparklePath(ctx, cx + x * R, c2 + y * R, w * 0.03 * k * (tiny ? 1.5 : 1), 4, 0.3); ctx.fill();
+    }
+    // Алидада
+    ctx.save(); ctx.translate(cx, c2); ctx.rotate(-0.42);
+    ctx.fillStyle = lin(ctx, -R, 0, R, 0, GOLD);
+    ctx.beginPath(); ctx.moveTo(-R * 1.04, 0); ctx.lineTo(-R * 0.2, -w * 0.016); ctx.lineTo(R * 0.2, -w * 0.016); ctx.lineTo(R * 1.04, 0); ctx.lineTo(R * 0.2, w * 0.016); ctx.lineTo(-R * 0.2, w * 0.016); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    circle(ctx, cx, c2, w * 0.03); ctx.fillStyle = lin(ctx, 0, c2 - w * 0.03, 0, c2 + w * 0.03, GOLD); ctx.fill();
+    circle(ctx, cx, c2, w * 0.012); ctx.fillStyle = S.f[1]; ctx.fill();
+    // Трон с кольцом
+    ctx.lineWidth = L * 1.6; ctx.strokeStyle = ink(0.85);
+    ctx.beginPath(); ctx.moveTo(cx - w * 0.09, c2 - R * 0.99); ctx.quadraticCurveTo(cx - w * 0.06, c2 - R - w * 0.07, cx, c2 - R - w * 0.08); ctx.quadraticCurveTo(cx + w * 0.06, c2 - R - w * 0.07, cx + w * 0.09, c2 - R * 0.99); ctx.stroke();
+    circle(ctx, cx, c2 - R - w * 0.13, w * 0.045); ctx.stroke();
+    ctx.restore();
+  } else if (id === 'patron') {
+    // Фон — тонкое «ячменное зерно» гильоше по всему полю
+    if (!tiny) {
+      ctx.strokeStyle = ink(0.1); ctx.lineWidth = L * 0.8; ctx.beginPath();
+      for (let y = -w * 0.02; y < h + w * 0.04; y += w * 0.028) for (let x = 0; x <= w; x += w / 48) { const yy = y + sin((x / w) * TAU * 6) * w * 0.009; x ? ctx.lineTo(x, yy) : ctx.moveTo(x, yy); }
+      ctx.stroke();
+    }
+    // Розетка гильоше — переплетённые волны по кругу
+    const Rb = w * 0.27, A = w * 0.055, N = tiny ? 6 : 16;
+    ctx.save(); ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = S.f[1]; circle(ctx, cx, cy, Rb + A + w * 0.03); ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = L * (tiny ? 1.4 : 0.9); ctx.strokeStyle = ink(tiny ? 0.6 : 0.55);
+    for (let j = 0; j < N; j++) {
+      ctx.beginPath();
+      for (let i = 0; i <= 240; i++) { const t = (i / 240) * TAU, r = Rb + A * sin(12 * t + (j / N) * TAU / 2) ; const x = cx + cos(t) * r, y = cy + sin(t) * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.lineWidth = L * 1.5; ctx.strokeStyle = lin(ctx, cx - Rb, cy - Rb, cx + Rb, cy + Rb, GILDED);
+    circle(ctx, cx, cy, Rb + A + w * 0.022); ctx.stroke();
+    circle(ctx, cx, cy, Rb - A - w * 0.02); ctx.stroke();
+    // Золотая печать с выгравированной звездой
+    const pr = w * 0.145;
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = w * 0.04; ctx.shadowOffsetY = w * 0.012;
+    circle(ctx, cx, cy, pr); ctx.fillStyle = rad(ctx, cx - pr * 0.3, cy - pr * 0.4, 0, cx, cy, pr * 1.1, [[0, '#fff6d6'], [0.5, '#e8b24a'], [1, '#8a5614']]); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(70,38,6,0.85)'; ctx.lineWidth = L * 1.1;
+    circle(ctx, cx, cy, pr * 0.86); ctx.stroke();
+    ctx.fillStyle = 'rgba(70,38,6,0.85)'; ctx.beginPath(); sparklePath(ctx, cx, cy, pr * 0.66, 8, 0.38); ctx.fill();
+    ctx.fillStyle = '#fff3cc'; ctx.beginPath(); sparklePath(ctx, cx, cy, pr * 0.3, 4, 0.3); ctx.fill();
+    // Флероны сверху и снизу
+    for (const sy of [-1, 1]) {
+      const y = cy + sy * (h * 0.36);
+      ctx.fillStyle = lin(ctx, 0, y - w * 0.06, 0, y + w * 0.06, GOLD);
+      ctx.beginPath(); sparklePath(ctx, cx, y, w * 0.055, 4, 0.26); ctx.fill();
+      if (!tiny) for (const sx of [-1, 1]) { circle(ctx, cx + sx * w * 0.1, y, w * 0.012); ctx.fill(); circle(ctx, cx + sx * w * 0.16, y, w * 0.008); ctx.fill(); }
+    }
+  } else if (id === 'comet') {
+    const rx = w * 0.4, ry = w * 0.2, ang = -0.95, c = sqrt(rx * rx - ry * ry);
+    const cxo = cx, cyo = cy;
+    const toW = (x, y) => [cxo + x * cos(ang) - y * sin(ang), cyo + x * sin(ang) + y * cos(ang)];
+    const sun = toW(c, 0);
+    ctx.save(); ctx.translate(cxo, cyo); ctx.rotate(ang);
+    ctx.lineWidth = L * 1.2; ctx.strokeStyle = ink(0.6);
+    ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, TAU); ctx.stroke();
+    if (!tiny) { ctx.setLineDash([L * 1.5, L * 4]); ctx.strokeStyle = ink(0.35); ctx.beginPath(); ctx.ellipse(c * 0.55, 0, rx * 0.55, ry * 0.85, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+    // Солнце в фокусе
+    ctx.strokeStyle = ink(0.7); ctx.lineWidth = L; ctx.beginPath();
+    for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; ctx.moveTo(sun[0] + cos(a) * w * 0.05, sun[1] + sin(a) * w * 0.05); ctx.lineTo(sun[0] + cos(a) * w * (i % 2 ? 0.07 : 0.085), sun[1] + sin(a) * w * (i % 2 ? 0.07 : 0.085)); }
+    ctx.stroke();
+    circle(ctx, sun[0], sun[1], w * 0.036); ctx.fillStyle = lin(ctx, 0, sun[1] - w * 0.04, 0, sun[1] + w * 0.04, GOLD); ctx.fill();
+    // Комета на орбите, хвост — от Солнца
+    const t0 = 2.35, head = toW(rx * cos(t0), ry * sin(t0));
+    let dx = head[0] - sun[0], dy = head[1] - sun[1]; const d = Math.hypot(dx, dy); dx /= d; dy /= d;
+    const tl = w * 0.4;
+    for (let i = -4; i <= 4; i++) {
+      const a = i * 0.05, ex = dx * cos(a) - dy * sin(a), ey = dx * sin(a) + dy * cos(a);
+      const g = lin(ctx, head[0], head[1], head[0] + ex * tl, head[1] + ey * tl, [[0, ink(0.8 - abs(i) * 0.12)], [1, ink(0)]]);
+      ctx.strokeStyle = g; ctx.lineWidth = L * (tiny ? 1.4 : 1); ctx.beginPath(); ctx.moveTo(head[0], head[1]); ctx.lineTo(head[0] + ex * tl * (1 - abs(i) * 0.08), head[1] + ey * tl * (1 - abs(i) * 0.08)); ctx.stroke();
+    }
+    ctx.fillStyle = rad(ctx, head[0], head[1], 0, head[0], head[1], w * 0.09, [[0, rgba(INK, 0.5)], [1, rgba(INK, 0)]]); circle(ctx, head[0], head[1], w * 0.09); ctx.fill();
+    ctx.fillStyle = lin(ctx, 0, head[1] - w * 0.05, 0, head[1] + w * 0.05, GOLD);
+    ctx.beginPath(); sparklePath(ctx, head[0], head[1], w * (tiny ? 0.085 : 0.06), 4, 0.24); ctx.fill();
+    if (!tiny) for (const [x, y, r] of [[0.2, 0.17, 1], [0.8, 0.14, 0.8], [0.84, 0.5, 1.2], [0.18, 0.62, 0.8], [0.7, 0.84, 1], [0.28, 0.86, 0.7], [0.55, 0.22, 0.6]]) star(x * w, y * h, w * 0.007 * r, 0.8);
+  } else if (id === 'aurora') {
+    // Занавес сияния — гравюрная штриховка
+    const base = (x) => h * 0.64 + sin((x / w) * 5.2 + 0.6) * h * 0.05;
+    const step = w * (tiny ? 0.04 : 0.02);
+    for (let k = 0; k < 2; k++) {
+      for (let x = w * 0.08; x <= w * 0.92; x += step * (k ? 1.6 : 1)) {
+        const y0 = base(x) - k * h * 0.08, len = h * (0.2 + 0.08 * sin(x / w * 9 + k * 2)) * (k ? 0.8 : 1);
+        ctx.strokeStyle = lin(ctx, x, y0, x, y0 - len, [[0, ink(k ? 0.45 : 0.75)], [1, ink(0)]]);
+        ctx.lineWidth = L * (tiny ? 1.4 : 1); ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 - len); ctx.stroke();
+      }
+    }
+    ctx.lineWidth = L * 1.2; ctx.strokeStyle = ink(0.7); ctx.beginPath();
+    for (let x = w * 0.08; x <= w * 0.92; x += w / 60) { const y = base(x); x === w * 0.08 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.stroke();
+    // Горы — контур и линии рельефа
+    const peaks = [[0, 0.83], [0.2, 0.75], [0.34, 0.8], [0.52, 0.69], [0.68, 0.79], [0.84, 0.73], [1, 0.8]];
+    ctx.fillStyle = S.f[1]; ctx.beginPath(); ctx.moveTo(0, h); for (const [x, y] of peaks) ctx.lineTo(x * w, y * h); ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
+    ctx.lineWidth = L * 1.3; ctx.strokeStyle = ink(0.85); ctx.beginPath(); peaks.forEach(([x, y], i) => (i ? ctx.lineTo(x * w, y * h) : ctx.moveTo(x * w, y * h))); ctx.stroke();
+    if (!tiny) {
+      ctx.lineWidth = L * 0.8; ctx.strokeStyle = ink(0.3);
+      for (let k = 1; k <= 1; k++) { ctx.beginPath(); peaks.forEach(([x, y], i) => { const yy = (y + k * 0.045) * h; i ? ctx.lineTo(x * w, yy) : ctx.moveTo(x * w, yy); }); ctx.stroke(); }
+      for (const [x, y, r] of [[0.16, 0.14, 1], [0.38, 0.1, 0.7], [0.62, 0.16, 0.9], [0.84, 0.12, 0.7], [0.27, 0.27, 0.6], [0.78, 0.3, 0.6]]) star(x * w, y * h, w * 0.007 * r, 0.85);
+    }
+    ctx.fillStyle = lin(ctx, 0, h * 0.18, 0, h * 0.26, GOLD); ctx.beginPath(); sparklePath(ctx, cx, h * 0.21, w * (tiny ? 0.09 : 0.065), 4, 0.24); ctx.fill();
+  }
+  ctx.restore();
+  neatline(ctx, w, h, S, tiny, L);
+  gildedEdge(ctx, w, h);
+}
+
+// ═══ Вариант 3: «Ювелир» ════════════════════════════════════════════════════
+// Бархат шкатулки, золотой рельеф с тенью и камни в оправах. Узор центрально-симметричный —
+// как у настоящей рубашки, одинаков с любой стороны. Чем дороже, тем больше камней.
+const JEWEL = {
+  classic:   { f: ['#30257a', '#0a0824'] },
+  astrolabe: { f: ['#0f4d5e', '#021119'] },
+  patron:    { f: ['#221a18', '#040303'] },
+  comet:     { f: ['#1e3192', '#040828'] },
+  aurora:    { f: ['#0d4c41', '#02130f'] },
+};
+function backJewel(ctx, id, w, h) {
+  const J = JEWEL[id], tiny = w < 62, cx = w / 2, cy = h / 2;
+  const dy = Math.max(0.6, w * 0.012), U = tiny ? 1.12 : 1;
+  cardShadow(ctx, w, h, J.f[1]);
+  ctx.save(); rr(ctx, 0, 0, w, h, w * 0.09); ctx.clip();
+  ctx.fillStyle = rad(ctx, cx, h * 0.44, 0, cx, h * 0.44, h * 0.7, [[0, J.f[0]], [1, J.f[1]]]); ctx.fillRect(0, 0, w, h);
+  // Бархат: мягкий ворс бликом сверху
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.1)'], [1, 'rgba(255,244,220,0)']]); ctx.fillRect(0, 0, w, h);
+  if (id === 'patron' && !tiny) {
+    // Стёжка шкатулки и золотые гвоздики на пересечениях
+    const st = w * 0.16;
+    ctx.save(); ctx.translate(cx, cy);
+    for (const [col, off] of [['rgba(0,0,0,0.45)', 0.7], ['rgba(255,236,200,0.07)', -0.5]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(0.5, w * 0.006); ctx.beginPath();
+      for (let k = -12; k <= 12; k++) { ctx.moveTo(k * st - h, -h + off); ctx.lineTo(k * st + h, h + off); ctx.moveTo(k * st + h, -h + off); ctx.lineTo(k * st - h, h + off); }
+      ctx.stroke();
+    }
+    ctx.fillStyle = lin(ctx, 0, -h / 2, 0, h / 2, GOLD);
+    for (let i = -8; i <= 8; i++) for (let j = -8; j <= 8; j++) { if ((i + j) % 2) continue; const x = i * st / 2, y = j * st / 2; if (abs(x) > w / 2 || abs(y) > h / 2) continue; circle(ctx, x, y, w * 0.009); ctx.fill(); }
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Рельефная рамка
+  const frame = (a, b, rare) => relief(ctx, 0, h, dy, (p) => {
+    ctx.fillStyle = p; ctx.beginPath();
+    rrPath(ctx, a, a, w - 2 * a, h - 2 * a, w * 0.09 - a * 0.6);
+    rrPath(ctx, b, b, w - 2 * b, h - 2 * b, w * 0.09 - b * 0.6);
+    ctx.fill('evenodd');
+  }, 0.6, lin(ctx, 0, 0, w, h, rare ? BRASS_RARE : BRASS));
+  if (id === 'classic') frame(w * 0.055, w * 0.068);
+  else if (id === 'patron') { frame(w * 0.045, w * 0.07, true); if (!tiny) frame(w * 0.1, w * 0.108, true); }
+  else frame(w * 0.05, w * 0.07);
+  // Флероны по углам (у покупных)
+  if (id !== 'classic' && !tiny) {
+    const k = id === 'patron' ? w * 0.165 : w * 0.13;
+    for (const [x, y, sx, sy] of [[k, k, 1, 1], [w - k, k, -1, 1], [k, h - k, 1, -1], [w - k, h - k, -1, -1]]) {
+      relief(ctx, y - w * 0.05, y + w * 0.05, dy, (p) => {
+        ctx.fillStyle = p;
+        ctx.beginPath(); sparklePath(ctx, x, y, w * (id === 'patron' ? 0.045 : 0.036), 4, 0.26); ctx.fill();
+        circle(ctx, x + sx * w * 0.07, y, w * 0.009); ctx.fill(); circle(ctx, x, y + sy * w * 0.07, w * 0.009); ctx.fill();
+      });
+      if (id === 'patron') cabochon(ctx, x, y, w * 0.016, 0, GEM.diamond, { rare: true });
+    }
+  }
+  // Центр
+  if (id === 'classic') {
+    relief(ctx, cy - w * 0.3, cy + w * 0.3, dy, (p) => {
+      ctx.fillStyle = p; ctx.strokeStyle = p; ctx.lineJoin = 'round';
+      const a = w * 0.3 * U, b = w * 0.2 * U;
+      ctx.lineWidth = w * 0.022; ctx.beginPath(); ctx.moveTo(cx, cy - a); ctx.lineTo(cx + b, cy); ctx.lineTo(cx, cy + a); ctx.lineTo(cx - b, cy); ctx.closePath(); ctx.stroke();
+      if (!tiny) { ctx.lineWidth = w * 0.008; ctx.beginPath(); ctx.moveTo(cx, cy - a * 0.82); ctx.lineTo(cx + b * 0.82, cy); ctx.lineTo(cx, cy + a * 0.82); ctx.lineTo(cx - b * 0.82, cy); ctx.closePath(); ctx.stroke(); }
+      ctx.beginPath(); sparklePath(ctx, cx, cy, w * 0.13 * U, 4, 0.26); ctx.fill();
+      if (!tiny) for (const sy of [-1, 1]) { ctx.beginPath(); sparklePath(ctx, cx, cy + sy * a * 1.33, w * 0.045, 4, 0.3); ctx.fill(); }
+    });
+  } else if (id === 'astrolabe') {
+    const R = w * 0.2 * U;
+    relief(ctx, cy - h * 0.4, cy + h * 0.4, dy, (p) => {
+      ctx.fillStyle = p; ctx.strokeStyle = p; ctx.lineCap = 'round';
+      ctx.lineWidth = w * 0.03; circle(ctx, cx, cy, R); ctx.stroke();
+      if (!tiny) { ctx.lineWidth = w * 0.008; circle(ctx, cx, cy, R * 1.22); ctx.stroke(); }
+      ctx.lineWidth = w * 0.012; ctx.beginPath();
+      for (let i = 0; i < (tiny ? 8 : 24); i++) { const a = (i / (tiny ? 8 : 24)) * TAU, l = i % (tiny ? 2 : 3) === 0 ? 1.3 : 1.17; ctx.moveTo(cx + cos(a) * R * 1.05, cy + sin(a) * R * 1.05); ctx.lineTo(cx + cos(a) * R * l, cy + sin(a) * R * l); }
+      ctx.stroke();
+      // Скипетр алидады вверх и вниз
+      ctx.lineWidth = w * 0.022;
+      for (const sy of [-1, 1]) { ctx.beginPath(); ctx.moveTo(cx, cy + sy * R * 1.36); ctx.lineTo(cx, cy + sy * h * 0.31); ctx.stroke(); }
+    });
+    cabochon(ctx, cx, cy, R * 0.6, 0, GEM.aqua);
+    for (const sy of [-1, 1]) cabochon(ctx, cx, cy + sy * h * 0.345, w * 0.045 * U, 0, GEM.aqua);
+  } else if (id === 'patron') {
+    const R0 = w * 0.15;
+    relief(ctx, cy - w * 0.36, cy + w * 0.36, dy, (p) => {
+      ctx.fillStyle = p;
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * TAU - PI / 2, L1 = i % 2 ? w * 0.27 : w * 0.35, hw = (i % 2 ? 0.07 : 0.085);
+        ctx.beginPath();
+        ctx.moveTo(cx + cos(a - hw) * R0, cy + sin(a - hw) * R0);
+        ctx.lineTo(cx + cos(a) * L1 * U, cy + sin(a) * L1 * U);
+        ctx.lineTo(cx + cos(a + hw) * R0, cy + sin(a + hw) * R0);
+        ctx.closePath(); ctx.fill();
+      }
+      circle(ctx, cx, cy, R0 * 1.02); ctx.fill();
+    }, 0.6, lin(ctx, cx - w * 0.35, cy - w * 0.35, cx + w * 0.35, cy + w * 0.35, BRASS_RARE));
+    if (!tiny) { ctx.fillStyle = GEM.pearl.mid; for (let i = 0; i < 16; i++) { const a = (i / 16) * TAU - PI / 2 + PI / 16; circle(ctx, cx + cos(a) * w * 0.19, cy + sin(a) * w * 0.19, w * 0.011); ctx.fillStyle = rad(ctx, cx + cos(a) * w * 0.19 - w * 0.004, cy + sin(a) * w * 0.19 - w * 0.004, 0, cx + cos(a) * w * 0.19, cy + sin(a) * w * 0.19, w * 0.014, [[0, '#ffffff'], [1, '#bfb19c']]); ctx.fill(); } }
+    brilliant(ctx, cx, cy, w * 0.11 * U, GEM.diamond);
+    for (const sy of [-1, 1]) cabochon(ctx, cx, cy + sy * h * 0.355, w * 0.042 * U, w * 0.055 * U, GEM.garnet, { rare: true });
+  } else if (id === 'comet') {
+    // Две кометы по кругу — узор одинаков с любой стороны
+    const heads = [[cx + w * 0.16, cy - h * 0.2], [cx - w * 0.16, cy + h * 0.2]];
+    relief(ctx, cy - h * 0.3, cy + h * 0.3, dy, (p) => {
+      ctx.fillStyle = p;
+      for (const s of [1, -1]) {
+        const [hx, hy] = s > 0 ? heads[0] : heads[1];
+        ctx.beginPath(); taperPath(ctx, [hx, hy], [cx - s * w * 0.32, cy - s * h * 0.12], [cx - s * w * 0.12, cy + s * h * 0.17], w * 0.1, 0); ctx.fill();
+        if (!tiny) { ctx.beginPath(); taperPath(ctx, [hx - s * w * 0.02, hy + s * w * 0.04], [cx - s * w * 0.18, cy - s * h * 0.03], [cx - s * w * 0.02, cy + s * h * 0.06], w * 0.035, 0); ctx.fill(); }
+      }
+      if (!tiny) for (const [x, y, r] of [[0.24, 0.17, 1], [0.76, 0.83, 1], [0.8, 0.5, 0.7], [0.2, 0.5, 0.7]]) { ctx.beginPath(); sparklePath(ctx, x * w, y * h, w * 0.035 * r, 4, 0.3); ctx.fill(); }
+    });
+    for (const [x, y] of heads) cabochon(ctx, x, y, w * 0.075 * U, 0, GEM.sapphire, { claws: !tiny });
+  } else if (id === 'aurora') {
+    const rib = [[-h * 0.17, h * 0.035, w * 0.075, 0.36, 0.4], [-h * 0.27, h * 0.03, w * 0.05, 0.3, 1.3], [-h * 0.35, h * 0.022, w * 0.03, 0.22, 2.2]];
+    for (const sgn of [1, -1]) for (const [k, [yc, amp, th, half, ph]] of rib.entries()) {
+      if (tiny && k === 2) continue;
+      const y = cy + sgn * yc;
+      relief(ctx, 0, 0, dy, (p) => {
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(sgn > 0 ? 0 : PI);
+        ctx.fillStyle = p === '#000' ? p : (sgn > 0 ? lin(ctx, 0, yc - amp - th / 2, 0, yc + amp + th / 2, GOLD) : lin(ctx, 0, yc + amp + th / 2, 0, yc - amp - th / 2, GOLD)); ctx.beginPath(); ribbonPath(ctx, -w * half, w * half, yc, amp, th, 1, ph); ctx.fill();
+        ctx.restore();
+      }, 0.55, 'gold');
+    }
+    cabochon(ctx, cx, cy, w * 0.085 * U, w * 0.12 * U, GEM.emerald, { claws: !tiny });
+    for (const sx of [-1, 1]) cabochon(ctx, cx + sx * w * 0.25, cy, w * 0.04 * U, 0, GEM.amethyst);
+  }
+  gildedEdge(ctx, w, h);
+}
+
+// ═══ «Сейчас»: картинки из scripts/vitrine-art.mjs ══════════════════════════
+const NOW_IMG = {};
+function backNow(ctx, id, w) {
+  const im = NOW_IMG[id];
+  if (!im) return;
+  // cardBack(160, 2): поля по 20 px со всех сторон под свечение
+  const k = w / 160;
+  ctx.drawImage(im, -20 * k, -20 * k, (im.naturalWidth / 2) * k, (im.naturalHeight / 2) * k);
+}
+
+// ═══ Лицо «Небо масти» (из docs/vitrines/fp3-cards.html, вариант 3) ═══════
+const SC = {
+  sun:   { main: '#f6c25b', light: '#ffe6a8', rgb: [246, 194, 91] },
+  moon:  { main: '#8fd0ff', light: '#d9f0ff', rgb: [143, 208, 255] },
+  star:  { main: '#c39bff', light: '#eadcff', rgb: [195, 155, 255] },
+  comet: { main: '#ff7f62', light: '#ffd3c4', rgb: [255, 127, 98] },
+};
+const FIELD = { sun: ['#5a3b14', '#1d1208'], moon: ['#173a60', '#081226'], star: ['#3a2566', '#110a25'], comet: ['#5a2418', '#1c0a07'] };
+const CONST = {
+  1: { s: [[0, 0]], e: [] },
+  2: { s: [[-0.45, 0.45], [0.45, -0.45]], e: [[0, 1]] },
+  3: { s: [[-0.6, 0.5], [0.05, -0.6], [0.6, 0.45]], e: [[0, 1], [1, 2], [2, 0]] },
+  4: { s: [[-0.55, -0.45], [0.5, -0.6], [0.6, 0.5], [-0.45, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 0]] },
+  5: { s: [[-0.85, -0.3], [-0.42, 0.42], [0, -0.1], [0.42, 0.45], [0.85, -0.38]], e: [[0, 1], [1, 2], [2, 3], [3, 4]] },
+  6: { s: [[-0.75, -0.55], [-0.2, -0.35], [0.35, -0.6], [0.75, -0.05], [0.4, 0.55], [-0.35, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 1]] },
+  7: { s: [[-0.9, -0.6], [-0.55, -0.42], [-0.22, -0.25], [0.1, -0.05], [0.2, 0.55], [0.85, 0.5], [0.78, -0.08]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]] },
+  8: { s: [[-0.7, -0.72], [0, -0.85], [0.72, -0.6], [0.48, 0], [0.75, 0.68], [0, 0.82], [-0.65, 0.6], [-0.45, -0.02]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0]] },
+  9: { s: [[0, -0.92], [-0.5, -0.55], [0.52, -0.6], [-0.22, 0.02], [0, 0.07], [0.22, 0.12], [-0.55, 0.8], [0.6, 0.75], [0.04, 0.48]], e: [[0, 1], [0, 2], [1, 3], [2, 5], [3, 4], [4, 5], [3, 6], [5, 7], [4, 8]] },
+};
+function sunPath(ctx, x, y, r) {
+  const rays = 12, inner = r * 0.56;
+  for (let i = 0; i < rays * 2; i++) {
+    const a = (i / (rays * 2)) * TAU - PI / 2, q = i % 2 === 0 ? (i % 4 === 0 ? r : r * 0.78) : inner;
+    i ? ctx.lineTo(x + cos(a) * q, y + sin(a) * q) : ctx.moveTo(x + cos(a) * q, y + sin(a) * q);
+  }
+  ctx.closePath(); ctx.moveTo(x + r * 0.46, y); ctx.arc(x, y, r * 0.46, 0, TAU);
+}
+function moonPath(ctx, x, y, r) {
+  const R = r * 0.92, cx2 = x + R * 0.52, cy2 = y - R * 0.18, R2 = R * 0.82;
+  const dx = cx2 - x, dy = cy2 - y, d = Math.hypot(dx, dy), l = (R * R - R2 * R2 + d * d) / (2 * d), hh = sqrt(max(0, R * R - l * l));
+  const mx = x + (dx * l) / d, my = y + (dy * l) / d;
+  const p1 = { x: mx + (hh * dy) / d, y: my - (hh * dx) / d }, p2 = { x: mx - (hh * dy) / d, y: my + (hh * dx) / d };
+  ctx.arc(x, y, R, Math.atan2(p1.y - y, p1.x - x), Math.atan2(p2.y - y, p2.x - x), true);
+  ctx.arc(cx2, cy2, R2, Math.atan2(p2.y - cy2, p2.x - cx2), Math.atan2(p1.y - cy2, p1.x - cx2), false);
+  ctx.closePath();
+}
+function suitPath(ctx, suit, x, y, r) {
+  ctx.beginPath();
+  if (suit === 'sun') sunPath(ctx, x, y, r); else if (suit === 'moon') moonPath(ctx, x, y, r);
+  else if (suit === 'star') sparklePath(ctx, x, y, r, 4, 0.28); else cometPath(ctx, x, y, r);
+}
+function centeredText(ctx, t, cx, cy) {
+  const m = ctx.measureText(t);
+  ctx.fillText(t, cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 + m.actualBoundingBoxLeft, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+}
+function face(ctx, card, w, h) {
+  const c = SC[card.suit], r = w * 0.09, small = w < 62, f = FIELD[card.suit];
+  const ex = w * 0.62, ey = h * 0.665, er = w * 0.27;
+  cardShadow(ctx, w, h, f[1]);
+  ctx.save(); rr(ctx, 0, 0, w, h, r); ctx.clip();
+  ctx.fillStyle = lin(ctx, 0, 0, 0, h, [[0, f[0]], [1, f[1]]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.12)'], [1, 'rgba(255,244,220,0)']]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, ex, ey, 0, ex, ey, er * 1.9, [[0, rgba(c.rgb, 0.32)], [1, rgba(c.rgb, 0)]]); ctx.fillRect(0, 0, w, h);
+  if (!small) {
+    const seed = card.rank * 31 + card.suit.length * 7 + card.suit.charCodeAt(0), dot = Math.max(0.6, w * 0.008);
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${(0.12 + frac(i * 0.618) * 0.3) * 0.6})`;
+      ctx.fillRect(frac(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) * w, frac(Math.sin(seed * 4.1414 + i * 12.345) * 24634.6345) * h, dot, dot);
+    }
+  }
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = w * 0.06; ctx.shadowOffsetY = w * 0.02;
+  suitPath(ctx, card.suit, ex, ey, er); ctx.fillStyle = lin(ctx, 0, ey - er, 0, ey + er, [[0, c.light], [1, c.main]]); ctx.fill('evenodd');
+  ctx.restore();
+  if (!small) {
+    const p = CONST[card.rank], sx = w * 0.15, ccx = w * 0.74, ccy = w * 0.3, ink = [255, 246, 228];
+    const pts = p.s.map(([x, y]) => [ccx + x * sx, ccy + y * sx]);
+    ctx.lineWidth = Math.max(0.7, sx * 0.04); ctx.strokeStyle = rgba(ink, 0.35); ctx.lineCap = 'round';
+    for (const [a, b] of p.e) { ctx.beginPath(); ctx.moveTo(...pts[a]); ctx.lineTo(...pts[b]); ctx.stroke(); }
+    const dot = Math.max(0.9, sx * (card.rank === 1 ? 0.13 : 0.08));
+    for (const [x, y] of pts) { ctx.fillStyle = rad(ctx, x, y, 0, x, y, dot * 3.2, [[0, rgba(ink, 0.35)], [1, rgba(ink, 0)]]); circle(ctx, x, y, dot * 3.2); ctx.fill(); ctx.fillStyle = '#fff8ea'; circle(ctx, x, y, dot); ctx.fill(); }
+  }
+  ctx.restore();
+  gildedEdge(ctx, w, h);
+  if (!small) { rr(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55); ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(255,240,210,0.2)'; ctx.stroke(); }
+  ctx.save(); ctx.font = `800 ${w * 0.49}px Manrope`; ctx.fillStyle = '#fff8ea'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = w * 0.05; ctx.shadowOffsetY = w * 0.012;
+  centeredText(ctx, String(card.rank), w * 0.255, w * 0.33); ctx.shadowColor = 'transparent'; centeredText(ctx, String(card.rank), w * 0.255, w * 0.33);
+  ctx.restore();
+}
+
+// ─── Варианты ──────────────────────────────────────────────────────────────
+const BACK_IDS = ['classic', 'astrolabe', 'patron', 'comet', 'aurora'];
+const SHOW_ORDER = ['classic', 'comet', 'aurora', 'astrolabe', 'patron'];
+const BACK_NAME = { classic: 'Классика', astrolabe: 'Астролябия', patron: 'Меценат', comet: 'Комета', aurora: 'Сияние' };
+const TG = '<svg class="tg" viewBox="0 0 20 20" aria-hidden="true"><defs><linearGradient id="tgg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6a8"/><stop offset="1" stop-color="#e09a2f"/></linearGradient></defs><path fill="url(#tgg)" d="M10 1.2l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6-4.5-4.2 6.1-.7z"/></svg>';
+const PRICE = {
+  classic: 'бесплатно у всех',
+  comet: `<span class="num">75</span>${TG}`,
+  aurora: `<span class="num">75</span>${TG}`,
+  astrolabe: `в «Звёздном атласе» · <span class="num">250</span>${TG}`,
+  patron: `в наборе мецената · <span class="num">500</span>${TG}`,
+};
+const VARIANTS = [
+  { id: 'now', name: 'Сейчас', tag: 'для сравнения', back: backNow,
+    idea: 'Как в игре сейчас: у каждой рубашки свой материал рамки — фиолетовая, бирюзовая, сиреневая фольга, — поэтому пять рубашек выглядят пятью разными играми и спорят с золочёной кромкой «Неба масти». На 44&nbsp;px комета и сияние становятся пятнами.' },
+  { id: 'v-enamel', name: 'Эмаль', tag: 'вариант 1', back: backEnamel,
+    idea: '<b>Рубашка — большая эмалевая иконка.</b> Эмаль поверх гильоше, латунная оправа по краю и медальон с золотым рельефом в центре — те же материалы, что у Знамений. Рубашку узнаёшь по цвету эмали и знаку; дороже — богаче оправа: деления у астролябии, бусины, жемчуг и бриллиант у мецената.' },
+  { id: 'v-engrave', name: 'Гравюра', tag: 'вариант 2', back: backEngrave,
+    idea: '<b>Тонкая латунная гравюра по глубокому полю — карта неба из старого атласа.</b> У каждой рубашки свой лист: роза ветров, астролябия, орбита кометы, сияние штриховкой над горами. Покупные — в картографической рамке со шкалой; у мецената гравюра становится золотой фольгой: розетка гильоше и печать.' },
+  { id: 'v-jewel', name: 'Ювелир', tag: 'вариант 3', back: backJewel,
+    idea: '<b>Шкатулка: бархат, золотой рельеф и камни в оправах.</b> Узор центрально-симметричный, как у настоящей рубашки. Классика — один золотой ромб без камней; комета — два сапфира, сияние — изумруд с аметистами, астролябия — аквамарины; меценат — бриллиант в солнце из лучей, гранаты, жемчуг и стёжка с золотыми гвоздиками.' },
+];
+
+// ─── Отрисовка в слоты ─────────────────────────────────────────────────────
+function drawBack(ctx, V, id, x, y, w) {
+  ctx.save(); ctx.translate(x, y); V.back(ctx, id, w, w / ASPECT); ctx.restore();
+}
+function drawFace(ctx, card, x, y, w) {
+  ctx.save(); ctx.translate(x, y); face(ctx, card, w, w / ASPECT); ctx.restore();
+}
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function slot(w, draw, label) {
+  const h = Math.round(w / ASPECT), pad = Math.ceil(w * 0.14) + 3, dpr = DPR();
+  const s = el('div', 'slot'); s.style.width = w + 'px'; s.style.height = h + 'px';
+  const cv = document.createElement('canvas');
+  cv.width = Math.round((w + pad * 2) * dpr); cv.height = Math.round((h + pad * 2) * dpr);
+  Object.assign(cv.style, { width: w + pad * 2 + 'px', height: h + pad * 2 + 'px', left: -pad + 'px', top: -pad + 'px' });
+  cv.setAttribute('role', 'img'); if (label) cv.setAttribute('aria-label', label);
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr); ctx.translate(pad, pad);
+  draw(ctx, w, h);
+  s.appendChild(cv);
+  return s;
+}
+const backSlot = (V, id, w) => slot(w, (ctx) => drawBack(ctx, V, id, 0, 0, w), 'Рубашка «' + BACK_NAME[id] + '»');
+const faceSlot = (card, w) => slot(w, (ctx) => drawFace(ctx, card, 0, 0, w), 'Карта');
+
+// ─── Блик фольги (только витрина) ──────────────────────────────────────────
+const glints = [];
+function addGlint(s, w, phase) {
+  const h = Math.round(w / ASPECT), dpr = DPR();
+  const cv = document.createElement('canvas'); cv.className = 'glint';
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  Object.assign(cv.style, { width: w + 'px', height: h + 'px', left: 0, top: 0 });
+  s.appendChild(cv);
+  glints.push({ cv, w, h, dpr, phase });
+}
+let glintOn = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function glintFrame(now) {
+  for (const g of glints) {
+    if (!g.cv.isConnected) continue;
+    const ctx = g.cv.getContext('2d');
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    ctx.clearRect(0, 0, g.w, g.h);
+    if (!glintOn) continue;
+    const T = 5200, t = ((now + g.phase) % T) / T;
+    if (t > 0.3) continue;
+    const k = t / 0.3, span = g.w + g.h, x = -g.w * 0.6 + k * span * 1.1;
+    ctx.save(); rr(ctx, 0, 0, g.w, g.h, g.w * 0.09); ctx.clip();
+    ctx.translate(x, 0); ctx.rotate(0.38);
+    const bw = g.w * 0.32;
+    ctx.fillStyle = lin(ctx, -bw, 0, bw, 0, [[0, 'rgba(255,240,205,0)'], [0.5, 'rgba(255,240,205,0.30)'], [1, 'rgba(255,240,205,0)']]);
+    ctx.fillRect(-bw, -g.h, bw * 2, g.h * 3);
+    ctx.restore();
+  }
+  requestAnimationFrame(glintFrame);
+}
+
+// ─── Небо для мокапов ──────────────────────────────────────────────────────
+function sky(ctx, W, H, tint = [120, 80, 200]) {
+  ctx.fillStyle = lin(ctx, 0, 0, 0, H, [[0, '#191641'], [0.55, '#0c0d2c'], [1, '#05061a']]); ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = rad(ctx, W * 0.77, H * 0.3, 0, W * 0.77, H * 0.3, W * 0.8, [[0, rgba(tint, 0.16)], [1, rgba(tint, 0)]]); ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.15 + frac(i * 0.618) * 0.45})`;
+    const s = frac(i * 0.377) > 0.85 ? 1.6 : 1;
+    ctx.fillRect(frac(Math.sin(i * 91.7) * 4375.5) * W, frac(Math.sin(i * 17.3) * 2463.6) * H, s, s);
+  }
+}
+function statusBar(ctx) {
+  ctx.fillStyle = '#000'; rr(ctx, 133, 11, 124, 36, 18); ctx.fill();
+  ctx.fillStyle = '#eae6ff'; ctx.font = '600 15px Manrope'; ctx.textAlign = 'left'; ctx.fillText('9:41', 36, 34);
+  ctx.fillStyle = 'rgba(234,230,255,0.85)'; rr(ctx, 128, 828, 134, 5, 2.5); ctx.fill();
+}
+function sill(ctx, cx, y, half) {
+  ctx.fillStyle = rad(ctx, cx, y, 0, cx, y, half, [[0, 'rgba(255,230,168,0.85)'], [1, 'rgba(246,194,91,0)']]); ctx.fillRect(cx - half, y, half * 2, 1.5);
+}
+function phoneCanvas(cv) {
+  const W = cv.parentElement.getBoundingClientRect().width, dpr = DPR();
+  cv.width = Math.round(W * dpr); cv.height = Math.round((W * 844 / 390) * dpr);
+  const ctx = cv.getContext('2d'); ctx.setTransform((dpr * W) / 390, 0, 0, (dpr * W) / 390, 0, 0);
+  return ctx;
+}
+
+// Ночь: небо 4×4 с лицами, колода стопкой, карта переворачивается по пути в руку
+const BOARD = [
+  { suit: 'sun', rank: 9 }, null, { suit: 'star', rank: 2 }, { suit: 'comet', rank: 4 },
+  null, { suit: 'moon', rank: 5 }, null, { suit: 'moon', rank: 8 },
+  { suit: 'star', rank: 6 }, null, { suit: 'comet', rank: 1 }, null,
+  null, { suit: 'sun', rank: 3 }, null, { suit: 'moon', rank: 2 },
+];
+const HAND = [{ suit: 'star', rank: 4 }, { suit: 'sun', rank: 7 }, { suit: 'moon', rank: 9 }];
+function drawNight(cv, V, id) {
+  const ctx = phoneCanvas(cv);
+  sky(ctx, 390, 844); statusBar(ctx);
+  ctx.textAlign = 'center';
+  ctx.font = '400 13px Forum'; ctx.letterSpacing = '3px'; ctx.fillStyle = '#ffe6a8'; ctx.fillText('ГЛАВА III · ПОЛНОЧЬ', 195, 82); ctx.letterSpacing = '0px';
+  sill(ctx, 195, 92, 110);
+  ctx.font = '800 34px Manrope'; ctx.fillStyle = '#eae6ff'; ctx.fillText('1 240', 195, 134);
+  ctx.font = '600 13px Manrope'; ctx.fillStyle = '#a5a0cf'; ctx.fillText('из 2 800', 195, 154);
+  ctx.fillStyle = 'rgba(246,194,91,0.18)'; rr(ctx, 115, 164, 160, 3, 1.5); ctx.fill();
+  ctx.fillStyle = '#f6c25b'; rr(ctx, 115, 164, 71, 3, 1.5); ctx.fill();
+  ctx.font = '800 11px Manrope'; ctx.letterSpacing = '1px'; ctx.fillStyle = '#8a85b8';
+  ctx.textAlign = 'left'; ctx.fillText('ХОДЫ 9', 28, 134); ctx.textAlign = 'right'; ctx.fillText('СЖЕЧЬ 2', 362, 134); ctx.letterSpacing = '0px';
+  const cw = 70, ch = cw / ASPECT, gap = 7, bx = (390 - (cw * 4 + gap * 3)) / 2, by = 186;
+  for (let i = 0; i < 16; i++) {
+    const x = bx + (i % 4) * (cw + gap), y = by + Math.floor(i / 4) * (ch + gap);
+    rr(ctx, x + 0.5, y + 0.5, cw - 1, ch - 1, cw * 0.09); ctx.fillStyle = 'rgba(14,12,38,0.55)'; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(246,194,91,0.16)'; ctx.stroke();
+    if (BOARD[i]) drawFace(ctx, BOARD[i], x, y, cw);
+  }
+  // Колода стопкой
+  const dw = 62, dh = dw / ASPECT, dx = 22, dy = 676;
+  for (let i = 5; i >= 0; i--) drawBack(ctx, V, id, dx + i * 1.3, dy - i * 2.1, dw);
+  ctx.font = '800 11px Manrope'; ctx.letterSpacing = '1px'; ctx.fillStyle = '#8a85b8'; ctx.textAlign = 'center';
+  ctx.fillText('КОЛОДА 24', dx + dw / 2 + 3, dy + dh + 20); ctx.letterSpacing = '0px';
+  // Рука
+  const hx = 104, hg = 6;
+  HAND.forEach((c, i) => drawFace(ctx, c, hx + i * (dw + hg), dy, dw));
+  // Карта летит с колоды и переворачивается
+  const fx = hx + 3 * (dw + hg), fy = dy - 46;
+  ctx.save(); ctx.translate(fx + dw / 2, fy + dh / 2); ctx.rotate(0.12); ctx.scale(0.42, 1);
+  drawBack(ctx, V, id, -dw / 2, -dh / 2, dw);
+  rr(ctx, -dw / 2, -dh / 2, dw, dh, dw * 0.09); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,230,168,0.25)'; ctx.setLineDash([2, 5]); ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(dx + dw * 0.8, dy - 14); ctx.quadraticCurveTo(fx - 30, fy - 30, fx + dw * 0.32, fy + 8); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font = '700 14px Manrope'; ctx.fillStyle = '#ffe6a8'; ctx.textAlign = 'center';
+  ctx.fillText('Колода', 120, 806); ctx.fillText('Сжечь', 270, 806);
+  ctx.fillStyle = 'rgba(246,194,91,0.25)'; ctx.fillRect(195, 792, 1, 20);
+}
+
+// Атлас: Примерочная
+const LOCK = new Path2D('M5.5 13a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5v4.5a2.5 2.5 0 0 1-2.5 2.5H8a2.5 2.5 0 0 1-2.5-2.5zM8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5');
+const CHECK = new Path2D('m6 12.5 4 4 8-9');
+function drawAtlas(cv, V, tried) {
+  const ctx = phoneCanvas(cv);
+  sky(ctx, 390, 844, [200, 150, 70]); statusBar(ctx);
+  // Шапка
+  ctx.strokeStyle = '#ffe6a8'; ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(30, 66); ctx.lineTo(24, 72); ctx.lineTo(30, 78); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.font = '400 20px Forum'; ctx.letterSpacing = '3px'; ctx.fillStyle = '#ffe6a8'; ctx.fillText('ЗВЁЗДНЫЙ АТЛАС', 195, 79); ctx.letterSpacing = '0px';
+  sill(ctx, 195, 90, 120);
+  ctx.font = '700 13px Manrope';
+  [['Атлас', 85, false], ['Примерочная', 195, true], ['Поддержать', 305, false]].forEach(([t, x, on]) => {
+    ctx.fillStyle = on ? '#ffe6a8' : '#a5a0cf'; ctx.fillText(t, x, 120);
+    if (on) sill(ctx, x, 128, 44);
+  });
+  // Сцена с веером примеряемой рубашки
+  const sx = 16, sy = 142, sw = 358, sh = 300;
+  ctx.save(); rr(ctx, sx, sy, sw, sh, 24); ctx.clip();
+  ctx.fillStyle = lin(ctx, 0, sy, 0, sy + sh, [[0, '#14244a'], [1, '#080a24']]); ctx.fillRect(sx, sy, sw, sh);
+  ctx.fillStyle = rad(ctx, 195, sy + 120, 0, 195, sy + 120, 200, [[0, 'rgba(246,194,91,0.16)'], [1, 'rgba(246,194,91,0)']]); ctx.fillRect(sx, sy, sw, sh);
+  for (let i = 0; i < 40; i++) { ctx.fillStyle = `rgba(255,255,255,${0.2 + frac(i * 0.618) * 0.4})`; ctx.fillRect(sx + frac(Math.sin(i * 51.7) * 4375.5) * sw, sy + frac(Math.sin(i * 7.3) * 2463.6) * sh, 1, 1); }
+  const fw = 104, fh = fw / ASPECT, fcx = 195, fcy = sy + 128;
+  for (const [a, ox] of [[-0.24, -62], [0.24, 62], [0, 0]]) {
+    ctx.save(); ctx.translate(fcx + ox, fcy + (a ? 12 : 0)); ctx.rotate(a); drawBack(ctx, V, tried, -fw / 2, -fh / 2, fw); ctx.restore();
+  }
+  ctx.restore();
+  rr(ctx, sx + 0.5, sy + 0.5, sw - 1, sh - 1, 24); ctx.strokeStyle = 'rgba(246,194,91,0.22)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.font = '400 13px Manrope'; ctx.fillStyle = '#a5a0cf'; ctx.textAlign = 'center';
+  const capY = sy + sh - 22;
+  const parts = [['Рубашка ', '#a5a0cf', 400], [BACK_NAME[tried], '#eae6ff', 700], [' · в наборе мецената', '#a5a0cf', 400]];
+  let tw = 0; for (const [t, , wgt] of parts) { ctx.font = `${wgt} 13px Manrope`; tw += ctx.measureText(t).width; }
+  let x0 = 195 - tw / 2; ctx.textAlign = 'left';
+  for (const [t, c, wgt] of parts) { ctx.font = `${wgt} 13px Manrope`; ctx.fillStyle = c; ctx.fillText(t, x0, capY); x0 += ctx.measureText(t).width; }
+  // Лента рубашек
+  const label = (t, y) => {
+    ctx.textAlign = 'left'; ctx.font = '400 13px Forum'; ctx.letterSpacing = '3px'; ctx.fillStyle = '#ffe6a8'; ctx.fillText(t, 16, y); const lw = ctx.measureText(t).width; ctx.letterSpacing = '0px';
+    ctx.fillStyle = lin(ctx, 28 + lw, 0, 374, 0, [[0, 'rgba(246,194,91,0.22)'], [1, 'rgba(246,194,91,0)']]); ctx.fillRect(28 + lw, y - 4, 374 - 28 - lw, 1);
+  };
+  label('РУБАШКИ', 476);
+  const owned = { classic: true, astrolabe: true }, worn = 'astrolabe';
+  const where = { classic: 'бесплатно', astrolabe: 'надета', patron: 'у мецената', comet: '75', aurora: '75' };
+  const iw = 70, tw2 = 46, th = tw2 / ASPECT, iy = 494;
+  BACK_IDS.forEach((id, i) => {
+    const x = 16 + i * (iw + 2), cx = x + iw / 2;
+    if (id === tried) { rr(ctx, x + 1, iy - 6, iw - 2, 128, 14); ctx.fillStyle = 'rgba(246,194,91,0.07)'; ctx.fill(); ctx.strokeStyle = 'rgba(246,194,91,0.55)'; ctx.lineWidth = 1; ctx.stroke(); }
+    drawBack(ctx, V, id, cx - tw2 / 2, iy + 4, tw2);
+    if (!owned[id]) {
+      ctx.save(); ctx.translate(cx + tw2 / 2 - 4, iy + 4 + th - 4);
+      circle(ctx, 0, 0, 10); ctx.fillStyle = 'rgba(8,7,24,0.92)'; ctx.fill(); ctx.strokeStyle = 'rgba(246,194,91,0.45)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.scale(0.6, 0.6); ctx.translate(-12, -13); ctx.strokeStyle = '#ffe6a8'; ctx.lineWidth = 2.4; ctx.stroke(LOCK);
+      ctx.restore();
+    }
+    if (id === worn) {
+      ctx.save(); ctx.translate(cx + tw2 / 2 - 4, iy + 8);
+      circle(ctx, 0, 0, 10); ctx.fillStyle = lin(ctx, 0, -10, 0, 10, [[0, '#ffe09a'], [1, '#e09a2f']]); ctx.fill();
+      ctx.scale(0.62, 0.62); ctx.translate(-12, -12); ctx.strokeStyle = '#1a1206'; ctx.lineWidth = 3.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(CHECK);
+      ctx.restore();
+    }
+    ctx.textAlign = 'center'; ctx.font = '700 12px Manrope'; ctx.fillStyle = id === tried ? '#ffe6a8' : '#eae6ff';
+    ctx.fillText(BACK_NAME[id], cx, iy + th + 24);
+    ctx.font = '600 11px Manrope'; ctx.fillStyle = id === worn ? '#ffe6a8' : '#8a85b8';
+    const ww = where[id];
+    if (ww === '75') {
+      ctx.font = '800 11px Manrope'; ctx.fillStyle = '#ffe6a8'; ctx.fillText('75', cx - 6, iy + th + 40);
+      ctx.save(); ctx.translate(cx + 6, iy + th + 36); ctx.scale(0.55, 0.55);
+      ctx.beginPath(); ctx.moveTo(0, -9); for (let k = 1; k < 10; k++) { const a = -PI / 2 + k * PI / 5, q = k % 2 ? 4 : 9; ctx.lineTo(cos(a) * q, sin(a) * q); } ctx.closePath();
+      ctx.fillStyle = lin(ctx, 0, -9, 0, 9, [[0, '#ffe6a8'], [1, '#e09a2f']]); ctx.fill(); ctx.restore();
+    } else ctx.fillText(ww, cx, iy + th + 40);
+  });
+  // Небо
+  label('НЕБО', 660);
+  const skies = [['#191641', '#05061a', [120, 80, 200]], ['#0f3a46', '#06121c', [30, 140, 160]], ['#2a1a40', '#0a0614', [230, 170, 60]], ['#0c2a2a', '#071420', [40, 220, 150]], ['#2a1018', '#0c0508', [240, 110, 50]]];
+  skies.forEach(([a, b, t], i) => {
+    const x = 16 + i * 72 + 12, y = 676;
+    ctx.save(); rr(ctx, x, y, 46, 58, 10); ctx.clip();
+    ctx.fillStyle = lin(ctx, 0, y, 0, y + 58, [[0, a], [1, b]]); ctx.fillRect(x, y, 46, 58);
+    ctx.fillStyle = rad(ctx, x + 32, y + 20, 0, x + 32, y + 20, 40, [[0, rgba(t, 0.45)], [1, rgba(t, 0)]]); ctx.fillRect(x, y, 46, 58);
+    ctx.restore();
+    rr(ctx, x + 0.5, y + 0.5, 45, 57, 10); ctx.strokeStyle = i === 0 ? 'rgba(246,194,91,0.7)' : 'rgba(246,194,91,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  });
+  // Кнопка
+  ctx.save(); rr(ctx, 105, 760, 180, 48, 24); ctx.fillStyle = 'rgba(14,12,38,0.9)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(246,194,91,0.35)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+  ctx.font = '700 15px Manrope'; ctx.fillStyle = '#ffe6a8'; ctx.textAlign = 'center'; ctx.fillText('К меценату', 195, 789);
+}
+
+// ─── Сборка ────────────────────────────────────────────────────────────────
+function buildSkeleton() {
+  const root = document.getElementById('variants');
+  for (const V of VARIANTS) {
+    const s = el('section', 'variant'); s.id = V.id;
+    s.innerHTML = `<div class="hr"></div>
+      <div class="vhead"><h2 class="vname"><small>${V.tag.toUpperCase()}</small>${V.id === 'now' ? V.name : '«' + V.name + '»'}</h2>
+      <p class="videa">${V.idea}</p></div>
+      <div class="label">Пять рубашек</div><div class="big" data-k="big"></div>
+      <div class="label">На столе · 70 и 44 px</div><div class="real" data-k="real"></div>
+      <div class="label">Одна колода с «Небом масти»</div><div class="pair" data-k="pair"></div>
+      <div class="label">В игре · 390 × 844</div>
+      <div class="phones">
+        <div><div class="phone"><canvas data-k="night"></canvas></div><p class="phone-cap">Ночь: колода стопкой (рубашка «Астролябия»), карта переворачивается по пути в руку; на небе — лица «Неба масти».</p></div>
+        <div><div class="phone"><canvas data-k="atlas"></canvas></div><p class="phone-cap">Примерочная атласа: примеряется «Меценат», надета «Астролябия» (галочка), некупленные — с замком.</p></div>
+      </div>`;
+    root.appendChild(s);
+  }
+}
+function render() {
+  glints.length = 0;
+  for (const V of VARIANTS) {
+    const s = document.getElementById(V.id);
+    // Крупно
+    const big = s.querySelector('[data-k=big]'); big.innerHTML = '';
+    const bw = big.getBoundingClientRect().width;
+    const n = bw >= 1000 ? 5 : bw >= 560 ? 3 : 2, gap = bw >= 1000 ? 30 : bw >= 560 ? 26 : 18;
+    big.style.setProperty('--bg', gap + 'px');
+    const cw = Math.min(180, Math.floor((bw - gap * (n - 1)) / n));
+    SHOW_ORDER.forEach((id, i) => {
+      const cell = el('div', 'bcell');
+      const sl = backSlot(V, id, cw);
+      if (V.id !== 'now' && id !== 'classic') addGlint(sl, cw, i * 900);
+      cell.appendChild(sl);
+      cell.appendChild(el('div', 'bcap', `<b>${BACK_NAME[id]}</b><span>${PRICE[id]}</span>`));
+      big.appendChild(cell);
+    });
+    // Реальные размеры
+    const real = s.querySelector('[data-k=real]'); real.innerHTML = '';
+    for (const size of [70, 44]) {
+      const row = el('div', 'realrow' + (size < 60 ? ' small' : ''));
+      row.appendChild(el('div', 'sz', size + ' px'));
+      SHOW_ORDER.forEach((id) => row.appendChild(backSlot(V, id, size)));
+      real.appendChild(row);
+    }
+    if (V.id !== 'now') real.appendChild(el('p', 'note', 'Мелкий размер (меньше 62&nbsp;px) рисуется проще, как у лица: без тонкого узора и бусин, знак крупнее — остаются цвет поля, оправа и главный знак.'));
+    // С лицами
+    const pair = s.querySelector('[data-k=pair]'); pair.innerHTML = '';
+    const pw = pair.getBoundingClientRect().width;
+    const fw = pw >= 700 ? 104 : Math.floor((pw - 14 * 2) / 3);
+    const row = el('div', 'pairrow');
+    row.appendChild(backSlot(V, 'patron', fw));
+    row.appendChild(faceSlot({ suit: 'sun', rank: 9 }, fw));
+    row.appendChild(faceSlot({ suit: 'moon', rank: 4 }, fw));
+    row.appendChild(backSlot(V, 'astrolabe', fw));
+    row.appendChild(faceSlot({ suit: 'star', rank: 7 }, fw));
+    row.appendChild(faceSlot({ suit: 'comet', rank: 2 }, fw));
+    pair.appendChild(row);
+    // Переворот по кадрам
+    const flip = el('div', 'flip');
+    const kw = pw >= 700 ? 92 : Math.floor((pw - 6 * 4) / 5);
+    for (const k of [1, 0.62, 0.16, -0.62, -1]) {
+      flip.appendChild(slot(kw, (ctx, w, h) => {
+        ctx.save(); ctx.translate(w / 2, h / 2); ctx.scale(Math.max(0.06, abs(k)), 1); ctx.translate(-w / 2, -h / 2);
+        if (k > 0) V.back(ctx, 'comet', w, h); else face(ctx, { suit: 'moon', rank: 7 }, w, h);
+        if (abs(k) < 1) { rr(ctx, 0, 0, w, h, w * 0.09); ctx.fillStyle = `rgba(0,0,0,${(1 - abs(k)) * 0.35})`; ctx.fill(); }
+        ctx.restore();
+      }, 'Кадр переворота'));
+    }
+    pair.appendChild(flip);
+    drawNight(s.querySelector('[data-k=night]'), V, 'astrolabe');
+    drawAtlas(s.querySelector('[data-k=atlas]'), V, 'patron');
+  }
+}
+
+document.getElementById('glintBtn').addEventListener('click', (e) => {
+  glintOn = !glintOn; e.currentTarget.textContent = glintOn ? 'Остановить блик' : 'Запустить блик';
+});
+if (!glintOn) document.getElementById('glintBtn').textContent = 'Запустить блик';
+let timer = 0, lastW = 0;
+window.addEventListener('resize', () => {
+  if (Math.abs(window.innerWidth - lastW) < 2) return;
+  clearTimeout(timer); timer = setTimeout(() => { lastW = window.innerWidth; render(); }, 150);
+});
+buildSkeleton();
+const imgs = BACK_IDS.map((id) => new Promise((res) => { const im = new Image(); im.onload = () => { NOW_IMG[id] = im; res(); }; im.onerror = res; im.src = `now/back-${id}.webp`; }));
+Promise.all([document.fonts.load('400 20px Forum'), document.fonts.load('800 40px Manrope'), document.fonts.load('700 14px Manrope'), document.fonts.load('600 14px Manrope'), ...imgs])
+  .catch(() => {}).then(() => document.fonts.ready)
+  .then(() => { lastW = window.innerWidth; render(); requestAnimationFrame(glintFrame); document.body.dataset.ready = '1'; });
+})();
+</script>
+</body>
+</html>
