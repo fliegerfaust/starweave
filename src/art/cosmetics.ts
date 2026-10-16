@@ -7,23 +7,21 @@ type Rgb = [number, number, number];
 
 export interface BackStyle {
   id: string;
-  /** Градиент поля рубашки: от верхнего левого угла к нижнему правому. */
+  /** Поле рубашки: верх и низ градиента. */
   field: [string, string];
-  /** Линии узора и рамка. */
-  ink: string;
-  /** Свечение вокруг карты. */
-  glow: string;
-  pattern: 'mandala' | 'astrolabe' | 'weave' | 'comet' | 'aurora';
-  /** Металл рамки — цвета градиента по диагонали (фольга). */
-  frame: string[];
+  /** Картографическая рамка со шкалой градусов (покупные). */
+  ruled: boolean;
+  /** Рамка — золотой фольгой (набор мецената). */
+  foil?: boolean;
 }
 
+/** Рубашки — «Гравюра» (FP.7, рисует src/art/backs.ts). */
 export const BACKS: BackStyle[] = [
-  { id: 'classic', field: ['#2a1a5e', '#100b2c'], ink: '246,194,91', glow: 'rgba(160,120,255,0.4)', pattern: 'mandala', frame: ['#f6c25b'] },
-  { id: 'astrolabe', field: ['#11586a', '#04121c'], ink: '236,192,110', glow: 'rgba(90,200,220,0.5)', pattern: 'astrolabe', frame: ['#8a5a22', '#f3d18a', '#b07a32', '#ffe6a8', '#8a5a22'] },
-  { id: 'patron', field: ['#2a1a08', '#050307'], ink: '255,214,120', glow: 'rgba(255,200,90,0.6)', pattern: 'weave', frame: ['#7a4e12', '#fff1b8', '#d8a23a', '#fffbe6', '#a8701c', '#ffe08a'] },
-  { id: 'comet', field: ['#2b3fd1', '#120a3a'], ink: '170,230,255', glow: 'rgba(110,170,255,0.55)', pattern: 'comet', frame: ['#9fb6ff', '#ffffff', '#7a8cff', '#e4ecff'] },
-  { id: 'aurora', field: ['#06352f', '#1d0b44'], ink: '120,255,200', glow: 'rgba(110,255,190,0.5)', pattern: 'aurora', frame: ['#3ff0b0', '#a8fff0', '#8b6bff', '#d6c8ff'] },
+  { id: 'classic', field: ['#2b2168', '#0c0927'], ruled: false },
+  { id: 'astrolabe', field: ['#0e4152', '#03111a'], ruled: true },
+  { id: 'patron', field: ['#251708', '#060403'], ruled: true, foil: true },
+  { id: 'comet', field: ['#18276e', '#060a28'], ruled: true },
+  { id: 'aurora', field: ['#0d3b37', '#05121b'], ruled: true },
 ];
 
 export interface SkyTheme {
