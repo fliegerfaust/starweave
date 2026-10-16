@@ -33,6 +33,7 @@ import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutoria
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
+import { interstitialAllowed } from './ad-pacing';
 
 /** Экран: DOM-слой плюс, возможно, сущности на канвасе. */
 export interface Screen {
@@ -135,6 +136,8 @@ export class App {
   }
 
   private adPlaying = false;
+  /** Когда в этой сессии была последняя реклама — межстраничная выдерживает паузу после неё. */
+  private lastAdAt: number | null = null;
   /** Рекорд хода до записи итогов забега — окно итогов сравнивает с ним честно. */
   bestBefore = 0;
   /** Вызов из ссылки, которым открыли игру: меню покажет его один раз. */
@@ -479,8 +482,10 @@ export class App {
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями и только где она есть
     // (раньше событие уходило и из Telegram, где рекламы нет: «32 показа» в сводке)
-    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree && this.platform.interstitialAvailable) {
+    if (run.phase === 'map' && run.nightIndex === 0 && !this.adFree && this.platform.interstitialAvailable
+      && interstitialAllowed(Date.now(), this.profile.firstSeen ?? 0, this.lastAdAt)) {
       track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
+      this.lastAdAt = Date.now();
       void this.platform.showInterstitial().then(() => this.route());
       return;
     }
@@ -557,6 +562,7 @@ export class App {
   /** Реклама за награду с учётом в аналитике. */
   private async rewarded(placement: string): Promise<boolean> {
     track('ad_request', { kind: 'rewarded', placement });
+    this.lastAdAt = Date.now();
     const ok = await this.platform.showRewarded().catch(() => false);
     track('ad_result', { kind: 'rewarded', placement, result: ok ? 'rewarded' : 'closed' });
     return ok;

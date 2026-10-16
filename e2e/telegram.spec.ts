@@ -80,7 +80,7 @@ test('Telegram Mini App', async ({ page }) => {
     .toContain('sw_index');
 });
 
-/** Реклама за награду в Telegram — AdsGram: досмотр даёт награду, пропуск — нет, звук на паузе. */
+/** Реклама в Telegram — AdsGram: досмотр даёт награду, пропуск — нет; межстраничная; звук на паузе. */
 test('Telegram: реклама за награду через AdsGram', async ({ page }) => {
   test.skip(test.info().project.name !== 'iphone-15', 'достаточно одного устройства');
   await page.addInitScript(() => {
@@ -91,28 +91,36 @@ test('Telegram: реклама за награду через AdsGram', async ({
       },
     };
   });
-  // Первый показ досмотрен, второй пропущен; во время показа запоминаем, молчит ли звук
+  // Блок за награду: первый показ досмотрен, второй пропущен; межстраничный — закрыт.
+  // Во время каждого показа запоминаем, на паузе ли игра (звук молчит)
   await page.route('https://sad.adsgram.ai/js/sad.min.js', (route) =>
     route.fulfill({
       contentType: 'text/javascript',
-      body: `window.__ads = { inits: [], shows: 0, muted: [] };
+      body: `window.__ads = { inits: [], shows: [], muted: [] };
         window.Adsgram = { init(p) { window.__ads.inits.push(p.blockId); return { show() {
-          const n = ++window.__ads.shows;
-          window.__ads.muted.push(window.starweave.adPlaying);
-          return n === 1 ? Promise.resolve({ done: true, state: 'destroy', error: false, description: '' })
-            : Promise.reject({ done: false, state: 'playing', error: false, description: 'The banner was skipped' });
+          const ads = window.__ads;
+          ads.shows.push(p.blockId);
+          ads.muted.push(window.starweave.adPlaying);
+          const n = ads.shows.filter((b) => b === p.blockId).length;
+          return p.blockId === 'e2e' && n === 1 ? Promise.resolve({ done: true, state: 'destroy', error: false, description: '' })
+            : Promise.reject({ done: false, state: 'playing', error: false, description: 'closed' });
         } }; } };`,
     }),
   );
   await page.goto('/#tgWebAppData=x&tgWebAppVersion=8.0&tgWebAppPlatform=ios');
   await page.waitForFunction(() => !!document.querySelector('.menu-buttons .btn'));
-  type P = { platform: { rewardedAvailable: boolean; showRewarded(): Promise<boolean> }; adPlaying: boolean };
+  type P = { platform: { rewardedAvailable: boolean; interstitialAvailable: boolean; showRewarded(): Promise<boolean>; showInterstitial(): Promise<void> }; adPlaying: boolean };
   const res = await page.evaluate(async () => {
     const app = (window as unknown as { starweave: P }).starweave;
-    const available = app.platform.rewardedAvailable;
+    const available = [app.platform.rewardedAvailable, app.platform.interstitialAvailable];
     const first = await app.platform.showRewarded();
     const second = await app.platform.showRewarded();
-    return { available, first, second, after: app.adPlaying, ads: (window as unknown as { __ads: unknown }).__ads };
+    await app.platform.showInterstitial();
+    const ads = (window as unknown as { __ads: { inits: string[] } }).__ads;
+    return { available, first, second, after: app.adPlaying, ads: { ...ads, inits: [...ads.inits].sort() } };
   });
-  expect(res).toEqual({ available: true, first: true, second: false, after: false, ads: { inits: ['e2e'], shows: 2, muted: [true, true] } });
+  expect(res).toEqual({
+    available: [true, true], first: true, second: false, after: false,
+    ads: { inits: ['e2e', 'int-e2e'], shows: ['e2e', 'e2e', 'int-e2e'], muted: [true, true, true] },
+  });
 });

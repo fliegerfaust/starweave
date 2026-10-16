@@ -95,13 +95,14 @@ function loadScript(src: string, timeoutMs = 0): Promise<void> {
  */
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
-  readonly interstitialAvailable = false;
-  /** Реклама за награду есть, если задан блок AdsGram (переменная `ADSGRAM_BLOCK_ID`). */
+  /** Реклама есть, если заданы блоки AdsGram (`ADSGRAM_BLOCK_ID`, `ADSGRAM_INTER_ID`). */
   rewardedAvailable = false;
+  interstitialAvailable = false;
   payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
   private ads: Promise<AdsgramController | null> | null = null;
+  private inter: Promise<AdsgramController | null> | null = null;
 
   async init(): Promise<void> {
     try {
@@ -158,12 +159,33 @@ export class TelegramPlatform implements Platform {
    * показ дождётся загрузки. Не загрузился — показ вернёт «без награды», игра сообщит об этом.
    */
   private initAds(): void {
-    const blockId = import.meta.env.VITE_ADSGRAM_BLOCK_ID;
-    if (!blockId) return;
-    this.rewardedAvailable = true;
-    this.ads = loadScript(ADSGRAM_URL, 15000)
-      .then(() => window.Adsgram?.init({ blockId }) ?? null)
-      .catch(() => null);
+    const rewardId = import.meta.env.VITE_ADSGRAM_BLOCK_ID;
+    const interId = import.meta.env.VITE_ADSGRAM_INTER_ID;
+    if (!rewardId && !interId) return;
+    const sdk = loadScript(ADSGRAM_URL, 15000).then(() => true, () => false);
+    const controller = (blockId: string) => sdk.then((ok) => (ok ? window.Adsgram?.init({ blockId }) ?? null : null));
+    if (rewardId) {
+      this.rewardedAvailable = true;
+      this.ads = controller(rewardId);
+    }
+    if (interId) {
+      this.interstitialAvailable = true;
+      this.inter = controller(interId);
+    }
+  }
+
+  /** Показ блока AdsGram на паузе игры и звука: true — досмотрен до конца. */
+  private async play(ads: Promise<AdsgramController | null> | null): Promise<boolean> {
+    const controller = await ads;
+    if (!controller) return false;
+    this.emitPause(true);
+    try {
+      return (await controller.show()).done;
+    } catch {
+      return false; // пропустил, ошибка или рекламы сейчас нет
+    } finally {
+      this.emitPause(false);
+    }
   }
 
   ready(): void {
@@ -173,21 +195,12 @@ export class TelegramPlatform implements Platform {
   gameplayStart(): void {}
   gameplayStop(): void {}
 
-  async showInterstitial(): Promise<void> {}
+  async showInterstitial(): Promise<void> {
+    await this.play(this.inter);
+  }
 
   async showRewarded(): Promise<boolean> {
-    const ads = await this.ads;
-    if (!ads) return false;
-    // Звук и игра на паузе, пока идёт ролик
-    this.emitPause(true);
-    try {
-      const result = await ads.show();
-      return result.done;
-    } catch {
-      return false; // пропустил, ошибка или рекламы сейчас нет
-    } finally {
-      this.emitPause(false);
-    }
+    return this.play(this.ads);
   }
 
   language(): Lang | null {
