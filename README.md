@@ -32,13 +32,15 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 Выкладка: пуш в `main` или `release/**` публикует сборку на GitHub Pages; сервер игры —
 `server/deploy/deploy.sh` ([server/README.md](server/README.md)).
 
-Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`. Модель монетизации и путь в
-сторы и на порталы — в [docs/MONETIZATION.md](docs/MONETIZATION.md), план выхода в сторы, бэкенд и развитие — в
-[docs/ROADMAP.md](docs/ROADMAP.md), Telegram — [docs/TELEGRAM.md](docs/TELEGRAM.md), Яндекс —
-[docs/YANDEX.md](docs/YANDEX.md), аналитика — [docs/ANALYTICS.md](docs/ANALYTICS.md), аудит
-дизайна — [docs/DESIGN-AUDIT.md](docs/DESIGN-AUDIT.md), главная «Обсерватория» —
-[docs/HOME-OBSERVATORY.md](docs/HOME-OBSERVATORY.md), продукт для дизайна — [PRODUCT.md](PRODUCT.md),
-дизайн-система «Латунная обсерватория» — [DESIGN.md](DESIGN.md).
+Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`.
+
+Документы: задачи — [TASKS.md](TASKS.md); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
+[DESIGN.md](DESIGN.md); правила — [docs/GDD.md](docs/GDD.md); устройство —
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); деньги — [docs/MONETIZATION.md](docs/MONETIZATION.md);
+реклама и где смотреть доход — [docs/ADS.md](docs/ADS.md); план выхода —
+[docs/ROADMAP.md](docs/ROADMAP.md); продвижение — [docs/PROMOTION.md](docs/PROMOTION.md);
+аналитика — [docs/ANALYTICS.md](docs/ANALYTICS.md); Telegram — [docs/TELEGRAM.md](docs/TELEGRAM.md);
+Яндекс — [docs/YANDEX.md](docs/YANDEX.md); сервер — [server/README.md](server/README.md).
 
 Отладочная витрина графики: `http://localhost:5173/?gallery`.
 
