@@ -144,6 +144,13 @@ test('обучение до второй ночи: награда без под�
   const dir = `e2e-results/${test.info().project.name}`;
 
   await next(page); // обзор
+  // Шапка ночи заперта: «?», меню и колода не открываются посреди шага
+  const hudLocked = await page.evaluate(() => ['.icon-btn.q', '.hud .icon-btn.medal:not(.q)', '.deck-btn'].map((sel) => {
+    const el = document.querySelector(sel)!;
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  }));
+  expect(hudLocked, '«?», меню и колода не нажимаются').toEqual([false, false, false]);
   for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
     await page.waitForSelector('.tut-bubble.on');
     await place(page, code, cell);
@@ -192,6 +199,11 @@ test('обучение до второй ночи: награда без под�
   await page.click('[data-shop="omen-0"] .btn.tut-allow');
   await next(page);
   await page.waitForSelector('[data-shop="next"].tut-allow');
+  // Своё Знамение не открывает лист продажи посреди шага
+  const omenBox = (await page.locator('.owned-omen:not(.empty)').first().boundingBox())!;
+  await page.mouse.click(omenBox.x + omenBox.width / 2, omenBox.y + omenBox.height / 2);
+  await page.waitForTimeout(400);
+  expect(await page.locator('.owned-omen-sheet').count(), 'лист Знамения не открылся').toBe(0);
   await page.click('[data-shop="next"].tut-allow');
 
   // Ночь 2: подсказка не на Знамении
