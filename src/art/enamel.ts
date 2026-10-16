@@ -638,3 +638,79 @@ export function drawEnamelRitual(ctx: Ctx, id: string, size: number, inner?: (ct
   else relief(ctx, ritMotif(id, 17), 17, small ? 1.2 : 1, 'gold', mix(f.base, f.deep, 0.55));
   ctx.restore();
 }
+
+// ─── Пакет ───────────────────────────────────────────────────────────────────
+
+/** Эмаль пакета — цветом того, что внутри: Знамения, ритуалы, звёздные карты. */
+const PACK_FAM: Record<string, string> = { omen: 'star', ritual: 'wine', chart: 'lapis' };
+
+function enamelFill(ctx: Ctx, f: Family, x: number, y: number, w: number, h: number): CanvasGradient {
+  const cx = x + w / 2;
+  const cy = y + h * 0.25;
+  return stops(ctx.createRadialGradient(cx, cy, 0, cx, cy, max(w, h) * 0.9), [[0, mix(f.base, '#ffffff', 0.06)], [0.55, mix(f.base, f.deep, 0.55)], [1, f.deep]]);
+}
+
+/**
+ * Пакет: латунный конверт на эмали цвета содержимого, из-за него веером выглядывают три
+ * карты — «выбери одну из трёх», печать — маленький медальон со знаком содержимого.
+ */
+export function drawEnamelPack(ctx: Ctx, pack: string, size: number): void {
+  const f = FAM[PACK_FAM[pack] ?? 'gold']!;
+  const cut = mix(f.base, f.deep, 0.55);
+  ctx.save();
+  stage(ctx, size);
+  // Тень всего пакета
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  ctx.fill(path(rrect(-45, -8.8, 90, 56, 10)));
+  ctx.globalAlpha = 1;
+
+  // Три карты веером за конвертом
+  for (const a of [-20, 0, 20]) {
+    ctx.save();
+    ctx.translate(0, 14);
+    ctx.rotate((a * PI) / 180);
+    ctx.translate(0, -14);
+    ctx.fillStyle = brassBezel(ctx, -15, -44, 15, 4);
+    ctx.fill(path(rrect(-15, -44, 30, 46, 5)));
+    ctx.fillStyle = enamelFill(ctx, f, -11.5, -40.5, 23, 40);
+    ctx.fill(path(rrect(-11.5, -40.5, 23, 40, 3)));
+    ctx.fillStyle = 'rgba(255,240,200,0.75)';
+    ctx.fill(path(sparkle(0, -30, 4.2, 4, 0.3)));
+    ctx.restore();
+  }
+
+  // Конверт
+  ctx.fillStyle = brassBezel(ctx, -44, -10, 44, 46);
+  ctx.fill(path(rrect(-44, -10, 88, 56, 10)));
+  const body = path(rrect(-39, -5, 78, 46, 6));
+  ctx.fillStyle = enamelFill(ctx, f, -39, -5, 78, 46);
+  ctx.fill(body);
+  ctx.strokeStyle = '#2a1804';
+  ctx.lineWidth = 1.2;
+  ctx.stroke(body);
+  // Клапан — золотой рельеф
+  relief(ctx, [{ s: line([[-37, -3], [0, 22], [37, -3]]), w: 3.2 }], 26, 1, 'gold', cut, 0.5);
+
+  // Печать: латунный медальон со знаком содержимого
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  circleAt(ctx, 0, 23.8, 16.5);
+  ctx.fill();
+  ctx.fillStyle = brassBezel(ctx, -16, 6, 16, 38);
+  circleAt(ctx, 0, 22, 16);
+  ctx.fill();
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, 17, 0, 0, 17, 18), [[0, mix(f.base, '#ffffff', 0.1)], [1, f.deep]]);
+  circleAt(ctx, 0, 22, 12.6);
+  ctx.fill();
+  const sign: Part[] =
+    pack === 'ritual' ? [{ f: rrect(-5.4, 14, 10.8, 16, 2) }]
+    : pack === 'chart' ? [{ s: line([[-7, 26.5], [-1.5, 17.5], [6, 23]]), w: 2.2 }, { f: circ(-7, 26.5, 2.6) + circ(-1.5, 17.5, 2.6) + sparkle(6, 23, 4.8, 4, 0.3) }]
+    : [{ f: sparkle(0, 22, 9.4, 4, 0.28) }];
+  relief(ctx, sign, 8, 1, stops(ctx.createLinearGradient(0, 14, 0, 30), [[0, '#fff6d6'], [0.45, '#f6c25b'], [1, '#b8751c']]), cut, 0.5);
+  ctx.restore();
+}
+
+function circleAt(ctx: Ctx, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, PI * 2);
+}
