@@ -500,6 +500,20 @@ body {
   max-width: 100%;
 }
 .calc-caption:empty { visibility: hidden; }
+/* Разбор формулы в обучении (TU.3): база созвездия, за ней вклад шагов — тусклые фишки
+   загораются по очереди, пока искры летят в формулу */
+.calc-parts { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px; margin-top: 9px; }
+.calc-parts:empty { display: none; }
+.calc-part { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 3px 8px; border-radius: 999px; font: 800 13px/1.2 var(--font-body); font-variant-numeric: tabular-nums; transition: opacity 0.25s ease, box-shadow 0.25s ease; }
+.calc-part.base { padding: 3px 10px; color: #ffe6a8; background: rgb(var(--gold-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.6); }
+.calc-part.base small { font: 700 11px/1.2 var(--font-body); color: var(--ink-dim); }
+.calc-part .light, .calc-part.light { color: var(--light); }
+.calc-part .mult, .calc-part.mult { color: var(--mult); }
+.calc-part.light { background: rgb(var(--light-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.45); }
+.calc-part.mult { background: rgb(var(--mult-rgb) / 0.1); box-shadow: inset 0 0 0 1px rgb(var(--mult-rgb) / 0.45); }
+.calc-part.dim { opacity: 0.35; }
+.calc-part.lit { animation: part-lit 0.35s cubic-bezier(0.2, 1.8, 0.4, 1); }
+@keyframes part-lit { 40% { transform: scale(1.18); filter: brightness(1.6); } }
 .calc-caption.flash { animation: caption-in 0.25s ease; }
 @keyframes caption-in { from { opacity: 0.2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
@@ -1577,6 +1591,12 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
   85%, 100% { transform: translate(var(--x2), var(--y2)); opacity: 0; }
 }
 .tut-lock .btn:not(.tut-allow), .tut-lock .icon-btn { pointer-events: none !important; opacity: 0.45; }
+/* В обучении нажимается только то, что просит шаг: свои Знамения, ссылки, вкладки и прочее
+   в Обсерватории и на шапке ночи заперты. Прокрутка Обсерватории остаётся — касание
+   проходит сквозь запертое к прокручиваемой середине */
+.tut-lock * { pointer-events: none !important; }
+.tut-lock .shop-body { pointer-events: auto !important; }
+.tut-lock .tut-allow, .tut-lock .tut-allow * { pointer-events: auto !important; }
 .btn.tut-allow { animation: tut-glow 1.4s ease-in-out infinite; }
 @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0.7); } 50% { box-shadow: 0 0 0 8px rgb(var(--gold-rgb) / 0); } }
 

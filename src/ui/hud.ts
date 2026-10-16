@@ -69,6 +69,8 @@ export class Hud {
   private readonly calcMult: HTMLElement;
   private readonly calcTotal: HTMLElement;
   private readonly calcCaption: HTMLElement;
+  /** Разбор формулы в обучении: база созвездия и вклад каждого шага фишками. */
+  private readonly calcParts: HTMLElement;
   private readonly calcLightLabel: HTMLElement;
   private readonly preview: HTMLElement;
   /** Лента с названием созвездия поперёк вспыхнувшей линии — над слоем вспышки. */
@@ -99,6 +101,7 @@ export class Hud {
     this.calcMult = h('div.calc-mult', null, '0');
     this.calcTotal = h('div.calc-total', null, '?');
     this.calcCaption = h('div.calc-caption');
+    this.calcParts = h('div.calc-parts', { attrs: { 'aria-hidden': 'true' } });
     this.calcLightLabel = h('div.calc-label', null, t('calc.light'));
     const cell = (box: HTMLElement, label: string | HTMLElement) =>
       h('div.calc-cell', null, [box, typeof label === 'string' ? h('div.calc-label', null, label) : label]);
@@ -111,6 +114,7 @@ export class Hud {
         h('span.calc-x', null, '='),
         cell(this.calcTotal, t('calc.total')),
       ]),
+      this.calcParts,
       this.calcCaption,
     ]);
     this.preview = h('div.preview');
@@ -279,9 +283,38 @@ export class Hud {
     this.calcTotal.textContent = '?';
     this.calcTotal.classList.remove('done');
     this.calcCaption.textContent = '';
+    this.calcParts.replaceChildren();
     this.setCalc(light, mult);
     this.calc.classList.add('show');
     document.body.classList.add('scoring');
+  }
+
+  /**
+   * Откуда числа формулы (TU.3): первая фишка — база созвездия (свет и множитель, с которых
+   * всё начинается), дальше — вклад каждого шага. Фишки шагов тусклые и загораются по очереди.
+   */
+  showParts(combo: ComboId, light: number, mult: number, parts: { text: string; kind: 'light' | 'mult' }[]): void {
+    const base = h('span.calc-part.base', null, [
+      h('small', null, t('calc.base', { combo: t(`combo.${combo}`) })),
+      h('b.light', null, num(light)),
+      h('b.mult', null, `×${num(mult)}`),
+    ]);
+    this.calcParts.replaceChildren(base, ...parts.map((p) => h(`span.calc-part.${p.kind}.dim`, null, p.text)));
+  }
+
+  /** Зажечь фишку шага `index` (по порядку шагов после базы). */
+  lightPart(index: number): void {
+    const el = this.calcParts.children[index + 1];
+    if (!el) return;
+    el.classList.remove('dim');
+    el.classList.add('lit');
+  }
+
+  /** Обучение запирает шапку и кнопки ночи; `allowBurn` — «Сжечь» остаётся живой. */
+  setTutorialLock(on: boolean, allowBurn = false): void {
+    this.el.classList.toggle('tut-lock', on);
+    this.actions.classList.toggle('tut-lock', on);
+    this.burnBtn.classList.toggle('tut-allow', on && allowBurn);
   }
 
   setCalcLabel(text: string): void {

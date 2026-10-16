@@ -13,6 +13,8 @@ export interface BubbleOptions {
   next?: string;
   /** Где показать, если ночи рядом нет (Обсерватория): сверху, снизу или подальше от цели. */
   place?: 'top' | 'bottom' | 'auto';
+  /** Встать прямо над этой областью (линия на небе) и обойтись без нити: цель рядом. */
+  above?: Rect;
 }
 
 /** Где на ночи небо и рука — подсказка встаёт в просвет между ними или на шапку. */
@@ -42,6 +44,7 @@ export class TutorialOverlay {
   private readonly threadDot: SVGCircleElement;
   private spotRect: Rect | null = null;
   private place: BubbleOptions['place'] = 'auto';
+  private above: Rect | null = null;
   private dock: (() => TutorialDock | null) | null = null;
 
   constructor(private readonly onSkip: () => void) {
@@ -129,6 +132,7 @@ export class TutorialOverlay {
         actions.append(next);
       }
       this.place = opts.place ?? 'auto';
+      this.above = opts.above ?? null;
       this.bubble.replaceChildren(text, actions);
       this.bubble.classList.remove('pop');
       this.bubble.classList.add('on');
@@ -160,7 +164,18 @@ export class TutorialOverlay {
     b.style.top = '';
     b.style.bottom = '';
     let top: number;
-    if (dock && hud && landscape) {
+    if (this.above) {
+      // Над линией: подсказка, линия и формула читаются одним взглядом. В ландшафте формула —
+      // в левой колонке под табло, поэтому подсказка — над линией на небе, по её ширине
+      const a = this.above;
+      if (landscape) {
+        // По ширине линии: шире — заходит на руку, которая в ландшафте стоит справа от неба
+        const w = Math.min(Math.max(a.w + 24, 260), 440, vw - 16);
+        b.style.width = `${w}px`;
+        b.style.left = `${Math.round(Math.min(Math.max(8, a.x + a.w / 2 - w / 2), vw - w - 8))}px`;
+      }
+      top = Math.max(safeTop() + 6, a.y - b.offsetHeight - 12);
+    } else if (dock && hud && landscape) {
       // Ландшафт и ПК: левая колонка под шапкой — там пусто
       b.style.width = `${hud.width}px`;
       b.style.left = `${hud.left}px`;
@@ -201,7 +216,7 @@ export class TutorialOverlay {
   /** Нить от края подсказки к цели: бегущий золотой пунктир и точка у цели. */
   private drawThread(vw: number): void {
     const spot = this.spotRect;
-    if (!spot || !this.bubble.classList.contains('on')) {
+    if (!spot || !this.bubble.classList.contains('on') || this.above) {
       this.thread.replaceChildren();
       return;
     }

@@ -94,6 +94,8 @@ export function layoutCoach(): void {
   const d = dock?.();
   el.style.top = '';
   el.style.bottom = '';
+  el.style.left = '';
+  el.style.transform = '';
   const h = el.offsetHeight;
   const hit = (top: number) => !!target && top < target.y + target.h + 6 && top + h > target.y - 6;
   let top: number;
@@ -115,6 +117,19 @@ export function layoutCoach(): void {
     const low = step !== 'shop' && !!target && target.y + target.h / 2 > vh / 2;
     top = low ? (head ? head.y + head.h + 10 : safeInset('top') + 10) : (foot ? foot.y - h - 12 : vh - h - 16 - safeInset('bottom'));
     if (hit(top)) top = low ? (foot ? foot.y - h - 12 : vh - h - 16) : (head ? head.y + head.h + 10 : 10);
+    // Низкий экран (телефон в ландшафте): цель посередине по высоте, ни сверху, ни снизу
+    // её не обойти — уводим плашку вбок, на сторону подальше от цели, на высоту цели
+    if (target && hit(top)) {
+      const w = el.offsetWidth;
+      const left = target.x + target.w / 2 > vw / 2 ? target.x - w - 18 : target.x + target.w + 18;
+      if (left >= 8 && left + w <= vw - 8) {
+        el.style.left = `${Math.round(left)}px`;
+        el.style.transform = 'none';
+        const lo = head ? head.y + head.h + 10 : safeInset('top') + 10;
+        const hi = (foot ? foot.y - 12 : vh - 16) - h;
+        top = Math.min(Math.max(target.y + target.h / 2 - h / 2, lo), Math.max(lo, hi));
+      }
+    }
   }
   el.style.top = `${Math.round(top)}px`;
   el.style.bottom = 'auto';
@@ -135,6 +150,10 @@ export function layoutCoach(): void {
     const sy = b.top + b.height / 2;
     end = { x: t0.x - 2, y: t0.y + t0.h / 2 };
     path = `M${b.right} ${sy} C ${b.right + 60} ${sy}, ${end.x - 60} ${end.y}, ${end.x} ${end.y}`;
+  } else if (b.left > t0.x + t0.w) {
+    const sy = b.top + b.height / 2;
+    end = { x: t0.x + t0.w + 2, y: t0.y + t0.h / 2 };
+    path = `M${b.left} ${sy} C ${b.left - 60} ${sy}, ${end.x + 60} ${end.y}, ${end.x} ${end.y}`;
   } else {
     const below = b.top >= t0.y + t0.h;
     const sx = b.left + b.width / 2;

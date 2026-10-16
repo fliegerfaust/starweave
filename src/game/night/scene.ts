@@ -638,6 +638,11 @@ export class NightScene {
     this.presenter.scoringGate = gate;
   }
 
+  /** Обучение показывает под формулой, из чего она складывается. */
+  setExplain(on: boolean): void {
+    this.presenter.explain = on;
+  }
+
   /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */
   setStepPause(k: number): void {
     this.presenter.stepPause = k;
@@ -889,11 +894,16 @@ export class NightScene {
     }
   }
 
-  /** Палец над кнопкой «Сжечь» (с запасом — по ней целятся на ходу). */
+  /**
+   * Палец над кнопкой «Сжечь» (с запасом — по ней целятся на ходу). Над рукой — никогда:
+   * карту, которую несут обратно в руку, не сжигаем (кнопка вплотную под правыми картами).
+   */
   private overBurn(x: number, y: number): boolean {
     const r = this.hud.burnBtn.getBoundingClientRect();
+    const hand = this.hand.length ? this.handAreaRect() : null;
+    if (hand && x >= hand.x && x <= hand.x + hand.w && y >= hand.y && y <= hand.y + hand.h) return false;
     const slack = 14;
-    return x >= r.left - slack && x <= r.right + slack && y >= r.top - slack * 2 && y <= r.bottom + slack;
+    return x >= r.left - slack && x <= r.right + slack && y >= r.top - slack / 2 && y <= r.bottom + slack;
   }
 
   /** Можно ли сжечь карту перетаскиванием: остались сжигания и обучение не против. */

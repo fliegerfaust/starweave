@@ -80,6 +80,8 @@ export class TutorialDirector {
     if (e.type === 'night') {
       this.scene = e.scene;
       this.hud = e.hud;
+      // Меню, «?», колода и «Сжечь» — только когда шаг о них (TU: справочник открывался посреди шага)
+      e.hud.setTutorialLock(true);
       // Подсказка встаёт в просвет между небом и рукой (или на шапку)
       const scene = e.scene;
       this.overlay.setDock(() => {
@@ -126,6 +128,7 @@ export class TutorialDirector {
 
   stop(): void {
     this.stopped = true;
+    this.hud?.setTutorialLock(false);
     this.waiters = [];
     for (const id of this.timers) window.clearInterval(id);
     this.timers.clear();
@@ -220,6 +223,7 @@ export class TutorialDirector {
     await this.waitFor('dealt');
     this.watchFormula();
     const scene = this.night;
+    scene.setExplain(true);
     scene.setGuide({});
     scene.setStepPause(2.4);
 
@@ -237,6 +241,7 @@ export class TutorialDirector {
     // Сжигание
     const bad = this.cardId('1m');
     scene.setGuide({ card: bad, burn: true });
+    this.hud!.setTutorialLock(true, true);
     this.reposition = () => {
       const r = scene.handRect(bad);
       if (r) this.overlay.point(center(scene.selected !== null ? elementRect(this.hud!.burnBtn)! : r));
@@ -254,6 +259,7 @@ export class TutorialDirector {
     });
     await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'burn'));
     this.clear(waitSelect);
+    this.hud!.setTutorialLock(true);
     this.reposition = null;
     this.overlay.point(null);
     this.overlay.spotlight(null);
@@ -315,9 +321,12 @@ export class TutorialDirector {
     root.classList.remove('tut-lock');
     await this.waitFor('dealt');
     const scene2 = this.night;
+    scene2.setExplain(true);
     scene2.setGuide({});
     await this.say('night2', { spot: elementRect(document.querySelector('.hud-omens')) });
     scene2.setGuide({ free: true });
+    // Сам играет — сжигать можно и кнопкой
+    this.hud!.setTutorialLock(true, true);
     scene2.setStepPause(2.2);
     this.sync();
     const playArea = () => union(scene2.layout.board, scene2.handAreaRect());
@@ -362,7 +371,7 @@ export class TutorialDirector {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
-        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', next: t('tut.next') }),
+        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', above: this.night.cellsRect(TUTORIAL_CELLS.pairRow), next: t('tut.next') }),
         new Promise<void>((resolve) => (this.releaseGate = resolve)),
       ]);
       this.releaseGate = null;
