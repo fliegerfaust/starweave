@@ -310,6 +310,13 @@ export class Hud {
     el.classList.add('lit');
   }
 
+  /** Обучение запирает шапку и кнопки ночи; `allowBurn` — «Сжечь» остаётся живой. */
+  setTutorialLock(on: boolean, allowBurn = false): void {
+    this.el.classList.toggle('tut-lock', on);
+    this.actions.classList.toggle('tut-lock', on);
+    this.burnBtn.classList.toggle('tut-allow', on && allowBurn);
+  }
+
   setCalcLabel(text: string): void {
     this.calcCombo.textContent = text;
   }

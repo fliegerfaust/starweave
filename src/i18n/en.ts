@@ -251,6 +251,8 @@ export const en: Dict = {
     omensEmptyHint: 'Omens you buy go here. They trigger left to right.',
     banish: 'Remove a card · {n}',
     banishUsed: 'Card removed',
+    banishTitle: 'Remove a card',
+    banishDesc: 'Remove 1 card from the deck',
     rerollShort: 'Refresh ·',
     chartBonus: '+{light} light, +{mult} to multiplier',
     chartLevel: 'lv {from} → {to}',

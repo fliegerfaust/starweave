@@ -1591,6 +1591,12 @@ body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--
   85%, 100% { transform: translate(var(--x2), var(--y2)); opacity: 0; }
 }
 .tut-lock .btn:not(.tut-allow), .tut-lock .icon-btn { pointer-events: none !important; opacity: 0.45; }
+/* В обучении нажимается только то, что просит шаг: свои Знамения, ссылки, вкладки и прочее
+   в Обсерватории и на шапке ночи заперты. Прокрутка Обсерватории остаётся — касание
+   проходит сквозь запертое к прокручиваемой середине */
+.tut-lock * { pointer-events: none !important; }
+.tut-lock .shop-body { pointer-events: auto !important; }
+.tut-lock .tut-allow, .tut-lock .tut-allow * { pointer-events: auto !important; }
 .btn.tut-allow { animation: tut-glow 1.4s ease-in-out infinite; }
 @keyframes tut-glow { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0.7); } 50% { box-shadow: 0 0 0 8px rgb(var(--gold-rgb) / 0); } }
 

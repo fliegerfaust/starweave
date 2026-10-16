@@ -305,7 +305,7 @@ export class ShopScreen implements Screen {
     const banish = h('button.ware-light', {
       type: 'button',
       disabled: used || price === null || run.gold < (price ?? 0),
-      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1),
+      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1, { name: t('shop.banishTitle'), desc: t('shop.banishDesc') }),
     }, [icon('cut'), used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' }))]);
     return h('section.shop-section.shop-deck', null, [
       h('div.shop-label-row', null, [h('h2.shop-label', null, t('night.deck')), h('span.shop-count', null, String(run.deck.length))]),
@@ -315,7 +315,7 @@ export class ShopScreen implements Screen {
   }
 
   /** Выбор карт колоды для ритуала. `maxOverride` — для услуг с другим лимитом. */
-  private pickTargets(ritualId: string, onApply: (ids: number[]) => void, onCancel?: () => void, maxOverride?: number): void {
+  private pickTargets(ritualId: string, onApply: (ids: number[]) => void, onCancel?: () => void, maxOverride?: number, title?: { name: string; desc: string }): void {
     const def = ritualDef(ritualId);
     const max = maxOverride ?? ritualMaxTargets(this.run, ritualId);
     const selected = new Set<number>();
@@ -343,7 +343,8 @@ export class ShopScreen implements Screen {
       update();
     };
     const grid = deckGrid(this.run.deck, { selectable: def.canTarget, selected, onToggle });
-    const info = named('ritual', ritualId);
+    // Услуга «Убрать карту» выбирает тем же окном, но берёт одну карту — у неё свои слова
+    const info = title ?? named('ritual', ritualId);
     const m = modal(
       [
         h('p.modal-text', null, info.desc),
