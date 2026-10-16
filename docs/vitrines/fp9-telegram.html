@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Обложки Telegram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-0: #05061a;
+    --night-1: #0c0d2c;
+    --night-2: #191641;
+    --panel: #0e0c26;
+    --ink: #eae6ff;
+    --ink-dim: #a5a0cf;
+    --ink-faint: #8a85b8;
+    --gold: #f6c25b;
+    --gold-hi: #ffe6a8;
+    --brass-line: rgb(246 194 91 / .22);
+    --brass-strong: rgb(246 194 91 / .45);
+    --gutter: 16px;
+    /* Telegram: ночная тема iOS и светлая — только для макетов */
+    --tg-d-bg: #000000;
+    --tg-d-row: #000000;
+    --tg-d-sep: #2c2c2e;
+    --tg-d-text: #ffffff;
+    --tg-d-sub: #8d8e93;
+    --tg-d-accent: #3e88f7;
+    --tg-d-chat: #0e1621;
+    --tg-d-bubble: #182533;
+    --tg-d-link: #6ab3f3;
+    --tg-l-bg: #ffffff;
+    --tg-l-sep: #e3e3e6;
+    --tg-l-text: #000000;
+    --tg-l-sub: #8e8e93;
+    --tg-l-accent: #2481cc;
+    --tg-l-chat: #cfe3c0;
+    --tg-l-bubble: #ffffff;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body {
+    background: radial-gradient(120% 60% at 50% 0%, #15123a 0%, var(--night-0) 60%) fixed, var(--night-0);
+    background-color: var(--night-0);
+    color: var(--ink);
+    font: 400 14px/1.5 Manrope, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px var(--gutter) 64px; }
+  header.top { text-align: center; padding: 18px 0 8px; }
+  h1 { font: 400 30px/1 Forum, serif; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-hi); margin: 0 0 14px; }
+  .sill { height: 2px; width: min(420px, 80%); margin: 0 auto 18px;
+    background: radial-gradient(closest-side, rgb(255 230 168 / .9), rgb(246 194 91 / .25) 60%, transparent); }
+  .lead { color: var(--ink-dim); max-width: 680px; margin: 0 auto; }
+  nav.jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; margin: 20px 0 6px; }
+  nav.jump a { color: var(--gold-hi); text-decoration: none; font-weight: 700; padding: 10px 14px; }
+  nav.jump a + a { border-left: 1px solid var(--brass-line); }
+  nav.jump a:hover { color: #fff; }
+  @media (max-width: 480px) { nav.jump a { padding: 8px 10px; font-size: 13px; } }
+
+  .label { font: 400 13px/1 Forum, serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi);
+    display: flex; align-items: center; gap: 12px; margin: 34px 0 16px; }
+  .label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--brass-line), transparent); }
+
+  section.variant { margin-top: 64px; padding-top: 8px; scroll-margin-top: 12px; }
+  .vhead { text-align: center; margin-bottom: 4px; }
+  .vname { font: 400 28px/1 Forum, serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); margin: 0 0 12px; }
+  .vname small { display: block; font: 800 11px/1 Manrope, sans-serif; letter-spacing: .14em; color: var(--ink-faint); margin-bottom: 10px; }
+  .videa { color: var(--ink); max-width: 720px; margin: 0 auto; }
+  .videa b { color: var(--gold-hi); font-weight: 700; }
+  .hr { height: 1px; background: linear-gradient(90deg, transparent, var(--brass-line), transparent); margin: 64px 0 0; }
+  .cap { font-size: 12px; color: var(--ink-dim); text-align: center; line-height: 1.35; margin-top: 8px; }
+  .cap b { color: var(--ink); font-weight: 700; }
+  .note { color: var(--ink-dim); font-size: 13px; margin: 12px 0 0; }
+
+  /* Аватар */
+  .av { display: grid; gap: 22px; grid-template-columns: 1fr; align-items: start; }
+  @media (min-width: 900px) { .av { grid-template-columns: auto 1fr; gap: 40px; } }
+  .av-big { display: flex; gap: 16px; justify-content: center; }
+  .av-big figure { margin: 0; width: min(240px, calc(50vw - 24px)); }
+  .av-big img { display: block; width: 100%; aspect-ratio: 1; }
+  .av-big .circle img { border-radius: 50%; }
+  .sizes { display: grid; gap: 10px; }
+  .sz-row { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 12px; flex-wrap: wrap; }
+  .sz-row.dark { background: #000; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .06); }
+  .sz-row.tgd { background: #17212b; }
+  .sz-row.light { background: #fff; }
+  .sz-row .tag { font: 800 11px/1 Manrope; letter-spacing: .1em; text-transform: uppercase; width: 100%; color: var(--ink-faint); }
+  .sz-row.light .tag { color: #8e8e93; }
+  .sz-row img { display: block; border-radius: 50%; }
+  .sz-row img.sq { border-radius: 22%; }
+  .sz-row .gap { width: 6px; }
+
+  /* Мокапы Telegram */
+  .mocks { display: grid; gap: 22px; grid-template-columns: 1fr; justify-items: center; }
+  @media (min-width: 800px) { .mocks { grid-template-columns: 1fr 1fr; align-items: start; } }
+  .mock { width: 100%; max-width: 380px; border-radius: 22px; overflow: hidden; box-shadow: 0 0 0 1px rgb(246 194 91 / .2), 0 24px 50px -20px rgb(0 0 0 / .8); }
+  .mock-cap { text-align: center; color: var(--ink-faint); font-size: 12px; margin-top: 10px; }
+
+  .chats { font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif; }
+  .chats .bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; font-weight: 600; font-size: 17px; }
+  .chats .bar span { font-weight: 400; font-size: 16px; }
+  .chat { display: flex; gap: 12px; padding: 8px 0 8px 12px; align-items: center; }
+  .chat .ava { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 600 21px/1 -apple-system, system-ui, sans-serif; }
+  .chat img.ava { display: block; }
+  .chat .body { flex: 1; min-width: 0; padding-right: 14px; padding-bottom: 10px; margin-bottom: -10px; }
+  .chat .top { display: flex; justify-content: space-between; gap: 8px; }
+  .chat .name { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat .time { font-size: 14px; flex: 0 0 auto; }
+  .chat .msg { font-size: 15px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .chat .badge { float: right; min-width: 22px; height: 22px; border-radius: 11px; font: 600 14px/22px system-ui; text-align: center; color: #fff; padding: 0 6px; margin: 2px 0 0 8px; }
+  .chats.dark { background: var(--tg-d-bg); color: var(--tg-d-text); }
+  .chats.dark .body { border-bottom: 1px solid var(--tg-d-sep); }
+  .chats.dark .time, .chats.dark .msg { color: var(--tg-d-sub); }
+  .chats.dark .badge { background: var(--tg-d-accent); }
+  .chats.dark .bar span { color: var(--tg-d-accent); }
+  .chats.light { background: var(--tg-l-bg); color: var(--tg-l-text); }
+  .chats.light .body { border-bottom: 1px solid var(--tg-l-sep); }
+  .chats.light .time, .chats.light .msg { color: var(--tg-l-sub); }
+  .chats.light .badge { background: var(--tg-l-accent); }
+  .chats.light .bar span { color: var(--tg-l-accent); }
+  .chat .msg .who { color: inherit; }
+  .chats.dark .chat.me .msg .who { color: var(--tg-d-text); }
+  .chats.light .chat.me .msg .who { color: var(--tg-l-text); }
+
+  /* Обложки */
+  .covers { display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 1000px) { .covers { grid-template-columns: 1fr 1fr; } }
+  .covers figure, .smalls figure { margin: 0; }
+  .covers img { display: block; width: 100%; max-width: 640px; aspect-ratio: 16 / 9; border-radius: 10px; margin: 0 auto; }
+  .smalls { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 18px; }
+  .smalls img { display: block; width: min(320px, calc(100vw - 32px)); aspect-ratio: 16 / 9; border-radius: 8px; }
+  .smalls .x200 img { width: 200px; border-radius: 6px; }
+
+  .chatbg { font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif; padding: 16px 12px; }
+  .chatbg.dark { background: linear-gradient(160deg, #0f1c2b, #0b1420 60%, #101a26); color: var(--tg-d-text); }
+  .chatbg.light { background: linear-gradient(160deg, #d6e8c6, #c6dcb4 60%, #d9e7c9); color: var(--tg-l-text); }
+  .bubble { max-width: 300px; border-radius: 16px 16px 16px 4px; padding: 7px 10px 8px; font-size: 15px; line-height: 1.32; }
+  .dark .bubble { background: var(--tg-d-bubble); }
+  .light .bubble { background: var(--tg-l-bubble); }
+  .bubble .from { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .dark .bubble .from { color: #f5a36c; }
+  .light .bubble .from { color: #d0743a; }
+  .bubble a { text-decoration: none; }
+  .dark .bubble a { color: var(--tg-d-link); }
+  .light .bubble a { color: var(--tg-l-accent); }
+  .lp { margin-top: 6px; border-radius: 6px; padding: 6px 8px 8px 10px; position: relative; overflow: hidden; }
+  .dark .lp { background: rgb(106 179 243 / .1); box-shadow: inset 3px 0 0 var(--tg-d-link); }
+  .light .lp { background: rgb(36 129 204 / .08); box-shadow: inset 3px 0 0 var(--tg-l-accent); }
+  .lp .site { font-weight: 600; font-size: 14px; }
+  .dark .lp .site { color: var(--tg-d-link); }
+  .light .lp .site { color: var(--tg-l-accent); }
+  .lp .t { font-weight: 600; font-size: 14px; }
+  .lp .d { font-size: 14px; line-height: 1.3; }
+  .lp img.big { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; margin-top: 6px; }
+  .lp.compact { display: grid; grid-template-columns: 1fr 64px; gap: 8px; }
+  .lp.compact img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+  .bubble .meta { text-align: right; font-size: 12px; opacity: .55; margin-top: 2px; }
+  .ikb { max-width: 300px; margin-top: 4px; border-radius: 10px; text-align: center; padding: 10px; font-weight: 600; font-size: 14px; }
+  .dark .ikb { background: rgb(24 37 51 / .85); color: #fff; }
+  .light .ikb { background: rgb(0 0 0 / .18); color: #fff; }
+
+  /* Пустой чат с ботом */
+  .phone { width: 100%; max-width: 360px; aspect-ratio: 360 / 720; display: flex; flex-direction: column; font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif; }
+  .phone.dark { background: #0b1420; color: #fff; }
+  .phone.light { background: var(--tg-l-chat); color: #000; }
+  .ph-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .dark .ph-head { background: #17212b; }
+  .light .ph-head { background: #fff; }
+  .ph-head .back { width: 10px; height: 10px; border-left: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor; transform: rotate(45deg); margin: 0 6px 0 4px; opacity: .8; }
+  .dark .ph-head .back { color: var(--tg-d-link); }
+  .light .ph-head .back { color: var(--tg-l-accent); }
+  .ph-head .nm { font-weight: 600; font-size: 16px; line-height: 1.2; }
+  .ph-head .st { font-size: 13px; opacity: .6; }
+  .ph-head img, .ph-head .ava { width: 38px; height: 38px; border-radius: 50%; margin-left: auto; }
+  .ph-body { flex: 1; display: grid; place-items: center; padding: 14px; }
+  .dark .ph-body { background: linear-gradient(160deg, #0f1c2b, #0b1420 60%, #101a26); }
+  .light .ph-body { background: linear-gradient(160deg, #d6e8c6, #c6dcb4 60%, #d9e7c9); }
+  .what { width: 100%; max-width: 300px; border-radius: 14px; overflow: hidden; font-size: 14px; line-height: 1.35; }
+  .dark .what { background: rgb(0 0 0 / .45); }
+  .light .what { background: rgb(0 0 0 / .32); color: #fff; }
+  .what img { display: block; width: 100%; aspect-ratio: 16 / 9; }
+  .what .tx { padding: 10px 12px 12px; }
+  .what .hd { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .what .none { padding: 18px 12px 0; text-align: center; opacity: .55; font-size: 12px; }
+  .ph-foot { padding: 12px; text-align: center; font-weight: 600; font-size: 15px; letter-spacing: .04em; }
+  .dark .ph-foot { background: #17212b; color: var(--tg-d-link); }
+  .light .ph-foot { background: #fff; color: var(--tg-l-accent); }
+
+  .descpic { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .descpic img { display: block; width: 100%; max-width: 640px; aspect-ratio: 16 / 9; border-radius: 10px; }
+
+  .port { margin-top: 72px; }
+  .port h2 { font: 400 22px/1 Forum, serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); text-align: center; margin: 0 0 18px; }
+  .port ol { max-width: 760px; margin: 0 auto; padding-left: 20px; color: var(--ink); }
+  .port li { margin: 8px 0; }
+  .port code { font: 600 12.5px/1.4 ui-monospace, Menlo, monospace; color: var(--gold-hi); overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Обложки Telegram</h1>
+    <div class="sill"></div>
+    <p class="lead">Набор картинок бота @starweave_game_bot в нынешнем языке игры — латунь, ночь, «Небо масти», «Эмаль» и «Гравюра». В наборе три вещи: аватар (он же иконка приложения), обложка Mini App на двух языках и картинка описания над кнопкой «Старт». Всё нарисовано кодом прямо на странице, тем же способом, что и в <code>src/dev/icon.ts</code> и <code>promo.ts</code>.</p>
+    <nav class="jump">
+      <a href="#now">Сейчас</a><a href="#v-seal">«Печать»</a><a href="#v-cross">«Крест»</a><a href="#v-dome">«Купол»</a>
+    </nav>
+  </header>
+
+  <div id="blocks"></div>
+
+  <div class="hr"></div>
+  <section class="port">
+    <h2>Как перенести</h2>
+    <ol>
+      <li>Знак: функция <code>avatar&lt;Вариант&gt;(ctx, s)</code> со страницы → тело <code>showIcon</code> в <code>src/dev/icon.ts</code> вместо <code>drawBackdrop + drawPair</code>. <code>&amp;rounded</code> уже режет скруглённый квадрат 22 %.</li>
+      <li>Обложка: <code>cover&lt;Вариант&gt;(ctx, w, h, lang)</code> → <code>showPromo</code> в <code>src/dev/promo.ts</code>; лица карт — <code>cardFace</code> из <code>src/art/card.ts</code>, рубашка — <code>drawEngravedBack</code>, небо — <code>renderNebula</code>, тексты — <code>t('game.title')</code> / <code>t('game.tagline')</code>.</li>
+      <li>Картинка описания: новый режим <code>?promo&amp;desc</code> (или <code>?descpic</code>) с функцией <code>desc&lt;Вариант&gt;(ctx, w, h)</code>; в <code>e2e/store-assets.spec.ts</code> — снимок 640×360 в <code>store/telegram/description-640x360.png</code>.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ═══ Данные игры ═══════════════════════════════════════════════════════════
+const { PI, cos, sin, round, max, min, hypot, abs } = Math;
+const TAU = PI * 2;
+const FONT_D = "Forum, 'Times New Roman', serif";
+const FONT_B = "Manrope, system-ui, sans-serif";
+const SC = {
+  sun:   { main: '#f6c25b', light: '#ffe6a8', rgb: [246, 194, 91] },
+  moon:  { main: '#8fd0ff', light: '#d9f0ff', rgb: [143, 208, 255] },
+  star:  { main: '#c39bff', light: '#eadcff', rgb: [195, 155, 255] },
+  comet: { main: '#ff7f62', light: '#ffd3c4', rgb: [255, 127, 98] },
+};
+const FIELD = { sun: ['#5a3b14', '#1d1208'], moon: ['#173a60', '#081226'], star: ['#3a2566', '#110a25'], comet: ['#5a2418', '#1c0a07'] };
+const CONST = {
+  1: { s: [[0, 0]], e: [] },
+  2: { s: [[-0.45, 0.45], [0.45, -0.45]], e: [[0, 1]] },
+  3: { s: [[-0.6, 0.5], [0.05, -0.6], [0.6, 0.45]], e: [[0, 1], [1, 2], [2, 0]] },
+  4: { s: [[-0.55, -0.45], [0.5, -0.6], [0.6, 0.5], [-0.45, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 0]] },
+  5: { s: [[-0.85, -0.3], [-0.42, 0.42], [0, -0.1], [0.42, 0.45], [0.85, -0.38]], e: [[0, 1], [1, 2], [2, 3], [3, 4]] },
+  6: { s: [[-0.75, -0.55], [-0.2, -0.35], [0.35, -0.6], [0.75, -0.05], [0.4, 0.55], [-0.35, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 1]] },
+  7: { s: [[-0.9, -0.6], [-0.55, -0.42], [-0.22, -0.25], [0.1, -0.05], [0.2, 0.55], [0.85, 0.5], [0.78, -0.08]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]] },
+  8: { s: [[-0.7, -0.72], [0, -0.85], [0.72, -0.6], [0.48, 0], [0.75, 0.68], [0, 0.82], [-0.65, 0.6], [-0.45, -0.02]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0]] },
+  9: { s: [[0, -0.92], [-0.5, -0.55], [0.52, -0.6], [-0.22, 0.02], [0, 0.07], [0.22, 0.12], [-0.55, 0.8], [0.6, 0.75], [0.04, 0.48]], e: [[0, 1], [0, 2], [1, 3], [2, 5], [3, 4], [4, 5], [3, 6], [5, 7], [4, 8]] },
+};
+const ENAMEL = {
+  lapis: { base: '#4362d8', deep: '#0b1150', hi: '#d6deff' },
+  night: { base: '#3346b0', deep: '#080c3a', hi: '#d6deff' },
+  sun: { base: '#f2a93b', deep: '#3e1f04', hi: '#ffe6a8' },
+  moon: { base: '#4f9be0', deep: '#071a36', hi: '#d9f0ff' },
+  star: { base: '#9468e8', deep: '#1c0d40', hi: '#eadcff' },
+};
+const NEB = [[110, 70, 220], [40, 110, 210], [200, 60, 160], [40, 170, 190], [90, 50, 170]];
+const GOLD = [[0, '#fff6d6'], [0.45, '#f6c25b'], [1, '#b8751c']];
+const GILDED = [[0, '#ffe6a8'], [0.45, '#c8912f'], [0.7, '#f6c25b'], [1, '#9a6a22']];
+const BIG_DIPPER = { stars: [[78, 30, 1.8], [80, 50, 2.4], [60, 55, 2.4], [57, 38, 3.3], [42, 33, 1.8], [28, 30, 2.2], [12, 40, 1.9]], lines: [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6]] };
+const TEXT = {
+  ru: { title: ['ЗВЁЗДНОЕ', 'ПЛЕТЕНИЕ'], one: 'ЗВЁЗДНОЕ ПЛЕТЕНИЕ', tag: ['Сплетай созвездия.', 'Переживи Затмения.'], tagOne: 'Сплетай созвездия. Переживи Затмения.' },
+  en: { title: ['STARWEAVE'], one: 'STARWEAVE', tag: ['Weave constellations.', 'Outlast the eclipses.'], tagOne: 'Weave constellations. Outlast the eclipses.' },
+};
+
+// ═══ Утилиты (как src/art/glyphs.ts) ═══════════════════════════════════════
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mixHex = (a, b, t) => { const pa = hexRgb(a), pb = hexRgb(b); return '#' + pa.map((v, i) => round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+const frac = (x) => x - Math.floor(x);
+function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+function stops(g, l) { for (const [o, c] of l) g.addColorStop(o, c); return g; }
+const lin = (ctx, x0, y0, x1, y1, l) => stops(ctx.createLinearGradient(x0, y0, x1, y1), l);
+const rad = (ctx, x0, y0, r0, x1, y1, r1, l) => stops(ctx.createRadialGradient(x0, y0, r0, x1, y1, r1), l);
+function roundRect(ctx, x, y, w, h, r) {
+  const q = min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + q, y);
+  ctx.arcTo(x + w, y, x + w, y + h, q);
+  ctx.arcTo(x + w, y + h, x, y + h, q);
+  ctx.arcTo(x, y + h, x, y, q);
+  ctx.arcTo(x, y, x + w, y, q);
+  ctx.closePath();
+}
+function circle(ctx, x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); }
+function sparklePath(ctx, x, y, r, n = 4, waist = 0.28, rot = 0) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU - PI / 2 + rot, b = ((i + 1) / n) * TAU - PI / 2 + rot, m = (a + b) / 2;
+    if (i === 0) ctx.moveTo(x + cos(a) * r, y + sin(a) * r);
+    ctx.quadraticCurveTo(x + cos(m) * r * waist, y + sin(m) * r * waist, x + cos(b) * r, y + sin(b) * r);
+  }
+  ctx.closePath();
+}
+function sunPath(ctx, x, y, r) {
+  const rays = 12, inner = r * 0.56;
+  for (let i = 0; i < rays * 2; i++) {
+    const a = (i / (rays * 2)) * TAU - PI / 2;
+    const rr = i % 2 === 0 ? (i % 4 === 0 ? r : r * 0.78) : inner;
+    const px = x + cos(a) * rr, py = y + sin(a) * rr;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.moveTo(x + r * 0.46, y);
+  ctx.arc(x, y, r * 0.46, 0, TAU);
+}
+function moonPath(ctx, x, y, r) {
+  const R = r * 0.92, cx2 = x + R * 0.52, cy2 = y - R * 0.18, R2 = R * 0.82;
+  const dx = cx2 - x, dy = cy2 - y, d = hypot(dx, dy);
+  const l = (R * R - R2 * R2 + d * d) / (2 * d), h = Math.sqrt(max(0, R * R - l * l));
+  const mx = x + (dx * l) / d, my = y + (dy * l) / d;
+  const p1 = { x: mx + (h * dy) / d, y: my - (h * dx) / d }, p2 = { x: mx - (h * dy) / d, y: my + (h * dx) / d };
+  ctx.arc(x, y, R, Math.atan2(p1.y - y, p1.x - x), Math.atan2(p2.y - y, p2.x - x), true);
+  ctx.arc(cx2, cy2, R2, Math.atan2(p2.y - cy2, p2.x - cx2), Math.atan2(p1.y - cy2, p1.x - cx2), false);
+  ctx.closePath();
+}
+function cometPath(ctx, x, y, r) {
+  const hx = x + r * 0.38, hy = y - r * 0.38, hr = r * 0.36;
+  const ang = Math.atan2(hy - (y + r), hx - (x - r));
+  const nx = cos(ang + PI / 2), ny = sin(ang + PI / 2);
+  ctx.moveTo(hx + nx * hr, hy + ny * hr);
+  for (const t of [{ len: 1, off: 0 }, { len: 0.72, off: 0.8 }, { len: 0.72, off: -0.8 }]) {
+    ctx.lineTo(hx - cos(ang) * r * 1.55 * t.len + nx * hr * t.off * 0.9, hy - sin(ang) * r * 1.55 * t.len + ny * hr * t.off * 0.9);
+    ctx.lineTo(hx + nx * hr * t.off * 0.35, hy + ny * hr * t.off * 0.35);
+  }
+  ctx.lineTo(hx - nx * hr, hy - ny * hr);
+  ctx.arc(hx, hy, hr, ang - PI / 2, ang + PI / 2, false);
+  ctx.closePath();
+}
+function suitPath(ctx, suit, x, y, r) {
+  ctx.beginPath();
+  if (suit === 'sun') sunPath(ctx, x, y, r);
+  else if (suit === 'moon') moonPath(ctx, x, y, r);
+  else if (suit === 'star') sparklePath(ctx, x, y, r, 4, 0.28);
+  else cometPath(ctx, x, y, r);
+}
+function glowStar(ctx, x, y, r, rgb, core, glow = 0.45) {
+  ctx.fillStyle = rad(ctx, x, y, 0, x, y, r * 3.2, [[0, rgba(rgb, glow)], [1, rgba(rgb, 0)]]);
+  circle(ctx, x, y, r * 3.2); ctx.fill();
+  ctx.fillStyle = core; circle(ctx, x, y, r); ctx.fill();
+}
+function centeredText(ctx, t, cx, cy) {
+  const m = ctx.measureText(t);
+  ctx.fillText(t, cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 + m.actualBoundingBoxLeft, cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2);
+}
+
+// ═══ Небо (как renderNebula из src/art/nebula.ts) ══════════════════════════
+function nebula(ctx, w, h, seed, pal = NEB, dust = 1400) {
+  const r = rand(seed);
+  ctx.save();
+  ctx.fillStyle = lin(ctx, 0, 0, w * 0.3, h, [[0, '#0b0b2b'], [0.55, '#070720'], [1, '#030312']]);
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'lighter';
+  const diag = hypot(w, h);
+  for (let i = 0; i < 14; i++) {
+    const c = pal[i % pal.length], t = r();
+    const x = w * (0.1 + t * 0.8) + (r() - 0.5) * w * 0.4, y = h * (0.9 - t * 0.8) + (r() - 0.5) * h * 0.3;
+    const rr = diag * (0.12 + r() * 0.22), a = 0.05 + r() * 0.08;
+    ctx.fillStyle = rad(ctx, x, y, 0, x, y, rr, [[0, rgba(c, a)], [0.5, rgba(c, a * 0.4)], [1, rgba(c, 0)]]);
+    ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+  }
+  const k = max(1, min(w, h) / 500);
+  for (let i = 0; i < dust; i++) {
+    const t = r(), spread = (r() + r() + r() - 1.5) * 0.22;
+    ctx.fillStyle = `rgba(220,215,255,${0.08 + r() * 0.25})`;
+    circle(ctx, w * (t + spread * 0.6), h * (1 - t + spread), (0.4 + r() * 0.5) * k);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = rad(ctx, w / 2, h / 2, min(w, h) * 0.3, w / 2, h / 2, diag * 0.6, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,8,0.65)']]);
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+function halo(ctx, x, y, r, rgb, a) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = rad(ctx, x, y, 0, x, y, r, [[0, rgba(rgb, a)], [1, rgba(rgb, 0)]]);
+  ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  ctx.restore();
+}
+function starsField(ctx, w, h, n, seed, size = 1, alpha = 0.7) {
+  const r = rand(seed);
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const x = r() * w, y = r() * h, s = size * (0.5 + r());
+    ctx.fillStyle = `rgba(225,220,255,${alpha * (0.35 + r() * 0.65)})`;
+    circle(ctx, x, y, s); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ═══ Лицо карты «Небо масти» (src/art/card.ts drawFace) ═════════════════════
+function constellation(ctx, rank, cx, cy, sc) {
+  const p = CONST[rank], pts = p.s.map(([x, y]) => [cx + x * sc, cy + y * sc]);
+  ctx.save();
+  ctx.lineWidth = max(0.7, sc * 0.04);
+  ctx.strokeStyle = 'rgba(255,246,228,0.35)';
+  ctx.lineCap = 'round';
+  for (const [a, b] of p.e) { ctx.beginPath(); ctx.moveTo(...pts[a]); ctx.lineTo(...pts[b]); ctx.stroke(); }
+  const dot = max(0.9, sc * (rank === 1 ? 0.13 : 0.08));
+  pts.forEach(([x, y], i) => glowStar(ctx, x, y, i === 0 && rank > 1 ? dot * 1.2 : dot, [255, 246, 228], '#fff8ea', 0.35));
+  ctx.restore();
+}
+function face(ctx, card, w, h) {
+  const c = SC[card.suit], f = FIELD[card.suit], r = w * 0.09, small = w < 62;
+  const ex = w * 0.62, ey = h * 0.665, er = w * 0.27;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = w * 0.08; ctx.shadowOffsetY = w * 0.025;
+  roundRect(ctx, 0, 0, w, h, r); ctx.fillStyle = f[1]; ctx.fill();
+  ctx.restore();
+  ctx.save();
+  roundRect(ctx, 0, 0, w, h, r); ctx.clip();
+  ctx.fillStyle = lin(ctx, 0, 0, 0, h, [[0, f[0]], [1, f[1]]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.12)'], [1, 'rgba(255,244,220,0)']]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, ex, ey, 0, ex, ey, er * 1.9, [[0, rgba(c.rgb, 0.32)], [1, rgba(c.rgb, 0)]]); ctx.fillRect(0, 0, w, h);
+  if (!small) {
+    const seed = card.rank * 31 + card.suit.length * 7 + card.suit.charCodeAt(0), dot = max(0.6, w * 0.008);
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${(0.12 + frac(i * 0.618) * 0.3) * 0.6})`;
+      ctx.fillRect(frac(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) * w, frac(Math.sin(seed * 4.1414 + i * 12.345) * 24634.6345) * h, dot, dot);
+    }
+  }
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = w * 0.06; ctx.shadowOffsetY = w * 0.02;
+  suitPath(ctx, card.suit, ex, ey, er);
+  ctx.fillStyle = lin(ctx, 0, ey - er, 0, ey + er, [[0, c.light], [1, c.main]]);
+  ctx.fill('evenodd');
+  ctx.restore();
+  if (!small && !card.noRank) constellation(ctx, card.rank, w * 0.74, w * 0.3, w * 0.15);
+  ctx.restore();
+  roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
+  ctx.lineWidth = max(1.2, w * 0.022); ctx.strokeStyle = lin(ctx, 0, 0, w, h, GILDED); ctx.stroke();
+  if (!small) {
+    roundRect(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55);
+    ctx.lineWidth = max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(255,240,210,0.2)'; ctx.stroke();
+  }
+  if (card.noRank) return;
+  ctx.save();
+  ctx.font = `800 ${w * 0.49}px ${FONT_B}`;
+  ctx.fillStyle = '#fff8ea'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = w * 0.05; ctx.shadowOffsetY = w * 0.012;
+  centeredText(ctx, String(card.rank), w * 0.255, w * 0.33);
+  ctx.shadowColor = 'transparent';
+  centeredText(ctx, String(card.rank), w * 0.255, w * 0.33);
+  ctx.restore();
+}
+
+// ═══ Рубашка «Гравюра», классика (src/art/backs.ts) ════════════════════════
+const INK = [255, 218, 150];
+function back(ctx, w, h) {
+  const field = ['#2b2168', '#0c0927'], tiny = w < 62, cx = w / 2, cy = h / 2, L = max(0.55, w * 0.0058);
+  const ink = (a) => rgba(INK, tiny ? min(1, a * 1.35) : a);
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = w * 0.08; ctx.shadowOffsetY = w * 0.025;
+  roundRect(ctx, 0, 0, w, h, w * 0.09); ctx.fillStyle = field[1]; ctx.fill();
+  ctx.restore();
+  ctx.save(); roundRect(ctx, 0, 0, w, h, w * 0.09); ctx.clip();
+  ctx.fillStyle = lin(ctx, 0, 0, 0, h, [[0, field[0]], [1, field[1]]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, cx, cy, 0, cx, cy, w * 0.6, [[0, rgba(INK, 0.07)], [1, rgba(INK, 0)]]); ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = rad(ctx, w * 0.3, 0, 0, w * 0.3, 0, w * 1.05, [[0, 'rgba(255,244,220,0.1)'], [1, 'rgba(255,244,220,0)']]); ctx.fillRect(0, 0, w, h);
+  ctx.lineCap = 'round';
+  const R = w * 0.3;
+  ctx.lineWidth = L; ctx.strokeStyle = ink(0.55); circle(ctx, cx, cy, R); ctx.stroke();
+  if (!tiny) {
+    ctx.fillStyle = ink(0.7);
+    for (let i = 0; i < 48; i++) { const a = (i / 48) * TAU; circle(ctx, cx + cos(a) * R * 1.12, cy + sin(a) * R * 1.12, L * 0.75); ctx.fill(); }
+    ctx.strokeStyle = ink(0.3); ctx.beginPath();
+    for (let i = 0; i < 32; i++) { const a = (i / 32) * TAU, l = i % 2 ? 0.62 : 0.94; ctx.moveTo(cx + cos(a) * R * 0.3, cy + sin(a) * R * 0.3); ctx.lineTo(cx + cos(a) * R * l, cy + sin(a) * R * l); }
+    ctx.stroke();
+    ctx.strokeStyle = ink(0.6); ctx.beginPath(); sparklePath(ctx, cx, cy, R * 0.62, 4, 0.3, PI / 4); ctx.stroke();
+  }
+  ctx.fillStyle = lin(ctx, 0, cy - R * 0.6, 0, cy + R * 0.6, GOLD);
+  ctx.beginPath(); sparklePath(ctx, cx, cy, R * (tiny ? 0.78 : 0.6), 4, 0.22); ctx.fill();
+  ctx.restore();
+  const i1 = w * 0.06;
+  ctx.save();
+  ctx.lineWidth = L * 1.3; ctx.strokeStyle = rgba(INK, tiny ? 0.75 : 0.62);
+  ctx.strokeRect(i1, i1, w - 2 * i1, h - 2 * i1);
+  if (!tiny) { ctx.fillStyle = rgba(INK, 0.8); for (const [x, y] of [[i1, i1], [w - i1, i1], [i1, h - i1], [w - i1, h - i1]]) { ctx.beginPath(); sparklePath(ctx, x, y, w * 0.03, 4, 0.3); ctx.fill(); } }
+  ctx.restore();
+  roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, w * 0.09);
+  ctx.lineWidth = max(1.2, w * 0.022); ctx.strokeStyle = lin(ctx, 0, 0, w, h, GILDED); ctx.stroke();
+}
+
+/** Карта по центру (x, y), ширина w, поворот rot. card === 'back' — рубашка. */
+function cardAt(ctx, card, x, y, w, rot = 0, glow = null) {
+  const h = w / 0.7;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot); ctx.translate(-w / 2, -h / 2);
+  if (glow) {
+    ctx.save();
+    ctx.shadowColor = glow; ctx.shadowBlur = w * 0.55;
+    roundRect(ctx, 0, 0, w, h, w * 0.09); ctx.fillStyle = 'rgba(255,220,150,0.35)'; ctx.fill();
+    ctx.restore();
+  }
+  if (card === 'back') back(ctx, w, h); else face(ctx, card, w, h);
+  ctx.restore();
+}
+/** Пустая клетка неба — пунктир, как в игре. */
+function slot(ctx, x, y, w) {
+  const h = w / 0.7;
+  ctx.save();
+  roundRect(ctx, x - w / 2, y - h / 2, w, h, w * 0.09);
+  ctx.fillStyle = 'rgba(10,10,34,0.35)'; ctx.fill();
+  ctx.setLineDash([w * 0.06, w * 0.07]);
+  ctx.lineWidth = max(1, w * 0.014); ctx.strokeStyle = 'rgba(200,195,255,0.16)'; ctx.stroke();
+  ctx.restore();
+}
+/** Светящаяся линия созвездия: широкий мягкий слой, средний и яркая сердцевина. */
+function glowLine(ctx, a, b, rgb, width) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  for (const [k, al] of [[4.5, 0.06], [2.2, 0.18], [1, 0.5], [0.4, 0.95]]) {
+    ctx.strokeStyle = rgba(rgb, al); ctx.lineWidth = width * k;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  }
+  ctx.restore();
+}
+function node(ctx, x, y, r, rgb) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  glowStar(ctx, x, y, r, rgb, 'rgba(255,252,240,1)', 0.6);
+  ctx.restore();
+}
+/** Метка креста «×2» — розовая, как во вспышке креста; спокойная, без длинного свечения. */
+function xPill(ctx, x, y, fs, rot = -0.1) {
+  ctx.save();
+  ctx.font = `800 ${fs}px ${FONT_B}`;
+  const pw = ctx.measureText('×2').width + fs * 0.9, ph = fs * 1.36;
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = fs * 0.4; ctx.shadowOffsetY = fs * 0.08;
+  roundRect(ctx, -pw / 2, -ph / 2, pw, ph, ph / 2);
+  ctx.fillStyle = lin(ctx, 0, -ph / 2, 0, ph / 2, [[0, '#ff86a2'], [1, '#e2456c']]); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.lineWidth = max(1, fs * 0.05); ctx.strokeStyle = 'rgba(255,225,235,0.85)'; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+  centeredText(ctx, '×2', 0, 0);
+  ctx.restore();
+}
+
+// ═══ «Эмаль»: медальон в латунной оправе (src/art/enamel.ts) ═══════════════
+const MOTIF = {
+  starlight: (ctx, s) => { ctx.beginPath(); sparklePath(ctx, 0, 0, s * 1.12, 4, 0.27); sparklePath(ctx, s * 0.74, -s * 0.74, s * 0.24, 4, 0.3); sparklePath(ctx, -s * 0.72, s * 0.7, s * 0.17, 4, 0.3); ctx.fill(); },
+  bigStar: (ctx, s) => { ctx.beginPath(); sparklePath(ctx, 0, 0, s * 1.2, 4, 0.26); ctx.fill(); },
+  sun: (ctx, s, cut) => { ctx.beginPath(); sunPath(ctx, 0, 0, s * 1.05); ctx.fill('evenodd'); },
+  moon: (ctx, s) => { ctx.beginPath(); moonPath(ctx, -s * 0.12, 0, s * 1.08); ctx.fill(); },
+  twin: (ctx, s) => { ctx.beginPath(); sparklePath(ctx, -s * 0.46, 0, s * 0.58); sparklePath(ctx, s * 0.46, 0, s * 0.58); ctx.fill(); },
+};
+function brassBezel(ctx) {
+  return lin(ctx, -47, -47, 47, 47, [[0, '#fff6d8'], [0.3, '#f2b84e'], [0.56, '#9a5410'], [0.8, '#ffcf6a'], [1, '#fff2cc']]);
+}
+/** Медальон радиусом R по центру (x, y). o: fam, motif, s (размер знака), beads, crown, detail. */
+function medal(ctx, x, y, R, o = {}) {
+  const f = ENAMEL[o.fam || 'lapis'], er = 41, detail = o.detail !== false, s = o.s || 23.5;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(R / 47, R / 47);
+  ctx.globalAlpha = 0.45; ctx.fillStyle = '#000'; circle(ctx, 0, 1.8, 49.5); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.fillStyle = brassBezel(ctx); circle(ctx, 0, 0, 47); ctx.fill();
+  if (detail) { ctx.strokeStyle = 'rgba(255,247,220,0.55)'; ctx.lineWidth = 0.8; circle(ctx, 0, 0, 46.3); ctx.stroke(); }
+  ctx.fillStyle = rad(ctx, 0, -er * 0.4, 0, 0, -er * 0.4, er * 1.56, [[0, mixHex(f.base, '#ffffff', 0.08)], [0.5, mixHex(f.base, f.deep, 0.5)], [1, f.deep]]);
+  circle(ctx, 0, 0, er); ctx.fill();
+  if (detail) {
+    ctx.strokeStyle = f.hi; ctx.globalAlpha = 0.08; ctx.lineWidth = 0.7; ctx.beginPath();
+    for (let i = 0; i < 48; i++) { const a = (i / 48) * TAU; ctx.moveTo(cos(a) * 9, sin(a) * 9); ctx.lineTo(cos(a) * 40, sin(a) * 40); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = rad(ctx, 0, 0, 0, 0, 0, er, [[0.78, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]); circle(ctx, 0, 0, er); ctx.fill();
+  ctx.strokeStyle = 'rgba(42,24,4,0.8)'; ctx.lineWidth = 1.4; circle(ctx, 0, 0, er + 0.2); ctx.stroke();
+  // Золотой рельеф: тень снизу, затем знак золотым градиентом
+  const motif = MOTIF[o.motif || 'starlight'];
+  ctx.save(); ctx.translate(0, 2.2); ctx.globalAlpha = 0.55; ctx.fillStyle = '#000'; motif(ctx, s); ctx.restore();
+  ctx.fillStyle = lin(ctx, 0, -s, 0, s, GOLD); motif(ctx, s);
+  if (o.beads) {
+    ctx.fillStyle = 'rgba(255,244,208,0.85)';
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * TAU - PI / 2;
+      if (o.crown && abs(a + PI / 2) < 0.2) continue;
+      circle(ctx, cos(a) * 44, sin(a) * 44, o.beadR || 1.05); ctx.fill();
+    }
+  }
+  if (o.crown) {
+    ctx.beginPath(); sparklePath(ctx, 0, -44, o.crownR || 6.2, 4, 0.3);
+    ctx.fillStyle = '#fffbe8'; ctx.fill(); ctx.strokeStyle = '#8a5a14'; ctx.lineWidth = 0.6; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══ Купол обсерватории (src/ui/screens/menu.ts drawDome) ══════════════════
+function slitPath(ctx, x0, x1, y0, yb) {
+  const r = (x1 - x0) / 2;
+  ctx.beginPath();
+  ctx.moveTo(x0, yb); ctx.lineTo(x0, y0 + r);
+  ctx.arc((x0 + x1) / 2, y0 + r, r, PI, 0);
+  ctx.lineTo(x1, yb); ctx.closePath();
+}
+/** Оболочка купола: тёмная заливка, кольца и рёбра латунью; o.rib — прозрачность, o.lw — толщина. */
+function domeShell(ctx, W, H, x0, x1, y0, yb, o = {}) {
+  const sw = x1 - x0, sh = yb - y0, r = sw / 2;
+  ctx.fillStyle = rad(ctx, W / 2, H * 0.22, 0, W / 2, H * 0.22, max(W, H) * 0.9, [[0, '#1d1a52'], [0.45, '#0d0b2a'], [1, '#05040f']]);
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.strokeStyle = `rgba(246,194,91,${o.rib ?? 0.08})`; ctx.lineWidth = o.lw ?? 1;
+  ctx.beginPath();
+  for (let i = 1; i <= 9; i++) {
+    const ry = sh * 0.55 + i * i * (H / (o.ringK ?? 70));
+    ctx.moveTo(W / 2 + ry * 1.25, y0 - sh * 0.25);
+    ctx.ellipse(W / 2, y0 - sh * 0.25, ry * 1.25, ry, 0, 0, TAU);
+  }
+  const R = max(W, H) * 1.05;
+  for (let i = -6; i <= 6; i++) {
+    if (!i) continue;
+    const a = i * 0.2;
+    ctx.moveTo(W / 2 + Math.sign(i) * r, 0); ctx.lineTo(W / 2 + sin(a) * R, cos(a) * R * 0.9);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+/** Небо в щели: синее, светлее кверху, с пылью. */
+function slitSky(ctx, W, H, x0, x1, y0, yb, seed, dust = 1) {
+  ctx.save();
+  slitPath(ctx, x0, x1, y0, yb); ctx.clip();
+  const sw = x1 - x0, sh = yb - y0;
+  ctx.fillStyle = lin(ctx, 0, y0, 0, yb, [[0, '#121543'], [0.55, '#172a66'], [1, '#1c2f72']]);
+  ctx.fillRect(x0, y0, sw, sh);
+  ctx.globalCompositeOperation = 'lighter';
+  halo(ctx, x0 + sw * 0.75, y0 + sh * 0.18, sw * 0.6, [140, 70, 200], 0.16);
+  halo(ctx, x0 + sw * 0.3, y0 + sh * 0.7, sw * 0.7, [50, 110, 230], 0.18);
+  const r = rand(seed);
+  for (let i = 0; i < 160 * dust; i++) {
+    ctx.fillStyle = `rgba(220,225,255,${0.12 + r() * 0.4})`;
+    circle(ctx, x0 + r() * sw, y0 + r() * sh, (0.35 + r() * 0.7) * max(1, sw / 260)); ctx.fill();
+  }
+  ctx.restore();
+}
+function slitRim(ctx, x0, x1, y0, yb, lw, a = 0.55) {
+  slitPath(ctx, x0, x1, y0, yb);
+  ctx.save();
+  ctx.lineWidth = lw; ctx.strokeStyle = `rgba(246,194,91,${a})`;
+  // Обводим только дугу и боковины: низ щели — подоконник
+  ctx.beginPath();
+  const r = (x1 - x0) / 2;
+  ctx.moveTo(x0, yb); ctx.lineTo(x0, y0 + r); ctx.arc((x0 + x1) / 2, y0 + r, r, PI, 0); ctx.lineTo(x1, yb);
+  ctx.stroke();
+  ctx.restore();
+}
+/** Подоконник: светящаяся линия, ярче в центре и гаснет к краям. */
+function sillLine(ctx, cx, y, w, th, a = 0.9) {
+  ctx.save();
+  ctx.fillStyle = lin(ctx, cx - w / 2, 0, cx + w / 2, 0, [[0, 'rgba(246,194,91,0)'], [0.5, `rgba(255,230,168,${a})`], [1, 'rgba(246,194,91,0)']]);
+  ctx.fillRect(cx - w / 2, y - th / 2, w, th);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = rad(ctx, cx, y, 0, cx, y, w * 0.3, [[0, 'rgba(255,214,140,0.16)'], [1, 'rgba(255,214,140,0)']]);
+  ctx.save(); ctx.translate(cx, y); ctx.scale(1, 0.18); ctx.translate(-cx, -y); ctx.fillRect(cx - w * 0.3, y - w * 0.3, w * 0.6, w * 0.6); ctx.restore();
+  ctx.restore();
+}
+/** Созвездие из щели: белые звёзды, тонкие золотые линии (как .dome-figure). */
+function skyFigure(ctx, fig, x, y, w, h, k = 1) {
+  const P = fig.stars.map(([sx, sy, mag]) => [x + (sx / 100) * w, y + (sy / 100) * h, mag]);
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(246,194,91,0.7)'; ctx.lineWidth = 1.2 * k;
+  ctx.beginPath();
+  for (const [a, b] of fig.lines) { ctx.moveTo(P[a][0], P[a][1]); ctx.lineTo(P[b][0], P[b][1]); }
+  ctx.stroke();
+  for (const [px, py, mag] of P) {
+    const r = max(1.4, 3.6 - mag * 0.55) * k;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = rad(ctx, px, py, 0, px, py, r * 4, [[0, 'rgba(255,240,210,0.45)'], [1, 'rgba(255,240,210,0)']]);
+    circle(ctx, px, py, r * 4); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#fff'; circle(ctx, px, py, r); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ═══ Название и строка ═════════════════════════════════════════════════════
+function fitTitle(ctx, lines, maxW, start, spacing = 0.12) {
+  let size = start;
+  const widest = () => { ctx.font = `400 ${size}px ${FONT_D}`; ctx.letterSpacing = `${size * spacing}px`; return max(...lines.map((l) => ctx.measureText(l).width - size * spacing)); };
+  while (widest() > maxW && size > 10) size *= 0.97;
+  ctx.letterSpacing = '0px';
+  return size;
+}
+/** Название цветом логотипа меню (.logo-main): светлое золото → золото, тихое свечение. */
+function wordmark(ctx, lines, cx, y0, size, lineH, spacing = 0.12, glow = 0.5) {
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `400 ${size}px ${FONT_D}`;
+  ctx.letterSpacing = `${size * spacing}px`;
+  lines.forEach((line, i) => {
+    const y = y0 + i * lineH;
+    const g = lin(ctx, 0, y - size * 0.75, 0, y + size * 0.05, [[0, '#fff6dc'], [0.6, '#f6c25b'], [1, '#c98a2a']]);
+    const x = cx + (size * spacing) / 2; // letterSpacing добавляет интервал и после последней буквы
+    ctx.save();
+    ctx.shadowColor = `rgba(246,194,91,${glow})`; ctx.shadowBlur = size * 0.3;
+    ctx.fillStyle = g; ctx.fillText(line, x, y);
+    ctx.restore();
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = size * 0.08; ctx.shadowOffsetY = size * 0.03;
+    ctx.fillStyle = g; ctx.fillText(line, x, y);
+    ctx.restore();
+  });
+  ctx.restore();
+}
+function tagline(ctx, lines, cx, y0, size, lineH, color = '#efeaff') {
+  ctx.save();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `600 ${size}px ${FONT_B}`;
+  ctx.fillStyle = color;
+  ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = size * 0.5;
+  lines.forEach((l, i) => ctx.fillText(l, cx, y0 + i * lineH));
+  ctx.restore();
+}
+/** Блок «название · подоконник · строка» по центру (cx, cy) шириной maxW. */
+function titleBlock(ctx, lang, cx, cy, maxW, maxSize, tagMin = 19) {
+  const T = TEXT[lang];
+  const size = fitTitle(ctx, T.title, maxW, maxSize);
+  const lineH = size * 1.0;
+  const tag = Math.max(tagMin, min(24, size * 0.34));
+  ctx.font = `600 ${tag}px ${FONT_B}`;
+  let ts = tag;
+  while (max(...T.tag.map((l) => { ctx.font = `600 ${ts}px ${FONT_B}`; return ctx.measureText(l).width; })) > maxW && ts > 12) ts *= 0.97;
+  const tagLH = ts * 1.32;
+  const gap1 = size * 0.36, gap2 = ts * 1.35;
+  const capH = size * 0.7;
+  const blockH = capH + (T.title.length - 1) * lineH + gap1 + gap2 + (T.tag.length - 1) * tagLH + ts * 0.25;
+  const top = cy - blockH / 2;
+  const base0 = top + capH;
+  wordmark(ctx, T.title, cx, base0, size, lineH);
+  const sy = base0 + (T.title.length - 1) * lineH + gap1;
+  sillLine(ctx, cx, sy, min(maxW, size * 4.2), max(1.5, size * 0.03));
+  ctx.save(); ctx.fillStyle = '#ffe3a6'; ctx.beginPath(); sparklePath(ctx, cx, sy, size * 0.1, 4, 0.25); ctx.fill(); ctx.restore();
+  tagline(ctx, T.tag, cx, sy + gap2 + ts * 0.25, ts, tagLH);
+  return { size, ts };
+}
+
+// ═══ Вариант 1 «Печать» ════════════════════════════════════════════════════
+// Знак — медальон «Эмали» с золотой звездой: тот же предмет, что Знамения в игре.
+function avatarSeal(ctx, s) {
+  const c = s / 2;
+  ctx.fillStyle = rad(ctx, c, c * 0.85, 0, c, c, s * 0.72, [[0, '#211c5c'], [0.5, '#0f0d33'], [1, '#05040f']]);
+  ctx.fillRect(0, 0, s, s);
+  // Тонкая гравюра неба вокруг: кольцо со шкалой, как на рубашке «Гравюра»
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,218,150,0.16)'; ctx.lineWidth = s * 0.0025;
+  circle(ctx, c, c, s * 0.475); ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i < 72; i++) { const a = (i / 72) * TAU, l = i % 6 === 0 ? 0.035 : 0.018; ctx.moveTo(c + cos(a) * s * 0.475, c + sin(a) * s * 0.475); ctx.lineTo(c + cos(a) * s * (0.475 - l), c + sin(a) * s * (0.475 - l)); }
+  ctx.stroke();
+  ctx.restore();
+  starsField(ctx, s, s, 34, 5, s * 0.0016, 0.6);
+  halo(ctx, c, c, s * 0.5, [246, 194, 91], 0.14);
+  medal(ctx, c, c, s * 0.4, { fam: 'night', motif: 'starlight', s: 26.5, beads: true, crown: true, beadR: 1.15, crownR: 6.6 });
+}
+/** Обложка: слева название, справа веер колоды с медальоном-печатью у основания. */
+function coverSeal(ctx, w, h, lang) {
+  nebula(ctx, w, h, 31);
+  const px = w * 0.75, py = h * 1.0;
+  halo(ctx, px, h * 0.5, h * 0.62, [246, 170, 70], 0.2);
+  halo(ctx, px - w * 0.1, h * 0.6, h * 0.7, [120, 80, 255], 0.14);
+  const cw = h * 0.25, R = h * 0.56;
+  const fan = ['back', { suit: 'moon', rank: 5 }, { suit: 'sun', rank: 9 }, { suit: 'star', rank: 7 }, { suit: 'comet', rank: 3 }];
+  fan.forEach((card, i) => {
+    const a = (i - 2) * 0.22;
+    cardAt(ctx, card, px + sin(a) * R, py - cos(a) * R, cw, a);
+  });
+  medal(ctx, px, h * 0.83, h * 0.15, { fam: 'night', motif: 'starlight', s: 26.5, beads: true, crown: true, beadR: 1.15, crownR: 6.6 });
+  titleBlock(ctx, lang, w * 0.25, h * 0.5, w * 0.4, h * 0.2);
+}
+/** Описание: «рука → небо». Карта летит из руки на небо 4×4, линия загорается; справа Знамения медальонами. */
+function descSeal(ctx, w, h) {
+  nebula(ctx, w, h, 12);
+  const cw = h * 0.165, ch = cw / 0.7, g = cw * 0.1;
+  const bx = w * 0.36, by = h * 0.5;
+  halo(ctx, bx, by, h * 0.6, [120, 80, 255], 0.12);
+  const cell = (c, r) => [bx + (c - 1.5) * (cw + g), by + (r - 1.5) * (ch + g)];
+  const filled = {
+    '0,0': { suit: 'moon', rank: 2 }, '3,0': { suit: 'comet', rank: 6 },
+    '0,1': { suit: 'sun', rank: 4 }, '1,1': { suit: 'sun', rank: 6 }, '2,1': { suit: 'sun', rank: 8 }, '3,1': { suit: 'sun', rank: 5 },
+    '1,2': { suit: 'star', rank: 3 }, '3,3': { suit: 'moon', rank: 7 },
+  };
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const [x, y] = cell(c, r);
+    if (filled[`${c},${r}`]) cardAt(ctx, filled[`${c},${r}`], x, y, cw);
+    else slot(ctx, x, y, cw);
+  }
+  const [ax, ay] = cell(0, 1), [bx2] = cell(3, 1);
+  glowLine(ctx, [ax - cw * 0.7, ay], [bx2 + cw * 0.7, ay], [255, 214, 130], cw * 0.045);
+  for (let c = 0; c < 4; c++) { const [x, y] = cell(c, 1); node(ctx, x, y, cw * 0.06, [255, 214, 130]); }
+  // Знамения — три медальона колонкой справа
+  const mx = w * 0.79, mr = h * 0.105;
+  [['sun', 'sun', -1], ['moon', 'moon', 0], ['star', 'twin', 1]].forEach(([fam, motif, k]) => medal(ctx, mx, h * 0.5 + k * mr * 2.45, mr, { fam, motif, s: 23.5 }));
+  // Тонкие латунные нити от медальонов к линии
+  ctx.save();
+  ctx.strokeStyle = 'rgba(246,194,91,0.35)'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]);
+  for (const k of [-1, 0, 1]) { ctx.beginPath(); ctx.moveTo(mx - mr * 1.15, h * 0.5 + k * mr * 2.45); ctx.lineTo(bx2 + cw * 0.75, ay); ctx.stroke(); }
+  ctx.restore();
+}
+
+// ═══ Вариант 2 «Крест» ═════════════════════════════════════════════════════
+// Знак — сам главный момент игры: пять карт крестом, обе линии горят через центр.
+function avatarCross(ctx, s) {
+  const c = s / 2;
+  nebula(ctx, s, s, 47, NEB, 900);
+  ctx.fillStyle = rad(ctx, c, c, s * 0.2, c, c, s * 0.72, [[0, 'rgba(8,8,30,0)'], [1, 'rgba(5,4,15,0.7)']]);
+  ctx.fillRect(0, 0, s, s);
+  // Светлое небо под крестом — тёмные лица карт отделяются от фона и в 32 px
+  halo(ctx, c, c, s * 0.5, [120, 100, 255], 0.3);
+  halo(ctx, c, c, s * 0.4, [246, 180, 80], 0.5);
+  const cw = s * 0.19, ch = cw / 0.7, g = s * 0.012;
+  const dx = cw + g, dy = ch + g;
+  const lw = s * 0.011;
+  glowLine(ctx, [c - dx * 1.62, c], [c + dx * 1.62, c], [205, 185, 255], lw);
+  glowLine(ctx, [c, c - dy * 1.5], [c, c + dy * 1.5], [255, 214, 130], lw);
+  cardAt(ctx, { suit: 'star', rank: 9 }, c - dx, c, cw);
+  cardAt(ctx, { suit: 'moon', rank: 9 }, c + dx, c, cw);
+  cardAt(ctx, { suit: 'sun', rank: 7 }, c, c - dy, cw);
+  cardAt(ctx, { suit: 'sun', rank: 3 }, c, c + dy, cw);
+  glowLine(ctx, [c - dx * 1.62, c], [c - cw * 0.6, c], [205, 185, 255], lw * 0.8);
+  glowLine(ctx, [c + cw * 0.6, c], [c + dx * 1.62, c], [205, 185, 255], lw * 0.8);
+  glowLine(ctx, [c, c - dy * 1.5], [c, c - ch * 0.6], [255, 214, 130], lw * 0.8);
+  glowLine(ctx, [c, c + ch * 0.6], [c, c + dy * 1.5], [255, 214, 130], lw * 0.8);
+  cardAt(ctx, { suit: 'sun', rank: 9 }, c, c, cw * 1.16, 0, 'rgba(255,205,120,1)');
+}
+function crossFigure(ctx, cx, cy, cw, opts = {}) {
+  const ch = cw / 0.7, dx = cw * 1.12, dy = ch * 1.06, lw = cw * 0.035;
+  halo(ctx, cx, cy, cw * 3.2, [246, 170, 70], 0.28);
+  const row = [[{ suit: 'star', rank: 9 }, cx - dx, cy], [{ suit: 'moon', rank: 9 }, cx + dx, cy]];
+  const col = [[{ suit: 'sun', rank: 7 }, cx, cy - dy], [{ suit: 'sun', rank: 3 }, cx, cy + dy]];
+  for (const [card, x, y] of [...row, ...col]) cardAt(ctx, card, x, y, cw);
+  glowLine(ctx, [cx - dx * 1.45, cy], [cx + dx * 1.45, cy], [200, 180, 255], lw);
+  glowLine(ctx, [cx, cy - dy * 1.38], [cx, cy + dy * 1.38], [255, 214, 130], lw);
+  cardAt(ctx, { suit: 'sun', rank: 9 }, cx, cy, cw * 1.08, 0, 'rgba(255,200,110,0.95)');
+  for (const [, x, y] of row) node(ctx, x, y, cw * 0.055, [200, 180, 255]);
+  for (const [, x, y] of col) node(ctx, x, y, cw * 0.055, [255, 214, 130]);
+  if (opts.pill !== false) xPill(ctx, cx + cw * 1.12, cy - ch * 0.82, cw * 0.36);
+}
+/** Обложка: слева название, справа настоящий крест «Тройка × Флеш» с меткой ×2. */
+function coverCross(ctx, w, h, lang) {
+  nebula(ctx, w, h, 31);
+  halo(ctx, w * 0.18, h * 0.3, h * 0.8, [60, 120, 255], 0.1);
+  const vig = rad(ctx, w * 0.72, h * 0.5, h * 0.4, w / 2, h / 2, hypot(w, h) * 0.65, [[0, 'rgba(0,0,10,0)'], [1, 'rgba(0,0,10,0.5)']]);
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, w, h);
+  crossFigure(ctx, w * 0.73, h * 0.5, h * 0.2);
+  titleBlock(ctx, lang, w * 0.265, h * 0.5, w * 0.43, h * 0.2);
+}
+/** Описание: небо 4×4 в момент креста — ряд и столбец горят, центр ×2. */
+function descCross(ctx, w, h) {
+  nebula(ctx, w, h, 9);
+  const cw = h * 0.15, ch = cw / 0.7, g = cw * 0.1;
+  const bx = w * 0.5, by = h * 0.5;
+  const cell = (c, r) => [bx + (c - 1.5) * (cw + g), by + (r - 1.5) * (ch + g)];
+  halo(ctx, ...cell(2, 1), h * 0.55, [246, 170, 70], 0.22);
+  const filled = {
+    '0,1': { suit: 'star', rank: 9 }, '1,1': { suit: 'comet', rank: 9 }, '3,1': { suit: 'moon', rank: 9 },
+    '2,0': { suit: 'sun', rank: 7 }, '2,2': { suit: 'sun', rank: 3 }, '2,3': { suit: 'sun', rank: 5 },
+    '0,3': { suit: 'moon', rank: 4 }, '3,3': { suit: 'comet', rank: 2 }, '0,0': { suit: 'star', rank: 6 },
+  };
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+    const [x, y] = cell(c, r);
+    if (c === 2 && r === 1) continue;
+    if (filled[`${c},${r}`]) cardAt(ctx, filled[`${c},${r}`], x, y, cw);
+    else slot(ctx, x, y, cw);
+  }
+  const [cx, cy] = cell(2, 1);
+  const [l] = cell(0, 1), [rr] = cell(3, 1), [, t] = cell(2, 0), [, b] = cell(2, 3);
+  glowLine(ctx, [l - cw * 0.7, cy], [rr + cw * 0.7, cy], [200, 180, 255], cw * 0.045);
+  glowLine(ctx, [cx, t - ch * 0.62], [cx, b + ch * 0.62], [255, 214, 130], cw * 0.045);
+  cardAt(ctx, { suit: 'sun', rank: 9 }, cx, cy, cw * 1.1, 0, 'rgba(255,200,110,0.95)');
+  for (let c = 0; c < 4; c++) if (c !== 2) node(ctx, cell(c, 1)[0], cy, cw * 0.06, [200, 180, 255]);
+  for (let r = 0; r < 4; r++) if (r !== 1) node(ctx, cx, cell(2, r)[1], cw * 0.06, [255, 214, 130]);
+  xPill(ctx, cx + cw * 1.05, cy - ch * 0.7, cw * 0.4);
+  // Рука под небом — три карты веером по краям кадра
+  cardAt(ctx, 'back', w * 0.15, h * 0.52, cw * 1.15, -0.1);
+  cardAt(ctx, { suit: 'comet', rank: 8 }, w * 0.85, h * 0.52, cw * 1.15, 0.1);
+}
+
+// ═══ Вариант 3 «Купол» ═════════════════════════════════════════════════════
+// Знак — щель купола с главной: арка неба в латунной кромке, в ней звезда.
+function avatarDome(ctx, s) {
+  const x0 = s * 0.27, x1 = s * 0.73, y0 = s * 0.15, yb = s * 0.79;
+  domeShell(ctx, s, s, x0, x1, y0, yb, { rib: 0.16, lw: s * 0.003, ringK: 40 });
+  slitSky(ctx, s, s, x0, x1, y0, yb, 3, 1.4);
+  ctx.save();
+  slitPath(ctx, x0, x1, y0, yb); ctx.clip();
+  // Созвездие вокруг звезды — тонкие линии гаснут на мелких размерах, звезда остаётся
+  const cx = s / 2, cy = s * 0.43;
+  const pts = [[cx - s * 0.13, cy + s * 0.2], [cx - s * 0.09, cy - s * 0.04], [cx, cy], [cx + s * 0.12, cy - s * 0.12], [cx + s * 0.1, cy + s * 0.15]];
+  ctx.strokeStyle = 'rgba(246,194,91,0.75)'; ctx.lineWidth = s * 0.006; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(...pts[0]); ctx.lineTo(...pts[1]); ctx.lineTo(...pts[2]); ctx.lineTo(...pts[3]); ctx.moveTo(...pts[2]); ctx.lineTo(...pts[4]); ctx.stroke();
+  for (const [i, p] of pts.entries()) if (i !== 2) { ctx.globalCompositeOperation = 'lighter'; glowStar(ctx, p[0], p[1], s * 0.012, [255, 240, 210], '#fff', 0.5); ctx.globalCompositeOperation = 'source-over'; }
+  halo(ctx, cx, cy, s * 0.22, [255, 214, 140], 0.45);
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,220,150,0.9)'; ctx.shadowBlur = s * 0.05;
+  ctx.fillStyle = lin(ctx, 0, cy - s * 0.12, 0, cy + s * 0.12, [[0, '#fffbea'], [0.5, '#ffe6a8'], [1, '#f6c25b']]);
+  ctx.beginPath(); sparklePath(ctx, cx, cy, s * 0.13, 4, 0.24); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  slitRim(ctx, x0, x1, y0, yb, s * 0.008, 0.85);
+  sillLine(ctx, s / 2, yb, s * 0.78, s * 0.011, 1);
+  // Пульт под щелью: латунная волосяная линия и тихий свет
+
+}
+/** Обложка: главная игры в ландшафте — щель с Большой Медведицей и веером карт, название на подоконнике. */
+function coverDome(ctx, w, h, lang) {
+  const sw = h * 0.6, x0 = w * 0.27 - sw / 2, x1 = x0 + sw, y0 = h * 0.07, yb = h * 0.93;
+  domeShell(ctx, w, h, x0, x1, y0, yb, { rib: 0.1, lw: 1, ringK: 30 });
+  slitSky(ctx, w, h, x0, x1, y0, yb, 21, 1.2);
+  ctx.save();
+  slitPath(ctx, x0, x1, y0, yb); ctx.clip();
+  skyFigure(ctx, BIG_DIPPER, x0 + sw * 0.08, y0 + sw * 0.32, sw * 0.84, sw * 0.42, 1.05);
+  // Рука: три карты встают над подоконником
+  const cw = h * 0.15, px = (x0 + x1) / 2, py = yb + h * 0.32;
+  [[{ suit: 'moon', rank: 9 }, -0.3], [{ suit: 'star', rank: 9 }, 0.3], [{ suit: 'sun', rank: 9 }, 0]].forEach(([card, a]) => cardAt(ctx, card, px + sin(a) * h * 0.5, py - cos(a) * h * 0.5, cw, a));
+  ctx.restore();
+  slitRim(ctx, x0, x1, y0, yb, 1.6, 0.6);
+  sillLine(ctx, (x0 + x1) / 2, yb, sw * 1.5, 2);
+  titleBlock(ctx, lang, w * 0.71, h * 0.5, w * 0.48, h * 0.2);
+}
+/** Описание: в щели — звёзды-карты, линия между ними — созвездие. */
+function descDome(ctx, w, h) {
+  const sw = w * 0.64, x0 = (w - sw) / 2, x1 = x0 + sw, y0 = -sw * 0.04, yb = h * 0.9;
+  domeShell(ctx, w, h, x0, x1, y0, yb, { rib: 0.1, lw: 1, ringK: 30 });
+  slitSky(ctx, w, h, x0, x1, y0, yb, 33, 2);
+  ctx.save();
+  slitPath(ctx, x0, x1, y0, yb); ctx.clip();
+  const cw = h * 0.16;
+  const P = [[w * 0.3, h * 0.66, { suit: 'star', rank: 5 }, -0.12], [w * 0.42, h * 0.42, { suit: 'star', rank: 8 }, 0.05], [w * 0.58, h * 0.52, { suit: 'star', rank: 2 }, -0.04], [w * 0.7, h * 0.3, { suit: 'star', rank: 9 }, 0.1]];
+  halo(ctx, w * 0.5, h * 0.48, h * 0.55, [170, 130, 255], 0.2);
+  for (let i = 0; i < P.length - 1; i++) glowLine(ctx, [P[i][0], P[i][1]], [P[i + 1][0], P[i + 1][1]], [205, 185, 255], cw * 0.04);
+  for (const [x, y, card, a] of P) cardAt(ctx, card, x, y, cw, a);
+  for (let i = 0; i < P.length - 1; i++) glowLine(ctx, [P[i][0], P[i][1]], [P[i + 1][0], P[i + 1][1]], [205, 185, 255], cw * 0.025);
+  for (const [x, y] of P) node(ctx, x, y, cw * 0.06, [205, 185, 255]);
+  skyFigure(ctx, { stars: [[20, 18, 2.2], [32, 12, 3], [44, 20, 2.6]], lines: [[0, 1], [1, 2]] }, x0, y0, sw, h * 0.6, 0.9);
+  ctx.restore();
+  slitRim(ctx, x0, x1, y0, yb, 1.6, 0.6);
+  sillLine(ctx, w / 2, yb, sw * 1.3, 2);
+}
+
+// ═══ Сборка страницы ═══════════════════════════════════════════════════════
+const VARIANTS = [
+  { id: 'seal', name: 'Печать', n: 1, avatar: avatarSeal, cover: coverSeal, desc: descSeal,
+    idea: '<b>Знак — медальон «Эмали»:</b> золотая звезда рельефом в латунной оправе с бусинами и короной, вокруг — гравированная шкала неба. Тот же предмет, что Знамения в игре; на обложке он печатью лежит у основания веера колоды.' },
+  { id: 'cross', name: 'Крест', n: 2, avatar: avatarCross, cover: coverCross, desc: descCross,
+    idea: '<b>Знак — сам главный момент игры:</b> пять настоящих карт «Неба масти» крестом, золотой столбец и сиреневый ряд горят через центр. Силуэт «плюс» узнаётся даже в 32 px и сразу говорит «карты на сетке».' },
+  { id: 'dome', name: 'Купол', n: 3, avatar: avatarDome, cover: coverDome, desc: descDome,
+    idea: '<b>Знак — щель купола с главной:</b> арка ночного неба в латунной кромке, в ней золотая звезда и нить созвездия, снизу подоконник. Игрок узнаёт этот вид, открыв игру; обложка — главная экрана в ландшафте.' },
+];
+const OTHERS_DARK = [
+  { ini: 'А', col: 'linear-gradient(#7bc862,#4fae4e)', name: 'Андрей', msg: 'Скинул тебе свой расклад, побей 2 310', time: '12:41', badge: 2 },
+  { bot: true, name: 'Звёздное плетение', msg: 'Вызов дня готов: глава I, Затмение «Туман». Сыграешь?', time: '12:30', badge: 1 },
+  { ini: 'М', col: 'linear-gradient(#e17076,#d4505a)', name: 'Мама', msg: 'Позвони, как освободишься', time: '11:05' },
+  { ini: 'Р', col: 'linear-gradient(#65aadd,#3e8cd0)', name: 'Работа · дизайн', msg: 'Ксения: макеты в папке, гляньте до вечера', time: '10:12' },
+  { ini: 'К', col: 'linear-gradient(#faa774,#f08a4b)', name: 'Кино по пятницам', msg: 'Голосуем за фильм на эту неделю', time: 'Вт' },
+];
+const DESC_RU = 'Звёздное плетение — карточная головоломка о созвездиях. Выкладывай звёзды на небо 4×4, собирай линии, плети кресты и пройди восемь глав с Затмениями.';
+const DESC_EN = 'Starweave is a card puzzle about constellations. Place stars on a 4×4 sky, light up lines, weave crosses and survive eight chapters of Eclipses.';
+
+function render(fn, w, h, scale, ...args) {
+  const cv = document.createElement('canvas');
+  cv.width = round(w * scale); cv.height = round(h * scale);
+  const ctx = cv.getContext('2d');
+  ctx.scale(scale, scale);
+  fn(ctx, ...args);
+  return new Promise((res) => cv.toBlob((b) => res(URL.createObjectURL(b)), 'image/png'));
+}
+
+function chatList(theme, av) {
+  const rows = OTHERS_DARK.map((c) => {
+    const ava = c.bot ? `<img class="ava" src="${av}" alt="">` : `<div class="ava" style="background:${c.col}">${c.ini}</div>`;
+    return `<div class="chat${c.bot ? ' me' : ''}">${ava}<div class="body"><div class="top"><div class="name">${c.name}</div><div class="time">${c.time}</div></div><div class="msg">${c.badge ? `<span class="badge">${c.badge}</span>` : ''}${c.msg}</div></div></div>`;
+  }).join('');
+  return `<div class="mock chats ${theme}"><div class="bar"><span>Изм.</span>Чаты<span>&nbsp;&nbsp;&nbsp;&nbsp;</span></div>${rows}</div>`;
+}
+function linkPreview(theme, cover, lang, compact) {
+  const t = lang === 'ru' ? { site: 'Telegram', title: 'Звёздное плетение', d: 'Сплетай созвездия. Переживи Затмения.', from: 'Андрей', msg: 'Сыграй тот же расклад, что и я:', btn: 'Играть' }
+    : { site: 'Telegram', title: 'Starweave', d: 'Weave constellations. Outlast the eclipses.', from: 'Andrew', msg: 'Play the very same deal I did:', btn: 'Play' };
+  const lp = compact
+    ? `<div class="lp compact"><div><div class="site">${t.site}</div><div class="t">${t.title}</div><div class="d">${t.d}</div></div><img src="${cover}" alt=""></div>`
+    : `<div class="lp"><div class="site">${t.site}</div><div class="t">${t.title}</div><div class="d">${t.d}</div><img class="big" src="${cover}" alt=""></div>`;
+  return `<div class="mock chatbg ${theme}"><div class="bubble"><div class="from">${t.from}</div>${t.msg} <a href="#">t.me/starweave_game_bot/play</a>${lp}<div class="meta">12:41</div></div><div class="ikb">${t.btn}</div></div>`;
+}
+function emptyChat(theme, av, desc, lang) {
+  const t = lang === 'ru' ? { hd: 'Что умеет этот бот?', st: 'бот', start: 'СТАРТ', d: DESC_RU } : { hd: 'What can this bot do?', st: 'bot', start: 'START', d: DESC_EN };
+  const pic = desc ? `<img src="${desc}" alt="">` : '<div class="none">картинки описания сейчас нет</div>';
+  return `<div class="mock phone ${theme}"><div class="ph-head"><div class="back"></div><div><div class="nm">${lang === 'ru' ? 'Звёздное плетение' : 'Starweave'}</div><div class="st">${t.st}</div></div><img src="${av}" alt=""></div><div class="ph-body"><div class="what">${pic}<div class="tx"><div class="hd">${t.hd}</div>${t.d}</div></div></div><div class="ph-foot">${t.start}</div></div>`;
+}
+function sizes(av) {
+  const imgs = (cls) => [96, 48, 32].map((s) => `<img class="${cls}" src="${av}" width="${s}" height="${s}" alt="">`).join('');
+  return `<div class="sizes">
+    <div class="sz-row dark"><div class="tag">Круг 96 · 48 · 32 и иконка · ночь iOS</div>${imgs('')}<span class="gap"></span>${[180, 64, 32].map((s) => `<img class="sq" src="${av}" width="${s === 180 ? 96 : s}" height="${s === 180 ? 96 : s}" alt="">`).join('')}</div>
+    <div class="sz-row tgd"><div class="tag">Круг · ночь Android и десктоп</div>${imgs('')}</div>
+    <div class="sz-row light"><div class="tag">Круг и иконка · светлая тема</div>${imgs('')}<span class="gap"></span>${[96, 64, 32].map((s) => `<img class="sq" src="${av}" width="${s}" height="${s}" alt="">`).join('')}</div>
+  </div>`;
+}
+function block({ id, kicker, name, idea, av, ru, en, desc, iconNote }) {
+  return `<section class="variant" id="${id}">
+    <div class="vhead"><div class="vname"><small>${kicker}</small>${name}</div><p class="videa">${idea}</p></div>
+    <div class="label">Аватар и иконка</div>
+    <div class="av">
+      <div class="av-big">
+        <figure><img src="${av}" alt=""><div class="cap"><b>1024 × 1024</b><br>файл для /setuserpic</div></figure>
+        <figure class="circle"><img src="${av}" alt=""><div class="cap"><b>Круг</b><br>так режет Telegram</div></figure>
+      </div>
+      <div>${sizes(av)}${iconNote ? `<p class="note">${iconNote}</p>` : ''}</div>
+    </div>
+    <div class="label">В списке чатов</div>
+    <div class="mocks"><div>${chatList('dark', av)}<div class="mock-cap">Ночная тема</div></div><div>${chatList('light', av)}<div class="mock-cap">Светлая тема</div></div></div>
+    <div class="label">Обложка Mini App · 640 × 360</div>
+    <div class="covers"><figure><img src="${ru}" alt=""><div class="cap"><b>RU</b> · настоящий размер</div></figure><figure><img src="${en}" alt=""><div class="cap"><b>EN</b> · настоящий размер</div></figure></div>
+    <div class="smalls"><figure><img src="${ru}" alt=""><div class="cap">320 px</div></figure><figure><img src="${en}" alt=""><div class="cap">320 px</div></figure><figure class="x200"><img src="${ru}" alt=""><div class="cap">200 px — превью в узком окне</div></figure></div>
+    <div class="label">Ссылка в чате</div>
+    <div class="mocks"><div>${linkPreview('dark', ru, 'ru', false)}<div class="mock-cap">Превью ссылки на Mini App, ночь</div></div><div>${linkPreview('light', en, 'en', true)}<div class="mock-cap">Маленькое превью: квадрат из центра обложки</div></div></div>
+    <div class="label">Картинка описания · пустой чат</div>
+    <div class="mocks">${desc ? `<div class="descpic"><img src="${desc}" alt=""><div class="cap"><b>640 × 360</b> · без текста, одна на оба языка</div></div>` : '<div class="descpic"><div class="cap">Сейчас картинки описания нет — в пустом чате только текст.</div></div>'}<div>${emptyChat('dark', av, desc, 'ru')}<div class="mock-cap">Над кнопкой «Старт»</div></div></div>
+  </section><div class="hr"></div>`;
+}
+
+async function build() {
+  await Promise.all(['400 40px Forum', '800 40px Manrope', '600 20px Manrope'].map((f) => document.fonts.load(f, 'ЗВЁЗДНОЕ Starweave 0123456789×')));
+  await document.fonts.ready;
+  const scale = Math.min(3, Math.max(2, window.devicePixelRatio || 1));
+  let html = block({
+    id: 'now', kicker: 'Для сравнения', name: 'Сейчас',
+    idea: 'Нынешний набор из <code>store/telegram</code>: мультяшные плоские карты с глянцем на фиолетовом. Со «Небом масти», «Эмалью» и «Гравюрой» не вяжется; картинки описания нет.',
+    av: 'now/avatar-1024.webp', ru: 'now/app-640x360-ru.webp', en: 'now/app-640x360-en.webp', desc: null,
+  });
+  for (const v of VARIANTS) {
+    const [av, ru, en, desc] = await Promise.all([
+      render(v.avatar, 1024, 1024, 1, 1024),
+      render(v.cover, 640, 360, scale, 640, 360, 'ru'),
+      render(v.cover, 640, 360, scale, 640, 360, 'en'),
+      render(v.desc, 640, 360, scale, 640, 360),
+    ]);
+    html += block({ id: `v-${v.id}`, kicker: `Вариант ${v.n}`, name: `«${v.name}»`, idea: v.idea, av, ru, en, desc });
+  }
+  document.getElementById('blocks').innerHTML = html;
+  document.documentElement.dataset.ready = '1';
+}
+build();
+})();
+</script>
+</body>
+</html>
