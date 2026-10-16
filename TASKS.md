@@ -4,8 +4,8 @@
 Conventional Commits на английском. «✅» — сделано, подробности — в коммите. Сделанное до
 0.5.6 — в `git log` и ветках `release/*`.
 
-**Сейчас:** 0.5.6 на Pages и в Telegram (https://t.me/starweave_game_bot/play).
-Stars включены, Яндекс ждёт регистрации, рекламы в Telegram нет.
+**Сейчас:** 0.5.8 на Pages и в Telegram (https://t.me/starweave_game_bot/play): реклама
+AdsGram, TU.1–TU.2, атлас. Stars включены, Яндекс ждёт регистрации.
 
 ## 0.5.7 — понятное обучение (`release/0.5.7`, `epic/tutorial-clarity`) — в работе
 План и черновик текстов — [RELEASE-0.5.7-TUTORIAL](docs/RELEASE-0.5.7-TUTORIAL.md).
@@ -16,7 +16,7 @@ Stars включены, Яндекс ждёт регистрации, рекла
 - TU.5 Проверка (e2e, fit-audit, iOS, Telegram) и выпуск
 - ✅ Попутно: кнопка «Назад» в атласе не вылезает из строки (Chrome), автотесты без звука
 
-## 0.5.8 — реклама в Telegram (`epic/ads-telegram`)
+## 0.5.8 — реклама в Telegram (`release/0.5.8`, `epic/ads-telegram`) — на Pages 16.10.2026, включает готовое из 0.5.7
 Где реклама, где смотреть деньги, как подключить — [ADS](docs/ADS.md).
 - ✅ AD.0 Кабинет AdsGram: платформа и блок Reward `54234` (16.10.2026); кошелёк для выплат → Денис
 - ✅ AD.1 Адаптер AdsGram в `src/platform/telegram.ts`: скрипт в фоне, награда только за досмотр, звук на паузе; кнопки — когда задан `ADSGRAM_BLOCK_ID`. Проверено: e2e/telegram.spec.ts
