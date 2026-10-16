@@ -195,7 +195,7 @@ export const en: Dict = {
     startRun: 'Start a run',
     lost: 'Out of moves — no worries, let’s try again.',
     retry: 'Retry',
-    watchFormula: 'Two threes make a Pair: 10 light and multiplier 2. Each card adds its rank to light. Total = light × multiplier.',
+    watchFormula: 'Two threes make the combo “Pair”. Its base values are 10 light and a ×2 multiplier. Then the card ranks are added to light, and light is multiplied by the multiplier.',
     menuButton: 'Tutorial',
     menuSub: '2 minutes',
     offerTitle: 'New here?',

@@ -95,11 +95,12 @@ test('обучение: нить к цели, подсказка не закры
       thread: !!document.querySelector('.tut-thread path'),
       onLine: hit({ left: line.x, right: line.x + line.w, top: line.y, bottom: line.y + line.h }),
       onCalc: hit(document.querySelector('.calc')!.getBoundingClientRect()),
+      onHand: ((r) => hit({ left: r.x, right: r.x + r.w, top: r.y, bottom: r.y + r.h }))(w.__scene.handAreaRect()),
       parts: [...document.querySelectorAll('.calc-part')].map((e) => e.textContent),
       dim: document.querySelectorAll('.calc-part.dim').length,
     };
   });
-  expect(formula).toEqual({ thread: false, onLine: false, onCalc: false, parts: ['база: Пара10×2', '+3', '+3', '+7', '+5'], dim: 4 });
+  expect(formula).toEqual({ thread: false, onLine: false, onCalc: false, onHand: false, parts: ['база: Пара10×2', '+3', '+3', '+7', '+5'], dim: 4 });
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34b-tut-formula.png` });
   // После «Далее» фишки карт загораются по очереди
   await page.click('.tut-bubble.on .tut-next');
