@@ -45,6 +45,8 @@ export interface Profile {
   crossFound?: boolean;
   /** Золото и Знамения пройденного обучения — ждут первого забега. */
   tutorialGift?: TutorialGift;
+  /** Когда игрок впервые открыл игру (мс): первые сутки без межстраничной рекламы. */
+  firstSeen?: number;
 }
 
 export function emptyProfile(): Profile {
@@ -62,13 +64,19 @@ export function emptyProfile(): Profile {
     daily: null,
     maxStake: 0,
     tutorialDone: false,
+    firstSeen: Date.now(),
   };
 }
 
 export function loadProfile(): Profile {
   try {
     const p = JSON.parse(storage.get(KEYS.profile) ?? 'null') as Profile | null;
-    if (p?.version === 1) return { ...emptyProfile(), ...p };
+    if (p?.version === 1) {
+      const profile = { ...emptyProfile(), ...p };
+      // Профили до 0.5.8 без даты: игравшие — давно с нами, остальные — с этой минуты
+      if (p.firstSeen === undefined) profile.firstSeen = p.runs > 0 ? 0 : Date.now();
+      return profile;
+    }
   } catch {
     /* битый профиль — начинаем заново */
   }

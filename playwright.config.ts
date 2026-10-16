@@ -17,7 +17,7 @@ export default defineConfig({
     url: 'http://localhost:4180',
     reuseExistingServer: true,
     // Блок AdsGram для проверки рекламы в Telegram (скрипт AdsGram тест подменяет)
-    env: { VITE_ADSGRAM_BLOCK_ID: 'e2e' },
+    env: { VITE_ADSGRAM_BLOCK_ID: 'e2e', VITE_ADSGRAM_INTER_ID: 'int-e2e' },
   },
   projects: [
     { name: 'iphone-se', use: { ...devices['iPhone SE'], browserName: 'webkit' } },
