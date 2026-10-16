@@ -1,4 +1,4 @@
-import { bossSigil, chartIcon, omenSigil, ritualIcon } from '@/art/sigil';
+import { bossSigil, chartIcon, comboScheme, omenSigil, ritualIcon } from '@/art/sigil';
 import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { COMBO_IDS, GLYPHS, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
 import { COLLECTIBLE_COMBOS, type Profile } from '@/meta/profile';
@@ -152,7 +152,9 @@ export function showGuide(opts: GuideOptions = {}): void {
       list.append(row(id === combo, miss, [
         h('b', null, [t(`combo.${id}`), got ? h('span.gb-ok', { attrs: { 'aria-label': t('combos.found') } }, icon('check')) : null, lvl > 1 ? h('span.gb-lv', null, t('combos.level', { n: lvl })) : null]),
         h('small', null, dict().comboDesc[id]),
-      ], h('span.gb-base', null, [h('span.light-text', null, String(b.light)), h('span.gb-x', null, '×'), h('span.mult-text', null, String(b.mult))]), () => { combo = id; render(); }));
+      ], h('span.gb-base', null, [h('span.light-text', null, String(b.light)), h('span.gb-x', null, '×'), h('span.mult-text', null, String(b.mult))]), () => { combo = id; render(); },
+      // Схема созвездия: высота звезды — ранг, цвет — масть, дуги — что совпало
+      h('span.gb-scheme', null, canvasImg(comboScheme(id, 52, dpr()), 52, Math.round((52 * 68) / 116)))));
     }
     return [section(g.allCombos, found ? t('discovery.collected', { n: found.length, total: COLLECTIBLE_COMBOS.length }) : null), list];
   };

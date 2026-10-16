@@ -109,10 +109,16 @@ export interface FloatTextOptions {
   rise?: number;
   layer?: Layer;
   pop?: boolean;
+  /**
+   * Цифра подсчёта: выбивается из карты с перелётом, вспыхивает белым и остывает до своего
+   * цвета, на миг замирает (глаз успевает прочесть) и только потом всплывает и тает.
+   */
+  punch?: boolean;
 }
 
 /** Всплывающий текст: «+12», «×2», «ПАРА». Поднимается и тает. */
 export function floatText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions = {}): void {
+  if (opts.punch) return punchText(world, x, y, text, opts);
   const size = opts.size ?? 22;
   const life = (opts.life ?? 0.9) / world.res.speed;
   const e = world.create();
@@ -147,6 +153,67 @@ export function floatText(world: GameWorld, x: number, y: number, text: string, 
   void tweens.to(t, { scale: 1 }, { duration: 0.25 / world.res.speed, ease: 'outBack' });
   void tweens.to(t, { y: y - (opts.rise ?? 36) }, { duration: life, ease: 'outCubic' });
   void tweens.to(t, { alpha: 0 }, { duration: life * 0.35, delay: life * 0.65, ease: 'inQuad' });
+}
+
+/** Цифра подсчёта с ударом — см. FloatTextOptions.punch. */
+function punchText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions): void {
+  const size = opts.size ?? 30;
+  const speed = world.res.speed;
+  const life = (opts.life ?? 1) / speed;
+  const calm = world.res.reduceMotion;
+  const color = opts.color ?? '#fff';
+  const e = world.create();
+  // heat — доля белого в заливке: 1 в момент удара, 0 — свой цвет
+  const t = world.add(e, Transform, transform(x, y, { scale: calm ? 1 : 0.3 }));
+  const state = { heat: 1 };
+  const font = `800 ${size}px ${BODY_FONT}`;
+  world.add(e, Drawable, {
+    layer: opts.layer ?? Layer.Popups,
+    z: 1,
+    visible: true,
+    draw(ctx, tr) {
+      ctx.globalAlpha = tr.alpha;
+      ctx.translate(tr.x, tr.y);
+      ctx.scale(tr.scale, tr.scale);
+      // Тёмная подложка-ореол: цифра читается и на яркой карте, и на вспышке
+      const r = size * (0.5 + text.length * 0.22);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, 'rgba(6,5,22,0.62)');
+      g.addColorStop(0.6, 'rgba(6,5,22,0.38)');
+      g.addColorStop(1, 'rgba(6,5,22,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-r, -r, r * 2, r * 2);
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = size * 0.3;
+      ctx.strokeStyle = 'rgba(4,3,16,0.95)';
+      ctx.strokeText(text, 0, 0);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = size * (0.45 + state.heat * 0.6);
+      ctx.fillStyle = color;
+      ctx.fillText(text, 0, 0);
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(text, 0, 0);
+      if (state.heat > 0.01) {
+        ctx.globalAlpha = tr.alpha * state.heat;
+        ctx.fillStyle = '#fffaf0';
+        ctx.fillText(text, 0, 0);
+      }
+    },
+  });
+  world.add(e, Lifetime, { left: life });
+  const tweens = world.res.tweens;
+  if (!calm) {
+    void tweens.to(t, { scale: 1.32 }, { duration: 0.09 / speed, ease: 'outCubic' }).then(() =>
+      tweens.to(t, { scale: 1 }, { duration: 0.22 / speed, ease: 'outBack' }),
+    );
+  }
+  void tweens.to(state, { heat: 0 }, { duration: 0.32 / speed, delay: 0.06 / speed, ease: 'outQuad' });
+  // Замирает на 45 % жизни, потом всплывает и тает
+  void tweens.to(t, { y: y - (opts.rise ?? 26) }, { duration: life * 0.55, delay: life * 0.45, ease: 'inOutQuad' });
+  void tweens.to(t, { alpha: 0 }, { duration: life * 0.3, delay: life * 0.7, ease: 'inQuad' });
 }
 
 /** Вспышка всего экрана — для крупных ходов. */

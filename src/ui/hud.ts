@@ -35,10 +35,12 @@ export function omenBadge(kind: OmenKind): HTMLElement {
   return h(`span.omen-badge.k-${kind}`, { title: dict().omenKind[kind][0] }, BADGE_SYMBOL[kind]);
 }
 
-/** Медальон Знамения со значком типа. */
+/**
+ * Медальон Знамения. Что оно делает со счётом, говорит камешек в оправе самого медальона
+ * («Эмаль», FP.4) — отдельный значок поверх больше не нужен; он остался только в подсказке.
+ */
 export function omenMedal(id: string, size: number): HTMLElement {
-  const def = omenDef(id);
-  return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size), omenBadge(def.kind)]);
+  return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size)]);
 }
 
 export function bossTooltip(bossId: string): HTMLElement {
@@ -305,6 +307,13 @@ export class Hud {
       void el.offsetWidth;
       el.classList.add('bump');
     }
+  }
+
+  /** Центр ячейки формулы на экране — туда прилетает искра шага подсчёта. */
+  calcAnchor(kind: 'light' | 'mult'): { x: number; y: number } | null {
+    if (!this.calc.classList.contains('show')) return null;
+    const r = (kind === 'light' ? this.calcLight : this.calcMult).getBoundingClientRect();
+    return r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null;
   }
 
   /**

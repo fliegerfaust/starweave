@@ -1,8 +1,8 @@
-import type { Card, Glyph, Suit } from '@/core/types';
+import type { Card, Glyph } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
 import { glowDot, roundRect, sparklePath, suitPath } from './glyphs';
 import { DEFAULT_BACK, backStyle, type BackStyle } from './cosmetics';
-import { DISPLAY_FONT, SUIT_COLORS, rgba } from './palette';
+import { BODY_FONT, SUIT_COLORS, SUIT_FIELDS, rgba } from './palette';
 
 /** Пропорции карты: ширина / высота. */
 export const CARD_ASPECT = 0.7;
@@ -83,123 +83,146 @@ export function cardFace(card: Pick<Card, 'suit' | 'rank' | 'glyph'>, w: number,
 /** Отступ вокруг карты в кэшированном канвасе (для свечения), в долях ширины. */
 export const CARD_PAD = 0.12;
 
+/**
+ * «Небо масти» (FP.3, выбор Дениса): масть — цветом всего поля и крупной эмблемой, ранг —
+ * белой костью в углу (одинаков для всех мастей, самый высокий контраст), созвездие ранга —
+ * маленькой гравировкой в свободном углу, кромка — золочёная. На мелких картах (< 62 px)
+ * пыль, внутренняя линия и созвездие не рисуются — остаются цифра и эмблема.
+ */
 function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank' | 'glyph'>, w: number, h: number, opts: CardArtOptions): void {
   const col = SUIT_COLORS[card.suit];
+  const field = SUIT_FIELDS[card.suit];
   const r = w * 0.09;
-  const glyphRgb = card.glyph ? GLYPH_COLORS[card.glyph] : null;
+  const small = w < 62;
+  const { x: ex, y: ey, r: er } = suitEmblem(w, h);
 
-  // Внешнее свечение
+  // Тень под картой — карта лежит на небе, а не светится
   ctx.save();
-  ctx.shadowColor = rgba(glyphRgb ?? col.rgb, card.glyph ? 0.75 : 0.35);
-  ctx.shadowBlur = w * (card.glyph ? 0.16 : 0.08);
+  ctx.shadowColor = card.glyph ? rgba(GLYPH_COLORS[card.glyph], 0.6) : 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = w * (card.glyph ? 0.14 : 0.08);
+  ctx.shadowOffsetY = card.glyph ? 0 : w * 0.025;
   roundRect(ctx, 0, 0, w, h, r);
-  ctx.fillStyle = '#0d0c25';
+  ctx.fillStyle = field[1];
   ctx.fill();
   ctx.restore();
 
-  // Основа: вертикальный градиент ночи с оттенком масти
   ctx.save();
   roundRect(ctx, 0, 0, w, h, r);
   ctx.clip();
   const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, mix('#1f1c48', col.deep, 0.35));
-  bg.addColorStop(1, '#0a0a20');
+  bg.addColorStop(0, field[0]);
+  bg.addColorStop(1, field[1]);
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
-
-  const halo = ctx.createRadialGradient(w / 2, h * 0.56, 0, w / 2, h * 0.56, w * 0.75);
-  halo.addColorStop(0, rgba(col.rgb, 0.28));
+  // Тёплый блик сверху слева и ореол под эмблемой
+  const tl = ctx.createRadialGradient(w * 0.3, 0, 0, w * 0.3, 0, w * 1.05);
+  tl.addColorStop(0, 'rgba(255,244,220,0.12)');
+  tl.addColorStop(1, 'rgba(255,244,220,0)');
+  ctx.fillStyle = tl;
+  ctx.fillRect(0, 0, w, h);
+  const halo = ctx.createRadialGradient(ex, ey, 0, ex, ey, er * 1.9);
+  halo.addColorStop(0, rgba(col.rgb, 0.32));
   halo.addColorStop(1, rgba(col.rgb, 0));
   ctx.fillStyle = halo;
   ctx.fillRect(0, 0, w, h);
 
-  // Пыль звёзд — детерминированная по карте
-  const seed = card.rank * 31 + card.suit.length * 7 + card.suit.charCodeAt(0);
-  for (let i = 0; i < 26; i++) {
-    const px = frac(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) * w;
-    const py = frac(Math.sin(seed * 4.1414 + i * 12.345) * 24634.6345) * h;
-    const a = 0.15 + frac(i * 0.618) * 0.35;
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
-    ctx.fillRect(px, py, w * 0.008, w * 0.008);
+  if (!small) {
+    // Пыль звёзд — детерминированная по карте
+    const seed = card.rank * 31 + card.suit.length * 7 + card.suit.charCodeAt(0);
+    const dot = Math.max(0.6, w * 0.008);
+    for (let i = 0; i < 12; i++) {
+      const px = frac(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) * w;
+      const py = frac(Math.sin(seed * 4.1414 + i * 12.345) * 24634.6345) * h;
+      ctx.fillStyle = `rgba(255,255,255,${(0.12 + frac(i * 0.618) * 0.3) * 0.6})`;
+      ctx.fillRect(px, py, dot, dot);
+    }
+  }
+  if (card.glyph) {
+    ctx.globalAlpha = 0.7;
+    drawGlyphBackdrop(ctx, card.glyph, w, h);
+    ctx.globalAlpha = 1;
   }
 
-  if (card.glyph) drawGlyphBackdrop(ctx, card.glyph, w, h);
-
-  // Призрачный символ масти
-  ctx.globalAlpha = 0.13;
-  suitPath(ctx, card.suit, w / 2, h * 0.57, w * 0.36);
-  ctx.fillStyle = col.main;
+  // Эмблема масти
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = w * 0.06;
+  ctx.shadowOffsetY = w * 0.02;
+  suitPath(ctx, card.suit, ex, ey, er);
+  const eg = ctx.createLinearGradient(0, ey - er, 0, ey + er);
+  eg.addColorStop(0, col.light);
+  eg.addColorStop(1, col.main);
+  ctx.fillStyle = eg;
   ctx.fill('evenodd');
-  ctx.globalAlpha = 1;
-
-  // Созвездие ранга
-  if (!opts.hideRank) drawConstellation(ctx, card.rank, card.suit, w / 2, h * 0.585, w * 0.3, h * 0.25);
-  else drawFogMark(ctx, w, h, col.rgb);
   ctx.restore();
 
-  // Рамка
+  // Созвездие ранга — гравировкой в свободном углу (глиф занимает тот же угол)
+  if (!small && !card.glyph && !opts.hideRank) drawConstellation(ctx, card.rank, w * 0.74, w * 0.3, w * 0.15);
+  ctx.restore();
+
+  // Золочёная кромка; у карт с глифом — цветом глифа
   ctx.save();
   roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
-  ctx.lineWidth = Math.max(1, w * 0.018);
-  ctx.strokeStyle = card.glyph === 'prism' ? prismStroke(ctx, w, h) : rgba(glyphRgb ?? col.rgb, 0.95);
+  ctx.lineWidth = Math.max(1.2, w * 0.022);
+  ctx.strokeStyle = card.glyph === 'prism' ? prismStroke(ctx, w, h) : card.glyph ? rgba(GLYPH_COLORS[card.glyph], 0.9) : gildedStroke(ctx, w, h);
   ctx.stroke();
-  roundRect(ctx, w * 0.05, w * 0.05, w * 0.9, h - w * 0.1, r * 0.6);
-  ctx.lineWidth = Math.max(0.5, w * 0.006);
-  ctx.strokeStyle = rgba(col.rgb, 0.35);
-  ctx.stroke();
-  if (card.glyph === 'echo') {
-    roundRect(ctx, w * 0.085, w * 0.085, w * 0.83, h - w * 0.17, r * 0.5);
-    ctx.strokeStyle = rgba(GLYPH_COLORS.echo, 0.6);
+  if (!small) {
+    roundRect(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55);
+    ctx.lineWidth = Math.max(0.6, w * 0.007);
+    ctx.strokeStyle = card.glyph === 'echo' ? rgba(GLYPH_COLORS.echo, 0.6) : 'rgba(255,240,210,0.2)';
     ctx.stroke();
   }
   ctx.restore();
 
-  // Ранг в углу
-  const fs = w * 0.4;
+  // Ранг в углу: Manrope 800 цвета кости, по центру видимых границ цифры
   ctx.save();
-  ctx.font = `400 ${fs}px ${DISPLAY_FONT}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.shadowColor = rgba(col.rgb, 0.9);
-  ctx.shadowBlur = w * 0.08;
-  ctx.fillStyle = col.light;
+  ctx.font = `800 ${w * 0.49}px ${BODY_FONT}`;
+  ctx.fillStyle = opts.hideRank ? 'rgba(255,248,234,0.55)' : '#fff8ea';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = w * 0.05;
+  ctx.shadowOffsetY = w * 0.012;
   const rankText = opts.hideRank ? '?' : String(card.rank);
-  ctx.fillText(rankText, w * 0.21, w * 0.43);
-  // Чёткий слой поверх свечения: Safari растягивает shadowBlur вместе с масштабом холста,
-  // и на iPhone (3×) ореол размывал саму цифру
+  centeredText(ctx, rankText, w * 0.255, w * 0.33);
+  // Чёткий слой поверх тени: Safari растягивает shadowBlur вместе с масштабом холста
   ctx.shadowColor = 'transparent';
-  ctx.fillText(rankText, w * 0.21, w * 0.43);
+  centeredText(ctx, rankText, w * 0.255, w * 0.33);
   ctx.restore();
 
-  // Масть под рангом
-  ctx.save();
-  suitPath(ctx, card.suit, w * 0.21, w * 0.57, w * 0.085);
-  ctx.fillStyle = col.main;
-  ctx.shadowColor = rgba(col.rgb, 0.8);
-  ctx.shadowBlur = w * 0.04;
-  ctx.fill('evenodd');
-  ctx.shadowColor = 'transparent';
-  ctx.fill('evenodd');
-  ctx.restore();
-
-  // Маленькая масть в правом нижнем углу
-  ctx.save();
-  ctx.globalAlpha = 0.75;
-  suitPath(ctx, card.suit, w * 0.84, h - w * 0.16, w * 0.06);
-  ctx.fillStyle = col.main;
-  ctx.fill('evenodd');
-  ctx.restore();
-
-  if (card.glyph) drawGlyphBadge(ctx, card.glyph, w * 0.82, w * 0.18, w * 0.09);
+  if (card.glyph) drawGlyphBadge(ctx, card.glyph, w * 0.79, w * 0.2, w * 0.105);
 }
 
-function drawConstellation(ctx: CanvasRenderingContext2D, rank: number, suit: Suit, cx: number, cy: number, sx: number, sy: number): void {
+/** Где на лице карты эмблема масти — туда же Затмение ставит свой диск. */
+export function suitEmblem(w: number, h: number): { x: number; y: number; r: number } {
+  return { x: w * 0.62, y: h * 0.665, r: w * 0.27 };
+}
+
+/** Текст с центром по видимым границам знаков — цифры встают ровно в точку. */
+function centeredText(ctx: CanvasRenderingContext2D, text: string, cx: number, cy: number): void {
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText(text);
+  const x = cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 + m.actualBoundingBoxLeft;
+  const y = cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  ctx.fillText(text, x, y);
+}
+
+function gildedStroke(ctx: CanvasRenderingContext2D, w: number, h: number): CanvasGradient {
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, '#ffe6a8');
+  g.addColorStop(0.45, '#c8912f');
+  g.addColorStop(0.7, '#f6c25b');
+  g.addColorStop(1, '#9a6a22');
+  return g;
+}
+
+/** Созвездие ранга маленькой гравировкой цвета кости. */
+function drawConstellation(ctx: CanvasRenderingContext2D, rank: number, cx: number, cy: number, sx: number): void {
   const pattern = CONSTELLATIONS[rank] ?? CONSTELLATIONS[1]!;
-  const col = SUIT_COLORS[suit];
-  const pts = pattern.stars.map(([x, y]) => [cx + x * sx, cy + y * sy] as Pt);
+  const ink: [number, number, number] = [255, 246, 228];
+  const pts = pattern.stars.map(([x, y]) => [cx + x * sx, cy + y * sx] as Pt);
   ctx.save();
-  ctx.lineWidth = Math.max(0.6, sx * 0.025);
-  ctx.strokeStyle = rgba(col.rgb, 0.55);
+  ctx.lineWidth = Math.max(0.7, sx * 0.04);
+  ctx.strokeStyle = rgba(ink, 0.35);
   ctx.lineCap = 'round';
   for (const [a, b] of pattern.edges) {
     const pa = pts[a]!;
@@ -209,30 +232,28 @@ function drawConstellation(ctx: CanvasRenderingContext2D, rank: number, suit: Su
     ctx.lineTo(pb[0], pb[1]);
     ctx.stroke();
   }
-  const dot = Math.max(1.2, sx * (rank === 1 ? 0.12 : 0.055));
+  const dot = Math.max(0.9, sx * (rank === 1 ? 0.13 : 0.08));
   pts.forEach(([x, y], i) => {
-    const big = i === 0 || rank === 1;
-    glowDot(ctx, x, y, big ? dot * 1.25 : dot, rgba(col.rgb, 0.9), col.light);
+    const d = i === 0 && rank > 1 ? dot * 1.2 : dot;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, d * 3.2);
+    g.addColorStop(0, rgba(ink, 0.35));
+    g.addColorStop(1, rgba(ink, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, d * 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff8ea';
+    ctx.beginPath();
+    ctx.arc(x, y, d, 0, Math.PI * 2);
+    ctx.fill();
   });
   if (rank === 1) {
-    ctx.fillStyle = rgba(col.rgb, 0.6);
-    sparklePath(ctx, cx, cy, sx * 0.55, 4, 0.12);
+    ctx.fillStyle = rgba(ink, 0.55);
+    ctx.beginPath();
+    sparklePath(ctx, cx, cy, sx * 0.6, 4, 0.12);
     ctx.fill();
   }
   ctx.restore();
-}
-
-function drawFogMark(ctx: CanvasRenderingContext2D, w: number, h: number, rgb: [number, number, number]): void {
-  const g = ctx.createRadialGradient(w / 2, h * 0.58, 0, w / 2, h * 0.58, w * 0.5);
-  g.addColorStop(0, 'rgba(200,200,230,0.35)');
-  g.addColorStop(1, 'rgba(200,200,230,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = rgba(rgb, 0.5);
-  ctx.font = `400 ${w * 0.5}px ${DISPLAY_FONT}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('?', w / 2, h * 0.6);
 }
 
 function drawGlyphBackdrop(ctx: CanvasRenderingContext2D, glyph: Glyph, w: number, h: number): void {
@@ -686,15 +707,4 @@ function prismStroke(ctx: CanvasRenderingContext2D, w: number, h: number): Canva
 
 function frac(x: number): number {
   return x - Math.floor(x);
-}
-
-function mix(a: string, b: string, t: number): string {
-  const pa = hex(a);
-  const pb = hex(b);
-  return `rgb(${pa.map((v, i) => Math.round(v + (pb[i]! - v) * t)).join(',')})`;
-}
-
-function hex(h: string): number[] {
-  const n = parseInt(h.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
