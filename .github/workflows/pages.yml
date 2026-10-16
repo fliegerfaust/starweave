@@ -36,6 +36,10 @@ jobs:
           # Аналитика Telegram Mini Apps: ключ и идентификатор из @DataChief_bot
           VITE_TG_ANALYTICS_TOKEN: ${{ vars.TG_ANALYTICS_TOKEN }}
           VITE_TG_ANALYTICS_APP: ${{ vars.TG_ANALYTICS_APP }}
+          # Реклама за награду в Telegram — блок AdsGram: gh variable set ADSGRAM_BLOCK_ID
+          VITE_ADSGRAM_BLOCK_ID: ${{ vars.ADSGRAM_BLOCK_ID }}
+          # Межстраничная между главами — блок AdsGram int-…: gh variable set ADSGRAM_INTER_ID
+          VITE_ADSGRAM_INTER_ID: ${{ vars.ADSGRAM_INTER_ID }}
       # Карты исходников прошлых сборок остаются на сайте: по ним сводка расшифровывает
       # стеки ошибок от игроков со старой версией
       - run: node scripts/keep-sourcemaps.mjs dist

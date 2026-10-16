@@ -36,13 +36,29 @@ declare global {
   interface Window {
     Telegram?: { WebApp?: TelegramWebApp };
     telegramAnalytics?: { init(opts: { token: string; appName: string }): Promise<void> | void };
+    Adsgram?: { init(params: { blockId: string; debug?: boolean }): AdsgramController };
   }
+}
+
+/** Ответ AdsGram на показ (docs.adsgram.ai/publisher/typescript). */
+interface AdsgramResult {
+  done: boolean;
+  description: string;
+  state: 'load' | 'render' | 'playing' | 'destroy';
+  error: boolean;
+}
+
+interface AdsgramController {
+  /** Разрешается после досмотра (`done`), отклоняется при пропуске, ошибке или без рекламы. */
+  show(): Promise<AdsgramResult>;
 }
 
 const SDK_URL = 'https://telegram.org/js/telegram-web-app.js';
 /** Аналитика Telegram Mini Apps (TON Builders): запуски, удержание, место в каталоге. */
 const ANALYTICS_URL = 'https://tganalytics.xyz/index.js';
 const NIGHT = '#070818';
+/** Реклама за награду в Mini Apps — AdsGram; блок заводится в partner.adsgram.ai (docs/ADS.md). */
+const ADSGRAM_URL = 'https://sad.adsgram.ai/js/sad.min.js';
 
 /**
  * Запущены ли мы как Telegram Mini App. Telegram передаёт параметры запуска в адресе
@@ -79,11 +95,14 @@ function loadScript(src: string, timeoutMs = 0): Promise<void> {
  */
 export class TelegramPlatform implements Platform {
   readonly id = 'telegram' as const;
-  readonly rewardedAvailable = false;
-  readonly interstitialAvailable = false;
+  /** Реклама есть, если заданы блоки AdsGram (`ADSGRAM_BLOCK_ID`, `ADSGRAM_INTER_ID`). */
+  rewardedAvailable = false;
+  interstitialAvailable = false;
   payments: Payments | null = null;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
+  private ads: Promise<AdsgramController | null> | null = null;
+  private inter: Promise<AdsgramController | null> | null = null;
 
   async init(): Promise<void> {
     try {
@@ -109,6 +128,7 @@ export class TelegramPlatform implements Platform {
     if (base && app.initData && app.isVersionAtLeast('6.1') && app.openInvoice) {
       this.payments = new StarsPayments({ initData: app.initData, openInvoice: (url, cb) => app.openInvoice!(url, cb) }, base);
     }
+    this.initAds();
     app.onEvent('deactivated', () => this.emitPause(true));
     app.onEvent('activated', () => this.emitPause(false));
     await this.initAnalytics();
@@ -134,6 +154,40 @@ export class TelegramPlatform implements Platform {
     }
   }
 
+  /**
+   * Скрипт AdsGram грузится в фоне и не задерживает запуск; кнопки рекламы видны сразу, а
+   * показ дождётся загрузки. Не загрузился — показ вернёт «без награды», игра сообщит об этом.
+   */
+  private initAds(): void {
+    const rewardId = import.meta.env.VITE_ADSGRAM_BLOCK_ID;
+    const interId = import.meta.env.VITE_ADSGRAM_INTER_ID;
+    if (!rewardId && !interId) return;
+    const sdk = loadScript(ADSGRAM_URL, 15000).then(() => true, () => false);
+    const controller = (blockId: string) => sdk.then((ok) => (ok ? window.Adsgram?.init({ blockId }) ?? null : null));
+    if (rewardId) {
+      this.rewardedAvailable = true;
+      this.ads = controller(rewardId);
+    }
+    if (interId) {
+      this.interstitialAvailable = true;
+      this.inter = controller(interId);
+    }
+  }
+
+  /** Показ блока AdsGram на паузе игры и звука: true — досмотрен до конца. */
+  private async play(ads: Promise<AdsgramController | null> | null): Promise<boolean> {
+    const controller = await ads;
+    if (!controller) return false;
+    this.emitPause(true);
+    try {
+      return (await controller.show()).done;
+    } catch {
+      return false; // пропустил, ошибка или рекламы сейчас нет
+    } finally {
+      this.emitPause(false);
+    }
+  }
+
   ready(): void {
     this.app?.ready();
   }
@@ -141,10 +195,12 @@ export class TelegramPlatform implements Platform {
   gameplayStart(): void {}
   gameplayStop(): void {}
 
-  async showInterstitial(): Promise<void> {}
+  async showInterstitial(): Promise<void> {
+    await this.play(this.inter);
+  }
 
   async showRewarded(): Promise<boolean> {
-    return false;
+    return this.play(this.ads);
   }
 
   language(): Lang | null {

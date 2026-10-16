@@ -14,6 +14,10 @@ interface ImportMetaEnv {
   /** Ключ и идентификатор аналитики Telegram Mini Apps (выдаёт @DataChief_bot). */
   readonly VITE_TG_ANALYTICS_TOKEN?: string;
   readonly VITE_TG_ANALYTICS_APP?: string;
+  /** Блок AdsGram (реклама за награду в Telegram); без него рекламы в Telegram нет. */
+  readonly VITE_ADSGRAM_BLOCK_ID?: string;
+  /** Блок AdsGram для межстраничной рекламы между главами (`int-…`). */
+  readonly VITE_ADSGRAM_INTER_ID?: string;
 }
 
 /** Версия из package.json, подставляет Vite. */
