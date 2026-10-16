@@ -11,6 +11,7 @@
 import { cardBack, cardFace } from '@/art/card';
 import { BACKS, SKY_THEMES, type SkyTheme } from '@/art/cosmetics';
 import { DEFAULT_NEBULA } from '@/art/nebula';
+import { markIcon } from '@/art/sigil';
 import { skyMiniature } from '@/art/sky-miniature';
 import type { Card } from '@/core/types';
 import type { App, Screen } from '@/game/app';
@@ -55,6 +56,18 @@ function tstar(): SVGSVGElement {
 function priceNode(label: string): HTMLElement {
   const m = /^(\d+)\s*⭐$/.exec(label.trim());
   return h('span.atl-price', null, m ? [tstar(), m[1]!] : [label]);
+}
+
+/** Маска блика по рубашке: адрес картинки рубашки, один на рубашку и плотность экрана. */
+const glintMasks = new Map<string, Promise<string>>();
+function glintMask(back: string, art: HTMLCanvasElement): Promise<string> {
+  const key = `${back}:${art.width}`;
+  let url = glintMasks.get(key);
+  if (!url) {
+    url = new Promise<string>((resolve) => art.toBlob((b) => resolve(b ? URL.createObjectURL(b) : art.toDataURL())));
+    glintMasks.set(key, url);
+  }
+  return url;
 }
 
 export class AtlasScreen implements Screen {
@@ -121,8 +134,23 @@ export class AtlasScreen implements Screen {
     const scrollers = () => [...this.el.querySelectorAll<HTMLElement>('.atl-body, .atl-right, .atl-strip')];
     const keep = same ? scrollers().map((e) => [e.scrollTop, e.scrollLeft] as const) : [];
     const [body, cta] = this.tab === 'atlas' ? this.atlasTab() : this.tab === 'look' ? this.lookTab() : this.supportTab();
-    this.el.className = `atlas tab-${this.tab}${this.shown.has(this.tab) ? ' settled' : ''}`;
-    this.el.replaceChildren(this.top(), body, cta);
+    if (same) {
+      // Подгрузка цен или покупка пересобирает вкладку посреди появления карт: та же обложка
+      // остаётся на месте, иначе её анимации начались бы заново — рывком
+      const old = this.el.querySelector<HTMLElement>(':scope > .atl-body > .atl-hero');
+      const fresh = body.querySelector<HTMLElement>(':scope > .atl-hero');
+      if (old && fresh && old.dataset.key === fresh.dataset.key) {
+        const oldBody = old.parentElement!;
+        [...body.children].forEach((child, i) => {
+          if (child !== fresh) oldBody.children[i]?.replaceWith(child);
+        });
+        this.el.replaceChildren(this.top(), oldBody, cta);
+      } else this.el.replaceChildren(this.top(), body, cta);
+    } else {
+      this.el.className = `atlas tab-${this.tab}${this.shown.has(this.tab) ? ' settled' : ''}`;
+      this.el.replaceChildren(this.top(), body, cta);
+      if (!this.shown.has(this.tab)) this.startEntry();
+    }
     if (same) scrollers().forEach((e, i) => {
       const k = keep[i];
       if (k) [e.scrollTop, e.scrollLeft] = k;
@@ -136,7 +164,7 @@ export class AtlasScreen implements Screen {
 
   private top(): HTMLElement {
     return h('header.atl-top', null, [
-      h('button.atl-back', { type: 'button', onclick: () => void this.app.goMenu() }, [icon('back'), t('menu.back')]),
+      h('button.atl-back', { type: 'button', ariaLabel: t('menu.back'), onclick: () => void this.app.goMenu() }, [icon('back'), h('span.atl-back-lbl', null, t('menu.back'))]),
       h('h1.atl-plaque', null, t('atlas.title')),
       this.tabs(),
     ]);
@@ -165,6 +193,15 @@ export class AtlasScreen implements Screen {
     return bar;
   }
 
+  /**
+   * Появление карт на обложке запускается на чистом кадре, когда экран уже построен и
+   * нарисован: иначе первые кадры анимации съедает сборка экрана и карты прыгают.
+   */
+  private startEntry(): void {
+    const el = this.el;
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('enter')));
+  }
+
   private openTab(id: Tab): void {
     if (this.tab === id) return;
     this.tab = id;
@@ -187,13 +224,14 @@ export class AtlasScreen implements Screen {
     });
     const backArt = cardBack(104, dpr(), back);
     stack.append(canvasImg(backArt, 104 * 1.24, (104 / 0.7) * 1.24, 'atl-backc'));
-    // Блик идёт по самой рубашке: маска — её же картинка
+    // Блик идёт по самой рубашке: маска — её же картинка. Кодируем её асинхронно и один раз:
+    // синхронный toDataURL стоил ~25 мс прямо в момент появления карт
     const glint = h('i.atl-glint');
-    glint.style.setProperty('--m', `url(${backArt.toDataURL()})`);
+    void glintMask(back, backArt).then((url) => glint.style.setProperty('--m', `url(${url})`));
     // Высота блика — как у рубашки (WebKit не выводит её из aspect-ratio у абсолютного блока)
     glint.style.setProperty('--gh', String((backArt.height / backArt.width).toFixed(4)));
     stack.append(glint);
-    return h(`section.atl-hero.hero-${tab}`, null, [stage.el, stack, h('h2.atl-title', null, title), h('p.atl-sub', null, sub)]);
+    return h(`section.atl-hero.hero-${tab}`, { dataset: { key: `${back}:${sky}:${title}:${sub}` } }, [stage.el, stack, h('h2.atl-title', null, title), h('p.atl-sub', null, sub)]);
   }
 
   // ─── Атлас ─────────────────────────────────────────────────────────────
@@ -230,7 +268,7 @@ export class AtlasScreen implements Screen {
         pv.append(img);
       });
     } else if (id === 'noads') {
-      pv.append(h('span.pv-noads', null, icon('play')));
+      pv.append(canvasImg(markIcon('noads', 46, dpr()), 46));
     } else {
       pv.append(this.skySwatch(SKY_THEMES.find((s) => s.id === 'astrolabe')!, 64, 64), canvasImg(cardBack(30, dpr(), 'astrolabe'), 30 * 1.24, (30 / 0.7) * 1.24, 'pv-bk'));
     }
