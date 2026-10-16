@@ -1,4 +1,4 @@
-import { CARD_ASPECT, CARD_PAD, cardBack, cardFace } from '@/art/card';
+import { CARD_ASPECT, CARD_PAD, cardBack, cardFace, suitEmblem } from '@/art/card';
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
 import { activeCells, buildLines } from '@/core/grid';
@@ -1162,23 +1162,33 @@ export function safeInsets(): { top: number; bottom: number } {
  * солнечное затмение, без красного. Рисуется поверх лица карты.
  */
 function drawEclipsed(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  // Масть погасла: поле теряет цвет, эмблему закрывает чёрный диск в жемчужной короне
+  ctx.save();
   roundRect(ctx, -w / 2, -h / 2, w, h, w * 0.09);
+  ctx.clip();
+  ctx.globalCompositeOperation = 'saturation';
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = 'rgba(4,3,12,0.5)';
-  ctx.fill();
-  const r = w * 0.23;
-  const cy = h * 0.02;
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.restore();
+  const e = suitEmblem(w, h);
+  const r = e.r * 0.82;
+  const cx = e.x - w / 2;
+  const cy = e.y - h / 2;
   // Корона: мягкое свечение и тонкое светлое кольцо
-  const g = ctx.createRadialGradient(0, cy, r * 0.9, 0, cy, r * 2);
-  g.addColorStop(0, 'rgba(255,238,210,0.55)');
-  g.addColorStop(0.35, 'rgba(255,230,200,0.18)');
+  const g = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 2);
+  g.addColorStop(0, 'rgba(255,238,210,0.5)');
+  g.addColorStop(0.35, 'rgba(255,230,200,0.16)');
   g.addColorStop(1, 'rgba(150,170,255,0)');
   ctx.fillStyle = g;
-  ctx.fillRect(-r * 2, cy - r * 2, r * 4, r * 4);
+  ctx.fillRect(cx - r * 2, cy - r * 2, r * 4, r * 4);
   ctx.beginPath();
-  ctx.arc(0, cy, r, 0, Math.PI * 2);
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = '#03020a';
   ctx.fill();
-  ctx.lineWidth = Math.max(1, w * 0.012);
+  ctx.lineWidth = Math.max(1, w * 0.014);
   ctx.strokeStyle = 'rgba(255,245,225,0.95)';
   ctx.stroke();
 }
