@@ -108,6 +108,7 @@ export const ru = {
     mult: 'множитель',
     total: 'очки',
     combo: '{combo}: база {light} света и множитель {mult}',
+    base: 'база: {combo}',
     card: '+{n} света: ранг карты {rank}',
     glyph: '{glyph}: {desc}',
     omen: '{name}: {effect}',

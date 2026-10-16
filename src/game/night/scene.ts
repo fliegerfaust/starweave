@@ -638,6 +638,11 @@ export class NightScene {
     this.presenter.scoringGate = gate;
   }
 
+  /** Обучение показывает под формулой, из чего она складывается. */
+  setExplain(on: boolean): void {
+    this.presenter.explain = on;
+  }
+
   /** Обучение замедляет подсчёт, чтобы успеть прочитать подписи. */
   setStepPause(k: number): void {
     this.presenter.stepPause = k;

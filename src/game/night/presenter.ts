@@ -365,6 +365,12 @@ export class Presenter {
       const topRow = line.cells.some((c) => c < scene.night.rules.gridSize);
       hud.placeCalc(topRow ? scene.cellRect(line.cells[0]!).y : null);
       hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
+      const steps = line.steps.slice(1);
+      if (this.explain) {
+        hud.showParts(line.combo, comboStep.lightAfter, comboStep.multAfter, steps.map((s) => (s.light
+          ? { text: `${s.light > 0 ? '+' : ''}${num(s.light)}`, kind: 'light' as const }
+          : { text: s.xMult !== undefined ? `×${fmtX(s.xMult)}` : `+${num(s.mult ?? 0)}`, kind: 'mult' as const })));
+      }
       await this.wait(0.3);
       // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
       const gate = this.scoringGate;
@@ -373,12 +379,12 @@ export class Presenter {
         await gate();
       }
 
-      const steps = line.steps.slice(1);
       const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
       const seenCells = new Set<number>();
       // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
       this.moteTime = Math.min(0.16, stepDelay * 0.85);
       for (let i = 0; i < steps.length; i++) {
+        if (this.explain) hud.lightPart(i);
         await this.showStep(steps[i]!, i, seenCells);
         await this.wait(Math.max(0.04, stepDelay * this.stepPause - this.moteTime));
       }
@@ -450,6 +456,8 @@ export class Presenter {
 
   /** Во сколько раз дольше держать каждый шаг (обучение замедляет подсчёт). */
   stepPause = 1;
+  /** Обучение: под формулой — база созвездия и вклад каждого шага (TU.3). */
+  explain = false;
   /** Одноразовая пауза перед шагами первого подсчёта (обучение). */
   scoringGate: (() => Promise<void>) | null = null;
 
