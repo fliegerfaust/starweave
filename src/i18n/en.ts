@@ -179,7 +179,6 @@ export const en: Dict = {
     prepare: 'Now the key trick. I’ll lay out the cards — you place the last one.',
     crossCell: 'The “×2” cell closes both a row and a column. That’s a cross: both lines score double!',
     cross: 'Place the 9 of Star on the cross.',
-    reward: 'Night cleared! Here’s your gold — collect it.',
     shop: 'The Observatory. Between nights you buy Omens here — bonuses for the whole run.',
     buyOmen: 'Buy “Stardust”. The multiplier is how many times a constellation’s light counts; Stardust adds 4 to it: a Pair goes from ×2 to ×6 — triple the points.',
     omenSlot: 'The Omen sits here and works for the rest of the run.',

@@ -80,7 +80,15 @@ export class TutorialOverlay {
       this.spot.classList.remove('on');
     } else {
       const r = this.spotRect;
+      // Погасшая рамка встаёт на новую цель сразу: иначе она пролетала через весь экран
+      // со старого места (с кнопки Обсерватории — на Знамения)
+      const fresh = !this.spot.classList.contains('on');
+      if (fresh) this.spot.style.transition = 'opacity 0.3s ease';
       Object.assign(this.spot.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
+      if (fresh) {
+        void this.spot.offsetWidth;
+        this.spot.style.transition = '';
+      }
       this.spot.classList.add('on');
     }
     if (this.bubble.classList.contains('on')) this.layout();
@@ -161,16 +169,26 @@ export class TutorialOverlay {
     } else if (dock && hud) {
       const height = b.offsetHeight;
       const inGap = dock.handTop - height - 12;
+      const from = Math.max(hud.top, safeTop());
       if (inGap >= dock.boardBottom + 6 && !overlaps(inGap, height)) top = inGap;
-      else if (!overlaps(Math.max(hud.top, safeTop()), height)) {
+      // На шапке подсказка тянется до её низа — проверяем полную высоту: цель внутри
+      // шапки (Знамения) иначе закрывалась (TU.1)
+      else if (!overlaps(from, Math.max(height, hud.bottom - from))) {
         // Просвета нет — на шапку, во всю её ширину; сверху — не выше safe area (вырез,
         // кнопки Telegram): у шапки там только отступ
-        const from = Math.max(hud.top, safeTop());
         b.style.width = `${hud.width}px`;
         b.style.minHeight = `${hud.bottom - from}px`;
         b.style.left = `${hud.left}px`;
         top = from;
-      } else top = Math.max(hud.bottom + 6, dock.handTop - height - 12);
+      } else {
+        // Под целью или над ней — где хватает места до руки и до верха экрана
+        const below = spot ? spot.y + spot.h + 8 : -1;
+        const above = spot ? spot.y - height - 8 : -1;
+        const fits = (y: number) => y >= safeTop() && y + height <= dock.handTop - 6 && !overlaps(y, height);
+        if (spot && fits(below)) top = below;
+        else if (spot && fits(above)) top = above;
+        else top = Math.max(hud.bottom + 6, dock.handTop - height - 12);
+      }
     } else {
       // Не ночь (Обсерватория): сверху или снизу — подальше от цели
       const want = this.place !== 'auto' ? this.place : spot && spot.y + spot.h / 2 > vh / 2 ? 'top' : 'bottom';
