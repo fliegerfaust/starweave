@@ -35,10 +35,12 @@ export function omenBadge(kind: OmenKind): HTMLElement {
   return h(`span.omen-badge.k-${kind}`, { title: dict().omenKind[kind][0] }, BADGE_SYMBOL[kind]);
 }
 
-/** Медальон Знамения со значком типа. */
+/**
+ * Медальон Знамения. Что оно делает со счётом, говорит камешек в оправе самого медальона
+ * («Эмаль», FP.4) — отдельный значок поверх больше не нужен; он остался только в подсказке.
+ */
 export function omenMedal(id: string, size: number): HTMLElement {
-  const def = omenDef(id);
-  return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size), omenBadge(def.kind)]);
+  return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size)]);
 }
 
 export function bossTooltip(bossId: string): HTMLElement {
