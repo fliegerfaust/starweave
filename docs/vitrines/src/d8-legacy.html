@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Звезда памяти · Starweave 0.8</title>
+<!--KIT-->
+<style>
+.deck-fan { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; justify-items: center; }
+.deck-fan .pick { cursor: pointer; transition: transform 0.2s cubic-bezier(.2,.9,.3,1.2), filter 0.2s ease, opacity 0.3s ease; }
+.deck-fan .pick:hover { transform: translateY(-4px); }
+.deck-fan .pick.sel { transform: translateY(-8px); filter: drop-shadow(0 0 10px rgb(var(--gold-rgb) / 0.75)); }
+.deck-fan .pick.dim { opacity: 0.35; }
+.casket { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px 12px 12px; border-radius: 16px;
+  background: radial-gradient(120% 120% at 50% 0%, rgb(var(--gold-rgb) / 0.08), transparent 70%), rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px var(--brass); }
+.casket-title { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); padding: 0 10px; background: #0d0b2a; font: 400 12px/1 var(--font-display); letter-spacing: 0.22em; padding-left: calc(10px + 0.22em); text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; }
+.mslot { display: grid; justify-items: center; gap: 6px; min-height: 120px; }
+.mslot .empty { width: 64px; height: 91px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgb(170 160 255 / 0.2); display: grid; place-items: center; color: var(--ink-faint); font: 600 11px/1.2 var(--font-body); text-align: center; }
+.mslot small { font: 600 10.5px/1.35 var(--font-body); color: var(--ink-faint); text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mslot .k-card.leaving { animation: leave 0.6s ease forwards; }
+.mslot .k-card.arrive { animation: arrive 0.6s cubic-bezier(.16,1,.3,1) both; }
+@keyframes leave { to { opacity: 0; transform: translateY(26px) scale(0.6) rotate(-8deg); filter: grayscale(1) brightness(0.5); } }
+@keyframes arrive { from { opacity: 0; transform: translateY(-40px) scale(1.3); } to { opacity: 1; transform: none; } }
+.flip { perspective: 700px; width: 120px; height: 171px; margin: 0 auto; }
+.flip-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.9s cubic-bezier(.3,1.4,.4,1); }
+.flip.on .flip-in { transform: rotateY(180deg); }
+.flip .face, .flip .back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip .back { transform: rotateY(180deg); border-radius: 11px; overflow: hidden; }
+.flip .back img { position: absolute; left: -14%; top: -10%; width: 128%; height: 120%; }
+.back-note { position: absolute; left: 8px; right: 8px; bottom: 10px; padding: 8px 6px; border-radius: 8px; background: rgb(6 5 22 / 0.82); text-align: center; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35); }
+.back-note b { display: block; font: 400 10px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.back-note span { display: block; margin-top: 5px; font: 700 10.5px/1.35 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.screen { display: none; flex-direction: column; gap: 14px; flex: 1; }
+.screen.on { display: flex; animation: rise 0.45s cubic-bezier(.16,1,.3,1) both; }
+.step-dots { display: flex; justify-content: center; gap: 6px; }
+.step-dots i { width: 6px; height: 6px; border-radius: 50%; background: #2a2650; }
+.step-dots i.on { background: var(--gold); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.7); }
+.newdeck { display: flex; justify-content: center; align-items: flex-end; height: 120px; position: relative; }
+.newdeck .k-card { margin: 0 -22px; transition: transform 0.6s cubic-bezier(.16,1,.3,1); }
+.newdeck .k-card.mem { filter: drop-shadow(0 0 12px rgb(var(--gold-rgb) / 0.9)); z-index: 2; }
+.daily-off { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-faint); font: 600 12px/1.3 var(--font-body); }
+.daily-off svg { width: 16px; height: 16px; }
+.mem-choose .mslot { cursor: pointer; }
+.mem-choose .mslot .k-card { transition: transform 0.2s ease, filter 0.2s ease; }
+.mem-choose .mslot.sel .k-card { transform: translateY(-6px); filter: drop-shadow(0 0 10px rgb(var(--gold-rgb) / 0.8)); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="step-dots" id="dots"><i class="on"></i><i></i><i></i></div>
+
+          <section class="screen on" id="s1">
+            <div class="ribbon"><b>Забег окончен</b><small>Глава 6 · лучший ход 12 480</small></div>
+            <div class="stage-head"><div class="plate-sub">Какая звезда этого забега останется с тобой?</div></div>
+            <div class="deck-fan" id="fan"></div>
+            <div class="casket" id="casket1"><span class="casket-title">Шкатулка</span></div>
+            <div class="stage-foot">
+              <div class="stage-note" id="note1">Выбери карту — она займёт место в Шкатулке</div>
+              <button class="btn btn-primary" id="keep" disabled>Сохранить звезду</button>
+            </div>
+          </section>
+
+          <section class="screen" id="s2">
+            <div class="stage-head"><div class="plate-title">Звезда памяти</div><div class="plate-sub">На обороте — забег, из которого она пришла</div></div>
+            <div class="flip" id="flip"><div class="flip-in"><div class="face" id="flipFace"></div><div class="back"><img src="" alt="" id="backImg"><div class="back-note"><b>Помнит</b><span id="backText"></span></div></div></div></div>
+            <div class="casket" id="casket2"><span class="casket-title">Шкатулка</span></div>
+            <div class="stage-foot">
+              <div class="stage-note" id="note2"></div>
+              <button class="btn btn-primary" id="toNew">Новый забег</button>
+            </div>
+          </section>
+
+          <section class="screen" id="s3">
+            <div class="stage-head"><div class="plate-title">Новый забег</div><div class="plate-sub">Взять одну звезду памяти в колоду?</div></div>
+            <div class="casket mem-choose" id="casket3"><span class="casket-title">Шкатулка</span></div>
+            <div class="newdeck" id="newdeck"></div>
+            <div class="daily-off"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 12.2 12.2 3.8" stroke="currentColor" stroke-width="1.4"/></svg>В вызове дня Шкатулка закрыта — у всех одна колода</div>
+            <div class="stage-foot">
+              <div class="stage-note" id="note3">Касание — выбрать звезду</div>
+              <button class="btn btn-primary" id="take" disabled>Взять звезду памяти</button>
+              <div class="btn-row"><button class="btn btn-light" id="noTake">Без неё</button><button class="btn btn-light" id="again">Сначала</button></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.8 · Звезда памяти · 20.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'legacy', lead: 'Забег кончился — но <b>одна его звезда остаётся</b>. Карта с глифом или телом уходит в Шкатулку и помнит, откуда пришла; в следующий забег её можно взять с собой.' });
+const stage = sky(q('#stage'), 6); /* art: nebula-6 back-classic card-sun-7-gilded card-moon-8-blazing card-star-9-radiant card-comet-7-echo card-moon-9-prism card-sun-8-glass */
+
+/* Колода забега: глифы и тела — то, что жалко терять */
+const RUN_DECK = [
+  { suit: 'sun', rank: 7, glyph: 'gilded' }, { suit: 'moon', rank: 8, glyph: 'blazing' }, { suit: 'star', rank: 9, glyph: 'radiant' },
+  { suit: 'comet', rank: 7, glyph: 'echo' }, { suit: 'moon', rank: 9, glyph: 'prism' }, { suit: 'star', rank: 6, body: 'polaris' },
+  { suit: 'comet', rank: 5, body: 'meteor' }, { suit: 'sun', rank: 8, glyph: 'glass' }, { suit: 'moon', rank: 4, body: 'pulsar' }, { suit: 'sun', rank: 3 },
+];
+const GLYPH_RU = { gilded: 'Позолота', blazing: 'Пламя', radiant: 'Сияние', echo: 'Эхо', glass: 'Стекло', prism: 'Призма' };
+const nameOf = (c) => (c.body ? BODIES[c.body].name : c.glyph ? `${c.rank} ${SUIT_RU[c.suit]} · ${GLYPH_RU[c.glyph]}` : `${c.rank} ${SUIT_RU[c.suit]}`);
+const OLD = [
+  { c: { suit: 'star', rank: 9, glyph: 'radiant' }, from: 'Глава 4 · 6 210 · 12.10' },
+  { c: { suit: 'sun', rank: 7, glyph: 'gilded' }, from: 'Глава 5 · 8 900 · 16.10' },
+  { c: { suit: 'moon', rank: 6, body: 'twin' }, from: 'Победа · 31 400 · 18.10' },
+];
+const THIS_RUN = 'Глава 6 · лучший ход 12 480 · 20.10';
+const THIS_SLOT = 'Глава 6 · 12 480 · 20.10';
+let casket, pick, chosen;
+const W = () => min(64, round((q('#stage').clientWidth - 32 - 32) / 5));
+
+function go(n) {
+  qa('.screen').forEach((s, i) => s.classList.toggle('on', i === n - 1));
+  qa('#dots i').forEach((d, i) => d.classList.toggle('on', i === n - 1));
+}
+function slot(m, extra) {
+  if (!m) return h('div', { class: 'mslot' }, h('div', { class: 'empty' }, 'место'), h('small', {}, ' '));
+  const [ch, , date] = m.from.split(' · ');
+  return h('div', { class: 'mslot' + (extra || '') }, card(m.c, 64), h('small', {}, ch, h('br'), date));
+}
+function renderCasket(el, list, opts = {}) {
+  const t = el.querySelector('.casket-title');
+  el.replaceChildren(t, ...[0, 1, 2].map((i) => {
+    const s = slot(list[i], opts.sel === i ? ' sel' : '');
+    if (opts.onPick && list[i]) s.onclick = () => opts.onPick(i);
+    return s;
+  }));
+}
+function reset() {
+  casket = OLD.map((m) => ({ ...m }));
+  pick = null; chosen = null;
+  const w = W();
+  q('#fan').replaceChildren(...RUN_DECK.map((c, i) => h('div', { class: 'pick', onclick: () => choose(i) }, card(c, w))));
+  renderCasket(q('#casket1'), casket);
+  q('#keep').disabled = true;
+  q('#note1').textContent = 'Выбери карту — она займёт место в Шкатулке';
+  q('#flip').classList.remove('on');
+  go(1);
+}
+function choose(i) {
+  pick = i;
+  qa('#fan .pick').forEach((p, j) => { p.classList.toggle('sel', j === i); p.classList.toggle('dim', j !== i); });
+  q('#keep').disabled = false;
+  q('#note1').innerHTML = `${nameOf(RUN_DECK[i])} · Шкатулка полна — уйдёт <b class="c-dim">самая старая</b> звезда`;
+}
+q('#keep').onclick = async () => {
+  if (pick == null) return;
+  const c = RUN_DECK[pick];
+  q('#keep').disabled = true;
+  // Самая старая звезда уходит, новая встаёт последней
+  const first = q('#casket1').querySelectorAll('.mslot')[0].querySelector('.k-card');
+  first.classList.add('leaving');
+  await wait(REDUCED ? 30 : 600);
+  casket = [...casket.slice(1), { c, from: THIS_SLOT }];
+  go(2);
+  q('#flipFace').replaceChildren(card(c, 120));
+  q('#backImg').src = ART['back-classic'];
+  q('#backText').textContent = THIS_RUN;
+  renderCasket(q('#casket2'), casket);
+  q('#casket2').querySelectorAll('.mslot')[2].querySelector('.k-card').classList.add('arrive');
+  q('#note2').textContent = `«${OLD[0].c.rank} ${SUIT_RU[OLD[0].c.suit]} · Сияние» из 4-й главы ушла — места три`;
+  await wait(REDUCED ? 30 : 700);
+  q('#flip').classList.add('on');
+};
+q('#flip').onclick = () => q('#flip').classList.toggle('on');
+q('#toNew').onclick = () => {
+  go(3);
+  chosen = null;
+  q('#take').disabled = true;
+  renderCasket(q('#casket3'), casket, { onPick: selectMem });
+  renderNewDeck();
+  q('#note3').textContent = 'Касание — выбрать звезду';
+};
+function selectMem(i) {
+  chosen = i;
+  renderCasket(q('#casket3'), casket, { onPick: selectMem, sel: i });
+  q('#take').disabled = false;
+  q('#note3').textContent = `${nameOf(casket[i].c)} — ${casket[i].from}`;
+}
+function renderNewDeck(mem) {
+  const base = [{ suit: 'sun', rank: 1 }, { suit: 'moon', rank: 5 }, { suit: 'star', rank: 3 }, { suit: 'comet', rank: 8 }, { suit: 'sun', rank: 6 }];
+  const els = base.map((c, i) => { const e = card(c, 56); e.style.transform = `rotate(${(i - 2) * 6}deg) translateY(${Math.abs(i - 2) * 4}px)`; return e; });
+  if (mem) { const e = card(mem, 64); e.classList.add('mem', 'rise'); els.splice(3, 0, e); }
+  q('#newdeck').replaceChildren(...els);
+}
+q('#take').onclick = async () => {
+  if (chosen == null) return;
+  const m = casket[chosen];
+  q('#take').disabled = true;
+  renderNewDeck(m.c);
+  ribbon(stage, 'Звезда с тобой', `${nameOf(m.c)} — в колоде 37 карт`, 2000);
+  q('#note3').textContent = 'Звезда остаётся в Шкатулке — её можно взять и в следующий раз';
+};
+q('#noTake').onclick = () => { renderNewDeck(); q('#note3').textContent = 'Чистая колода — 36 карт, как обычно'; };
+q('#again').onclick = reset;
+
+facts(q('#aside'), [
+  ['Суть', 'После забега — любого, даже проигранного — одна карта колоды уходит в <b>Шкатулку</b>: три места, новая вытесняет самую старую. Перед забегом одну можно взять с собой.'],
+  ['Зачем', 'Смерть оставляет след, как в Inscryption: плохой забег всё равно что-то дал. А Шкатулка подталкивает доводить карты — глиф, тело — до той, которую не жалко хранить.'],
+  ['Память', 'На обороте строкой: глава, лучший ход, дата. Колода игрока со временем — альбом его забегов.'],
+  ['Границы', 'Одна звезда на забег, не больше. В <b>вызове дня</b> и архиве Шкатулка закрыта — у всех одинаковая колода. Звёздность ✦✦✦✦✦ — без Шкатулки.'],
+], [
+  ['LG.1', 'После забега: выбор карты в Шкатулку, 3 места, старое вытесняется'],
+  ['LG.2', 'Перед забегом: взять одну звезду памяти (не в вызове дня)'],
+  ['LG.3', 'Оборот звезды: глава, лучший ход, дата'],
+]);
+ladder(q('#ladder'), 9);
+reset();
+</script>
+</body>
+</html>
