@@ -3,14 +3,17 @@
 #   Caddy платформы  →  starweave-api:8080  →  /opt/starweave/data/events.db
 #
 # Отдельный проект compose (`starweave`) в /opt/starweave: платформа его не видит,
-# её деплой его не трогает. Общая только сеть `repo_default`, чтобы Caddy платформы
-# мог проксировать на этот контейнер по имени. Код не запечён в образ, а лежит рядом
+# её деплой его не трогает. С платформой общий только Caddy: его контейнер deploy.sh
+# подключает в нашу сеть `starweave_proxy`, где кроме него — один этот контейнер (SEC.3).
+# В сети платформы `repo_default` игры нет: из неё не видно ни БД, ни бэкенда платформы. Код не запечён в образ, а лежит рядом
 # (./app, только чтение) — Node 24 исполняет TypeScript сам, без сборки.
 name: starweave
 
 services:
   api:
-    image: node:24-alpine
+    # Образ закреплён по digest (SEC.6): выкладка не подтягивает тихо новый образ.
+    # Обновить: digest тега node:24-alpine из Docker Hub — и сюда.
+    image: node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
     container_name: starweave-api
     restart: unless-stopped
     working_dir: /app
@@ -48,13 +51,14 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - platform
+      - proxy
       - egress
 
 networks:
-  platform:
-    external: true
-    name: repo_default
+  # Caddy ↔ игра. Внутренняя: наружу из неё выхода нет, в интернет — только egress
+  proxy:
+    name: starweave_proxy
+    internal: true
   # Выход в интернет по IPv6: с этого сервера Bot API Telegram доступен только по IPv6
   # (по IPv4 соединение не устанавливается). Своя сеть проекта — сеть платформы не меняется.
   egress:
