@@ -52,12 +52,40 @@ Telegram (вебхук бота) ─────────▶ (HTTPS, серт
 starweave-api ──IPv6 (сеть starweave_egress)──▶ api.telegram.org
 ```
 
+Caddy платформы и `starweave-api` связаны своей внутренней сетью `starweave_proxy`: в сети
+платформы `repo_default` контейнера игры нет, из него не видно ни БД, ни бэкенда платформы.
+Caddy в эту сеть подключает `deploy.sh`. Если платформа пересоздаст свой Caddy, связь пропадёт
+до следующего запуска `deploy.sh` — навсегда это решает строка `starweave_proxy` во внешних
+сетях Caddy в compose платформы.
+
+## Защита от заливки
+
+`/v1/events` держат четыре предела (`src/limits.ts`): ведро на адрес (IPv6 — по подсети /64),
+общий потолок 20 пачек в секунду на весь сервер, 2000 пачек в сутки на игрока и размер базы —
+события перестают приниматься при `EVENTS_DB_MAX_MB` (по умолчанию 1024), покупкам место
+остаётся. У оплаты свои вёдра. Важно, чтобы Caddy платформы не доверял чужим `X-Forwarded-For`
+(в глобальных настройках нет `trusted_proxies`), иначе адрес подделывается.
+
+## Бэкапы
+
+Сервер сам (`src/backup.ts`): каждые сутки — копия покупок `data/backups/purchases-ГГГГ-ММ-ДД.db`
+(хранятся 30 дней), по воскресеньям — полная копия базы `data/backups/events-weekly.db`.
+Забрать к себе, вне сервера:
+
+```bash
+server/scripts/pull-backup.sh
+```
+
+Восстановить покупки: скопировать нужный `purchases-*.db` на сервер и
+`sqlite3 data/events.db "ATTACH 'purchases-….db' AS b; INSERT OR IGNORE INTO purchases SELECT * FROM b.purchases;"`.
+
 - `src/validate.ts` — проверка пачки: строгие форматы и лимиты, только простые значения.
 - `src/db.ts` — SQLite (режим WAL), события старше 400 дней удаляются раз в сутки.
 - `src/stats.ts` — расчёт сводки, дни по Москве.
 - `src/dashboard.ts` — страница сводки без скриптов, названия из словаря игры.
-- `src/main.ts` — HTTP: приём, сводка под паролем, оплата, вебхук, ограничение частоты по
-  адресу (адрес не хранится).
+- `src/main.ts` — HTTP: приём, сводка под паролем, оплата, вебхук.
+- `src/limits.ts` — пределы приёма событий (адрес не хранится).
+- `src/backup.ts` — бэкапы покупок и базы.
 - `src/telegram.ts` — проверка подписи initData, вызовы Bot API.
 - `src/payments.ts` — счета, проверка перед оплатой, запись оплат и возвратов, команды бота.
 - `src/catalog.ts` — товары и цены в Stars.
@@ -75,7 +103,8 @@ starweave-api ──IPv6 (сеть starweave_egress)──▶ api.telegram.org
 server/deploy/deploy.sh
 ```
 
-Скрипт кладёт код в `/opt/starweave`, поднимает контейнер, ждёт `healthy`, кладёт
+Скрипт выкладывает только закоммиченное (`ALLOW_DIRTY=1` — обойти), кладёт код в
+`/opt/starweave`, поднимает контейнер (образ `node` закреплён по digest), ждёт `healthy`, кладёт
 `deploy/starweave.caddy` в `/data/sites/` тома Caddy платформы и перечитывает Caddy без
 перезапуска (только если `caddy validate` прошёл).
 

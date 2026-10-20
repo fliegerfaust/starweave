@@ -4,8 +4,20 @@
 Conventional Commits на английском. «✅» — сделано, подробности — в коммите. Сделанное до
 0.5.6 — в `git log` и ветках `release/*`.
 
-**Сейчас:** 0.5.9 на Pages и в Telegram (https://t.me/starweave_game_bot/play): понятное
+**Сейчас:** 0.5.9 на Pages (0.5.10 — защита сервера и сохранений — готов к выпуску) и в Telegram (https://t.me/starweave_game_bot/play): понятное
 обучение и реклама AdsGram. Stars включены, Яндекс ждёт регистрации.
+
+## 0.5.10 — защита сервера и сохранений (`release/0.5.10`, `epic/hardening`) — по ревью 21.10.2026
+Ревью — в `release/0.8.0`, docs/ARCH-REVIEW-0.8.md. Выкладка сервера — `server/deploy/deploy.sh` (Денис).
+- ✅ SEC.1 `/v1/events`: ведро на /64, общий потолок 20 пачек/с, 2000 пачек в сутки на игрока, потолок базы 1 ГБ, ограниченные таблицы вёдер; у оплаты свои вёдра. Проверено: tests/server-limits.test.ts
+- ✅ SEC.2 Бэкап: покупки каждые сутки (30 дней), база по воскресеньям; `server/scripts/pull-backup.sh` забирает копии с сервера
+- ✅ SEC.3 Своя внутренняя сеть `starweave_proxy` для Caddy и игры вместо `repo_default`
+- SEC.3b Строка `starweave_proxy` во внешних сетях Caddy в compose платформы — тогда сеть переживёт пересоздание Caddy → Денис
+- SEC.4 Проверить, что в Caddy платформы нет `trusted_proxies` → Денис, на сервере
+- ✅ SEC.5 Реестры контента и товаров без прототипа: ссылка `c_1_constructor_…` и товар `constructor` не проходят
+- ✅ SEC.6 Образ `node` по digest, Actions по SHA, `deploy.sh` выкладывает только закоммиченное
+- ✅ SEC.7 `?promo`, `?icon`, `?gallery`, `window.starweave` — только в разработке
+- ✅ TD.1 Миграции забега и профиля, проверка полей, профиль новее сборки не затирается. Проверено: tests/migrations.test.ts на сохранениях 0.5.9
 
 ## 0.5.7 → 0.5.9 — понятное обучение (`epic/tutorial-clarity`) — на Pages 16.10.2026 версией 0.5.9
 План и черновик текстов — [RELEASE-0.5.7-TUTORIAL](docs/RELEASE-0.5.7-TUTORIAL.md).
