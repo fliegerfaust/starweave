@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { insertBatch, openDb, purgeOld } from './db.ts';
+import { runBackups } from './backup.ts';
+import { dbBytes, insertBatch, openDb, purgeOld } from './db.ts';
+import { admit, DEFAULT_EVENTS_DB_MAX, eventLimits, RateLimiter, clientKey } from './limits.ts';
 import { createInvoice, handleUpdate, ownedProducts, type PaymentsConfig } from './payments.ts';
 import { botApi, verifyInitData } from './telegram.ts';
 import { renderDashboard } from './dashboard.ts';
@@ -23,6 +25,7 @@ import { LIMITS, parseBatch } from './validate.ts';
 const env = process.env;
 const PORT = Number(env.PORT ?? 8080);
 const DB_PATH = env.DB_PATH ?? '/data/events.db';
+const BACKUP_DIR = env.BACKUP_DIR ?? '/data/backups';
 const STATS_USER = env.STATS_USER ?? 'denis';
 const STATS_PASSWORD = env.STATS_PASSWORD ?? '';
 const ORIGINS = new Set((env.ALLOWED_ORIGINS ?? 'https://fliegerfaust.github.io').split(',').map((s) => s.trim()).filter(Boolean));
@@ -50,27 +53,26 @@ if (STATS_PASSWORD.length < 12) {
 
 const db = openDb(DB_PATH);
 
-// ── Ограничение частоты: ведро на адрес, 60 пачек в минуту с запасом 30 ──────────
-const buckets = new Map<string, { tokens: number; at: number }>();
-const RATE = 1; // пачек в секунду
-const BURST = 30;
-
-function allow(ip: string, now: number): boolean {
-  const b = buckets.get(ip) ?? { tokens: BURST, at: now };
-  b.tokens = Math.min(BURST, b.tokens + ((now - b.at) / 1000) * RATE);
-  b.at = now;
-  if (b.tokens < 1) {
-    buckets.set(ip, b);
-    return false;
-  }
-  b.tokens -= 1;
-  buckets.set(ip, b);
-  return true;
-}
+// ── Ограничение частоты и объёма (SEC.1, см. limits.ts) ──────────────────────
+const limits = eventLimits();
+// Покупки — свои вёдра: заливка событиями не мешает оплатить
+const payLimiter = new RateLimiter(1, 30);
 setInterval(() => {
-  const old = Date.now() - 10 * 60 * 1000;
-  for (const [ip, b] of buckets) if (b.at < old) buckets.delete(ip);
+  const now = Date.now();
+  limits.perIp.sweep(now);
+  payLimiter.sweep(now);
 }, 60 * 1000).unref();
+
+// Размер базы проверяем не на каждую пачку, а раз в 30 секунд
+const EVENTS_DB_MAX = Number(env.EVENTS_DB_MAX_MB) > 0 ? Number(env.EVENTS_DB_MAX_MB) * 1024 * 1024 : DEFAULT_EVENTS_DB_MAX;
+let dbFull = false;
+const checkSize = () => {
+  const bytes = dbBytes(db);
+  if (bytes >= EVENTS_DB_MAX && !dbFull) console.error(`база ${Math.round(bytes / 1048576)} МБ — события больше не принимаются`);
+  dbFull = bytes >= EVENTS_DB_MAX;
+};
+checkSize();
+setInterval(checkSize, 30 * 1000).unref();
 
 // ── Чистка старых событий раз в сутки ─────────────────────────────────────────
 const purge = () => {
@@ -83,6 +85,19 @@ const purge = () => {
 };
 purge();
 setInterval(purge, 24 * 60 * 60 * 1000).unref();
+
+// ── Бэкапы раз в сутки и при старте (SEC.2, см. backup.ts) ──────────────────────
+const backup = () => {
+  try {
+    console.log(`бэкап: ${runBackups(db, BACKUP_DIR, Date.now())}`);
+  } catch (err) {
+    console.error('бэкап не удался', err);
+  }
+};
+if (DB_PATH !== ':memory:') {
+  backup();
+  setInterval(backup, 24 * 60 * 60 * 1000).unref();
+}
 
 function clientIp(req: IncomingMessage): string {
   const fwd = req.headers['x-forwarded-for'];
@@ -133,11 +148,14 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
   if (req.method !== 'POST') return send(res, 405, 'method');
   // Браузер всегда шлёт Origin с POST: события принимаем только от нашей игры
   if (!ORIGINS.has(origin)) return send(res, 403, 'origin');
-  if (!allow(clientIp(req), Date.now())) return send(res, 429, 'slow down', cors);
+  const now = Date.now();
+  if (admit(limits, clientIp(req), now) !== 'ok') return send(res, 429, 'slow down', cors);
+  if (dbFull) return send(res, 507, 'full', cors);
   const raw = await readBody(req, LIMITS.body);
   if (raw === null) return send(res, 413, 'too large', cors);
-  const batch = parseBatch(raw, Date.now());
+  const batch = parseBatch(raw, now);
   if (typeof batch === 'string') return send(res, 400, batch, cors);
+  if (!limits.quota.take(batch.client, now)) return send(res, 429, 'quota', cors);
   try {
     insertBatch(db, batch);
   } catch (err) {
@@ -162,7 +180,7 @@ async function handlePay(req: IncomingMessage, res: ServerResponse, action: 'inv
   if (req.method !== 'POST') return send(res, 405, 'method');
   if (!ORIGINS.has(req.headers.origin ?? '')) return send(res, 403, 'origin');
   if (!payCfg) return send(res, 503, 'payments off', cors);
-  if (!allow(clientIp(req), Date.now())) return send(res, 429, 'slow down', cors);
+  if (!payLimiter.allow(clientKey(clientIp(req)), Date.now())) return send(res, 429, 'slow down', cors);
   const raw = await readBody(req, 8 * 1024);
   if (raw === null) return send(res, 413, 'too large', cors);
   let body: { initData?: unknown; product?: unknown };

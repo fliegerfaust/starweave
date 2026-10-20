@@ -1,3 +1,4 @@
+import { registry } from '@/core/content/registry';
 /**
  * Каталог покупок — один на все площадки. Силу игры не продаём: только атлас (новый
  * контент, который не сильнее бесплатного), внешний вид и поддержку автора.
@@ -34,7 +35,7 @@ export const PRODUCTS: Product[] = [
   { id: 'tip_large', kind: 'tip', stars: 250, grants: [], platforms: ['telegram'] },
 ];
 
-export const PRODUCT_BY_ID: Record<string, Product> = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
+export const PRODUCT_BY_ID: Record<string, Product> = registry(PRODUCTS);
 
 export function productsFor(platform: string): Product[] {
   return PRODUCTS.filter((p) => !p.platforms || p.platforms.includes(platform));

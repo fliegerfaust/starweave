@@ -1,6 +1,7 @@
 import type { DeckSpec } from '../deck';
 import { random, type RngState } from '../rng';
 import { GLYPHS, type Card, type Rules } from '../types';
+import { registry } from './registry';
 
 /** Как открывается колода неба. Проверяет мета-слой. */
 export type Unlock =
@@ -69,7 +70,7 @@ export const SKY_LIST: SkyDef[] = [
   },
 ];
 
-export const SKIES: Record<string, SkyDef> = Object.fromEntries(SKY_LIST.map((s) => [s.id, s]));
+export const SKIES: Record<string, SkyDef> = registry(SKY_LIST);
 
 export function skyDef(id: string): SkyDef {
   const def = SKIES[id];

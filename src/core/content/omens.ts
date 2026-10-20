@@ -3,6 +3,7 @@ import type { EffectHooks } from '../effects';
 import { isCorner } from '../grid';
 import { chance, pick } from '../rng';
 import { COMBO_IDS, GLYPHS, type ComboId, type Suit } from '../types';
+import { registry } from './registry';
 
 export type Rarity = 1 | 2 | 3;
 
@@ -412,7 +413,7 @@ export const OMEN_LIST: OmenDef[] = [
   },
 ];
 
-export const OMENS: Record<string, OmenDef> = Object.fromEntries(OMEN_LIST.map((o) => [o.id, o]));
+export const OMENS: Record<string, OmenDef> = registry(OMEN_LIST);
 
 export function omenDef(id: string): OmenDef {
   const def = OMENS[id];
