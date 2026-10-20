@@ -10,7 +10,8 @@ export interface StarsProduct {
   description: { ru: string; en: string };
 }
 
-export const STARS_PRODUCTS: Record<string, StarsProduct> = {
+// Без прототипа: id товара приходит от клиента, `constructor` не должен быть товаром (SEC.5)
+export const STARS_PRODUCTS: Record<string, StarsProduct> = Object.assign(Object.create(null) as Record<string, StarsProduct>, {
   atlas: {
     stars: 250,
     permanent: true,
@@ -71,7 +72,7 @@ export const STARS_PRODUCTS: Record<string, StarsProduct> = {
     title: { ru: 'Галактика автору', en: 'A galaxy for the author' },
     description: { ru: 'Спасибо! Чаевые ничего не открывают — просто поддержка.', en: 'Thank you! A tip unlocks nothing — just support.' },
   },
-};
+});
 
 /** Что ещё открывает покупка — чтобы не продать дважды уже открытое (атлас при наборе поддержки). */
-export const IMPLIED: Record<string, string[]> = { supporter: ['atlas'] };
+export const IMPLIED: Record<string, string[]> = Object.assign(Object.create(null) as Record<string, string[]>, { supporter: ['atlas'] });

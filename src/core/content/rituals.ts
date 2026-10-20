@@ -1,6 +1,7 @@
 import { withGlyph } from '../deck';
 import type { Card, Glyph, RunState, Suit } from '../types';
 import { GLYPHS, MAX_RANK, MIN_RANK, SUITS } from '../types';
+import { registry } from './registry';
 
 /** Колода не может стать меньше — иначе небо не заполнить. */
 export const MIN_DECK_SIZE = 20;
@@ -91,7 +92,7 @@ export const RITUAL_LIST: RitualDef[] = [
   ...GLYPHS.map(inscribe),
 ];
 
-export const RITUALS: Record<string, RitualDef> = Object.fromEntries(RITUAL_LIST.map((r) => [r.id, r]));
+export const RITUALS: Record<string, RitualDef> = registry(RITUAL_LIST);
 
 export function ritualDef(id: string): RitualDef {
   const def = RITUALS[id];
