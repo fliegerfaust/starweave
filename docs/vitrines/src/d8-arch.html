@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ревью архитектуры · Starweave 0.8</title>
+<!--KIT-->
+<style>
+/* Оценки: шкала из пяти делений */
+.scores { display: grid; gap: 0 32px; }
+@media (min-width: 820px) { .scores { grid-template-columns: 1fr 1fr; } }
+.sc { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; padding: 11px 0; box-shadow: 0 -1px 0 var(--hair); }
+.sc b { font: 700 14.5px/1.25 var(--font-body); color: var(--ink); }
+.sc .v { font: 800 18px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; text-align: right; }
+.sc .v.warn { color: var(--danger); }
+.sc small { grid-column: 1 / -1; color: var(--ink-dim); font: 600 12.5px/1.4 var(--font-body); text-wrap: pretty; }
+.gauge { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.gauge i { position: relative; height: 5px; border-radius: 999px; background: rgb(170 160 255 / 0.14); overflow: hidden; }
+.gauge i::after { content: ''; position: absolute; inset: 0; width: var(--f, 0%); border-radius: inherit; background: linear-gradient(90deg, #e09a2f, #ffe6a8); }
+.gauge.warn i::after { background: linear-gradient(90deg, #d93a5e, #ff8aa2); }
+
+/* Карта модулей */
+.map { display: grid; gap: 22px; }
+@media (min-width: 900px) { .map { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; } .map .panel { position: sticky; top: 72px; } }
+.layers { display: grid; gap: 10px; }
+.layer { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 12px; align-items: center; }
+.layer > span { font: 400 11.5px/1.2 var(--font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
+.mods { display: flex; flex-wrap: wrap; gap: 8px; }
+.mod { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px; border: 0; border-radius: 12px; cursor: pointer; text-align: left;
+  background: rgb(14 12 34 / 0.86); box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.18); color: var(--ink); font: 700 13px/1.15 var(--font-body); transition: box-shadow 0.2s ease; }
+.mod:hover { box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.45); }
+.mod.sel { box-shadow: inset 0 0 0 1px rgb(255 230 168 / 0.85), 0 0 14px -4px rgb(246 194 91 / 0.6); }
+.mod small { display: block; font: 600 11px/1.2 var(--font-body); color: var(--ink-faint); }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+.dot.ok { background: var(--ok); box-shadow: 0 0 6px rgb(124 240 176 / 0.6); }
+.dot.mid { background: var(--gold); box-shadow: 0 0 6px rgb(246 194 91 / 0.6); }
+.dot.bad { background: var(--danger); box-shadow: 0 0 6px rgb(255 83 112 / 0.6); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 4px; color: var(--ink-dim); font: 600 12px/1 var(--font-body); }
+.keys span { display: inline-flex; align-items: center; gap: 6px; }
+.panel h3 { margin: 0; font: 700 17px/1.2 var(--font-body); color: var(--gold-hi); }
+.panel .path { margin-top: 4px; color: var(--ink-faint); font: 600 12px/1.3 var(--font-body); }
+.panel ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; }
+.panel li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; padding: 9px 0; box-shadow: 0 -1px 0 var(--hair); font-size: 13.5px; line-height: 1.5; color: var(--ink); text-wrap: pretty; }
+.panel li .dot { margin-top: 6px; }
+.panel li code { font: 700 12px/1 var(--font-body); color: var(--gold); white-space: nowrap; }
+
+/* Конвейер хода */
+.pipe { display: grid; gap: 22px; }
+@media (min-width: 900px) { .pipe { grid-template-columns: 0.8fr 1.6fr; } }
+.pipe h3 { margin: 0 0 12px; font: 400 13px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-dim); }
+.pipe .new h3 { color: var(--gold-hi); }
+.mono { position: relative; padding: 16px; border-radius: 16px; background: rgb(255 83 112 / 0.05); box-shadow: inset 0 0 0 1px rgb(255 83 112 / 0.35); }
+.mono b { display: block; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
+.mono code { font: 700 12px/1 var(--font-body); color: var(--gold); }
+.mono p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13px; line-height: 1.5; }
+.mono ol { margin: 10px 0 0; padding-left: 18px; color: var(--ink-dim); font-size: 13px; line-height: 1.7; }
+.stages { display: grid; gap: 0; }
+.stage-row { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 52px; padding: 6px 0; }
+.stage-row::before { content: ''; position: absolute; left: 13px; top: 0; bottom: 0; width: 1px; background: rgb(246 194 91 / 0.35); }
+.stage-row:first-child::before { top: 50%; } .stage-row:last-child::before { bottom: 50%; }
+.stage-row i { position: relative; justify-self: center; width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 60%, #b9791b); box-shadow: 0 0 8px rgb(246 194 91 / 0.6); }
+.stage-row b { display: block; font: 700 14px/1.25 var(--font-body); color: var(--ink); }
+.stage-row small { display: block; margin-top: 2px; color: var(--ink-dim); font: 600 12px/1.35 var(--font-body); }
+.stage-row .who { display: flex; gap: 6px; align-items: center; }
+.stage-row .who .k-card, .stage-row .who img { flex: none; }
+.stage-row .who em { font-style: normal; font: 800 10.5px/1 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+
+/* Задачи */
+.lanes { display: grid; gap: 26px; }
+@media (min-width: 1000px) { .lanes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lane h3 { margin: 0; font: 400 13px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.lane > p { margin: 6px 0 10px; color: var(--ink-dim); font: 600 12.5px/1.4 var(--font-body); text-wrap: pretty; }
+.task { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 0; box-shadow: 0 -1px 0 var(--hair); }
+.task code { font: 800 11.5px/1.4 var(--font-body); letter-spacing: 0.06em; color: var(--gold); }
+.task span { color: var(--ink); font-size: 13.5px; line-height: 1.45; text-wrap: pretty; }
+.task span small { display: block; margin-top: 3px; color: var(--ink-faint); font: 600 11.5px/1.35 var(--font-body); }
+.task span small a { color: var(--gold); text-decoration: none; }
+.task .sz { font: 800 11px/1.4 var(--font-body); color: var(--ink-dim); letter-spacing: 0.06em; }
+.total-line { display: flex; justify-content: space-between; padding-top: 10px; box-shadow: 0 -1px 0 rgb(246 194 91 / 0.55); color: var(--gold-hi); font: 700 13.5px/1 var(--font-body); }
+.good { display: grid; gap: 0 32px; }
+@media (min-width: 820px) { .good { grid-template-columns: 1fr 1fr; } }
+.good div { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 10px; padding: 9px 0; box-shadow: 0 -1px 0 var(--hair); font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.good .dot { margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="label">Оценка по областям <small>из 5 · ниже 3 — мешает 0.8</small></div>
+  <div class="scores" id="scores"></div>
+
+  <div class="label">Карта кода <small>касание модуля — что в нём хорошо и что мешает</small></div>
+  <div class="map">
+    <div>
+      <div class="layers" id="layers"></div>
+      <div class="keys" style="margin-top:12px"><span><i class="dot ok"></i>готов к 0.8</span><span><i class="dot mid"></i>нужна доработка</span><span><i class="dot bad"></i>блокер</span></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <div class="label">Ход ночи <small>главный рефакторинг перед телами и мифами (TD.3)</small></div>
+  <div class="pipe">
+    <div><h3>Сейчас</h3>
+      <div class="mono"><b><code>placeCard</code> · одна функция</b>
+        <ol><li>положить карту</li><li>найти линии</li><li>подсчёт</li><li>погасить все клетки линий</li><li>добрать руку</li></ol>
+        <p>Некуда встроить карту, которая остаётся, выбивает соседа или складывается в фигуру.</p></div>
+    </div>
+    <div class="new"><h3>После · этапы с хуками</h3><div class="stages" id="stages"></div></div>
+  </div>
+
+  <div class="label">Задачи техдолга <small>в порядке выполнения</small></div>
+  <div class="lanes" id="lanes"></div>
+
+  <div class="label">Что хорошо и сохраняем</div>
+  <div class="good" id="good"></div>
+  <p class="foot">Ревью 21.10.2026 · только чтение кода · подробно — docs/ARCH-REVIEW-0.8.md</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: omen-crossroads omen-stardust boss-gravity */
+shell({ id: 'arch', lead: 'Фундамент здоровый: ядро чистое и детерминированное, Знамения расширяются одним объектом. Но форма забега («ровно 3 ночи») и сохранения без миграций <b>не выдержат 0.8</b> — сначала эпик «Фундамент», около трёх недель. Защиту сервера и миграции стоит выпустить сразу.' });
+
+const SCORES = [
+  ['Ядро правил', 4.5, 'Детерминизм без Math.random, команды → события, хуки Знамений'],
+  ['Контент', 4, 'Новое Знамение — один объект; нет пулов по открытиям'],
+  ['Безопасность', 4, 'Оплата, SQL, XSS, секреты — чисто; диск, сеть и бэкапы VPS — нет'],
+  ['Тесты', 3.5, 'Ядро и e2e широко; миграций, профиля и презентера нет'],
+  ['Производительность', 3.5, 'Кэши без вытеснения, подписи пересчитываются каждый кадр'],
+  ['Игра и интерфейс', 3, 'Один роутер, но app.ts и scene.ts — god-objects'],
+  ['Поток забега', 2.5, '«3 ночи на главу» зашито в ядре и интерфейсе'],
+  ['Сохранения и профиль', 2, 'Нет миграций: другая версия обнуляет забег и профиль'],
+];
+q('#scores').replaceChildren(...SCORES.map(([n, v, s]) => {
+  const warn = v < 3;
+  return h('div', { class: 'sc' }, h('b', {}, n), h('span', { class: 'v' + (warn ? ' warn' : '') }, String(v).replace('.', ',')),
+    h('div', { class: 'gauge' + (warn ? ' warn' : '') }, [0, 1, 2, 3, 4].map((k) => h('i', { style: { '--f': Math.max(0, Math.min(1, v - k)) * 100 + '%' } }))), h('small', {}, s));
+}));
+
+/* Модули: слой, имя, путь, статус, находки [статус, текст] */
+const MODS = [
+  ['Ядро', 'Правила и подсчёт', 'core/scoring, effects, rules, combos, grid', 'ok', [
+    ['ok', 'Хуки эффектов: Знамение объявляет только нужные, шаги идут в анимацию'], ['ok', 'Сетка обобщена на любой размер и диагонали'],
+    ['mid', 'Глифы — <code>switch</code> в <code>scoring.ts:98</code>: для тел нужен реестр черт карты (TD.4)'],
+    ['mid', '<code>activeEffects</code> знает только Знамения и Затмение (<code>scoring.ts:18</code>) — трофеи и покровители не встанут (TD.5)']]],
+  ['Ядро', 'Ход ночи', 'core/night.ts', 'bad', [
+    ['bad', '<code>placeCard</code> (<code>night.ts:129</code>) — монолит: нет места для Метеора, Полярной звезды, мифов (TD.3)'],
+    ['ok', 'Отдаёт <code>GameEvent[]</code> — новые события добавляются легко'], ['ok', 'Ни <code>Math.random</code>, ни <code>Date</code> в ядре']]],
+  ['Ядро', 'Забег', 'core/run.ts, types.ts', 'bad', [
+    ['bad', '<code>nightIndex</code> 0..2 и <code>&gt;= 3</code> (<code>run.ts:101</code>) — развилкам нужен план главы (TD.6)'],
+    ['mid', 'Выборы разрознены: пакет — <code>openPack</code>, награда — фаза; 0.8 добавит пять новых (TD.7)'],
+    ['mid', 'Нет журнала команд — рейтинги 0.7 его потребуют (TD.9)']]],
+  ['Ядро', 'Сохранения', 'core/save.ts', 'bad', [
+    ['bad', 'Другая версия — <code>null</code>: начатый забег молча пропадает (<code>save.ts:13</code>)'],
+    ['bad', 'Нет цепочки миграций и теста на сохранение 0.5.9 (TD.1)']]],
+  ['Ядро', 'Контент', 'core/content/*', 'mid', [
+    ['ok', 'Новое Знамение, Затмение, ритуал — один объект'], ['mid', 'Лавка берёт весь <code>OMEN_LIST</code> (<code>shop.ts:14</code>) — открытия нужно снимать в забег (TD.8)'],
+    ['mid', 'Реестры на <code>Record</code>: ключ <code>constructor</code> проходит проверку (SEC.5)']]],
+  ['Игра', 'App', 'game/app.ts · 718 строк', 'mid', [
+    ['ok', 'Один роутер экранов <code>route()</code>, UI меняет забег только командами'],
+    ['bad', 'В <code>route()</code> нет ветки по умолчанию: неизвестная фаза вешает экран (TD.2)'],
+    ['mid', 'Смешаны движок, покупки, навигация, забег, облако, обучение, настройки (TD.11)'],
+    ['mid', 'Профиль пишется из 9 мест — открытия размажутся (TD.8)']]],
+  ['Игра', 'Сцена ночи', 'game/night/scene.ts · 1204 строки', 'mid', [
+    ['mid', 'Раскладка, рисование, ввод, доступность и прогноз в одном файле (TD.12)'],
+    ['mid', '<code>scene.ts:1000</code> сам решает, какая клетка закроет линию, — повтор правила ядра'],
+    ['mid', 'Подписи прогноза меряются каждый кадр (<code>scene.ts:385</code>) (TD.14)']]],
+  ['Игра', 'Презентер', 'game/night/presenter.ts', 'mid', [
+    ['ok', 'Новое событие — один <code>case</code>'], ['mid', 'Нет проверки полноты — забытое событие тихо не покажется (TD.2)'],
+    ['mid', '<code>onIgnite</code> — 135 строк хореографии, мифы и «карта осталась» туда не впишутся (TD.13)']]],
+  ['Интерфейс', 'Карта главы', 'ui/screens/map.ts', 'bad', [
+    ['bad', 'Сама строит план ночей и повторяет щедрую ночь (<code>map.ts:62</code>); <code>at &gt;= 3</code>, <code>nightIndex === 2</code> (TD.6)']]],
+  ['Интерфейс', 'Экраны и HUD', 'ui/screens/*, hud.ts', 'mid', [
+    ['mid', '<code>recordDiscoveries</code> пишет профиль из экрана ночи (<code>night.ts:161</code>) (TD.8)'],
+    ['mid', 'HUD пересобирает Знамения после каждого хода (<code>hud.ts:171</code>)'], ['ok', 'innerHTML только со статикой и i18n']]],
+  ['Мета', 'Профиль', 'meta/profile.ts', 'bad', [
+    ['bad', 'Не версия 1 — пустой профиль поверх: профиль из облака от новой сборки <b>стирается</b> (<code>profile.ts:73</code>)'],
+    ['bad', 'Поля не проверяются: <code>seenOmens: null</code> роняет игру (TD.1)'], ['ok', 'Хранилище обёрнуто в try/catch']]],
+  ['Мета', 'i18n', 'i18n/*', 'mid', [
+    ['ok', '<code>en</code> проверяется типом <code>ru</code> и тестом ключей'], ['mid', '<code>t(path: string)</code> не типизирован, опечатка выводит путь в игру (TD.15)']]],
+  ['Сервер', 'События', 'server/src/main.ts, db.ts', 'bad', [
+    ['bad', 'Лимит на один IP: ротация IPv6 из /64 льёт гигабайты в сутки, диск VPS общий с платформой (SEC.1)'],
+    ['mid', '<code>Map</code> ведер растёт до OOM при той же ротации'], ['ok', 'Тела ограничены, поля проверяются, SQL — подготовленные запросы']]],
+  ['Сервер', 'Оплата Stars', 'server/src/payments.ts, telegram.ts', 'ok', [
+    ['ok', 'Выдача только по подписанному вебхуку; идемпотентно по <code>charge_id</code>; возвраты учтены'],
+    ['ok', 'initData: HMAC, срок, сравнение в постоянное время']]],
+  ['Сервер', 'Деплой', 'server/deploy/*', 'mid', [
+    ['ok', 'Контейнер <code>read_only</code>, <code>cap_drop ALL</code>, лимиты, без открытых портов'],
+    ['mid', 'Общая docker-сеть с платформой (SEC.3)'], ['mid', 'Нет бэкапа SQLite — покупки негде восстановить (SEC.2)'],
+    ['mid', 'Образ и Actions не закреплены (SEC.6)']]],
+  ['Клиент', 'Площадки и покупки', 'platform/*, store/*', 'ok', [
+    ['ok', '<code>?fakepay</code> только в DEV'], ['mid', '<code>?promo</code>, <code>?icon</code>, <code>window.starweave</code> в проде (SEC.7)'],
+    ['mid', 'Сторонние скрипты без CSP (SEC.8)']]],
+];
+let selMod = 1;
+function renderMap() {
+  const byLayer = {};
+  MODS.forEach((m, i) => (byLayer[m[0]] ??= []).push([m, i]));
+  q('#layers').replaceChildren(...Object.entries(byLayer).map(([layer, mods]) => h('div', { class: 'layer' }, h('span', {}, layer),
+    h('div', { class: 'mods' }, mods.map(([[, name, path, st], i]) => h('button', { class: 'mod' + (i === selMod ? ' sel' : ''), onclick: () => { selMod = i; renderMap(); } }, h('i', { class: 'dot ' + st }), name))))));
+  const [, name, path, , items] = MODS[selMod];
+  q('#panel').replaceChildren(h('h3', {}, name), h('div', { class: 'path' }, path), h('ul', {}, items.map(([st, txt]) => h('li', {}, h('i', { class: 'dot ' + st }), h('span', { html: txt })))));
+}
+renderMap();
+
+const STAGES = [
+  ['Выложить', 'карта ложится, ход тратится', null],
+  ['onPlaced', 'тело срабатывает при выкладке', () => [card({ suit: 'comet', rank: 7, body: 'meteor' }, 26), h('em', {}, 'Метеор')]],
+  ['Формации', 'линии и фигуры мифов — детекторы-плагины', () => [h('em', {}, 'мифы')]],
+  ['Подсчёт', 'эффекты из реестра источников', () => [omen('stardust', 28), boss('gravity', 28), h('em', {}, 'трофеи')]],
+  ['Клетки', 'политика каждой карты: гаснет · остаётся · разбита · выбита', () => [card({ suit: 'moon', rank: 5, body: 'polaris' }, 26), h('em', {}, 'Полярная')]],
+  ['Добор', 'рука, конец ночи, очередь выборов', () => [omen('crossroads', 28), h('em', {}, 'дар')]],
+];
+q('#stages').replaceChildren(...STAGES.map(([b, s, who]) => h('div', { class: 'stage-row' }, h('i'), h('div', {}, h('b', {}, b), h('small', {}, s)), h('div', { class: 'who' }, who ? who() : []))));
+
+const LANES = [
+  ['В прод сейчас', 'release/0.5.10 — риски есть уже сегодня, 0.8 может не выйти', [
+    ['SEC.1', 'Защита /v1/events: ведро на /64, общий лимит, потолок базы и Map', 'S'],
+    ['TD.1', 'Миграции сохранения и профиля, проверка полей, тест на 0.5.9', 'M'],
+    ['SEC.2', 'Ежесуточный бэкап SQLite вне VPS', 'S'],
+    ['SEC.3', 'Своя docker-сеть Caddy ↔ игра', 'M'],
+    ['SEC.4', 'Проверить trusted_proxies в Caddy платформы — на сервере, Денис', 'S'],
+    ['SEC.5', 'Object.hasOwn во всех реестрах контента', 'S'],
+    ['SEC.6', 'Закрепить образ и Actions; деплой только чистого дерева', 'S'],
+    ['SEC.7', 'Витрины графики и window.starweave — только в DEV', 'S'],
+  ]],
+  ['Фундамент 0.8', 'первым эпиком, ~3 недели; без него эпики A–C переписывают ядро', [
+    ['TD.2', 'Проверка полноты фаз и событий, откат в меню', 'S', 'всё'],
+    ['TD.3', 'Ход ночи по этапам с хуками', 'M', 'тела, мифы', 'd8-gift.html'],
+    ['TD.4', 'Черты карты реестром вместо switch глифов', 'S', 'тела', 'd8-gift.html'],
+    ['TD.5', 'Источники эффектов реестром', 'S', 'трофеи, покровители', 'd8-trophy.html'],
+    ['TD.6', 'План главы в ядре, карта только рисует', 'M', 'развилки', 'd8-route.html'],
+    ['TD.7', 'Очередь выборов и сцена «Выбери одно»', 'M', 'дар, трофей, Комета', 'd8-gift.html'],
+    ['TD.8', 'Открытия по событиям из одного места, пулы, снимок в забег', 'M', 'небосвод', 'd8-skyvault.html'],
+    ['TD.9', 'Журнал команд apply(run, cmd)', 'M', 'рейтинги 0.7'],
+    ['TD.10', 'Тесты: фазы, презентер, старое сохранение', 'M', 'рефакторинг'],
+  ]],
+  ['По ходу эпиков', 'когда эпик впервые трогает файл', [
+    ['TD.11', 'App → Router, RunController, Monetization', 'M'],
+    ['TD.12', 'scene.ts → вид, ввод, прогноз; closingCells в ядро', 'M'],
+    ['TD.13', 'Презентер: вспышка по шагам, слой фигур', 'M', 'мифы', 'd8-myths.html'],
+    ['TD.14', 'Производительность: LRU карт, кэш подписей, diff HUD', 'S'],
+    ['TD.15', 'Типизированные ключи t(), тест плейсхолдеров', 'S'],
+    ['SEC.8', 'CSP для игры', 'M'],
+  ]],
+];
+const W = { S: 1, M: 3, L: 6 };
+q('#lanes').replaceChildren(...LANES.map(([t, p, tasks]) => {
+  const days = tasks.reduce((a, x) => a + W[x[2]], 0);
+  return h('div', { class: 'lane' }, h('h3', {}, t), h('p', {}, p),
+    ...tasks.map(([id, txt, sz, opens, link]) => h('div', { class: 'task' }, h('code', {}, id),
+      h('span', {}, txt, opens ? h('small', {}, 'открывает: ', link ? h('a', { href: link }, opens) : opens) : null), h('span', { class: 'sz' }, sz))),
+    h('div', { class: 'total-line' }, h('span', {}, `${tasks.length} задач`), h('span', {}, `≈ ${days} дн.`)));
+}));
+
+q('#good').replaceChildren(...[
+  'Ядро без DOM, времени и случайности — забег воспроизводим, сим гоняет тысячи забегов',
+  'Логика мгновенна, вид проигрывает события — анимацию можно ускорить, не трогая правила',
+  'Прогноз на небе считает настоящий placeCard на копии — правила не дублируются',
+  'Один роутер экранов, UI меняет забег только командами',
+  'Сервер без зависимостей; оплата идемпотентна и выдаётся только по подписанному вебхуку',
+  'Контейнер read_only, cap_drop ALL, лимиты; секретов нет ни в git, ни в сборке',
+].map((t) => h('div', {}, h('i', { class: 'dot ok' }), h('span', {}, t))));
+</script>
+</body>
+</html>
