@@ -1,6 +1,7 @@
 import type { EffectHooks } from '../effects';
 import type { Suit } from '../types';
 import { SUITS } from '../types';
+import { registry } from './registry';
 
 export interface BossDef extends EffectHooks {
   id: string;
@@ -88,7 +89,7 @@ export const BOSS_LIST: BossDef[] = [
   },
 ];
 
-export const BOSSES: Record<string, BossDef> = Object.fromEntries(BOSS_LIST.map((b) => [b.id, b]));
+export const BOSSES: Record<string, BossDef> = registry(BOSS_LIST);
 
 export function bossDef(id: string): BossDef {
   const def = BOSSES[id];
