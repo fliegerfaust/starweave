@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Небосвод · Starweave 0.8</title>
+<!--KIT-->
+<style>
+.dome { position: relative; width: 100%; aspect-ratio: 1 / 0.92; margin: 0 auto; overflow: hidden; }
+.dome svg { width: 100%; height: 100%; overflow: visible; }
+.dome .rib { fill: none; stroke: rgb(246 194 91 / 0.22); stroke-width: 1; }
+.dome .rim { fill: none; stroke: rgb(246 194 91 / 0.55); stroke-width: 1.5; }
+.dome .edge { stroke: rgb(170 160 255 / 0.16); stroke-width: 1; stroke-dasharray: 2 4; fill: none; transition: stroke 0.6s ease; }
+.dome .edge.on { stroke: rgb(255 230 168 / 0.75); stroke-dasharray: none; filter: drop-shadow(0 0 3px rgb(246 194 91 / 0.7)); }
+.dome .st { fill: #2c2858; stroke: rgb(246 194 91 / 0.28); stroke-width: 1; transition: fill 0.5s ease, r 0.5s ease; }
+.dome .st.on { fill: #ffe6a8; stroke: #fff6e0; filter: drop-shadow(0 0 5px rgb(246 194 91 / 0.95)); }
+.dome .st.pop { animation: pop 0.7s cubic-bezier(.2,.9,.3,1.4); transform-box: fill-box; transform-origin: center; }
+@keyframes pop { 0% { transform: scale(0.2); } 60% { transform: scale(1.8); } 100% { transform: scale(1); } }
+.dome .nm { font: 400 9.5px/1 var(--font-display); letter-spacing: 0.16em; text-transform: uppercase; fill: rgb(165 160 207 / 0.55); text-anchor: middle; transition: fill 0.5s ease; }
+.dome .nm.on { fill: #ffe6a8; }
+.dome .grp { cursor: pointer; }
+.dome .grp:focus { outline: none; }
+.dome .grp.sel .nm { fill: #fff; }
+.runline { display: flex; justify-content: center; align-items: baseline; gap: 18px; color: var(--ink-dim); font: 600 12.5px/1 var(--font-body); }
+.runline b { font: 800 18px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.log { display: grid; min-height: 120px; align-content: start; }
+.log .r { animation: rise 0.4s ease both; }
+.log .r b.new { color: var(--gold-hi); }
+.detail { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 64px; padding: 10px 2px; box-shadow: 0 -1px 0 var(--hair), 0 1px 0 var(--hair); }
+.detail b { display: block; font: 700 14.5px/1.25 var(--font-body); color: var(--ink); }
+.detail small { display: block; margin-top: 3px; color: var(--ink-dim); font: 600 12.5px/1.4 var(--font-body); }
+.detail .pic { width: 52px; height: 52px; display: grid; place-items: center; }
+.scene { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px 18px; background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.88), rgb(3 3 14 / 0.96)); animation: fadein 0.3s ease; }
+@keyframes fadein { from { opacity: 0; } }
+.scene-in { display: grid; justify-items: center; gap: 18px; width: 100%; }
+.scene .pic-big { display: flex; gap: 8px; justify-content: center; align-items: end; min-height: 120px; }
+.scene p { margin: 0; max-width: 300px; text-align: center; color: var(--ink); font: 600 14px/1.45 var(--font-body); text-wrap: balance; }
+.scene .btn { min-width: 220px; }
+.marks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 18px; }
+.mark-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 0; box-shadow: 0 -1px 0 var(--hair); }
+.mark-row b { display: block; font: 700 13.5px/1.2 var(--font-body); }
+.pips { display: flex; gap: 4px; margin-top: 6px; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; background: #2a2650; box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.3); }
+.pips i.on { background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 60%, #b9791b); box-shadow: 0 0 5px rgb(246 194 91 / 0.7); }
+.shiny { position: relative; }
+.shiny::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 70%, rgb(255 255 255 / 0.85) 78%, transparent 86%); mask: radial-gradient(circle, transparent 58%, #000 60%, #000 66%, transparent 68%); animation: spin 3.2s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+.pool { display: grid; gap: 0; }
+.pool .r b { font-variant-numeric: tabular-nums; }
+.bar { position: relative; height: 6px; margin-top: 6px; border-radius: 999px; background: rgb(170 160 255 / 0.12); overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, #e09a2f, #ffe6a8); transition: width 0.6s cubic-bezier(.16,1,.3,1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="stage-head">
+            <div class="plate-title">Твой небосвод</div>
+            <div class="runline"><span>забегов<b id="runs">0</b></span><span>звёзд<b id="stars">0</b></span><span>ступень<b id="step">0</b></span></div>
+          </div>
+          <div class="dome" id="dome"></div>
+          <div class="detail" id="detail"></div>
+          <div class="stage-foot">
+            <div class="log rows" id="log"></div>
+            <button class="btn btn-primary" id="play">Сыграть забег</button>
+            <div class="btn-row"><button class="btn btn-light" id="ten">Ещё 5 забегов</button><button class="btn btn-light" id="reset">Сначала</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Пул растёт вместе с небом <small>что видит игрок на каждой ступени</small></div>
+  <div class="pool rows" id="pool"></div>
+  <div class="label">Отметки Знамений <small>победа со Знамением на звёздности N — отметка, как наклейки Balatro</small></div>
+  <div class="marks" id="marks"></div>
+  <div class="label">Вся лестница</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.8 · Небосвод · 21.10.2026 · прототип; темп открытия — модель, проверить симом (DB.1)</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'skyvault', lead: 'Купол главной заполняется <b>звёздами игрока</b>: каждое дело — звезда, законченное созвездие небосвода открывает следующую систему. Первый забег — нынешняя игра, дальше по ступени, когда прошлая уже понятна.' });
+const stage = sky(q('#stage'), 6); /* art: nebula-6 */
+
+/* Созвездия небосвода: ступень, число звёзд, что зажигает звезду, где на куполе, картинка открытия */
+const CONS = [
+  { step: 1, n: 1, deed: 'закончить забег', at: [200, 320], pic: () => [card({ suit: 'star', rank: 9, glyph: 'radiant' }, 56), card({ suit: 'moon', rank: 8, glyph: 'blazing' }, 56), card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 56)], say: 'После ночи — выбери звезду в колоду. Или оставь небо чистым и возьми золото.' },
+  { step: 2, n: 3, deed: 'дойти до главы 1–3', at: [112, 286], pic: () => [boss('gravity', 56), omen('stardust', 56)], say: 'Глава ветвится: обычная ночь или Яркая — труднее, но с Знамением.' },
+  { step: 3, n: 3, deed: 'победить Затмения 1–3', at: [290, 286], pic: () => [card({ suit: 'moon', rank: 5, body: 'polaris' }, 64), card({ suit: 'comet', rank: 7, body: 'meteor' }, 64)], say: 'Небесные тела: карты с правилом места. Полярная звезда не гаснет.' },
+  { step: 4, n: 3, deed: 'победить Затмения 4–6', at: [68, 214], pic: () => [boss('gravity', 72)], say: 'Победил Затмение — приручи его: правило босса теперь работает на тебя.' },
+  { step: 5, n: 6, deed: 'собрать 6 из 10 созвездий', at: [332, 214], pic: () => [card({ suit: 'moon', rank: 2 }, 44), card({ suit: 'moon', rank: 7 }, 44), card({ suit: 'moon', rank: 9 }, 44), card({ suit: 'moon', rank: 4 }, 44)], say: 'Мифы: карты на небе складываются в фигуру — Кассиопею, Лебедя, Плеяды.' },
+  { step: 6, n: 2, deed: 'дойти до глав 4–5', at: [128, 140], pic: () => [omen('alchemist', 56), card({ suit: 'moon', rank: 9, glyph: 'prism' }, 48)], say: 'На развилках — Комета (событие) и Телескоп (улучшение без ночи).' },
+  { step: 7, n: 4, deed: 'забеги 5–8', at: [272, 140], pic: () => [chart('flush', 56), chart('cascade', 56)], say: 'Пророчество главы: «собери два флеша» — исполни и получи награду.' },
+  { step: 8, n: 5, deed: 'открыть 5…25 Знамений', at: [200, 96], pic: () => [omen('sunWorship', 52), omen('highNoon', 52)], say: 'Резонанс: два Знамения рядом сливаются в легендарное.' },
+  { step: 9, n: 1, deed: 'первая победа', at: [92, 76], pic: () => [card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 64)], say: 'Звезда памяти: возьми карту из забега — она вернётся в следующий.' },
+  { step: 10, n: 3, deed: 'победа и 2 отметки', at: [308, 76], pic: () => [omen('diagonalSight', 52), card({ suit: 'moon', rank: 6, body: 'polaris' }, 52)], say: 'Покровители: Мореход, Алхимик, Гадалка, Астроном — у каждого свой забег.' },
+  { step: 11, n: 3, deed: 'победы на ✦ ✦✦ ✦✦✦', at: [200, 30], pic: () => [boss('void', 56), boss('wane', 56), boss('fog', 56)], say: 'Три ключа открывают 9-ю главу — Сердце неба.' },
+];
+/* Форма каждого созвездия на куполе — смещения звёзд вокруг центра */
+const SHAPES = { 1: [[0, 0]], 2: [[-14, 6], [14, -6]], 3: [[-18, 8], [0, -10], [18, 8]], 4: [[-20, 8], [-7, -8], [8, -4], [20, 10]], 5: [[-22, 0], [-11, -12], [0, 0], [11, -12], [22, 0]], 6: [[-24, 10], [-14, -6], [-2, 4], [10, -10], [20, 2], [26, -14]] };
+function chart(id, s) { return sig('chart-' + id, s); } /* art: chart-flush chart-cascade omen-alchemist omen-stardust omen-sunWorship omen-highNoon omen-diagonalSight boss-gravity boss-void boss-wane boss-fog card-star-9-radiant card-moon-8-blazing card-sun-7-gilded card-moon-9-prism */
+
+let P, sel = 11;
+function fresh() { return { runs: 0, best: 0, eclipses: 0, combos: 0, omens: 0, wins: 0, marks: 0, stakeWins: 0, lit: CONS.map(() => 0), open: 0 }; }
+/** Сколько звёзд горит у созвездия по делам игрока. */
+function litOf(c, p) {
+  switch (c.step) {
+    case 1: return min(1, p.runs);
+    case 2: return min(3, p.best);
+    case 3: return min(3, p.eclipses);
+    case 4: return min(3, max(0, p.eclipses - 3));
+    case 5: return min(6, p.combos);
+    case 6: return min(2, max(0, p.best - 3));
+    case 7: return min(4, max(0, p.runs - 4));
+    case 8: return min(5, Math.floor(p.omens / 5));
+    case 9: return min(1, p.wins);
+    case 10: return p.wins ? min(3, 1 + p.marks) : 0;
+    case 11: return min(3, p.stakeWins);
+  }
+}
+
+function drawDome() {
+  const W = 400, H = 368;
+  let s = '';
+  // Арка купола со щелью и меридианы, как на главной
+  const arch = (rx) => `M${200 - rx} ${H - 4}V184A${rx} 184 0 0 1 ${200 + rx} 184V${H - 4}`;
+  s += `<path class="rib" d="${arch(61)}"/><path class="rib" d="${arch(122)}"/><path class="rib" d="M16 184H384"/>`;
+  s += `<path class="rim" d="${arch(184)}"/>`;
+  CONS.forEach((c, i) => {
+    const pts = SHAPES[c.n].map(([dx, dy]) => [c.at[0] + dx, c.at[1] + dy]);
+    const on = P.lit[i], done = on >= c.n;
+    let g = `<g class="grp${sel === i ? ' sel' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${LADDER[c.step][0]}">`;
+    g += `<rect x="${c.at[0] - 40}" y="${c.at[1] - 26}" width="80" height="58" fill="transparent"/>`;
+    for (let k = 1; k < pts.length; k++) g += `<path class="edge${k < on ? ' on' : ''}" d="M${pts[k - 1].join(' ')}L${pts[k].join(' ')}"/>`;
+    pts.forEach((p, k) => (g += `<circle class="st${k < on ? ' on' : ''}" data-k="${i}-${k}" cx="${p[0]}" cy="${p[1]}" r="${k < on ? 3.6 : 2.6}"/>`));
+    g += `<text class="nm${done ? ' on' : ''}" x="${c.at[0]}" y="${c.at[1] + 26}">${LADDER[c.step][0]}</text></g>`;
+    s += g;
+  });
+  const el = svg(s, W, H);
+  el.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  q('#dome').replaceChildren(el);
+  qa('.grp', el).forEach((g) => { const go = () => { sel = +g.dataset.i; drawDome(); detail(); }; g.onclick = go; g.onkeydown = (e) => e.key === 'Enter' && go(); });
+}
+function detail() {
+  const c = CONS[sel], on = P.lit[sel], [name, , what] = LADDER[c.step];
+  const pic = c.pic()[0];
+  pic.style.transform = 'scale(0.82)';
+  q('#detail').replaceChildren(h('div', { class: 'pic' }, pic), h('div', {}, h('b', {}, `${name} · ${on} из ${c.n}`), h('small', {}, on >= c.n ? `Открыто: ${what}.` : `Звезда — за «${c.deed}». Откроет: ${what}.`)));
+}
+function stats() {
+  q('#runs').textContent = P.runs;
+  q('#stars').textContent = P.lit.reduce((a, b) => a + b, 0);
+  q('#step').textContent = P.open;
+  renderPool();
+  renderMarks();
+}
+
+/* Модель игрока: с каждым забегом доходит дальше, иногда хуже прошлого */
+const R = rng(20);
+function simulateRun() {
+  const n = P.runs + 1;
+  const reach = min(9, max(1, Math.round(1.6 + n * 0.62 + (R() - 0.5) * 2.4)));
+  const chapters = min(8, reach);
+  const win = reach >= 9;
+  const ev = [];
+  P.runs = n;
+  if (chapters > P.best) { P.best = chapters; ev.push(['Дошёл до главы', chapters, true]); } else ev.push(['Дошёл до главы', chapters]);
+  const ecl = chapters - (win ? 0 : 1);
+  P.eclipses += ecl;
+  ev.push(['Затмений побеждено', `+${ecl}`]);
+  const newCombos = min(10 - P.combos, Math.round(R() * 2.2 + (n < 3 ? 2 : 0.4)));
+  if (newCombos > 0) { P.combos += newCombos; ev.push(['Новые созвездия', `+${newCombos} · ${P.combos} из 10`, true]); }
+  P.omens = min(37, P.omens + 3 + Math.round(R() * 3));
+  if (win) {
+    P.wins++;
+    ev.push(['Победа', `${P.wins}-я`, true]);
+    if (P.wins > 1 && R() < 0.7) { P.marks++; ev.push(['Отметка на Знамении', `+1`, true]); }
+    if (P.wins > 1 && P.stakeWins < 3 && R() < 0.55) { P.stakeWins++; ev.push(['Победа на звёздности', '✦'.repeat(P.stakeWins), true]); }
+  }
+  return ev;
+}
+let busy = false;
+async function play(times = 1) {
+  if (busy) return;
+  busy = true;
+  for (let t = 0; t < times; t++) {
+    const before = P.lit.slice();
+    const ev = simulateRun();
+    q('#log').replaceChildren(h('div', { class: 'r' }, `Забег ${P.runs}`, h('b', {}, '')), ...ev.slice(0, 4).map(([k, v, nw], i) => h('div', { class: 'r', style: { animationDelay: i * 0.08 + 's' } }, k, h('b', { class: nw ? 'new' : '' }, String(v)))));
+    P.lit = CONS.map((c) => litOf(c, P));
+    drawDome();
+    // Новые звёзды вспыхивают по очереди
+    for (let i = 0; i < CONS.length; i++) for (let k = before[i]; k < P.lit[i]; k++) { const el = q(`[data-k="${i}-${k}"]`); el?.classList.add('pop'); await wait(REDUCED ? 0 : times > 1 ? 60 : 160); }
+    stats();
+    // Законченные созвездия открывают ступени — по одной сцене
+    for (let i = 0; i < CONS.length; i++) {
+      if (before[i] < CONS[i].n && P.lit[i] >= CONS[i].n) {
+        P.open = max(P.open, CONS[i].step);
+        sel = i; drawDome(); detail(); stats();
+        await scene(CONS[i]);
+      }
+    }
+    await wait(times > 1 ? 120 : 0);
+  }
+  busy = false;
+}
+function scene(c) {
+  return new Promise((res) => {
+    const [name] = LADDER[c.step];
+    const el = h('div', { class: 'scene' }, h('div', { class: 'scene-in' },
+      h('div', { class: 'ribbon pop' }, h('b', {}, name), h('small', {}, 'Новое на небосводе')),
+      h('div', { class: 'pic-big' }, c.pic()),
+      h('p', {}, c.say),
+      h('button', { class: 'btn btn-primary', onclick: () => { el.remove(); res(); } }, 'Понятно')));
+    stage.append(el);
+    q('.btn', el).focus();
+  });
+}
+
+/* Пул контента по ступеням — новичок видит маленький понятный набор */
+function renderPool() {
+  const s = P.open;
+  const rows = [
+    ['Знамения в лавке', s >= 8 ? 37 + 8 : s >= 5 ? 37 : s >= 2 ? 26 : 18, 45],
+    ['Затмения', s >= 6 ? 13 : s >= 2 ? 9 : 6, 13],
+    ['Небесные тела', s >= 10 ? 10 : s >= 3 ? 3 + Math.min(3, Math.max(0, s - 3)) : 0, 10],
+    ['Мифы', s >= 5 ? 12 : 0, 12],
+    ['Виды развилок', s >= 6 ? 4 : s >= 2 ? 2 : 0, 4],
+    ['Покровители', s >= 10 ? 4 : 0, 4],
+  ];
+  q('#pool').replaceChildren(...rows.map(([k, v, all]) => h('div', { class: 'r' }, h('div', { style: { flex: 1 } }, k, h('div', { class: 'bar' }, h('i', { style: { width: (v / all) * 100 + '%' } }))), h('b', {}, `${v} из ${all}`))));
+}
+const MARKED = ['stardust', 'crossroads', 'nightOwl', 'sunWorship', 'glassCannon', 'diagonalSight']; /* art: omen-crossroads omen-nightOwl omen-glassCannon */
+function renderMarks() {
+  q('#marks').replaceChildren(...MARKED.map((id, i) => {
+    const n = min(5, Math.max(0, P.wins + P.stakeWins - i));
+    const ic = h('div', { class: i === 0 && P.wins ? 'shiny' : '' }, omen(id, 48));
+    return h('div', { class: 'mark-row' }, ic, h('div', {}, h('b', {}, OMEN_RU[id][0] + (i === 0 && P.wins ? ' · сияющее' : '')), h('div', { class: 'pips' }, [1, 2, 3, 4, 5].map((k) => h('i', { class: k <= n ? 'on' : '' })))));
+  }));
+}
+
+function reset() { if (busy) return; P = fresh(); sel = 0; q('#log').replaceChildren(h('div', { class: 'r' }, 'Первый забег — игра как сейчас', h('b', {}, ''))); drawDome(); detail(); stats(); }
+q('#play').onclick = () => play(1);
+q('#ten').onclick = () => play(5);
+q('#reset').onclick = reset;
+
+facts(q('#aside'), [
+  ['Суть', 'Открытия — <b>не меню, а небо</b>. Купол главной, где сейчас декоративные созвездия, становится личным: каждое дело игрока зажигает звезду, законченное созвездие открывает систему.'],
+  ['Постепенно', 'Порог — <b>дело</b>, а не время и не деньги: «дойти до 3-й главы», «победить 6 Затмений». Новая система приходит, когда прошлая понятна, и объясняет себя сценой с картинкой и одной фразой.'],
+  ['Темп', 'По модели: за первые 3 забега — Дар и Развилки, к 8-му — тела, трофеи и мифы, первая победа — около 10–12-го. Нажми «Сыграть забег» и посмотри.'],
+  ['Перепрохождение', 'Небо всегда показывает <b>следующую цель</b> — тусклые звёзды рядом с горящими. Плюс отметки Знамений (победа на каждой звёздности) и «Сияющие» варианты — коллекция на годы.'],
+  ['Честно', 'Ничего из этого не продаётся (принцип 2). Вызов дня — только ступени 0–2, одинаково для всех.'],
+], [
+  ['SK.1', 'Профиль: открытия и журнал; пороги — данные в <i>core/content/unlocks.ts</i>'],
+  ['SK.2', 'Небосвод на главной: звёзды игрока в куполе, касание — что это и что дальше'],
+  ['SK.3', 'Сцена «Новое на небосводе»: картинка системы и одна фраза'],
+  ['SK.4', 'Пулы Знамений, тел, мифов, Затмений по ступеням'],
+  ['SK.5', 'Отметки Знамений по звёздности, «Сияющее» Знамение (1/40 в лавке)'],
+  ['SK.6', 'Аналитика: воронка ступеней'],
+]);
+ladder(q('#ladder'), 0);
+reset();
+</script>
+</body>
+</html>
