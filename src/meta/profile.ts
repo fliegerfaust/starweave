@@ -68,14 +68,87 @@ export function emptyProfile(): Profile {
   };
 }
 
+/** Текущая версия профиля. Новая версия — шаг в `PROFILE_MIGRATIONS` и тест на старый JSON. */
+export const PROFILE_VERSION = 1;
+
+/**
+ * Шаги миграции: `n` переводит профиль версии `n` в `n + 1`. Профили 0.5.x — версия 1,
+ * поэтому пока шагов нет; добавленные позже поля заполняет `sanitizeProfile` значениями
+ * по умолчанию.
+ */
+const PROFILE_MIGRATIONS: Record<number, (p: Record<string, unknown>) => void> = {};
+
+type Raw = Record<string, unknown>;
+const isObj = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !Array.isArray(v);
+const num = (v: unknown, def: number): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : def);
+const strs = (v: unknown): string[] => (Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string' && x.length <= 64))] : []);
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Профиль из сырых данных (TD.1): каждое поле проверяется по типу, неверное заменяется
+ * значением по умолчанию — `seenOmens: null` из облака или старой сборки больше не роняет игру.
+ */
+export function sanitizeProfile(p: Raw): Profile {
+  const base = emptyProfile();
+  const out: Profile = {
+    ...base,
+    runs: num(p.runs, 0),
+    wins: num(p.wins, 0),
+    bestAnte: num(p.bestAnte, 0),
+    bestPlacement: num(p.bestPlacement, 0),
+    totalLines: num(p.totalLines, 0),
+    seenOmens: strs(p.seenOmens),
+    seenBosses: strs(p.seenBosses),
+    unlockedSkies: strs(p.unlockedSkies).length ? strs(p.unlockedSkies) : base.unlockedSkies,
+    tutorial: strs(p.tutorial),
+    daily: null,
+    maxStake: Math.min(MAX_STAKE, num(p.maxStake, 0)),
+    tutorialDone: p.tutorialDone === true,
+    // Профили до 0.5.8 без даты: игравшие — давно с нами, остальные — с этой минуты
+    firstSeen: typeof p.firstSeen === 'number' ? p.firstSeen : num(p.runs, 0) > 0 ? 0 : Date.now(),
+  };
+  if (!out.unlockedSkies.includes('classic')) out.unlockedSkies.unshift('classic');
+  const d = p.daily;
+  if (isObj(d) && typeof d.date === 'string' && DATE.test(d.date)) {
+    out.daily = { date: d.date, ante: num(d.ante, 0), best: num(d.best, 0), finished: d.finished === true };
+  }
+  if (isObj(p.archive)) {
+    const archive: Record<string, ArchiveRecord> = {};
+    for (const [date, r] of Object.entries(p.archive)) {
+      if (!DATE.test(date) || !isObj(r)) continue;
+      archive[date] = { ante: num(r.ante, 0), best: num(r.best, 0), ...(r.won === true ? { won: true } : {}) };
+    }
+    out.archive = archive;
+  }
+  if (p.tutorialFinished === true) out.tutorialFinished = true;
+  const combos = strs(p.combosFound).filter((id): id is ComboId => (COMBO_IDS as readonly string[]).includes(id));
+  if (combos.length) out.combosFound = combos;
+  if (p.crossFound === true) out.crossFound = true;
+  if (isObj(p.tutorialGift)) out.tutorialGift = { gold: num(p.tutorialGift.gold, 0) };
+  return out;
+}
+
+/** Версия профиля, лежащего в хранилище (или null). */
+function storedVersion(): number | null {
+  try {
+    const p = JSON.parse(storage.get(KEYS.profile) ?? 'null') as unknown;
+    return isObj(p) && typeof p.version === 'number' ? p.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Читает профиль: старые версии мигрируют по шагам, поля проверяются. Профиль новее этой
+ * сборки (облако от свежей версии игры) читается насколько понятен, но не перезаписывается
+ * — см. `saveProfile`.
+ */
 export function loadProfile(): Profile {
   try {
-    const p = JSON.parse(storage.get(KEYS.profile) ?? 'null') as Profile | null;
-    if (p?.version === 1) {
-      const profile = { ...emptyProfile(), ...p };
-      // Профили до 0.5.8 без даты: игравшие — давно с нами, остальные — с этой минуты
-      if (p.firstSeen === undefined) profile.firstSeen = p.runs > 0 ? 0 : Date.now();
-      return profile;
+    const p = JSON.parse(storage.get(KEYS.profile) ?? 'null') as unknown;
+    if (isObj(p) && typeof p.version === 'number' && p.version >= 1) {
+      for (let v = p.version; v < PROFILE_VERSION; v++) PROFILE_MIGRATIONS[v]?.(p);
+      return sanitizeProfile(p);
     }
   } catch {
     /* битый профиль — начинаем заново */
@@ -84,6 +157,10 @@ export function loadProfile(): Profile {
 }
 
 export function saveProfile(p: Profile): void {
+  // Профиль из более новой версии игры не затираем: иначе старая сборка на втором устройстве
+  // стёрла бы его и в облаке
+  const stored = storedVersion();
+  if (stored !== null && stored > PROFILE_VERSION) return;
   storage.set(KEYS.profile, JSON.stringify(p));
 }
 
