@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сердце неба · Starweave 0.8</title>
+<!--KIT-->
+<style>
+.stakes { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; align-items: end; position: relative; padding-top: 4px; }
+.stakes::before { content: ''; position: absolute; left: 4%; right: 4%; bottom: 13px; height: 1px; background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.45), rgb(var(--gold-rgb) / 0.12)); }
+.stakes button { appearance: none; border: 0; background: none; padding: 0; min-height: 44px; display: grid; justify-items: center; align-content: end; gap: 3px; cursor: pointer; position: relative; }
+.stakes button svg { width: 22px; height: 22px; transition: transform 0.2s ease; }
+.stakes button span { font: 800 9.5px/1 var(--font-body); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.stakes button.new span { color: var(--gold); }
+.stakes button.on svg { transform: scale(1.35); filter: drop-shadow(0 0 6px rgb(var(--gold-rgb) / 0.9)); }
+.stakes button.on span { color: var(--gold-hi); }
+.stake-rule { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 64px; padding: 6px 2px; box-shadow: 0 -1px 0 var(--hair), 0 1px 0 var(--hair); }
+.stake-rule .pic { width: 52px; height: 52px; }
+.stake-rule b { display: block; font: 700 14.5px/1.25 var(--font-body); color: var(--ink); }
+.stake-rule small { display: block; margin-top: 3px; font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); }
+.stake-rule.rise b { color: var(--gold-hi); }
+.vault { position: relative; height: 210px; }
+.vault svg.map { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.door { transition: transform 1.1s cubic-bezier(.7,0,.2,1); }
+.vault.open .door.l { transform: translateX(-40px); }
+#stage .toast-layer { top: auto; bottom: 22%; }
+.vault.open .door.r { transform: translateX(40px); }
+.heart-star { opacity: 0; transform-origin: center; transform-box: fill-box; transform: scale(0.2); transition: opacity 0.8s ease 0.6s, transform 1.2s cubic-bezier(.16,1,.3,1) 0.6s; }
+.vault.open .heart-star { opacity: 1; transform: scale(1.25); }
+.heart-glow { opacity: 0; transition: opacity 1.2s ease 0.9s; }
+.vault.open .heart-glow { opacity: 1; animation: breathe 2.6s ease-in-out 2s infinite; }
+@keyframes breathe { 50% { opacity: 0.55; } }
+.keyhole { transition: fill 0.4s ease; }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.key { appearance: none; border: 0; background: none; cursor: pointer; display: grid; justify-items: center; gap: 6px; padding: 6px 2px; border-radius: 14px; text-align: center; transition: background 0.2s ease; }
+.key:hover { background: rgb(var(--gold-rgb) / 0.05); }
+.key svg { width: 54px; height: 54px; transition: filter 0.4s ease, opacity 0.4s ease; opacity: 0.45; filter: grayscale(0.7); }
+.key.got svg { opacity: 1; filter: drop-shadow(0 0 8px rgb(var(--gold-rgb) / 0.8)); }
+.key b { font: 700 12.5px/1.2 var(--font-body); color: var(--ink); }
+.key small { font: 600 11px/1.3 var(--font-body); color: var(--ink-faint); text-wrap: balance; min-height: 28px; }
+.key .bar { display: flex; gap: 3px; }
+.key .bar i { width: 10px; height: 3px; border-radius: 2px; background: #2a2650; transition: background 0.3s ease; }
+.key .bar i.on { background: var(--gold); }
+.key.got small { color: var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="stage-head"><div class="plate-title">Звёздность</div><div class="plate-sub">Ступени 6–12 меняют правила, а не цифры</div></div>
+          <div class="stakes" id="stakes"></div>
+          <div class="stake-rule" id="rule"></div>
+          <div class="stage-head"><div class="plate-title">Сердце неба</div></div>
+          <div class="vault" id="vault"><svg class="map" id="map" viewBox="0 0 340 210" preserveAspectRatio="xMidYMid meet"></svg></div>
+          <div class="keys" id="keys"></div>
+          <div class="stage-foot">
+            <div class="stage-note" id="note">Касание ключа — пройти его условие</div>
+            <button class="btn btn-primary" id="enter" disabled>Войти в 9-ю главу</button>
+            <div class="btn-row"><button class="btn btn-light" id="again">Сначала</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.8 · Звёздность II и Сердце неба · 20.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'heart', lead: 'Как акт 4 в Slay the Spire: <b>три ключа</b> за опасные пути открывают тайную 9-ю главу. А звёздность после пятой ступени добавляет не проценты, а новые правила.' });
+const stage = sky(q('#stage'), 8); /* art: nebula-8 */
+
+/* Звёздность: 1–5 — как сейчас (цифры), 6–12 — правила */
+const PIC = {
+  num: (t) => `<circle cx="26" cy="26" r="20" fill="none" stroke="rgb(165 160 207 / .35)"/><text x="26" y="31" fill="#a5a0cf" font-size="14" font-weight="800" text-anchor="middle" font-family="Manrope">${t}</text>`,
+  bright: '<circle cx="26" cy="26" r="9" fill="#fff6e0"/><circle cx="26" cy="26" r="16" fill="none" stroke="#ffe6a8" stroke-width="1.5"/><circle cx="26" cy="26" r="22" fill="none" stroke="rgb(255 107 139 / .7)" stroke-width="1.5" stroke-dasharray="3 3"/>',
+  dust: '<rect x="12" y="8" width="26" height="36" rx="4" fill="#1a1838" stroke="rgb(165 160 207 / .4)"/><text x="25" y="32" fill="#5a5688" font-size="16" font-weight="800" text-anchor="middle" font-family="Manrope">0</text><circle cx="40" cy="12" r="1.5" fill="#8a85b8"/><circle cx="44" cy="20" r="1" fill="#8a85b8"/><circle cx="9" cy="42" r="1.2" fill="#8a85b8"/>',
+  twin: '<circle cx="19" cy="26" r="13" fill="#0b0a24" stroke="#e8e4f4" stroke-width="1.5"/><circle cx="33" cy="26" r="13" fill="#0b0a24" stroke="#e8e4f4" stroke-width="1.5"/><path d="M26 15a13 13 0 0 1 0 22 13 13 0 0 1 0-22Z" fill="#e8e4f4" opacity=".35"/>',
+  noroll: '<path d="M14 26a12 12 0 1 0 4-9" fill="none" stroke="#f6c25b" stroke-width="2.2" stroke-linecap="round"/><path d="M14 11v7h7" fill="none" stroke="#f6c25b" stroke-width="2.2" stroke-linecap="round"/><path d="M10 42 42 10" stroke="#ff5370" stroke-width="2.2" stroke-linecap="round"/>',
+  fog: '<circle cx="12" cy="40" r="4" fill="#ffe6a8"/><circle cx="26" cy="26" r="3.5" fill="rgb(255 230 168 / .5)"/><circle cx="40" cy="12" r="3" fill="rgb(255 230 168 / .2)"/><path d="M4 24h44M8 32h36M12 16h30" stroke="rgb(165 160 207 / .45)" stroke-width="3" stroke-linecap="round"/>',
+  burn: '<path d="M26 8c6 8 12 12 12 22a12 12 0 0 1-24 0c0-6 4-9 6-14 2 4 4 6 6 6 0-6-2-10 0-14Z" fill="#ff7f62"/><circle cx="38" cy="38" r="8" fill="#f6c25b"/><text x="38" y="42" fill="#1a1206" font-size="10" font-weight="800" text-anchor="middle" font-family="Manrope">1</text>',
+  heart: '<path d="M26 4 31 21 48 26 31 31 26 48 21 31 4 26 21 21Z" fill="#ff6b8b"/><circle cx="26" cy="26" r="6" fill="#fff6e0"/>',
+};
+const STAKES = [
+  [1, 'Цели ×1.25', 'Как сейчас', PIC.num('×1.25')], [2, '−2 хода', 'Как сейчас', PIC.num('−2')], [3, '−1 золото за ночь', 'Как сейчас', PIC.num('−1')],
+  [4, 'Цены +1', 'Как сейчас', PIC.num('+1')], [5, '−1 сжигание, цели ×1.5', 'Как сейчас — вершина прежней лестницы', PIC.num('×1.5')],
+  [6, 'Яркие ночи ярче', 'У Яркой ночи своё правило Затмения', PIC.bright], [7, 'Пыль в колоде', 'Три мёртвые карты ранга 0 — не светят, только мешают', PIC.dust],
+  [8, 'Двойное Затмение', 'У Затмения главы два правила сразу', PIC.twin], [9, 'Лавка без переброса', 'Что выпало в Обсерватории — то и есть', PIC.noroll],
+  [10, 'Туман над развилками', 'Видно только следующий шаг пути', PIC.fog], [11, 'Сжигание за золото', 'Каждое сжигание стоит 1 золото', PIC.burn],
+  [12, 'Сердце обязательно', 'Победа — только через 9-ю главу', PIC.heart],
+];
+let stakeSel = 6;
+function starSvg(i) {
+  const isNew = i >= 6, on = i === stakeSel;
+  const fill = i <= 5 ? '#f6c25b' : '#ffe6a8';
+  return svg(`<path d="M11 1.5 13.6 8.4 21 8.6 15.2 13.2 17.3 20.4 11 16.2 4.7 20.4 6.8 13.2 1 8.6 8.4 8.4Z" fill="${on || i < 6 ? fill : 'none'}" stroke="${isNew ? '#ffe6a8' : '#f6c25b'}" stroke-width="1.2" ${!on && i >= 6 ? 'opacity=".75"' : ''}/>`, 22, 22);
+}
+function renderStakes() {
+  q('#stakes').replaceChildren(...STAKES.map(([i]) => h('button', { class: (i === stakeSel ? 'on ' : '') + (i >= 6 ? 'new' : ''), 'aria-label': `Ступень ${i}`, onclick: () => { stakeSel = i; renderStakes(); } }, starSvg(i), h('span', {}, i))));
+  const [i, t, s, pic] = STAKES[stakeSel - 1];
+  const p = svg(pic, 52, 52);
+  p.classList.add('pic');
+  const r = q('#rule');
+  r.className = 'stake-rule' + (i >= 6 ? ' rise' : '');
+  r.replaceChildren(p, h('div', {}, h('b', {}, `✦${i} · ${t}`), h('small', {}, s)));
+}
+
+/* Ключи: бородка — знак масти */
+const KEYS = [
+  { id: 'sun', name: 'Ключ Солнца', cond: 'Пройти 3 Яркие ночи', need: 3, col: '#f6c25b' },
+  { id: 'moon', name: 'Ключ Луны', cond: 'Приручить 2 Затмения', need: 2, col: '#8fd0ff' },
+  { id: 'comet', name: 'Ключ Кометы', cond: 'Исполнить пророчество', need: 1, col: '#ff7f62' },
+];
+function keySvg(k) {
+  const bow = k.id === 'sun'
+    ? `<circle cx="18" cy="18" r="7" fill="${k.col}"/>${Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * PI * 2; return `<path d="M${18 + cos(a) * 9.5} ${18 + sin(a) * 9.5}L${18 + cos(a) * 13} ${18 + sin(a) * 13}" stroke="${k.col}" stroke-width="2" stroke-linecap="round"/>`; }).join('')}`
+    : k.id === 'moon'
+      ? `<path d="M24 7a12 12 0 1 0 0 22 9.5 9.5 0 0 1 0-22Z" fill="${k.col}"/>`
+      : `<circle cx="22" cy="14" r="6" fill="${k.col}"/><path d="M17 18 6 29M19 21l-8 9M14 15 5 22" stroke="${k.col}" stroke-width="2" stroke-linecap="round" opacity=".8"/>`;
+  return svg(`${bow}<path d="M26 26 46 46" stroke="#f6c25b" stroke-width="3.2" stroke-linecap="round"/><path d="M40 40l5-5M45 45l5-5" stroke="#f6c25b" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="26" r="3" fill="#0b0a24" stroke="#f6c25b" stroke-width="1.5"/>`, 54, 54);
+}
+let prog;
+function renderKeys() {
+  q('#keys').replaceChildren(...KEYS.map((k, i) => {
+    const got = prog[i] >= k.need;
+    return h('button', { class: 'key' + (got ? ' got' : ''), onclick: () => advance(i) }, keySvg(k), h('b', {}, k.name),
+      h('span', { class: 'bar' }, Array.from({ length: k.need }, (_, j) => h('i', { class: j < prog[i] ? 'on' : '' }))),
+      h('small', {}, got ? 'ключ у тебя' : k.cond));
+  }));
+}
+
+/* Путь забега: восемь глав дугой, девятая — за дверью купола */
+function renderMap() {
+  const P = [[22, 178], [52, 150], [80, 170], [108, 136], [232, 136], [260, 170], [288, 150], [318, 178]];
+  const lit = 8;
+  let s = `<path d="M${P.map((p) => p.join(' ')).join('L')}" fill="none" stroke="rgb(255 230 168 / .55)" stroke-width="1.3"/>`;
+  s += P.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i === 7 ? 6 : 4.5}" fill="${i < lit ? '#ffe6a8' : '#2a2650'}"/><text x="${x}" y="${y + 20}" fill="#8a85b8" font-size="9" font-weight="800" text-anchor="middle" font-family="Manrope">${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][i]}</text>`).join('');
+  // Купол и дверь
+  s += `<path d="M108 136 Q170 40 232 136" fill="none" stroke="rgb(246 194 91 / .2)" stroke-dasharray="3 4"/>
+    <circle class="heart-glow" cx="170" cy="96" r="58" fill="url(#hg)"/>
+    <g class="heart-star"><path d="M170 52 178 88 214 96 178 104 170 140 162 104 126 96 162 88Z" fill="#fff6e0"/><circle cx="170" cy="96" r="10" fill="#ff6b8b"/><circle cx="170" cy="96" r="22" fill="none" stroke="#ff6b8b" stroke-width="1.2" opacity=".7"/></g>
+    <g class="door l"><path d="M136 150V96a34 34 0 0 1 34-34v88Z" fill="#0f0d2e" stroke="#f6c25b" stroke-width="1.2"/><path d="M144 150V98a26 26 0 0 1 26-26" fill="none" stroke="rgb(246 194 91 / .25)"/></g>
+    <g class="door r"><path d="M204 150V96a34 34 0 0 0-34-34v88Z" fill="#0f0d2e" stroke="#f6c25b" stroke-width="1.2"/><path d="M196 150V98a26 26 0 0 0-26-26" fill="none" stroke="rgb(246 194 91 / .25)"/></g>
+    ${KEYS.map((k, i) => `<circle class="keyhole" cx="170" cy="${88 + i * 18}" r="4.5" fill="${prog[i] >= k.need ? k.col : '#05061a'}" stroke="rgb(246 194 91 / .6)"/>`).join('')}
+    <path d="M128 150h84" stroke="#f6c25b" stroke-width="1.5"/>
+    <text x="170" y="170" fill="#ffe6a8" font-size="11" letter-spacing="2.2" text-anchor="middle" font-family="Forum">IX</text>`;
+  q('#map').innerHTML = `<defs><radialGradient id="hg"><stop offset="0" stop-color="rgb(255 107 139 / .55)"/><stop offset="1" stop-color="rgb(255 107 139 / 0)"/></radialGradient></defs>` + s;
+}
+function allKeys() { return KEYS.every((k, i) => prog[i] >= k.need); }
+function advance(i) {
+  if (prog[i] >= KEYS[i].need) return;
+  prog[i]++;
+  renderKeys();
+  renderMap();
+  const k = KEYS[i];
+  if (prog[i] >= k.need) {
+    q('#note').textContent = allKeys() ? 'Все три ключа — дверь в куполе открыта' : `${k.name} вставлен в дверь`;
+  } else q('#note').textContent = `${k.cond}: ${prog[i]} из ${k.need}`;
+  q('#enter').disabled = !allKeys();
+}
+q('#enter').onclick = async () => {
+  q('#enter').disabled = true;
+  q('#vault').classList.add('open');
+  await wait(REDUCED ? 30 : 1300);
+  ribbon(stage, 'Глава IX', 'Сердце неба · последнее Затмение', 2600);
+  q('#note').textContent = 'Финал: правила всех Затмений забега — по одному на ночь';
+};
+q('#again').onclick = reset;
+function reset() {
+  prog = [0, 0, 0];
+  q('#vault').classList.remove('open');
+  q('#enter').disabled = true;
+  q('#note').textContent = 'Касание ключа — пройти его условие';
+  renderKeys();
+  renderMap();
+}
+
+facts(q('#aside'), [
+  ['Суть', 'Звёздность — уже лестница из пяти ступеней. Ступени <b>6–12</b> добавляют по правилу: двойное Затмение, пыль в колоде, лавка без переброса, туман над развилками. Сложность новая на вкус, а не только числом.'],
+  ['Ключи', 'Три ключа берутся на опасных путях: <b>Солнца</b> — три Яркие ночи, <b>Луны</b> — два приручённых Затмения, <b>Кометы</b> — исполненное пророчество. Ключи связывают системы релиза в одну цель.'],
+  ['Сердце неба', '9-я глава за дверью купола: финальное Затмение несёт правила всех Затмений забега — по одному на ночь. Тайна для знатоков: в игре не объясняется, пока не найдёшь первый ключ.'],
+  ['Зачем', 'Победа без Сердца — ещё не вся победа. Отметка Сердца у неба и покровителя — самая редкая в коллекции.'],
+], [
+  ['AS.1', 'Ступени 6–12 — правила: Яркие ночи ярче, пыль, двойное Затмение, лавка без переброса…'],
+  ['AS.2', 'Три ключа и 9-я глава «Сердце неба» с финальным Затмением'],
+  ['AS.3', 'Скважины на карте главы, дверь купола, сцена входа'],
+]);
+ladder(q('#ladder'), 11);
+renderStakes();
+reset();
+</script>
+</body>
+</html>
