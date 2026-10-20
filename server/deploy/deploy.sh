@@ -15,8 +15,12 @@ DIR=/opt/starweave
 SITES=/var/lib/docker/volumes/repo_caddy_data/_data/sites
 
 cd "$(dirname "$0")/../.."
+# Выкладывается рабочее дерево — только закоммиченное, чтобы на сервере было то, что в git (SEC.6)
+if [ -n "$(git status --porcelain -- server src/i18n/ru.ts)" ] && [ "${ALLOW_DIRTY:-}" != 1 ]; then
+  echo "В server/ или src/i18n/ru.ts есть незакоммиченное — закоммить или ALLOW_DIRTY=1"; exit 1
+fi
 npm run --silent typecheck
-npx vitest run tests/server.test.ts --silent
+npx vitest run tests/server.test.ts tests/server-limits.test.ts --silent
 
 echo "→ код"
 ssh "$HOST" "mkdir -p $DIR/app/server/src $DIR/app/server/scripts $DIR/app/src/i18n $DIR/data $SITES"
@@ -46,6 +50,11 @@ echo "  starweave-api: healthy"
 echo "→ сайт в Caddy"
 CADDY="$(ssh "$HOST" "docker ps -q -f label=com.docker.compose.project=repo -f label=com.docker.compose.service=caddy")"
 [ -n "$CADDY" ] || { echo "Caddy платформы не найден — сайт не подключаю"; exit 1; }
+# Caddy платформы — в нашу сеть (SEC.3). Если платформа пересоздаст свой Caddy, связь
+# пропадёт до следующего запуска этого скрипта; навсегда — сеть starweave_proxy во внешних
+# сетях compose платформы (задача SEC.3b в TASKS.md)
+ssh "$HOST" "docker inspect -f '{{json .NetworkSettings.Networks}}' $CADDY | grep -q '\"starweave_proxy\"' || docker network connect starweave_proxy $CADDY"
+echo "  Caddy в сети starweave_proxy"
 rsync -a --no-o --no-g server/deploy/starweave.caddy "$HOST:$SITES/starweave.caddy"
 # Если Caddyfile платформы уже подключает /data/sites (строка import) — перечитываем его.
 # Иначе собираем его копию с нашим сайтом во временный файл внутри контейнера: файлы

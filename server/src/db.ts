@@ -59,6 +59,13 @@ export function insertBatch(db: Db, batch: Batch): void {
   }
 }
 
+/** Размер файла базы в байтах (без WAL) — по страницам SQLite, без обращения к диску. */
+export function dbBytes(db: Db): number {
+  const pages = db.prepare('PRAGMA page_count').get() as { page_count: number };
+  const size = db.prepare('PRAGMA page_size').get() as { page_size: number };
+  return pages.page_count * size.page_size;
+}
+
 /** Удаляет события старше срока хранения. Возвращает число удалённых. */
 export function purgeOld(db: Db, now: number): number {
   const cutoff = now - RETENTION_DAYS * 24 * 60 * 60 * 1000;
