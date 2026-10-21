@@ -1,0 +1,78 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { bestMove, shopGreedy } from '../src/core/ai/bot';
+import { SKY_LIST } from '../src/core/content/skies';
+import { burnCard, placeCard, startNight } from '../src/core/night';
+import { collectReward, leaveShop, newRun } from '../src/core/run';
+import { GLYPHS, type GameEvent } from '../src/core/types';
+
+/**
+ * Эталон хода ночи (TD.3): бот играет забеги на всех небах и звёздностях, хэш потока
+ * событий и итогового забега сверяется с записанным до разбиения `placeCard` на этапы.
+ * Любая перестановка внутри хода (лишний бросок ГПСЧ, другой порядок событий) меняет хэш.
+ * Перезаписать эталон: `GOLDEN_WRITE=1 npx vitest run tests/night-golden.test.ts`.
+ */
+const FIXTURE = new URL('./fixtures/night-golden.json', import.meta.url);
+
+/** События в форме до TD.3: разбитая карта была событием `shatter`. */
+function canonical(e: GameEvent): unknown {
+  if (e.t === 'cardDestroyed' && e.reason === 'shattered') return { t: 'shatter', cardId: e.cardId, cell: e.cell };
+  return e;
+}
+
+function play(seed: number, skyId: string, stake: number, glyphs = false): { hash: string; kinds: Record<string, number> } {
+  const h = createHash('sha256');
+  const kinds: Record<string, number> = {};
+  const log = (events: GameEvent[]) => {
+    for (const e of events) {
+      kinds[e.t] = (kinds[e.t] ?? 0) + 1;
+      h.update(JSON.stringify(canonical(e)));
+    }
+  };
+  const run = newRun({ seed, skyId, stake });
+  // Каждая третья карта — с глифом: Стекло бьётся, Эхо перезапускает, Позолота даёт золото
+  if (glyphs) run.deck.forEach((c, i) => i % 3 === 0 && (c.glyph = GLYPHS[(i / 3) % GLYPHS.length]));
+  let guard = 0;
+  while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 400) {
+    if (run.phase === 'map') log(startNight(run));
+    while (run.phase === 'night' && run.night?.result === 'playing') {
+      const move = bestMove(run, 0);
+      if (!move) break;
+      log(move.value < 5 && run.night.burnsLeft > 0 ? burnCard(run, move.handIndex) : placeCard(run, move.handIndex, move.cell));
+    }
+    if (run.phase === 'reward') collectReward(run);
+    if (run.phase === 'shop') {
+      shopGreedy(run);
+      leaveShop(run);
+    }
+  }
+  h.update(JSON.stringify(run));
+  return { hash: h.digest('hex'), kinds };
+}
+
+describe('эталон хода ночи', () => {
+  it('забеги бота совпадают с записанными', () => {
+    const hashes: Record<string, string> = {};
+    const kinds: Record<string, number> = {};
+    for (const sky of SKY_LIST) {
+      for (let i = 1; i <= 3; i++) {
+        const key = `${sky.id}/${i}`;
+        const r = play(i * 7919, sky.id, i % 4);
+        hashes[key] = r.hash;
+        for (const [k, n] of Object.entries(r.kinds)) kinds[k] = (kinds[k] ?? 0) + n;
+      }
+    }
+    for (let i = 1; i <= 4; i++) {
+      const r = play(i * 104729, 'classic', 0, true);
+      hashes[`glyphs/${i}`] = r.hash;
+      for (const [k, n] of Object.entries(r.kinds)) kinds[k] = (kinds[k] ?? 0) + n;
+    }
+    // Эталон что-то значит, только если в нём есть вспышки, золото и разбитые карты
+    expect(kinds.ignite).toBeGreaterThan(100);
+    expect(kinds.gold).toBeGreaterThan(10);
+    expect(kinds.shatter ?? kinds.cardDestroyed ?? 0).toBeGreaterThan(0);
+    if (process.env.GOLDEN_WRITE || !existsSync(FIXTURE)) writeFileSync(FIXTURE, `${JSON.stringify(hashes, null, 1)}\n`);
+    expect(hashes).toEqual(JSON.parse(readFileSync(FIXTURE, 'utf8')));
+  }, 30_000);
+});

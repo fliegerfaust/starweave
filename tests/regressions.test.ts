@@ -48,7 +48,7 @@ describe('регрессии ревью', () => {
       setGrid(run, { 0: '1s', 1: '4m', 2: '7t', 7: '2m', 11: '5t', 15: '8c' });
       setHand(run, '9c*glass');
       const events = placeCard(run, 0, 3);
-      if (events.some((e) => e.t === 'shatter')) broke++;
+      if (events.some((e) => e.t === 'cardDestroyed')) broke++;
     }
     expect(broke / trials).toBeGreaterThan(0.17);
     expect(broke / trials).toBeLessThan(0.33);

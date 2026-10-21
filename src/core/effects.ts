@@ -8,6 +8,13 @@ import type { Card, ComboId, Line, LineScore, NightState, Rules, RunState } from
 export interface EffectHooks {
   /** Меняет правила перед ночью. */
   modifyRules?(rules: Rules, data: Record<string, number>): void;
+  /** Карта легла на небо, до поиска линий (Метеор, «сработало при выкладке»). */
+  onPlaced?(ctx: PlacedCtx): void;
+  /**
+   * Что станет с картой вспыхнувшей линии: `undefined` — не решает этот эффект. Первый
+   * ответ побеждает; никто не ответил — карта гаснет (Стекло — разбивается).
+   */
+  cellFate?(ctx: PlacedCtx): CellFate | undefined;
   /** Карта линии засчитана (вызывается на каждый перезапуск карты). */
   onCardScored?(ctx: CardCtx): void;
   /** Сколько раз дополнительно засчитать карту. */
@@ -23,6 +30,15 @@ export interface EffectHooks {
   onBurn?(ctx: BaseCtx): void;
   onNightStart?(ctx: BaseCtx): void;
   onNightEnd?(ctx: NightEndCtx): void;
+}
+
+/** Судьба карты после вспышки: гаснет в сброс, остаётся на небе, разбивается насовсем. */
+export type CellFate = 'fades' | 'stays' | 'shattered';
+
+/** Карта на небе: только что выложенная или из вспыхнувшей линии. */
+export interface PlacedCtx extends BaseCtx {
+  card: Card;
+  cell: number;
 }
 
 export interface BaseCtx {
