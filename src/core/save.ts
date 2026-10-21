@@ -15,7 +15,9 @@ export function serializeRun(run: RunState): string {
  */
 const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {};
 
-const PHASES: readonly RunPhase[] = ['map', 'night', 'reward', 'shop', 'gameOver', 'victory'];
+/** Запись по ключам союза: новая фаза без строки здесь — ошибка типов, а не потерянное сохранение. */
+const PHASE_SET: Record<RunPhase, true> = { map: true, night: true, reward: true, shop: true, gameOver: true, victory: true };
+const PHASES = Object.keys(PHASE_SET) as RunPhase[];
 
 type Raw = Record<string, unknown>;
 const isObj = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !Array.isArray(v);
