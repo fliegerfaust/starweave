@@ -46,6 +46,20 @@ describe('сохранение забега (TD.1)', () => {
     expect(() => placeCard(night, 0, cell)).not.toThrow();
   });
 
+  it('номер ночи 0.5.9 становится планом главы (TD.6)', () => {
+    const raw = JSON.parse(fixture('save-0.5.9-night.json'));
+    const run = deserializeRun(JSON.stringify(raw))!;
+    expect(run.chapter.at).toBe(raw.nightIndex);
+    expect(run.chapter.nodes.map((n) => n.kind)).toEqual(['dusk', 'midnight', 'eclipse']);
+    expect(run.chapter.nodes[2]!.bossId).toBe(raw.bosses[raw.ante - 1]);
+    expect('nightIndex' in run).toBe(false);
+    const base = { ...raw, version: SAVE_VERSION, chapter: run.chapter };
+    delete base.nightIndex;
+    for (const chapter of [null, { ...run.chapter, at: 3 }, { nodes: [], at: 0 }, { ...run.chapter, nodes: [{ kind: 'dawn', bossId: null }] }]) {
+      expect(deserializeRun(JSON.stringify({ ...base, chapter })), JSON.stringify(chapter)).toBeNull();
+    }
+  });
+
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {
     const run = JSON.parse(fixture('save-0.5.9-shop.json'));
     expect(deserializeRun(JSON.stringify({ ...run, version: SAVE_VERSION + 1 }))).toBeNull();

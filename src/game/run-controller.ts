@@ -115,7 +115,7 @@ export class RunController {
   private doBeginNight(): void {
     const run = this.run!;
     startNight(run);
-    if (run.tutorial) applyTutorialNight(run, run.nightIndex);
+    if (run.tutorial) applyTutorialNight(run, run.chapter.at);
     else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
     markSeen(this.app.profile, run);
     this.persistProfile();
@@ -232,7 +232,7 @@ export class RunController {
     this.persistProfile();
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
-    const ad = run.phase === 'map' && run.nightIndex === 0 ? this.app.money.interstitialBetweenAntes() : null;
+    const ad = run.phase === 'map' && run.chapter.at === 0 ? this.app.money.interstitialBetweenAntes() : null;
     if (ad) {
       void ad.then(() => this.route());
       return;

@@ -31,7 +31,8 @@ async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): 
       await new Promise((r) => setTimeout(r, 600));
     }
     if (setup === 'map') {
-      Object.assign(a.run, { nightIndex: 2, phase: 'map' });
+      Object.assign(a.run, { phase: 'map' });
+      (a.run.chapter as { at: number }).at = 2;
       await a.router.route();
       await new Promise((r) => setTimeout(r, 900));
     }

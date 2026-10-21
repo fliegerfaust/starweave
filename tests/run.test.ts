@@ -41,7 +41,7 @@ describe('забег', () => {
       expect(run.shop!.omens).toHaveLength(2);
       leaveShop(run);
       expect(run.phase).toBe('map');
-      expect(run.nightIndex).toBe(1);
+      expect(run.chapter.at).toBe(1);
     }
   });
 

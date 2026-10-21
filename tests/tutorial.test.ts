@@ -41,7 +41,7 @@ describe('сценарий обучения', () => {
     run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
     collectReward(run);
     run.phase = 'map';
-    run.nightIndex = 1;
+    run.chapter.at = 1;
     startNight(run);
     applyTutorialNight(run, 1);
     expect(run.night!.hand.map(cardCode)).toEqual(['6s', '6m', '6t', '2c']);

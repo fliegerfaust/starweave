@@ -2,8 +2,9 @@ import { BOSSES } from './content/bosses';
 import { OMENS } from './content/omens';
 import { RITUALS } from './content/rituals';
 import { SKIES } from './content/skies';
+import { planChapter } from './route';
 import { SAVE_VERSION } from './run';
-import { COMBO_IDS, MAX_RANK, MIN_RANK, SUITS, type RunPhase, type RunState } from './types';
+import { COMBO_IDS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type RunPhase, type RunState } from './types';
 
 export function serializeRun(run: RunState): string {
   return JSON.stringify(run);
@@ -13,7 +14,14 @@ export function serializeRun(run: RunState): string {
  * Шаги миграции сохранения (TD.1): `n` переводит забег версии `n` в `n + 1`. Новая версия
  * формата — новый шаг здесь, `SAVE_VERSION + 1` в `run.ts` и тест на сохранение прошлой версии.
  */
-const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {};
+const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
+  // 2 (TD.6): место в главе — план главы `chapter` вместо номера ночи 0..2
+  1(run) {
+    if (!isInt(run.ante) || !Array.isArray(run.bosses) || !isInt(run.nightIndex)) return;
+    run.chapter = { ...planChapter({ ante: run.ante, bosses: run.bosses as string[] }), at: run.nightIndex };
+    delete run.nightIndex;
+  },
+};
 
 /** Запись по ключам союза: новая фаза без строки здесь — ошибка типов, а не потерянное сохранение. */
 const PHASE_SET: Record<RunPhase, true> = { map: true, night: true, reward: true, shop: true, gameOver: true, victory: true };
@@ -29,6 +37,11 @@ function isCard(c: unknown): boolean {
 }
 const isCards = (v: unknown) => Array.isArray(v) && v.every(isCard);
 
+function isChapter(c: unknown): boolean {
+  if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < 0 || c.at >= c.nodes.length) return false;
+  return c.nodes.every((n) => isObj(n) && (NIGHT_KINDS as readonly unknown[]).includes(n.kind) && (n.bossId === null || has(BOSSES, n.bossId)));
+}
+
 /**
  * Забег, который можно открыть: известная фаза, карты, Знамения, Затмения и небо есть в
  * игре. Иначе — null: сохранение от более новой сборки или битое не должно ронять запуск
@@ -36,7 +49,7 @@ const isCards = (v: unknown) => Array.isArray(v) && v.every(isCard);
  */
 function isPlayable(run: Raw): boolean {
   if (!PHASES.includes(run.phase as RunPhase) || !has(SKIES, run.skyId)) return false;
-  if (!isInt(run.ante) || run.ante < 1 || !isInt(run.nightIndex) || run.nightIndex < 0 || run.nightIndex > 2) return false;
+  if (!isInt(run.ante) || run.ante < 1 || !isChapter(run.chapter)) return false;
   if (!isCards(run.deck) || !isObj(run.rng) || typeof run.gold !== 'number') return false;
   if (!Array.isArray(run.omens) || !run.omens.every((o) => isObj(o) && isInt(o.uid) && has(OMENS, o.id) && isObj(o.data))) return false;
   if (!Array.isArray(run.bosses) || !run.bosses.every((b) => has(BOSSES, b))) return false;

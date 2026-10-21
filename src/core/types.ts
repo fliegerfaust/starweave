@@ -1,3 +1,4 @@
+import type { Chapter } from './route';
 import type { RngState } from './rng';
 
 // ─── Карты ─────────────────────────────────────────────────────────────────
@@ -212,8 +213,8 @@ export interface RunState {
   /** Вызов из архива атласа: прошедший день, попыток сколько угодно, лучший итог в профиль. */
   archive?: boolean;
   ante: number;
-  /** 0..2 — Сумерки, Полночь, Затмение. */
-  nightIndex: number;
+  /** План текущей главы и место в нём (`core/route.ts`). */
+  chapter: Chapter;
   phase: RunPhase;
   gold: number;
   deck: Card[];

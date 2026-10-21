@@ -37,12 +37,14 @@ test('карта главы: своя расстановка в каждой г�
             async ({ ante, night, seed, tg, omens, lang, bosses }) => {
               const { createOmen } = await import('/src/core/omen-instance.ts');
               const { setLang } = await import('/src/i18n/index.ts');
+              const { planChapter } = await import('/src/core/route.ts');
               setLang(lang as 'ru' | 'en');
-              type Run = { ante: number; nightIndex: number; seed: number; omens: unknown[]; phase: string; bosses: string[] };
+              type Run = { ante: number; chapter: { nodes: unknown[]; at: number }; seed: number; omens: unknown[]; phase: string; bosses: string[] };
               const app = (window as unknown as { starweave: { run: Run; router: { route(): Promise<void> } } }).starweave;
               const run = app.run;
-              Object.assign(run, { ante, nightIndex: night, seed, phase: 'map' });
+              Object.assign(run, { ante, seed, phase: 'map' });
               run.bosses = Array.from({ length: 8 }, (_, i) => bosses[(i + seed) % bosses.length]!);
+              run.chapter = { ...planChapter(run), at: night };
               run.omens = omens.slice(0, Math.min(5, ante - 1)).map((id) => createOmen(run as never, id));
               // Зона Telegram во весь экран: строка состояния + кнопки Telegram. В ландшафте
               // строки состояния нет, на iPhone SE она низкая.

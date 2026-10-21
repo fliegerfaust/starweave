@@ -1,9 +1,8 @@
 import { bossSigil } from '@/art/sigil';
-import { buildRules } from '@/core';
-import { FINAL_ANTE, GENTLE_NIGHT } from '@/core/content/balance';
-import { runNightReward, runNightTarget } from '@/core/content/stakes';
+import { FINAL_ANTE } from '@/core/content/balance';
+import { currentNode, nextStop, planNight, type NightPlan } from '@/core/route';
 import { omenSlots } from '@/core/shop';
-import { NIGHT_KINDS, type NightKind, type Rules, type RunState } from '@/core/types';
+import type { Rules, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
@@ -16,15 +15,6 @@ import { showDeck, showHelp, showRunMenu } from './common';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 const roman = (n: number) => ROMAN[n - 1] ?? String(n);
-
-/** Что ждёт в ночи: цель, награда и правила с учётом Знамений и Затмения. */
-interface NightPlan {
-  kind: NightKind;
-  target: number;
-  reward: number;
-  rules: Rules;
-  bossId: string | null;
-}
 
 /**
  * Карта главы — «Восхождение» (RD.2): три ночи звёздами на одной линии, снизу Сумерки,
@@ -47,29 +37,12 @@ export class MapScreen implements Screen {
 
   mount(root: HTMLElement): void {
     const run = this.run;
-    // Из Обсерватории показываем следующую ночь (она может быть уже в новой главе)
-    let ante = run.ante;
-    let at = run.nightIndex;
-    if (this.peek) {
-      at += 1;
-      if (at >= 3) {
-        at = 0;
-        ante += 1;
-      }
-    }
-    const view: RunState = { ...run, ante, nightIndex: at };
-    const bossId = run.bosses[ante - 1] ?? null;
-    const plans = NIGHT_KINDS.map((kind): NightPlan => {
-      const boss = kind === 'eclipse' ? bossId : null;
-      const rules = buildRules(view, boss);
-      let target = runNightTarget(view, kind, boss);
-      // Щедрая первая ночь новичка: те же поправки, что в startNight
-      if (run.gentle && ante === 1 && kind === 'dusk' && !boss) {
-        rules.moves = Math.min(rules.moves, GENTLE_NIGHT.moves);
-        target = Math.min(target, GENTLE_NIGHT.target);
-      }
-      return { kind, target, reward: runNightReward(run, kind), rules, bossId: boss };
-    });
+    // Из Обсерватории показываем следующую ночь (она может быть уже в новой главе).
+    // Карта только рисует план главы: ночи, цели и правила считает ядро (`core/route.ts`)
+    const { ante, chapter } = this.peek ? nextStop(run) : run;
+    const at = chapter.at;
+    const view: RunState = { ...run, ante, chapter };
+    const plans = chapter.nodes.map((node, i): NightPlan => planNight(view, node, i));
 
     const nodes = plans.map((p, i) => this.node(p, i, at, plans[0]!.rules));
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -142,7 +115,7 @@ export class MapScreen implements Screen {
     this.resize = new ResizeObserver(() => place());
     this.resize.observe(path);
 
-    if (!this.peek && run.nightIndex === 2) coach(this.app, 'boss');
+    if (!this.peek && currentNode(run).bossId) coach(this.app, 'boss');
   }
 
   private node(p: NightPlan, i: number, at: number, base: Rules): HTMLElement {
