@@ -1,10 +1,11 @@
-/* Кит витрин 0.8 «Глубина». ART (имя → data URI) вшивает scripts/build-vitrines.mjs. */
+/* Кит витрин 0.9 «Глубина». ART (имя → data URI) вшивает scripts/build-vitrines.mjs. */
 const { PI, cos, sin, round, max, min, random, hypot } = Math;
 
 /* ───────── Витрины и лестница открытия ───────── */
 const VITRINES = [
   { id: 'index', title: 'План релиза', file: 'd8-index.html' },
-  { id: 'arch', title: 'Ревью архитектуры', file: 'd8-arch.html' },
+  // Ревью архитектуры вышло отдельным релизом 0.6 «Фундамент»
+  { id: 'arch', title: 'Ревью архитектуры', file: 'd8-arch.html', release: '0.6' },
   { id: 'gift', title: 'Дар ночи', file: 'd8-gift.html', step: 1 },
   { id: 'route', title: 'Развилки', file: 'd8-route.html', step: 2 },
   { id: 'trophy', title: 'Трофеи Затмений', file: 'd8-trophy.html', step: 4 },
@@ -312,7 +313,7 @@ function shell({ id, lead }) {
   const prev = VITRINES[(i - 1 + VITRINES.length) % VITRINES.length];
   const next = VITRINES[(i + 1) % VITRINES.length];
   const nav = h('nav', { class: 'vt-nav' },
-    id === 'index' ? h('span', { class: 'pg' }, 'Релиз 0.8 «Глубина»') : h('a', { href: 'd8-index.html' }, icon('grid'), 'План релиза'),
+    id === 'index' ? h('span', { class: 'pg' }, 'Релиз 0.9 «Глубина»') : h('a', { href: 'd8-index.html' }, icon('grid'), 'План релиза'),
     h('span', { class: 'sp' }),
     h('a', { href: prev.file, 'aria-label': 'Предыдущая' }, icon('back')),
     h('span', { class: 'pg num' }, `${i + 1} / ${VITRINES.length}`),
@@ -320,7 +321,7 @@ function shell({ id, lead }) {
   const top = h('header', { class: 'top' }, h('h1', {}, v.title), h('div', { class: 'sill' }), lead ? h('p', { html: lead }) : null);
   const wrap = q('.wrap') || document.body.appendChild(h('div', { class: 'wrap' }));
   wrap.prepend(nav, top);
-  document.title = `${v.title} · Starweave 0.8`;
+  document.title = `${v.title} · Starweave ${v.release ?? '0.9'}`;
   return v;
 }
 /** Полоса «где на лестнице открытия». */

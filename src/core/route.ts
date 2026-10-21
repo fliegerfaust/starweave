@@ -3,7 +3,7 @@ import { runNightReward, runNightTarget } from './content/stakes';
 import { buildRules } from './rules';
 import { NIGHT_KINDS, type NightKind, type Rules, type RunState } from './types';
 
-/** Узел главы: какая ночь и чьё Затмение. Развилки 0.8 добавят узлам выбор пути. */
+/** Узел главы: какая ночь и чьё Затмение. Развилки 0.9 добавят узлам выбор пути. */
 export interface ChapterNode {
   kind: NightKind;
   bossId: string | null;
