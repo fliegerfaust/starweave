@@ -88,7 +88,8 @@ const stackSent = new Map<string, number>();
  */
 const STACKS_PER_MESSAGE = 3;
 
-function reportError(message: string, where: string, stack: string | undefined): void {
+/** Ошибка, которую игра пережила сама (например, неизвестная фаза), — в ту же сводку `js_error`. */
+export function reportError(message: string, where: string, stack?: string): void {
   const msg = message.slice(0, 200);
   const sent = stackSent.get(msg) ?? 0;
   const compact = sent < STACKS_PER_MESSAGE ? compactStack(stack, location.origin) : '';

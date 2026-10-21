@@ -1,4 +1,5 @@
 import { SUIT_COLORS, UI } from '@/art/palette';
+import { assertNever } from '@/core/errors';
 import type { GameEvent, LineScore, PlacementScore, ScoreStep, Suit } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import { dict, named, num, t } from '@/i18n';
@@ -87,6 +88,8 @@ export class Presenter {
         return this.onWin();
       case 'nightLost':
         return this.onLose();
+      default:
+        return assertNever(ev, 'event');
     }
   }
 
@@ -485,7 +488,8 @@ export class Presenter {
         return t('calc.omen', { name: named('omen', src.omenId).name, effect });
       case 'boss':
         return t('calc.boss', { name: named('boss', src.bossId).name, effect });
-      default:
+      case 'combo':
+      case 'chain':
         return effect;
     }
   }

@@ -22,3 +22,11 @@ export class RuleError extends Error {
     super(code);
   }
 }
+
+/**
+ * Полнота `switch` по союзу: новый вариант без ветки — ошибка типов, а не тихий пропуск.
+ * В рантайме сюда попадает только чужое значение (сохранение новой сборки на старой).
+ */
+export function assertNever(value: never, what: string): never {
+  throw new Error(`Unhandled ${what}: ${JSON.stringify(value)}`);
+}

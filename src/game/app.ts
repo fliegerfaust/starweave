@@ -25,7 +25,7 @@ import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { compareToChallenge, parseStartParam, type Challenge } from './challenge';
-import { forgetClientId, initAnalytics, measureFps, track } from '@/analytics';
+import { forgetClientId, initAnalytics, measureFps, reportError, track } from '@/analytics';
 import type { Platform, PurchaseResult } from '@/platform';
 import { Entitlements } from '@/store/entitlements';
 import { TutorialDirector } from '@/tutorial/director';
@@ -283,7 +283,15 @@ export class App {
         const { NightScreen } = await import('@/ui/screens/night');
         return this.showIf(token, () => new NightScreen(this, run));
       }
+      default:
+        return this.unknownPhase(run.phase);
     }
+  }
+
+  /** Фаза, которой эта сборка не знает (забег из облака от новой версии): в меню, а не пустой экран. */
+  private unknownPhase(phase: never): Promise<void> {
+    reportError(`Unknown run phase: ${String(phase)}`, 'App.route');
+    return this.goMenu();
   }
 
   /** Из Обсерватории — посмотреть следующую ночь на карте и вернуться. */

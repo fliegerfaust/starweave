@@ -3,7 +3,7 @@ export * from './rng';
 export { evaluateCombo } from './combos';
 export { buildLines } from './grid';
 export { startNight, placeCard, burnCard } from './night';
-export { RuleError } from './errors';
+export { RuleError, assertNever } from './errors';
 export { createOmen } from './omen-instance';
 export { newRun, collectReward, leaveShop, continueEndless } from './run';
 export { buyOmen, buyItem, sellOmen, sellPrice, moveOmen, reroll, omenSlots } from './shop';
