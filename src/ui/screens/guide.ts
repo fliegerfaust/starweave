@@ -23,7 +23,7 @@ import { cardThumb } from './common';
  * абзацами. На телефоне доска закреплена, листается список; на ПК — доска слева.
  */
 
-export type GuideTab = 'combos' | 'night' | 'shop' | 'glyphs' | 'bodies' | 'collection';
+export type GuideTab = 'combos' | 'night' | 'shop' | 'glyphs' | 'collection';
 
 export interface GuideOptions {
   /** id раздела (например, `glyph-echo`, `cross`, `omens`): вкладка и строка подберутся сами. */
@@ -39,7 +39,7 @@ export interface GuideOptions {
   profile?: Profile;
 }
 
-const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'bodies', 'collection'];
+const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
 const STEP_IDS = ['place', 'line', 'score', 'cross', 'burn', 'eclipse'] as const;
 const SHOP_IDS = ['omens', 'order', 'charts', 'rituals', 'gold'] as const;
 /** Старые id разделов (фокус из подсказок ночи и обучения) → шаг ночи. */
@@ -109,18 +109,21 @@ export function showGuide(opts: GuideOptions = {}): void {
   let auto = true;
   let shopSel: (typeof SHOP_IDS)[number] = 'omens';
   let glyph: Glyph = 'gilded';
-  // Тела, открытые игроку (ступень 3): без них вкладки нет — новичка она бы только пугала
+  // Тела, открытые игроку (ступень 3): тогда вкладка «Глифы» становится «Карты» — глифы и
+  // тела двумя разделами (шестая вкладка не помещается на телефоне); без тел новичок их не видит
   const openBodies = opts.profile ? BODY_IDS.filter((b) => isUnlocked(BODY_UNLOCKS[b], opts.profile!)) : [];
   let bodyId: BodyId = openBodies[0] ?? 'polaris';
+  /** На вкладке «Карты» доска показывает тело, а не глиф. */
+  let showBody = false;
   if (focus) {
     if (focus.startsWith('glyph-')) { tab = 'glyphs'; glyph = focus.slice(6) as Glyph; }
-    else if (focus.startsWith('body-') && openBodies.length) { tab = 'bodies'; bodyId = focus.slice(5) as BodyId; }
+    else if (focus.startsWith('body-') && openBodies.length) { tab = 'glyphs'; bodyId = focus.slice(5) as BodyId; showBody = true; }
     else if ((SHOP_IDS as readonly string[]).includes(focus)) { tab = 'shop'; shopSel = focus as typeof shopSel; }
     else if (focus in STEP_OF) { tab = 'night'; step = STEP_OF[focus]!; auto = false; }
     else if ((COMBO_IDS as readonly string[]).includes(focus)) { tab = 'combos'; combo = focus as ComboId; }
     else if (focus === 'collection' && opts.profile) tab = 'collection';
   }
-  const tabs = TABS.filter((x) => (x !== 'collection' || !!opts.profile) && (x !== 'bodies' || openBodies.length > 0));
+  const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
   // Коллекция: выбранное Знамение или Затмение — крупно на доске
   let pick: { kind: 'omen' | 'boss'; id: string } | null = null;
   track('guide_open', { focus: focus ?? tab });
@@ -288,9 +291,9 @@ export function showGuide(opts: GuideOptions = {}): void {
     const list = h('div.gb-list');
     for (const gl of GLYPHS) {
       const [r, su] = GLYPH_CARD[gl];
-      list.append(row(gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, dict().glyphDesc[gl])], null, () => { glyph = gl; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
+      list.append(row(!showBody && gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, dict().glyphDesc[gl])], null, () => { glyph = gl; showBody = false; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
     }
-    return [section(g.tabs.glyphs!, g.glyphSub), list];
+    return [section(g.tabs.glyphs!, g.glyphSub), list, ...(openBodies.length ? bodyList() : [])];
   };
 
   // ─── Небесные тела ──────────────────────────────────────────────────────
@@ -324,9 +327,9 @@ export function showGuide(opts: GuideOptions = {}): void {
         list.append(h('div.gb-row.miss.with-ic', null, [ic, h('span.gb-text', null, [h('b', null, t(`body.${b}`)), h('small', null, lockText)]), icon('lock')]));
         continue;
       }
-      list.append(row(b === bodyId, false, [h('b', null, t(`body.${b}`)), h('small', null, dict().bodyDesc[b])], null, () => { bodyId = b; render(); }, ic));
+      list.append(row(showBody && b === bodyId, false, [h('b', null, t(`body.${b}`)), h('small', null, dict().bodyDesc[b])], null, () => { bodyId = b; showBody = true; render(); }, ic));
     }
-    return [section(g.tabs.bodies!, g.bodiesSub), list];
+    return [section(g.bodies, g.bodiesSub), list];
   };
 
   /** Строка списка: касание меняет доску. */
@@ -406,7 +409,7 @@ export function showGuide(opts: GuideOptions = {}): void {
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
-    which === 'combos' ? comboBoard() : which === 'night' ? nightBoard() : which === 'shop' ? shopBoard() : which === 'glyphs' ? glyphBoard() : which === 'bodies' ? bodyBoard() : collectionBoard();
+    which === 'combos' ? comboBoard() : which === 'night' ? nightBoard() : which === 'shop' ? shopBoard() : which === 'glyphs' ? (showBody ? bodyBoard() : glyphBoard()) : collectionBoard();
 
   /**
    * Доска не меняет размер при переключении (замечание Дениса): один раз на вкладку и ширину
@@ -424,13 +427,12 @@ export function showGuide(opts: GuideOptions = {}): void {
     const key = `${tab}:${body.clientWidth}`;
     let max = steadyHeights.get(key);
     if (max === undefined) {
-      const saved = { combo, step, shopSel, glyph, bodyId, pick };
+      const saved = { combo, step, shopSel, glyph, bodyId, showBody, pick };
       const variants: (() => void)[] =
         tab === 'combos' ? COMBO_IDS.map((id) => () => { combo = id; })
         : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
         : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
-        : tab === 'glyphs' ? GLYPHS.map((id) => () => { glyph = id; })
-        : tab === 'bodies' ? openBodies.map((id) => () => { bodyId = id; })
+        : tab === 'glyphs' ? [...GLYPHS.map((id) => () => { glyph = id; showBody = false; }), ...openBodies.map((id) => () => { bodyId = id; showBody = true; })]
         : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; })];
       const live = [...board.childNodes];
       max = board.offsetHeight;
@@ -440,7 +442,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         board.replaceChildren(vis, h('div.gb-tally', null, tally));
         max = Math.max(max, board.offsetHeight);
       }
-      ({ combo, step, shopSel, glyph, bodyId, pick } = saved);
+      ({ combo, step, shopSel, glyph, bodyId, showBody, pick } = saved);
       board.replaceChildren(...live);
       steadyHeights.set(key, max);
     }
@@ -459,7 +461,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       el.tabIndex = on ? 0 : -1;
     });
     const [vis, tally] = boardOf(tab);
-    const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : tab === 'bodies' ? bodyList() : collectionList();
+    const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : collectionList();
     // Широкая сцена (Обсерватория) — подпись под ней
     const board = h(`div.gb-board${tab === 'shop' ? '.stack' : ''}`, null, [vis, h('div.gb-tally', { attrs: { 'aria-live': 'polite' } }, tally)]);
     body.replaceChildren(h('div.gb-pin', null, board), h('div.gb-scroll', null, below));
@@ -471,7 +473,8 @@ export function showGuide(opts: GuideOptions = {}): void {
   }
 
   tabs.forEach((id, i) => {
-    const b = h('button.gb-tab', { type: 'button', dataset: { tab: id }, attrs: { role: 'tab' } }, g.tabs[id]!);
+    const label = id === 'glyphs' && openBodies.length ? g.tabs.cards! : g.tabs[id]!;
+    const b = h('button.gb-tab', { type: 'button', dataset: { tab: id }, attrs: { role: 'tab' } }, label);
     b.addEventListener('click', () => {
       if (tab === id) return;
       tab = id;

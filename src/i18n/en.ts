@@ -164,9 +164,10 @@ export const en: Dict = {
     ritualNote: 'Moon: the card changes suit',
     goldRows: ['Night reward', 'Moves and burns left', 'Interest: 10 in pocket', 'Total'],
     glyphTally: { atFlare: 'on flare', toMult: 'to multiplier', light: 'light', twice: 'rank counts twice', mult: 'multiplier', breaks: 'may break', anySuit: 'any suit' },
+    bodies: 'Celestial bodies',
     bodiesSub: 'cards with a rule of place',
     bodyTally: { polaris: 'three fade — Polaris stays', meteor: 'Meteor knocked the weak 1 — the cell is free', pulsar: 'for every line this night', twin: 'one card is 4 and 5', nebula: 'Nebula became a seven', blackhole: 'and left the deck' },
-    tabs: { combos: 'Constellations', night: 'Night', shop: 'Observatory', glyphs: 'Glyphs', bodies: 'Bodies', collection: 'Collection' },
+    tabs: { combos: 'Constellations', night: 'Night', shop: 'Observatory', glyphs: 'Glyphs', cards: 'Cards', collection: 'Collection' },
     button: 'Guide',
   },
   tut: {

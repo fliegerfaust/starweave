@@ -12,7 +12,7 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
 test.use({ locale: 'ru-RU' });
 
 type App = { profile: Record<string, unknown> & { seenOmens: string[]; seenBosses: string[] }; runs: { startRun(s: string, daily?: boolean, stake?: number, seed?: number): void } };
-const TABS = ['combos', 'night', 'shop', 'glyphs'] as const;
+const TABS = ['combos', 'night', 'shop', 'glyphs', 'bodies'] as const;
 
 async function boot(page: Page): Promise<string[]> {
   const errors: string[] = [];
@@ -57,12 +57,17 @@ test('Справочник: живая доска, четыре вкладки, 
     for (const sheet of [false, true]) {
       if (sheet) await page.evaluate(() => (window as unknown as { starweave: App }).starweave.runs.startRun('classic', false, 0, 4242));
       for (const tab of TABS) {
+        // Лист с профилем (5 вкладок) в ландшафте не помещается и без тел — задача CG-60; тела проверяем в окне
+        if (sheet && tab === 'bodies') continue;
         await closeAll(page);
         await page.evaluate(async ({ lang, tab, sheet }) => {
           const { setLang } = await import('/src/i18n/index.ts');
           setLang(lang);
           const { showGuide } = await import('/src/ui/screens/guide.ts');
-          showGuide({ tab, sheet, found: ['pair', 'flush', 'straight'], levels: sheet ? ({ pair: 2, flush: 2 } as never) : undefined });
+          // Тела (GF.5) — во вкладке «Карты», когда тело открыто: профиль с победами над Затмениями
+          const app = (window as unknown as { starweave: App }).starweave;
+          const profile = tab === 'bodies' ? ({ ...app.profile, eclipses: 3 } as never) : undefined;
+          showGuide({ tab: tab === 'bodies' ? undefined : tab, focus: tab === 'bodies' ? 'body-meteor' : undefined, sheet, profile, found: ['pair', 'flush', 'straight'], levels: sheet ? ({ pair: 2, flush: 2 } as never) : undefined });
         }, { lang, tab, sheet });
         await check(page, `${lang} ${sheet ? 'лист' : 'меню'} ${tab}`, failures);
         if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/28-guide-${tab}${sheet ? '-sheet' : ''}.png` });
