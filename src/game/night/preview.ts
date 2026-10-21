@@ -13,7 +13,9 @@ export interface PlacementPreview {
  * (Стекло, Игрок) на копии могут выпасть иначе — поэтому в UI «≈».
  */
 export function previewPlacement(run: RunState, handIndex: number, cell: number, seed?: number): PlacementPreview | null {
-  const sim = structuredClone(run);
+  // Журнал команд прогнозу не нужен, а копировать его на каждую пару «карта × клетка» — дорого
+  const { log: _log, ...rest } = run;
+  const sim: RunState = structuredClone(rest);
   // Своя случайность: превью не должно подсказывать исход Стекла или Игрока
   sim.rng.s = seed ?? (Math.random() * 2 ** 32) >>> 0;
   try {

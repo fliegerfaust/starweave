@@ -4,7 +4,8 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
+import type { Command } from '@/core/commands';
+import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/core/shop';
 import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
@@ -55,8 +56,8 @@ export class ShopScreen implements Screen {
     this.el.remove();
   }
 
-  private act(fn: (run: RunState) => void, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
-    if (this.app.runs.shopAction(fn)) {
+  private act(cmd: Command, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
+    if (this.app.runs.shopAction(cmd)) {
       onSuccess?.();
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
@@ -98,9 +99,9 @@ export class ShopScreen implements Screen {
       else if (was && item.sold && !was.sold) row.classList.add('just-sold');
       return row;
     };
-    const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item));
+    const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.act({ c: 'buyOmen', slot: i }, 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item));
     const itemRows = shop.items.map((item, i) => mark(this.wareRow(item, () => this.buyItem(item, i)), `item-${i}`, item));
-    const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
+    const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act({ c: 'buyPack', slot: i }, 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
 
     // Свои Знамения: только знаки, порядок — слева направо; касание — лист с бонусом и «Продать»
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
@@ -113,7 +114,7 @@ export class ShopScreen implements Screen {
       owned.append(chip);
     });
     for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
-    makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
+    makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act({ c: 'moveOmen', from, to }, 'click'), () => hideTooltip());
     const ownedHint = misordered
       ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
       : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint'));
@@ -153,7 +154,7 @@ export class ShopScreen implements Screen {
       ]),
       ]),
       h('footer.shop-actions', null, [
-        button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
+        button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act({ c: 'reroll' }, 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
           variant: 'secondary', disabled: run.gold < shop.rerollCost, ariaLabel: t('shop.reroll', { n: shop.rerollCost }), className: 'reroll',
         }),
         tag(button(t('shop.next'), () => this.app.runs.leaveShop(), { className: 'grow' }), 'next'),
@@ -240,7 +241,7 @@ export class ShopScreen implements Screen {
             t('shop.sellConfirm', { name, n: price }),
             () => {
               m.close();
-              this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: this.run.ante }));
+              this.act({ c: 'sellOmen', uid: o.uid }, 'coin', () => track('shop_sell', { id: o.id, ante: this.run.ante }));
             },
             'danger',
             { yes: t('shop.sell', { n: price }), no: t('shop.keep') },
@@ -254,10 +255,10 @@ export class ShopScreen implements Screen {
 
   private buyItem(item: ShopItem, slot: number): void {
     if (item.kind !== 'ritual') {
-      this.act((r) => buyItem(r, slot), 'coin', () => this.trackBuy(item));
+      this.act({ c: 'buyItem', slot }, 'coin', () => this.trackBuy(item));
       return;
     }
-    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act((r) => buyItem(r, slot, ids), 'coin', () => this.trackBuy(item))));
+    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act({ c: 'buyItem', slot, targets: ids }, 'coin', () => this.trackBuy(item))));
   }
 
   /** Выполняет ритуал и показывает, что стало с картами: было → стало. */
@@ -305,7 +306,7 @@ export class ShopScreen implements Screen {
     const banish = h('button.ware-light', {
       type: 'button',
       disabled: used || price === null || run.gold < (price ?? 0),
-      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1, { name: t('shop.banishTitle'), desc: t('shop.banishDesc') }),
+      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act({ c: 'banish', card: ids[0]! }, 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1, { name: t('shop.banishTitle'), desc: t('shop.banishDesc') }),
     }, [icon('cut'), used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' }))]);
     return h('section.shop-section.shop-deck', null, [
       h('div.shop-label-row', null, [h('h2.shop-label', null, t('night.deck')), h('span.shop-count', null, String(run.deck.length))]),
@@ -397,7 +398,7 @@ export class ShopScreen implements Screen {
       mid: [sceneRibbon(t('shop.packTitle'), `${named('pack', open.pack).name} · ${t('shop.oneOfThree')}`), h('div.ware-list', null, rows)],
       acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
         handle?.close();
-        this.act((r) => skipPack(r), 'click');
+        this.act({ c: 'skipPack' }, 'click');
       }, true))],
     });
   }
@@ -410,7 +411,7 @@ export class ShopScreen implements Screen {
       this.pickTargets(
         id,
         (ids) => {
-          this.withRitualResult(id, () => this.act((r) => choosePack(r, index, ids), 'coin', () => track('pack_choose', { pack: open.pack, id })));
+          this.withRitualResult(id, () => this.act({ c: 'choosePack', index, targets: ids }, 'coin', () => track('pack_choose', { pack: open.pack, id })));
           if (this.run.shop?.openPack) this.showPack();
         },
         () => this.showPack(),
@@ -418,6 +419,6 @@ export class ShopScreen implements Screen {
       return;
     }
     handle.close();
-    this.act((r) => choosePack(r, index), 'coin', () => track('pack_choose', { pack: open.pack, id }));
+    this.act({ c: 'choosePack', index }, 'coin', () => track('pack_choose', { pack: open.pack, id }));
   }
 }
