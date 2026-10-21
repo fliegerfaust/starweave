@@ -4,9 +4,10 @@ import type { GameEvent, LineScore, PlacementScore, ScoreStep, Suit } from '@/co
 import type { Entity } from '@/engine/ecs';
 import { dict, named, num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
-import { CardView, Drawable, Layer, Transform, transform } from '../components';
+import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
+import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
 type Pt = { x: number; y: number };
@@ -281,129 +282,108 @@ export class Presenter {
     void this.tweens.to(state, { alpha: 0 }, { duration: 0.5 / this.speed, ease: 'outQuad' });
   }
 
-  /** Светящаяся ломаная через центры карт линии — собственно созвездие. */
-  private drawConstellation(line: LineScore, color: string): { state: { progress: number; alpha: number; breathe: boolean }; entity: Entity } {
-    const pts = line.cells.map((c) => this.cellPos(c));
-    const state = { progress: 0, alpha: 1, breathe: false };
-    const e = this.world.create();
-    this.world.add(e, Transform, transform(0, 0));
-    this.world.add(e, Drawable, {
-      layer: Layer.Effects,
-      z: 0,
-      visible: true,
-      draw: (ctx) => {
-        const total = pts.length - 1;
-        const upto = state.progress * total;
-        const breath = state.breathe ? 0.86 + 0.14 * Math.sin(this.world.res.time * 9) : 1;
-        ctx.globalAlpha = state.alpha * breath;
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.lineCap = 'round';
-        for (const [width, alpha] of [[10, 0.12], [4, 0.35], [1.6, 1]] as const) {
-          ctx.strokeStyle = color;
-          ctx.globalAlpha = state.alpha * breath * alpha;
-          ctx.lineWidth = width;
-          ctx.beginPath();
-          ctx.moveTo(pts[0]!.x, pts[0]!.y);
-          for (let i = 1; i <= total; i++) {
-            const k = Math.min(1, Math.max(0, upto - (i - 1)));
-            if (k <= 0) break;
-            const a = pts[i - 1]!;
-            const b = pts[i]!;
-            ctx.lineTo(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k);
-          }
-          ctx.stroke();
-        }
-        ctx.globalAlpha = state.alpha;
-        for (let i = 0; i <= Math.min(total, Math.floor(upto)); i++) {
-          const p = pts[i]!;
-          const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16);
-          g.addColorStop(0, 'rgba(255,255,255,0.9)');
-          g.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = g;
-          ctx.fillRect(p.x - 16, p.y - 16, 32, 32);
-        }
-      },
-    });
-    this.fx.push(e);
-    return { state, entity: e };
+  /** Созвездие линии — фигура через центры её карт (`figures.ts`). */
+  private drawConstellation(line: LineScore, color: string): FigureFx {
+    const fx = drawFigure(this.world, line.cells.map((c) => this.cellPos(c)), color);
+    this.fx.push(fx.entity);
+    return fx;
   }
 
+  /**
+   * Вспышка хода по этапам (TD.13): каждая формация вспыхивает и считается, затем шаги
+   * уровня хода, затем итог летит в счёт. Мифы 0.9 — ещё одна формация со своей фигурой.
+   */
   private async onIgnite(score: PlacementScore, scoreAfter: number): Promise<void> {
+    const lineFx: FigureFx[] = [];
+    for (const line of score.lines) {
+      lineFx.push(await this.igniteLine(line, score.lines.length));
+      await this.countLine(line);
+    }
+    await this.countMove(score);
+    await this.landScore(score, scoreAfter, lineFx);
+  }
+
+  /** Линия загорается: созвездие прорисовывается, лента с названием, звёздная пыль. */
+  private async igniteLine(line: LineScore, lines: number): Promise<FigureFx> {
+    const hud = this.scene.hud;
+    const firstCard = this.cardEntityAt(line.cells[0]!);
+    const suit = firstCard !== undefined ? this.world.req(firstCard, CardView).card.suit : 'star';
+    const color = SUIT_COLORS[suit].light;
+    const center = this.lineCenter(line);
+
+    // Линия загорается по картам: искра бежит по созвездию, каждая карта на её пути
+    // подпрыгивает, вспыхивает своей мастью и сыплет искры
+    const fx = this.drawConstellation(line, color);
+    this.audio.ignite(lines);
+    const drawDur = 0.42 / this.speed;
+    const drawn = this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'linear' });
+    line.cells.forEach((cell, i) => {
+      void this.tweens.wait((drawDur * i) / Math.max(1, line.cells.length - 1)).then(() => this.igniteCard(cell));
+    });
+    await drawn;
+    // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
+    fx.state.breathe = true;
+    hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
+    flash(this.world, '255,240,200', 0.22, 0.4);
+    shake(this.world, 0.14);
+    await this.wait(0.9);
+    // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
+    hud.hideRibbon();
+    this.dissolveLine(line, fx.state);
+    for (const cell of line.cells) {
+      const e = this.cardEntityAt(cell);
+      if (e !== undefined) void this.tweens.to(this.world.req(e, CardView), { glow: 0.35 }, { duration: 0.6 / this.speed });
+    }
+    return fx;
+  }
+
+  /** Формула линии: база созвездия, шаги карт, глифов и Знамений, итог линии. */
+  private async countLine(line: LineScore): Promise<void> {
     const scene = this.scene;
     const hud = scene.hud;
-    const target = scene.night.target;
-    const lineFx: { state: { progress: number; alpha: number; breathe: boolean }; entity: Entity }[] = [];
-
-    for (const line of score.lines) {
-      const firstCard = this.cardEntityAt(line.cells[0]!);
-      const suit = firstCard !== undefined ? this.world.req(firstCard, CardView).card.suit : 'star';
-      const color = SUIT_COLORS[suit].light;
-      const center = this.lineCenter(line);
-
-      // Линия загорается по картам: искра бежит по созвездию, каждая карта на её пути
-      // подпрыгивает, вспыхивает своей мастью и сыплет искры
-      const fx = this.drawConstellation(line, color);
-      lineFx.push(fx);
-      this.audio.ignite(score.lines.length);
-      const drawDur = 0.42 / this.speed;
-      const drawn = this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'linear' });
-      line.cells.forEach((cell, i) => {
-        void this.tweens.wait((drawDur * i) / Math.max(1, line.cells.length - 1)).then(() => this.igniteCard(cell));
-      });
-      await drawn;
-      // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
-      fx.state.breathe = true;
-      hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
-      flash(this.world, '255,240,200', 0.22, 0.4);
-      shake(this.world, 0.14);
-      await this.wait(0.9);
-      // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
-      hud.hideRibbon();
-      this.dissolveLine(line, fx.state);
-      for (const cell of line.cells) {
-        const e = this.cardEntityAt(cell);
-        if (e !== undefined) void this.tweens.to(this.world.req(e, CardView), { glow: 0.35 }, { duration: 0.6 / this.speed });
-      }
-
-      const comboStep = line.steps[0]!;
-      hud.showCalc(line.combo, comboStep.lightAfter, comboStep.multAfter);
-      // Линия в верхнем ряду и панель её закроет — панель уходит вниз
-      const topRow = line.cells.some((c) => c < scene.night.rules.gridSize);
-      hud.placeCalc(topRow ? scene.cellRect(line.cells[0]!).y : null);
-      hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
-      const steps = line.steps.slice(1);
-      if (this.explain) {
-        hud.showParts(line.combo, comboStep.lightAfter, comboStep.multAfter, steps.map((s) => (s.light
-          ? { text: `${s.light > 0 ? '+' : ''}${num(s.light)}`, kind: 'light' as const }
-          : { text: s.xMult !== undefined ? `×${fmtX(s.xMult)}` : `+${num(s.mult ?? 0)}`, kind: 'mult' as const })));
-      }
-      await this.wait(0.3);
-      // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
-      const gate = this.scoringGate;
-      if (gate) {
-        this.scoringGate = null;
-        await gate();
-      }
-
-      const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
-      const seenCells = new Set<number>();
-      // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
-      this.moteTime = Math.min(0.16, stepDelay * 0.85);
-      for (let i = 0; i < steps.length; i++) {
-        if (this.explain) hud.lightPart(i);
-        await this.showStep(steps[i]!, i, seenCells);
-        await this.wait(Math.max(0.04, stepDelay * this.stepPause - this.moteTime));
-      }
-      hud.setCalcTotal(line.total);
-      hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
-      // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
-      floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
-      this.scene.svc.haptics.play('countMult');
-      this.audio.count(steps.length + 2, 'light');
-      await this.wait(0.35);
+    const center = this.lineCenter(line);
+    const comboStep = line.steps[0]!;
+    hud.showCalc(line.combo, comboStep.lightAfter, comboStep.multAfter);
+    // Линия в верхнем ряду и панель её закроет — панель уходит вниз
+    const topRow = line.cells.some((c) => c < scene.night.rules.gridSize);
+    hud.placeCalc(topRow ? scene.cellRect(line.cells[0]!).y : null);
+    hud.setCaption(t('calc.combo', { combo: t(`combo.${line.combo}`), light: num(comboStep.lightAfter), mult: fmtX(comboStep.multAfter) }));
+    const steps = line.steps.slice(1);
+    if (this.explain) {
+      hud.showParts(line.combo, comboStep.lightAfter, comboStep.multAfter, steps.map((s) => (s.light
+        ? { text: `${s.light > 0 ? '+' : ''}${num(s.light)}`, kind: 'light' as const }
+        : { text: s.xMult !== undefined ? `×${fmtX(s.xMult)}` : `+${num(s.mult ?? 0)}`, kind: 'mult' as const })));
+    }
+    await this.wait(0.3);
+    // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
+    const gate = this.scoringGate;
+    if (gate) {
+      this.scoringGate = null;
+      await gate();
     }
 
-    // Шаги хода: цепь, Знамения уровня хода
+    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
+    const seenCells = new Set<number>();
+    // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
+    this.moteTime = Math.min(0.16, stepDelay * 0.85);
+    for (let i = 0; i < steps.length; i++) {
+      if (this.explain) hud.lightPart(i);
+      await this.showStep(steps[i]!, i, seenCells);
+      await this.wait(Math.max(0.04, stepDelay * this.stepPause - this.moteTime));
+    }
+    hud.setCalcTotal(line.total);
+    hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
+    // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
+    floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
+    this.scene.svc.haptics.play('countMult');
+    this.audio.count(steps.length + 2, 'light');
+    await this.wait(0.35);
+  }
+
+  /** Шаги уровня хода: цепь креста, ×множители Знамений хода. */
+  private async countMove(score: PlacementScore): Promise<void> {
+    const scene = this.scene;
+    const hud = scene.hud;
     const sum = score.lines.reduce((s, l) => s + l.total, 0);
     if (score.steps.length > 0) {
       hud.setCalcLabel(score.lines.length >= 2 ? t('night.cross') : t('night.score'));
@@ -430,8 +410,13 @@ export class Presenter {
         await this.wait(0.45);
       }
     }
+  }
 
-    // Итог влетает в счёт
+  /** Итог хода влетает в счёт: огоньки, удар, фигуры гаснут. */
+  private async landScore(score: PlacementScore, scoreAfter: number, lineFx: FigureFx[]): Promise<void> {
+    const scene = this.scene;
+    const hud = scene.hud;
+    const target = scene.night.target;
     const board = scene.layout.board;
     if (score.lines.length > 1 || score.xMult !== 1) {
       floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true });
