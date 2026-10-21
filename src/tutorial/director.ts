@@ -3,10 +3,15 @@ import type { GameEvent } from '@/core/types';
 import type { App } from '@/game/app';
 import type { NightScene } from '@/game/night/scene';
 import { t } from '@/i18n';
+import type { Dict } from '@/i18n/ru';
 import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
 import { track } from '@/analytics';
+
+/** Реплика обучения — строка из `tut` словаря (без вложенных таблиц). */
+type Tut = Dict['tut'];
+type TutKey = { [K in keyof Tut]: Tut[K] extends string ? K : never }[keyof Tut] & string;
 
 /** Что экраны сообщают режиссёру. */
 export type TutorialEvent =
@@ -159,7 +164,7 @@ export class TutorialDirector {
     track('tutorial_step', this.progress);
   }
 
-  private async say(key: string, opts: { spot?: Rect | null; next?: boolean; extra?: Node | null; vars?: Record<string, string | number> } = {}): Promise<void> {
+  private async say(key: TutKey, opts: { spot?: Rect | null; next?: boolean; extra?: Node | null; vars?: Record<string, string | number> } = {}): Promise<void> {
     if (this.stopped) throw new Error('stopped');
     this.step += 1;
     this.mark(key);
@@ -181,7 +186,7 @@ export class TutorialDirector {
   }
 
   /** Попросить положить карту в клетку: подсветка, палец, ограничение. */
-  private async guidePlace(key: string, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top'): Promise<GameEvent[]> {
+  private async guidePlace(key: TutKey, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top'): Promise<GameEvent[]> {
     const scene = this.night;
     const id = this.cardId(code);
     this.sync();

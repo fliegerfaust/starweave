@@ -377,9 +377,9 @@ export class ShopScreen implements Screen {
         icon = canvasImg(chartIcon(id as ComboId, 48, dpr()), 48);
         const lv = this.run.comboLevels[id as ComboId];
         const def = COMBOS[id as ComboId];
-        name = t(`combo.${id}`);
+        name = t(`combo.${id as ComboId}`);
         level = t('shop.chartLevel', { from: lv, to: lv + 1 });
-        bonus = t('shop.chartBonus', { combo: t(`combo.${id}`), light: def.levelLight, mult: def.levelMult });
+        bonus = t('shop.chartBonus', { combo: t(`combo.${id as ComboId}`), light: def.levelLight, mult: def.levelMult });
       } else {
         icon = canvasImg(ritualIcon(id, 48, dpr()), 48);
         ({ name, desc: bonus } = named('ritual', id));
