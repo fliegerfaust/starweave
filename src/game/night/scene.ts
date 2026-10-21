@@ -34,6 +34,13 @@ export interface SceneHooks {
   onSelect?(handIndex: number | null): void;
 }
 
+/** Подписи прогноза в клетке: кегль, ширина стрелки и строки с замеренной шириной. */
+interface ForecastLayout {
+  size: number;
+  aw: number;
+  rows: { text: string; dir: 'row' | 'col' | 'diag' | null; width: number }[];
+}
+
 export interface CellState {
   entity: Entity;
   sealed: boolean;
@@ -378,26 +385,28 @@ export class NightScene {
     ctx.restore();
   }
 
-  /**
-   * Названия созвездий в клетке, которая закроет линию: игрок видит, что соберётся,
-   * не зная покерных комбинаций. Длинные названия переносятся по словам.
-   */
-  private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, hgt: number, k: number): void {
-    const cross = s.closes >= 2;
-    const maxW = w - 8;
+  /** Раскладки подписей прогноза: замер шрифта и перенос — раз на набор названий, а не каждый кадр. */
+  private forecastLayouts = new Map<string, ForecastLayout>();
+
+  private forecastLayout(ctx: CanvasRenderingContext2D, forecast: CellState['forecast'], w: number): ForecastLayout {
     // «Крупный текст» в настройках — подписи на небе тоже крупнее (сколько влезет в клетку)
     const large = document.documentElement.classList.contains('large-text');
+    // Статус шрифтов в ключе: замер до загрузки Manrope был бы по запасному шрифту
+    const key = `${w}|${large ? 1 : 0}|${document.fonts?.status ?? ''}|${forecast.map((f) => `${f.name}/${f.dir ?? ''}`).join('|')}`;
+    const hit = this.forecastLayouts.get(key);
+    if (hit) return hit;
+    const maxW = w - 8;
     const base = Math.max(large ? 14 : 12, Math.round(w * (large ? 0.2 : 0.17)));
     // Стрелка ряда или столбца рисуется линиями, а не символом шрифта: символ в другом
     // шрифте (Telegram, Android) шире замера и вылезал за клетку
-    let arrows = s.forecast.some((f) => f.dir);
+    let arrows = forecast.some((f) => f.dir);
     const arrowW = (size: number) => (arrows ? size * 0.9 : 0);
     // Узкая клетка: длинное слово не влезает — ужимаем шрифт, а не клетку; не хватает и
     // мелкого — стрелки уступают место названию
     const fit = () => {
       ctx.font = `700 ${base}px Manrope, sans-serif`;
       let widest = 0;
-      for (const f of s.forecast) {
+      for (const f of forecast) {
         f.name.split(' ').forEach((word, i) => {
           widest = Math.max(widest, ctx.measureText(word).width + (i === 0 ? arrowW(base) : 0));
         });
@@ -411,23 +420,39 @@ export class NightScene {
     }
     size = Math.max(8, size);
     ctx.font = `700 ${size}px Manrope, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     const aw = arrowW(size);
-    const rows: { text: string; dir: 'row' | 'col' | 'diag' | null }[] = [];
-    for (const f of s.forecast) {
+    const rows: ForecastLayout['rows'] = [];
+    for (const f of forecast) {
       let row = '';
       let dir = arrows ? f.dir : null;
       for (const word of f.name.split(' ')) {
         const next = row ? `${row} ${word}` : word;
         if (row && ctx.measureText(next).width + (dir ? aw : 0) > maxW) {
-          rows.push({ text: row, dir });
+          rows.push({ text: row, dir, width: ctx.measureText(row).width });
           dir = null;
           row = word;
         } else row = next;
       }
-      if (row) rows.push({ text: row, dir });
+      if (row) rows.push({ text: row, dir, width: ctx.measureText(row).width });
     }
+    const layout = { size, aw, rows };
+    // Набор названий за ночь невелик; потолок — на случай смены размеров окна
+    if (this.forecastLayouts.size > 200) this.forecastLayouts.clear();
+    this.forecastLayouts.set(key, layout);
+    return layout;
+  }
+
+  /**
+   * Названия созвездий в клетке, которая закроет линию: игрок видит, что соберётся,
+   * не зная покерных комбинаций. Длинные названия переносятся по словам.
+   */
+  private drawForecast(ctx: CanvasRenderingContext2D, s: CellState, x: number, y: number, w: number, hgt: number, k: number): void {
+    const cross = s.closes >= 2;
+    const maxW = w - 8;
+    const { size, aw, rows } = this.forecastLayout(ctx, s.forecast, w);
+    ctx.font = `700 ${size}px Manrope, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     const lh = size * 1.15;
     const mark = cross ? Math.round(w * 0.28) : 0;
     let chip = s.forecastCard && !s.forecastWeak ? size * 1.5 : 0;
@@ -457,7 +482,7 @@ export class NightScene {
       // Предел ширины у fillText — страховка: даже если шрифт шире замера, строка
       // сожмётся по горизонтали, а не вылезет из клетки
       const textMax = maxW - iconW;
-      const textW = Math.min(textMax, ctx.measureText(row.text).width);
+      const textW = Math.min(textMax, row.width);
       const left = x - (iconW + textW) / 2;
       const tx = left + iconW + textW / 2;
       if (row.dir) this.drawLineArrow(ctx, row.dir, left + size * 0.35, ry, size * 0.62, color, k);
