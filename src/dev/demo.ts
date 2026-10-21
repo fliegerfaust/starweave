@@ -90,7 +90,7 @@ export async function runDemo(app: App, name: string): Promise<void> {
   app.runs.startRun('classic');
   const run = app.run!;
   run.ante = 3;
-  run.nightIndex = 1;
+  run.chapter.at = 1;
   run.gold = 23;
   run.omens = OMENS.map((id) => createOmen(run, id));
   app.runs.beginNight();

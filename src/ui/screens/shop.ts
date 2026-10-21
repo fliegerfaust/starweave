@@ -1,5 +1,5 @@
+import { hasNextNight } from '@/core/route';
 import { chartIcon, omenSigil, packIcon, ritualIcon } from '@/art/sigil';
-import { FINAL_ANTE } from '@/core/content/balance';
 import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
@@ -119,7 +119,7 @@ export class ShopScreen implements Screen {
       : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint'));
 
     // После последней ночи финального созвездия впереди победа, а не карта
-    const canPeek = run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2;
+    const canPeek = hasNextNight(run);
     const goods = [...itemRows, ...packRows];
     const hasRituals = shop.items.some((i) => i.kind === 'ritual');
     const sections: (HTMLElement | null)[] = [

@@ -29,11 +29,12 @@ function stable(value: unknown): string {
 }
 
 /**
- * Итоговый забег в форме, не зависящей от того, как хранится место в главе: до TD.6 —
+ * Итоговый забег в форме, не зависящей от версии сохранения и от того, как хранится место в главе: до TD.6 —
  * `nightIndex`, после — `chapter.at` (узлы главы выводятся из правил и в эталон не входят).
  */
 function canonicalRun(run: RunState): string {
-  const { chapter, nightIndex, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number };
+  // Версия сохранения растёт вместе с форматом (TD.6: 1 → 2) — ход ночи от неё не зависит
+  const { chapter, nightIndex, version: _version, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number };
   return stable({ ...rest, at: chapter?.at ?? nightIndex });
 }
 

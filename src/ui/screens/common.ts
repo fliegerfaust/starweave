@@ -1,3 +1,4 @@
+import { currentNode } from '@/core/route';
 import { cardFace } from '@/art/card';
 import { LANGS, dict, getLang, num, t, type Lang } from '@/i18n';
 import type { Card, ComboId, RunState } from '@/core/types';
@@ -23,7 +24,6 @@ export function cardThumb(card: Card, width = CARD_THUMB, opts: { hideRank?: boo
 }
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
-const NIGHT_NAMES = ['dusk', 'midnight', 'eclipse'] as const;
 
 /**
  * Новый забег поверх сохранённого — «Табличка» (RD.10): что именно пропадёт, строкой —
@@ -32,7 +32,7 @@ const NIGHT_NAMES = ['dusk', 'midnight', 'eclipse'] as const;
 export function confirmNewRun(app: App, next: () => void): void {
   if (!app.runs.hasSave || !app.run) return next();
   const run = app.run;
-  const where = `${t('night.constellation', { n: ROMAN[run.ante - 1] ?? run.ante })} · ${t(`night.${NIGHT_NAMES[run.nightIndex] ?? 'dusk'}`)}`;
+  const where = `${t('night.constellation', { n: ROMAN[run.ante - 1] ?? run.ante })} · ${t(`night.${currentNode(run).kind}`)}`;
   const line = h('div.run-line', null, [
     h('span.run-line-text', null, [h('b', null, where), withCoin(num(run.gold))]),
     run.omens.length ? h('span.run-line-omens', null, run.omens.slice(0, 4).map((o) => omenMedal(o.id, 30))) : null,
