@@ -11,5 +11,8 @@
   `node /Users/Denis/Work/task-tracker/bin/tt.js <команда> --as claude` или MCP `task-tracker`.
   Взял задачу — в «В работе»; прогресс — `comment`; итог — `review` (что сделано, как проверено,
   какие коммиты). Вопрос к Денису — `block`. Новая работа — сразу `add`. Подробности — в коммите.
-- Деплой: пуш в `main` или `release/**` публикует сборку на GitHub Pages
-  (`.github/workflows/pages.yml`).
+- Деплой — только тегом версии, как в ДенВал.Классе: релиз мёржится в `main` `--no-ff`, на мёрдж
+  ставится тег `vX.Y.Z`, пуш тега выкатывает сборку на GitHub Pages (`.github/workflows/pages.yml`;
+  тег не из `main` не выкатится). Ветки `release/**`, `epic/**`, `feature/**` пушатся на GitHub
+  свободно — там их проверяет только CI (`ci.yml`: typecheck + тесты). Откат — ручной запуск
+  `pages.yml` с прошлым тегом.

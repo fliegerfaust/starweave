@@ -1,9 +1,17 @@
+# Деплой на GitHub Pages — только с тега версии `v*`, как в ДенВал.Классе.
+# Ветки (release/**, epic/**, feature/**) пушатся свободно: их проверяет ci.yml,
+# на боевой они не едут. Релиз мёржится в main, на мёрдж ставится тег — он и выкатывается.
+# Ручной запуск — для отката: указать прошлый тег, он соберётся и выкатится заново.
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, 'release/**']
+    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег версии (например v0.5.10)'
+        required: true
 
 permissions:
   contents: read
@@ -19,6 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      # Тег обязан стоять на коммите из main: иначе на боевой уехал бы невлитый релиз
+      - name: Тег из main
+        run: git merge-base --is-ancestor HEAD origin/main
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
