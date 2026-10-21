@@ -123,7 +123,7 @@ test('потерянное отпускание мыши не оставляет
   const dragAfter = await page.evaluate(({ x, y }) => {
     const canvas = document.querySelector('canvas')!;
     canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, pointerType: 'mouse', clientX: x, clientY: y, buttons: 0, bubbles: true }));
-    return (window as unknown as { __scene: { drag: unknown } }).__scene.drag;
+    return (window as unknown as { __scene: { input: { drag: unknown } } }).__scene.input.drag;
   }, { x: card.x - 90, y: card.y - 60 });
   expect(dragAfter, 'перетаскивание закончилось').toBeNull();
   await page.mouse.up();
