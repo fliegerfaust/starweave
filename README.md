@@ -21,7 +21,7 @@
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # юнит-тесты ядра, движка и локализации
+npm test           # юнит-тесты: ядро, сохранения, сервер, локализация
 npm run sim        # баланс-симуляция: жадный бот гонит забеги
 npm run build      # продакшен-сборка в dist/ (PWA, работает офлайн)
 npm run build:yandex  # архив для Яндекс Игр: release/starweave-yandex.zip
@@ -34,6 +34,9 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 
 Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`.
 
+План следующего большого релиза 0.8 «Глубина» с витринами-прототипами и ревью архитектуры —
+в ветке `release/0.8.0` (не публикуется).
+
 Документы: задачи — [TASKS.md](TASKS.md); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
 [DESIGN.md](DESIGN.md); правила — [docs/GDD.md](docs/GDD.md); устройство —
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); деньги — [docs/MONETIZATION.md](docs/MONETIZATION.md);
@@ -42,7 +45,8 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 аналитика — [docs/ANALYTICS.md](docs/ANALYTICS.md); Telegram — [docs/TELEGRAM.md](docs/TELEGRAM.md);
 Яндекс — [docs/YANDEX.md](docs/YANDEX.md); сервер — [server/README.md](server/README.md).
 
-Отладочная витрина графики: `http://localhost:5173/?gallery`.
+Отладочные витрины графики (`?gallery`, `?promo`, `?icon`) и `window.starweave` есть только
+в разработке: `http://localhost:5173/?gallery`.
 
 ## Как устроено
 
