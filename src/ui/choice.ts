@@ -58,7 +58,7 @@ function ribbon(choice: Choice): [string, string] {
 
 /**
  * Сцена «Выбери одно» (TD.7): текущий выбор из очереди `run.pending` — варианты строками,
- * взять один или пропустить. Одна сцена для пакета, а в 0.9 — для дара ночи, трофея,
+ * взять один или пропустить. Одна сцена для пакета, а в 0.7 — для дара ночи, трофея,
  * Кометы и пророчества. `null` — выбирать нечего.
  */
 export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): ModalHandle | null {

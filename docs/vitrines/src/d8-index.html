@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>План релиза · Starweave 0.9</title>
+<title>План релиза · Starweave 0.7</title>
 <!--KIT-->
 <style>
 .goals { display: grid; gap: 0; margin-top: 26px; }
@@ -134,7 +134,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 <div class="wrap">
   <div class="goals" id="goals"></div>
 
-  <div class="label">Петля забега <small>одна глава — сейчас и в 0.9 · золотая точка — решение игрока</small></div>
+  <div class="label">Петля забега <small>одна глава — сейчас и в 0.7 · золотая точка — решение игрока</small></div>
   <div class="loops" id="loops"></div>
 
   <div class="label">Лестница открытия <small>что открыто у игрока к забегу N · модель, проверить симом</small></div>
@@ -158,13 +158,13 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 
   <div class="label">Риски</div>
   <div class="risks" id="risks"></div>
-  <p class="src">Подробно — <a href="../RELEASE-0.9-DEPTH.md">docs/RELEASE-0.9-DEPTH.md</a>. Источники: <a href="https://www.pcgamesn.com/slay-the-spire-2/ancients">StS 2: Ancients</a> · <a href="https://mobalytics.gg/slay-the-spire-2/guides/alternate-acts">StS 2: альтернативные акты</a> · <a href="https://slaythespire2.gg/">StS 2 Wiki</a> · <a href="https://www.gamespot.com/reviews/slay-the-spire-review-trend-setter/1900-6417497/">GameSpot</a> · <a href="https://www.lesswrong.com/posts/MEimkSwwuRgiPaZaY/review-slay-the-spire">LessWrong</a></p>
-  <p class="foot">Релиз 0.9 «Глубина» · экспериментальный, ветка release/0.9.0 не публикуется · 21.10.2026</p>
+  <p class="src">Подробно — <a href="../RELEASE-0.7-DEPTH.md">docs/RELEASE-0.7-DEPTH.md</a>. Источники: <a href="https://www.pcgamesn.com/slay-the-spire-2/ancients">StS 2: Ancients</a> · <a href="https://mobalytics.gg/slay-the-spire-2/guides/alternate-acts">StS 2: альтернативные акты</a> · <a href="https://slaythespire2.gg/">StS 2 Wiki</a> · <a href="https://www.gamespot.com/reviews/slay-the-spire-review-trend-setter/1900-6417497/">GameSpot</a> · <a href="https://www.lesswrong.com/posts/MEimkSwwuRgiPaZaY/review-slay-the-spire">LessWrong</a></p>
+  <p class="foot">Релиз 0.7 «Глубина» · экспериментальный, ветка release/0.7.0 · 21.10.2026</p>
 </div>
 <!--KITJS-->
 <script>
 /* art: nebula-2 omen-crossroads boss-gravity chart-flush omen-sunWorship card-sun-7-gilded omen-diagonalSight boss-void card-star-9-radiant omen-stardust boss-wane pack-omen */
-shell({ id: 'index', lead: 'Релиз 0.9 «Глубина»: решения не только в лавке, сборки расходятся, каждый забег оставляет след на небе — и всё это <b>открывается постепенно</b>: первый забег такой же простой, как сейчас.' });
+shell({ id: 'index', lead: 'Релиз 0.7 «Глубина»: решения не только в лавке, сборки расходятся, каждый забег оставляет след на небе — и всё это <b>открывается постепенно</b>: первый забег такой же простой, как сейчас.' });
 
 /* Значки целей — нарисованы кодом, одна линия и вес */
 const G = (d) => svg(`<g fill="none" stroke="#f6c25b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${d}</g>`, 40, 40);
@@ -197,7 +197,7 @@ const NEW = [
 ];
 function path(rows, isNew) {
   const decisions = rows.filter((r) => r[3]).length;
-  return h('div', { class: 'loop' + (isNew ? ' new' : '') }, h('h3', {}, isNew ? 'В 0.9 · всё открыто' : 'Сейчас'),
+  return h('div', { class: 'loop' + (isNew ? ' new' : '') }, h('h3', {}, isNew ? 'В 0.7 · всё открыто' : 'Сейчас'),
     h('div', { class: 'path' }, rows.map(([ic, b, s, dec, nw, tag]) => h('div', { class: 'node' + (dec ? ' dec' : '') + (nw ? ' new-sys' : '') }, h('div', { class: 'ic' }, ic), h('div', {}, h('b', {}, b), h('small', {}, s)), tag ? h('span', { class: 'tag' }, tag) : h('span')))),
     h('div', { class: 'tally' }, h('b', {}, decisions), isNew ? 'решений за главу — и забег не длиннее: Комета и Телескоп заменяют ночь, а не добавляются' : 'решения за главу — все в лавке'));
 }

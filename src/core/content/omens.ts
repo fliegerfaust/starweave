@@ -23,7 +23,7 @@ export interface OmenDef extends EffectHooks {
   vars?(data: Record<string, number>): Record<string, string | number>;
   /** Связанные масти/созвездия — для цвета сигила и подсказок. */
   tags?: { suit?: Suit; combo?: ComboId };
-  /** Как открыть (TD.8); без него — открыто сразу. Небосвод 0.9 раздаст это поле. */
+  /** Как открыть (TD.8); без него — открыто сразу. Небосвод 0.7 раздаст это поле. */
   unlock?: Unlock;
 }
 
