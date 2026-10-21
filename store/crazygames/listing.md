@@ -7,7 +7,7 @@
 | Поле | Что вставить |
 |---|---|
 | Game name | `Starweave` |
-| Build | `release/starweave-crazygames.zip` (`npm run build:crazygames`) |
+| Build | файлы из `dist-crazygames/` (`npm run build:crazygames`): всё внутри папки, ⌘A и перетащить — zip не принимают |
 | Engine / type | HTML5 |
 | Orientation | Landscape и Portrait (игра подстраивается) |
 | Mobile support | Yes |

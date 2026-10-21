@@ -141,7 +141,7 @@ Strictly no text, no letters, no logo, no UI, no frame, no watermark, no people.
 1. **Аккаунт.** [developer.crazygames.com](https://developer.crazygames.com) → регистрация →
    принять Developer Terms.
 2. **Submit a game.** Название — `Starweave`. Тип — HTML5. Загрузить
-   `release/starweave-crazygames.zip` (`npm run build:crazygames`). Ориентации: **landscape и portrait**.
+   содержимое папки `dist-crazygames/` (`npm run build:crazygames`): zip портал не принимает — выделить всё внутри папки (⌘A) и перетащить файлы. Ориентации: **landscape и portrait**.
    Поддержка мобильных: **да**. Включить **Progress Save** (сохранения через SDK).
 3. **Preview.** Сыграть в их окружении: ПК (Chrome), телефон (Android и iPhone), планшет.
    Пройти **QA-инструмент** по шагам — он сам подсказывает, чего не хватает. Если что-то
