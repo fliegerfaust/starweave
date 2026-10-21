@@ -1,7 +1,7 @@
 import { forgetClientId, track } from '@/analytics';
 import { RuleError } from '@/core/errors';
-import { burnCard, placeCard, startNight } from '@/core/night';
-import { GIFT_GOLD_CAP, canDoubleReward, canRevive, collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight } from '@/core/run';
+import { apply, newLoggedRun, type Command } from '@/core/commands';
+import { GIFT_GOLD_CAP, canDoubleReward, canRevive } from '@/core/run';
 import { deserializeRun, serializeRun } from '@/core/save';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import type { GameEvent, RunState } from '@/core/types';
@@ -60,7 +60,7 @@ export class RunController {
     // Самый первый забег начинается со щедрой ночи и с тем, что заработано в обучении
     const gentle = !daily && profile.runs === 0;
     const gift = gentle ? profile.tutorialGift : undefined;
-    this.run = newRun({ seed: runSeed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
+    this.run = newLoggedRun({ seed: runSeed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
     // Подарок — один раз: в первый забег или никогда (первым сыгран вызов дня)
     if (!daily || profile.runs > 0) delete profile.tutorialGift;
     track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift, replay: seed !== undefined });
@@ -75,7 +75,7 @@ export class RunController {
   startChallenge(c: Challenge): void {
     this.closeCurrent();
     this.persistProfile();
-    this.run = newRun({ seed: c.seed, skyId: c.skyId, stake: c.stake });
+    this.run = newLoggedRun({ seed: c.seed, skyId: c.skyId, stake: c.stake });
     this.run.challenge = { ante: c.ante, best: c.best };
     track('challenge_accept', { ante: c.ante, best: c.best });
     track('run_start', { sky: c.skyId, stake: c.stake, daily: false, challenge: true });
@@ -87,7 +87,7 @@ export class RunController {
   startArchive(date: string): void {
     this.closeCurrent();
     this.persistProfile();
-    this.run = newRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true });
+    this.run = newLoggedRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true });
     track('run_start', { sky: 'classic', stake: 0, daily: true, archive: true });
     this.save();
     this.route();
@@ -114,7 +114,7 @@ export class RunController {
 
   private doBeginNight(): void {
     const run = this.run!;
-    startNight(run);
+    apply(run, { c: 'startNight' });
     if (run.tutorial) applyTutorialNight(run, run.chapter.at);
     else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
     markSeen(this.app.profile, run);
@@ -128,7 +128,7 @@ export class RunController {
     const run = this.run;
     if (!run) return null;
     try {
-      const events = action.kind === 'place' ? placeCard(run, action.handIndex, action.cell) : burnCard(run, action.handIndex);
+      const events = apply(run, action.kind === 'place' ? { c: 'place', hand: action.handIndex, cell: action.cell } : { c: 'burn', hand: action.handIndex });
       this.afterAction(events);
       return events;
     } catch (e) {
@@ -202,7 +202,7 @@ export class RunController {
 
   private doCollectReward(): void {
     const run = this.run!;
-    collectReward(run);
+    apply(run, { c: 'collectReward' });
     if (run.tutorial) run.shop = tutorialShop();
     this.save();
     this.route();
@@ -215,7 +215,7 @@ export class RunController {
   private doLeaveShop(): void {
     const run = this.run!;
     const { profile } = this.app;
-    leaveShop(run);
+    apply(run, { c: 'leaveShop' });
     if (run.tutorial) {
       // В обучении карту созвездия пропускаем — сразу вторая ночь
       this.doBeginNight();
@@ -241,11 +241,11 @@ export class RunController {
   }
 
   /** Действие в Обсерватории: ошибки правил — подсказкой, успех — сохранение. */
-  shopAction(fn: (run: RunState) => void): boolean {
+  shopAction(cmd: Command): boolean {
     const run = this.run;
     if (!run) return false;
     try {
-      fn(run);
+      apply(run, cmd);
       this.save();
       return true;
     } catch (e) {
@@ -258,7 +258,7 @@ export class RunController {
   }
 
   continueEndless(): void {
-    if (!this.guarded(() => continueEndless(this.run!))) return;
+    if (!this.guarded(() => apply(this.run!, { c: 'continueEndless' }))) return;
     this.save();
     this.route();
   }
@@ -281,7 +281,7 @@ export class RunController {
     if (!run || !canRevive(run)) return false;
     const ok = this.app.money.adFree || (await this.app.money.rewarded('revive'));
     if (!ok || !canRevive(run)) return false;
-    reviveNight(run);
+    apply(run, { c: 'revive' });
     // Поражение уже записали в профиль — забег продолжается, запись отменяем
     unrecordRunEnd(this.app.profile, run);
     this.persistProfile();
@@ -296,7 +296,7 @@ export class RunController {
     if (!run || !canDoubleReward(run)) return false;
     const ok = await this.app.money.rewarded('double_reward');
     if (!ok || !canDoubleReward(run)) return false;
-    doubleReward(run);
+    apply(run, { c: 'doubleReward' });
     this.save();
     return true;
   }

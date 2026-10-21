@@ -1,3 +1,4 @@
+import type { RunLog } from './commands';
 import type { Chapter } from './route';
 import type { RngState } from './rng';
 
@@ -247,6 +248,8 @@ export interface RunState {
   challenge?: { ante: number; best: number };
   /** Второй шанс уже использован в этом забеге. */
   revived?: boolean;
+  /** Журнал команд (TD.9): с чего начали и что делал игрок. Нет у обучения и старых сохранений. */
+  log?: RunLog;
   /** В каком созвездии награду уже удваивали. */
   doubledAnte?: number;
   /** Сколько линий уже записано в профиль (забег после победы продолжается). */

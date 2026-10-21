@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OMENS } from '../src/core/content/omens';
 import { SKIES } from '../src/core/content/skies';
+import { apply, newLoggedRun } from '../src/core/commands';
 import { placeCard } from '../src/core/night';
 import { SAVE_VERSION } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
@@ -58,6 +59,15 @@ describe('сохранение забега (TD.1)', () => {
     for (const chapter of [null, { ...run.chapter, at: 3 }, { nodes: [], at: 0 }, { ...run.chapter, nodes: [{ kind: 'dawn', bossId: null }] }]) {
       expect(deserializeRun(JSON.stringify({ ...base, chapter })), JSON.stringify(chapter)).toBeNull();
     }
+  });
+
+  it('журнал команд сохраняется, битый — отбрасывается без потери забега (TD.9)', () => {
+    const run = newLoggedRun({ seed: 5 });
+    apply(run, { c: 'startNight' });
+    expect(deserializeRun(serializeRun(run))!.log).toEqual(run.log);
+    const broken = deserializeRun(JSON.stringify({ ...run, log: { version: 1, cmds: 'nope' } }));
+    expect(broken).not.toBeNull();
+    expect(broken!.log).toBeUndefined();
   });
 
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {

@@ -37,6 +37,12 @@ function isCard(c: unknown): boolean {
 }
 const isCards = (v: unknown) => Array.isArray(v) && v.every(isCard);
 
+/** Журнал команд (TD.9): версия, условия старта и список команд. */
+function isLog(log: unknown): boolean {
+  return isObj(log) && isInt(log.version) && isObj(log.start) && isInt(log.start.seed)
+    && Array.isArray(log.cmds) && log.cmds.every((c) => isObj(c) && typeof c.c === 'string');
+}
+
 function isChapter(c: unknown): boolean {
   if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < 0 || c.at >= c.nodes.length) return false;
   return c.nodes.every((n) => isObj(n) && (NIGHT_KINDS as readonly unknown[]).includes(n.kind) && (n.bossId === null || has(BOSSES, n.bossId)));
@@ -87,6 +93,8 @@ export function deserializeRun(text: string | null): RunState | null {
       run.shop.packs ??= [];
       run.shop.openPack ??= null;
     }
+    // Битый журнал не должен стоить игроку забега: забег открываем без журнала
+    if (run.log !== undefined && !isLog(run.log)) delete run.log;
     return isPlayable(run) ? (run as unknown as RunState) : null;
   } catch {
     return null;
