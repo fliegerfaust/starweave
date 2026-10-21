@@ -34,8 +34,9 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 
 Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`.
 
-План следующего большого релиза 0.8 «Глубина» с витринами-прототипами и ревью архитектуры —
-в ветке `release/0.8.0` (не публикуется).
+Релиз 0.6 «Фундамент» (рефакторинг и техдолг) — `release/0.6.0`, итог в
+[RELEASE-0.6-FOUNDATION](docs/RELEASE-0.6-FOUNDATION.md). План 0.9 «Глубина» с
+витринами-прототипами — [RELEASE-0.9-DEPTH](docs/RELEASE-0.9-DEPTH.md). Все релизы — [ROADMAP](docs/ROADMAP.md).
 
 Документы: задачи — [TASKS.md](TASKS.md); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
 [DESIGN.md](DESIGN.md); правила — [docs/GDD.md](docs/GDD.md); устройство —

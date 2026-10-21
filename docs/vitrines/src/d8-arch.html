@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ревью архитектуры · Starweave 0.8</title>
+<title>Ревью архитектуры · Starweave 0.6</title>
 <!--KIT-->
 <style>
 /* Оценки: шкала из пяти делений */
@@ -85,14 +85,14 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="label">Оценка по областям <small>из 5 · ниже 3 — мешает 0.8</small></div>
+  <div class="label">Оценка по областям <small>из 5 · ниже 3 — мешает «Глубине» (0.9)</small></div>
   <div class="scores" id="scores"></div>
 
   <div class="label">Карта кода <small>касание модуля — что в нём хорошо и что мешает</small></div>
   <div class="map">
     <div>
       <div class="layers" id="layers"></div>
-      <div class="keys" style="margin-top:12px"><span><i class="dot ok"></i>готов к 0.8</span><span><i class="dot mid"></i>нужна доработка</span><span><i class="dot bad"></i>блокер</span></div>
+      <div class="keys" style="margin-top:12px"><span><i class="dot ok"></i>готов к «Глубине»</span><span><i class="dot mid"></i>нужна доработка</span><span><i class="dot bad"></i>блокер</span></div>
     </div>
     <div class="panel" id="panel"></div>
   </div>
@@ -112,7 +112,7 @@
 
   <div class="label">Что хорошо и сохраняем</div>
   <div class="good" id="good"></div>
-  <p class="foot">Ревью 21.10.2026 · только чтение кода · подробно — docs/ARCH-REVIEW-0.8.md</p>
+  <p class="foot">Ревью 21.10.2026 · только чтение кода · подробно — docs/RELEASE-0.6-FOUNDATION.md</p>
 </div>
 <!--KITJS-->
 <script>
@@ -146,8 +146,8 @@ const MODS = [
     ['ok', 'Отдаёт <code>GameEvent[]</code> — новые события добавляются легко'], ['ok', 'Ни <code>Math.random</code>, ни <code>Date</code> в ядре']]],
   ['Ядро', 'Забег', 'core/run.ts, types.ts', 'bad', [
     ['bad', '<code>nightIndex</code> 0..2 и <code>&gt;= 3</code> (<code>run.ts:101</code>) — развилкам нужен план главы (TD.6)'],
-    ['mid', 'Выборы разрознены: пакет — <code>openPack</code>, награда — фаза; 0.8 добавит пять новых (TD.7)'],
-    ['mid', 'Нет журнала команд — рейтинги 0.7 его потребуют (TD.9)']]],
+    ['mid', 'Выборы разрознены: пакет — <code>openPack</code>, награда — фаза; «Глубина» добавит пять новых (TD.7)'],
+    ['mid', 'Нет журнала команд — рейтинги 0.8 его потребуют (TD.9)']]],
   ['Ядро', 'Сохранения', 'core/save.ts', 'bad', [
     ['bad', 'Другая версия — <code>null</code>: начатый забег молча пропадает (<code>save.ts:13</code>)'],
     ['bad', 'Нет цепочки миграций и теста на сохранение 0.5.9 (TD.1)']]],
@@ -222,7 +222,7 @@ const LANES = [
     ['SEC.6', 'Закрепить образ и Actions; деплой только чистого дерева', 'S'],
     ['SEC.7', 'Витрины графики и window.starweave — только в DEV', 'S'],
   ]],
-  ['Фундамент 0.8', 'первым эпиком, ~3 недели; без него эпики A–C переписывают ядро', [
+  ['Фундамент — релиз 0.6', 'отдельным релизом, ~3 недели; без него эпики A–C переписывают ядро', [
     ['TD.2', 'Проверка полноты фаз и событий, откат в меню', 'S', 'всё'],
     ['TD.3', 'Ход ночи по этапам с хуками', 'M', 'тела, мифы', 'd8-gift.html'],
     ['TD.4', 'Черты карты реестром вместо switch глифов', 'S', 'тела', 'd8-gift.html'],
