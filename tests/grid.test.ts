@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { buildLines, ignitedLines, pickSealedCells } from '../src/core/grid';
-import { createRng } from '../src/core/rng';
+import { buildLines, closingLines, ignitedLines, pickSealedCells } from '../src/core/grid';
+import { chance, createRng } from '../src/core/rng';
 import { c } from './helpers';
 
 const rules = { gridSize: 4, rowsIgnite: true, colsIgnite: true, diagonals: false };
 
 describe('grid', () => {
+  it('closingLines до выкладки совпадает с ignitedLines после', () => {
+    const rng = createRng(42);
+    const lines = buildLines({ ...rules, diagonals: true });
+    for (let k = 0; k < 300; k++) {
+      const grid = Array.from({ length: 16 }, () => (chance(rng, 0.6) ? c('3m') : null));
+      const sealed = Array.from({ length: 16 }, () => chance(rng, 0.1));
+      for (let cell = 0; cell < 16; cell++) {
+        const before = closingLines(lines, grid, sealed, cell).map((l) => l.id);
+        if (grid[cell] || sealed[cell]) {
+          expect(before).toEqual([]);
+          continue;
+        }
+        const after = ignitedLines(lines, grid.map((g, i) => (i === cell ? c('5s') : g)), sealed, cell).map((l) => l.id);
+        expect(before).toEqual(after);
+      }
+    }
+  });
+
   it('строит 8 линий, с диагоналями — 10', () => {
     expect(buildLines(rules)).toHaveLength(8);
     expect(buildLines({ ...rules, diagonals: true })).toHaveLength(10);

@@ -1,7 +1,7 @@
 import { CARD_ASPECT, CARD_PAD, cardBack, cardFace, suitEmblem } from '@/art/card';
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
-import { activeCells, buildLines } from '@/core/grid';
+import { buildLines, closingLines } from '@/core/grid';
 import type { Card, GameEvent, RunState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import type { PointerEventData } from '@/engine/input';
@@ -1026,14 +1026,7 @@ export class NightScene {
     const n = this.night;
     const lines = buildLines(n.rules);
     this.cells.forEach((state, cell) => {
-      let closes = 0;
-      if (!n.sealed[cell] && !n.grid[cell]) {
-        for (const line of lines) {
-          if (!line.cells.includes(cell)) continue;
-          const active = activeCells(line, n.sealed);
-          if (active.length >= 2 && active.every((c) => c === cell || n.grid[c])) closes++;
-        }
-      }
+      const closes = closingLines(lines, n.grid, n.sealed, cell).length;
       state.closes = closes;
       void this.svc.tweens.to(state, { closesAnim: closes > 0 && !this.forecastOff ? 1 : 0 }, { duration: 0.3 });
     });
