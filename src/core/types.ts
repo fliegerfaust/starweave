@@ -88,13 +88,21 @@ export interface OmenInstance {
 
 // ─── Подсчёт ───────────────────────────────────────────────────────────────
 
+/**
+ * Чей эффект записал шаг подсчёта (TD.5). Новый источник — трофей, покровитель,
+ * пророчество — новый вариант здесь и строка в `EFFECT_SOURCES`; подписи шагов в UI
+ * перечисляют варианты полностью, так что забытая подпись — ошибка типов.
+ */
+export type EffectSource =
+  | { kind: 'omen'; uid: number; omenId: string; cell?: number }
+  | { kind: 'boss'; bossId: string };
+
 export type StepSource =
   | { kind: 'combo'; combo: ComboId }
   | { kind: 'card'; cell: number; cardId: number }
   | { kind: 'glyph'; cell: number; cardId: number; glyph: Glyph }
-  | { kind: 'omen'; uid: number; omenId: string; cell?: number }
-  | { kind: 'boss'; bossId: string }
-  | { kind: 'chain'; lines: number };
+  | { kind: 'chain'; lines: number }
+  | EffectSource;
 
 /** Один вклад в подсчёт. Презентер проигрывает шаги по порядку как всплывающие числа. */
 export interface ScoreStep {
