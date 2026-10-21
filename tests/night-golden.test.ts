@@ -5,7 +5,7 @@ import { bestMove, shopGreedy } from '../src/core/ai/bot';
 import { SKY_LIST } from '../src/core/content/skies';
 import { burnCard, placeCard, startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
-import { GLYPHS, type GameEvent } from '../src/core/types';
+import { GLYPHS, type GameEvent, type RunState } from '../src/core/types';
 
 /**
  * Эталон хода ночи (TD.3): бот играет забеги на всех небах и звёздностях, хэш потока
@@ -19,6 +19,22 @@ const FIXTURE = new URL('./fixtures/night-golden.json', import.meta.url);
 function canonical(e: GameEvent): unknown {
   if (e.t === 'cardDestroyed' && e.reason === 'shattered') return { t: 'shatter', cardId: e.cardId, cell: e.cell };
   return e;
+}
+
+/** JSON с ключами по алфавиту: эталону всё равно, в каком порядке поля в объекте. */
+function stable(value: unknown): string {
+  return JSON.stringify(value, (_, v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v,
+  );
+}
+
+/**
+ * Итоговый забег в форме, не зависящей от того, как хранится место в главе: до TD.6 —
+ * `nightIndex`, после — `chapter.at` (узлы главы выводятся из правил и в эталон не входят).
+ */
+function canonicalRun(run: RunState): string {
+  const { chapter, nightIndex, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number };
+  return stable({ ...rest, at: chapter?.at ?? nightIndex });
 }
 
 function play(seed: number, skyId: string, stake: number, glyphs = false): { hash: string; kinds: Record<string, number> } {
@@ -47,7 +63,7 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
       leaveShop(run);
     }
   }
-  h.update(JSON.stringify(run));
+  h.update(canonicalRun(run));
   return { hash: h.digest('hex'), kinds };
 }
 
