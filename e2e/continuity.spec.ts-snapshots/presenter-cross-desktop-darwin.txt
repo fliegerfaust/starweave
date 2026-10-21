@@ -1,0 +1,25 @@
+showRibbon: Тройка | Три одинаковых ранга | 102
+setCaption: Тройка: база 30 света и множитель 3
+setCaption: +7 света: ранг карты 7
+setCaption: Сияние: +30 света
+setCaption: +7 света: ранг карты 7
+setCaption: +2 света: ранг карты 2
+setCaption: +7 света: ранг карты 7
+setCaption: Звёздная пыль: +4 к множителю
+setCaption: Горизонт: +6 к множителю
+setCalcTotal: 1079
+setCaption: 83 × 13 = 1 079
+showRibbon: Звёздный флеш | Стрит одной масти | 384
+setCaption: Звёздный флеш: база 100 света и множитель 8
+setCaption: +7 света: ранг карты 7
+setCaption: +5 света: ранг карты 5
+setCaption: +5 света: ранг карты 5 — карта засчитана ещё раз
+setCaption: +6 света: ранг карты 6
+setCaption: +8 света: ранг карты 8
+setCaption: Звёздная пыль: +4 к множителю
+setCaption: Столп: +6 к множителю
+setCalcTotal: 2358
+setCaption: 131 × 18 = 2 358
+setCalcLabel: КРЕСТ
+setCalcTotal: 6874
+setCaption: Крест: 2 линии сразу — итог ×2
