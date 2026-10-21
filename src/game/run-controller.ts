@@ -6,7 +6,8 @@ import { deserializeRun, serializeRun } from '@/core/save';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import type { GameEvent, RunState } from '@/core/types';
 import { named, t } from '@/i18n';
-import { dailySeed, todayKey, loadProfile, markDailyStarted, unrecordRunEnd, markSeen, recordProgress, recordRunEnd, saveProfile } from '@/meta/profile';
+import { dailySeed, todayKey, loadProfile, saveProfile, type Discovery } from '@/meta/profile';
+import { recordEvent, unlocksFor, type ProgressEvent, type ProgressResult } from '@/meta/progress';
 import { KEYS, storage } from '@/meta/storage';
 import { TutorialDirector } from '@/tutorial/director';
 import { clearCoach } from '@/ui/tutorial';
@@ -47,22 +48,42 @@ export class RunController {
   /** Старый забег перед новым: обучение возвращает настоящее сохранение, брошенный засчитывается сданным. */
   private closeCurrent(): void {
     if (this.run?.tutorial) this.endTutorial();
-    if (this.hasSave && this.run) recordRunEnd(this.app.profile, this.run, false);
+    if (this.hasSave && this.run) this.progress({ e: 'runEnd', won: false }, this.run, false);
+  }
+
+  /**
+   * Событие прогресса — в профиль через `meta/progress.ts`, профиль — на устройство и в
+   * облако, открытые небеса — тостом (`announce: false` — молча, как у сданного забега).
+   */
+  progress(ev: ProgressEvent, run: RunState = this.run!, announce = true): ProgressResult {
+    const result = recordEvent(this.app.profile, run, ev);
+    if (result.changed) this.persistProfile();
+    if (announce) this.announceUnlocks(result.skies);
+    return result;
+  }
+
+  /** Что впервые нашлось за последний ход: экран ночи празднует это после подсчёта. */
+  private discovery: Discovery | null = null;
+
+  takeDiscovery(): Discovery | null {
+    const d = this.discovery;
+    this.discovery = null;
+    return d;
   }
 
   /** `seed` — переиграть тот же расклад (после поражения); иначе случайный. */
   startRun(skyId: string, daily = false, stake = 0, seed?: number): void {
     const { profile } = this.app;
     this.closeCurrent();
-    if (daily) markDailyStarted(profile);
-    this.persistProfile();
     const runSeed = daily ? dailySeed() : (seed ?? (Math.random() * 2 ** 32) >>> 0);
     // Самый первый забег начинается со щедрой ночи и с тем, что заработано в обучении
     const gentle = !daily && profile.runs === 0;
     const gift = gentle ? profile.tutorialGift : undefined;
-    this.run = newLoggedRun({ seed: runSeed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift });
+    const unlocks = unlocksFor(profile, daily, this.app.money.purchases.owned);
+    this.run = newLoggedRun({ seed: runSeed, skyId, daily, dailyDate: daily ? todayKey() : undefined, stake: daily ? 0 : stake, gentle, gift, unlocks });
     // Подарок — один раз: в первый забег или никогда (первым сыгран вызов дня)
     if (!daily || profile.runs > 0) delete profile.tutorialGift;
+    this.progress({ e: 'runStart' });
     track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift, replay: seed !== undefined });
     this.save();
     this.route();
@@ -74,8 +95,8 @@ export class RunController {
    */
   startChallenge(c: Challenge): void {
     this.closeCurrent();
-    this.persistProfile();
-    this.run = newLoggedRun({ seed: c.seed, skyId: c.skyId, stake: c.stake });
+    this.run = newLoggedRun({ seed: c.seed, skyId: c.skyId, stake: c.stake, unlocks: unlocksFor(this.app.profile, true) });
+    this.progress({ e: 'runStart' });
     this.run.challenge = { ante: c.ante, best: c.best };
     track('challenge_accept', { ante: c.ante, best: c.best });
     track('run_start', { sky: c.skyId, stake: c.stake, daily: false, challenge: true });
@@ -86,8 +107,8 @@ export class RunController {
   /** Вызов прошедшего дня из архива атласа: тот же сид, что был в тот день. */
   startArchive(date: string): void {
     this.closeCurrent();
-    this.persistProfile();
-    this.run = newLoggedRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true });
+    this.run = newLoggedRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true, unlocks: unlocksFor(this.app.profile, true) });
+    this.progress({ e: 'runStart' });
     track('run_start', { sky: 'classic', stake: 0, daily: true, archive: true });
     this.save();
     this.route();
@@ -117,8 +138,7 @@ export class RunController {
     apply(run, { c: 'startNight' });
     if (run.tutorial) applyTutorialNight(run, run.chapter.at);
     else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
-    markSeen(this.app.profile, run);
-    this.persistProfile();
+    this.progress({ e: 'nightStart' });
     this.save();
     this.route();
   }
@@ -145,6 +165,7 @@ export class RunController {
     const lost = events.some((e) => e.t === 'nightLost');
     const won = events.some((e) => e.t === 'nightWon');
     if ((lost || won) && !run.tutorial) this.trackNightEnd(won);
+    this.discovery = this.progress({ e: 'turn', events }).discovery;
     if (run.tutorial) {
       // Учебную ночь проиграть почти нельзя, но если вышло — начинаем обучение заново
       return;
@@ -152,9 +173,7 @@ export class RunController {
     if (lost) {
       this.trackRunEnd('lost');
       this.bestBefore = this.app.profile.bestPlacement;
-      const fresh = recordRunEnd(this.app.profile, run, false);
-      this.persistProfile();
-      this.announceUnlocks(fresh);
+      this.progress({ e: 'runEnd', won: false });
       storage.remove(KEYS.run);
       return;
     }
@@ -224,12 +243,10 @@ export class RunController {
     if (run.phase === 'victory') {
       this.trackRunEnd('victory');
       this.bestBefore = profile.bestPlacement;
-      const fresh = recordRunEnd(profile, run, true);
-      this.announceUnlocks(fresh);
+      this.progress({ e: 'runEnd', won: true });
     } else {
-      this.announceUnlocks(recordProgress(profile, run));
+      this.progress({ e: 'progress' });
     }
-    this.persistProfile();
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
     const ad = run.phase === 'map' && run.chapter.at === 0 ? this.app.money.interstitialBetweenAntes() : null;
@@ -267,8 +284,7 @@ export class RunController {
     if (this.run?.tutorial) return this.skipTutorial();
     if (this.run && this.run.phase !== 'gameOver' && this.run.phase !== 'victory') {
       this.trackRunEnd('abandon');
-      recordRunEnd(this.app.profile, this.run, false);
-      this.persistProfile();
+      this.progress({ e: 'runEnd', won: false }, this.run, false);
     }
     this.run = null;
     storage.remove(KEYS.run);
@@ -283,8 +299,7 @@ export class RunController {
     if (!ok || !canRevive(run)) return false;
     apply(run, { c: 'revive' });
     // Поражение уже записали в профиль — забег продолжается, запись отменяем
-    unrecordRunEnd(this.app.profile, run);
-    this.persistProfile();
+    this.progress({ e: 'revived' });
     this.save();
     this.route();
     return true;

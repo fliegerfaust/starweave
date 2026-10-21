@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OMENS } from '../src/core/content/omens';
 import { SKIES } from '../src/core/content/skies';
 import { apply, newLoggedRun } from '../src/core/commands';
+import { allContent } from '../src/core/content/pools';
 import { placeCard } from '../src/core/night';
 import { SAVE_VERSION } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
@@ -83,6 +84,13 @@ describe('сохранение забега (TD.1)', () => {
     for (const pending of [null, [{ kind: 'pack', pack: 'omen', options: ['futureOmen'] }], [{ kind: 'gift', options: ['x'] }]]) {
       expect(deserializeRun(JSON.stringify({ ...run, pending })), JSON.stringify(pending)).toBeNull();
     }
+  });
+
+  it('старый забег получает снимок открытий со всем контентом; незнакомое Знамение в снимке — не открывается (TD.8)', () => {
+    const run = deserializeRun(fixture('save-0.5.9-shop.json'))!;
+    expect(run.unlocks).toEqual(allContent());
+    const broken = { ...run, unlocks: { ...run.unlocks, omens: [...run.unlocks.omens, 'futureOmen'] } };
+    expect(deserializeRun(JSON.stringify(broken))).toBeNull();
   });
 
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {

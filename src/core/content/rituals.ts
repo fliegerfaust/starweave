@@ -1,3 +1,4 @@
+import type { Unlock } from './skies';
 import { TRAITS } from './traits';
 import { withGlyph } from '../deck';
 import type { Card, Glyph, RunState, Suit } from '../types';
@@ -18,6 +19,8 @@ export interface RitualDef {
   canTarget?(card: Card): boolean;
   /** Возвращает false, если ритуал неприменим в текущем забеге. */
   available?(run: RunState): boolean;
+  /** Как открыть (TD.8); без него — открыт сразу. */
+  unlock?: Unlock;
   apply(run: RunState, targets: Card[]): void;
 }
 

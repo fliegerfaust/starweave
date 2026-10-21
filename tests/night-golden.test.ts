@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { bestMove, shopGreedy } from '../src/core/ai/bot';
+import { allContent } from '../src/core/content/pools';
 import { SKY_LIST } from '../src/core/content/skies';
 import { burnCard, placeCard, startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
@@ -34,7 +35,8 @@ function stable(value: unknown): string {
  */
 function canonicalRun(run: RunState): string {
   // Версия сохранения растёт вместе с форматом (TD.6: 1 → 2) — ход ночи от неё не зависит
-  const { chapter, nightIndex, version: _version, pending, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number; pending?: unknown[] };
+  // Снимок открытий (TD.8) в эталоне — весь контент, как и до него; хэш его не включает
+  const { chapter, nightIndex, version: _version, pending, unlocks: _unlocks, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number; pending?: unknown[] };
   // Пустая очередь выборов (TD.7) — то же, что «пакет не открыт» до неё
   return stable({ ...rest, at: chapter?.at ?? nightIndex, ...(pending?.length ? { pending } : {}) });
 }
@@ -65,6 +67,7 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
       leaveShop(run);
     }
   }
+  expect(run.unlocks, 'эталон играет со всем контентом').toEqual(allContent());
   h.update(canonicalRun(run));
   return { hash: h.digest('hex'), kinds };
 }
