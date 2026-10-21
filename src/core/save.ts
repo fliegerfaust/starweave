@@ -5,7 +5,7 @@ import { SKIES } from './content/skies';
 import { allContent } from './content/pools';
 import { planChapter } from './route';
 import { SAVE_VERSION } from './run';
-import { COMBO_IDS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
+import { BODY_IDS, COMBO_IDS, GLYPHS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
 
 const comboRegistry = Object.fromEntries(COMBO_IDS.map((id) => [id, true]));
 
@@ -40,6 +40,13 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
   3(run) {
     run.unlocks = allContent();
   },
+  // 5 (GF.1): дар ночи и небесные тела — начатый до 0.7 забег доигрывается без них
+  4(run) {
+    if (isObj(run.unlocks)) {
+      run.unlocks.gift = false;
+      run.unlocks.bodies = [];
+    }
+  },
 };
 
 /** Запись по ключам союза: новая фаза без строки здесь — ошибка типов, а не потерянное сохранение. */
@@ -51,8 +58,17 @@ const isObj = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !
 const isInt = (v: unknown): v is number => Number.isInteger(v);
 const has = (reg: object, id: unknown) => typeof id === 'string' && Object.hasOwn(reg, id);
 
+const isBody = (b: unknown) => (BODY_IDS as readonly unknown[]).includes(b);
+const isGlyph = (g: unknown) => (GLYPHS as readonly unknown[]).includes(g);
+
+/** Карта без id: масть, ранг, глиф или тело этой сборки (тело от новой сборки уронило бы арт). */
+function isFace(c: unknown): c is Raw {
+  if (!isObj(c) || !(SUITS as readonly unknown[]).includes(c.suit) || !isInt(c.rank) || c.rank < MIN_RANK || c.rank > MAX_RANK) return false;
+  return (c.glyph === undefined || isGlyph(c.glyph)) && (c.body === undefined || isBody(c.body));
+}
+
 function isCard(c: unknown): boolean {
-  return isObj(c) && isInt(c.id) && (SUITS as readonly unknown[]).includes(c.suit) && isInt(c.rank) && c.rank >= MIN_RANK && c.rank <= MAX_RANK;
+  return isFace(c) && isInt(c.id);
 }
 const isCards = (v: unknown) => Array.isArray(v) && v.every(isCard);
 
@@ -62,16 +78,23 @@ function isLog(log: unknown): boolean {
     && Array.isArray(log.cmds) && log.cmds.every((c) => isObj(c) && typeof c.c === 'string');
 }
 
-/** Снимок открытий: известные этой сборке Знамения и ритуалы. */
+/** Снимок открытий: известные этой сборке Знамения, ритуалы и тела. */
 function isUnlocks(u: unknown): boolean {
   return isObj(u) && Array.isArray(u.omens) && u.omens.every((id) => has(OMENS, id))
-    && Array.isArray(u.rituals) && u.rituals.every((id) => has(RITUALS, id));
+    && Array.isArray(u.rituals) && u.rituals.every((id) => has(RITUALS, id))
+    && typeof u.gift === 'boolean' && Array.isArray(u.bodies) && u.bodies.every(isBody);
 }
 
 const PACK_SET: Record<PackKind, true> = { omen: true, ritual: true, chart: true };
 
+/** Вариант дара: новая карта или Возвышение карты колоды. */
+function isGiftOffer(o: unknown): boolean {
+  return isObj(o) && ((o.k === 'card' && isFace(o.card)) || (o.k === 'ascend' && isInt(o.cardId)));
+}
+
 /** Выбор в очереди: варианты существуют в этой сборке (иначе `omenDef` уронит экран). */
 function isChoice(c: unknown): boolean {
+  if (isObj(c) && c.kind === 'gift') return Array.isArray(c.options) && c.options.length > 0 && c.options.every(isGiftOffer);
   if (!isObj(c) || c.kind !== 'pack' || !has(PACK_SET, c.pack) || !Array.isArray(c.options) || c.options.length === 0) return false;
   const reg = c.pack === 'omen' ? OMENS : c.pack === 'ritual' ? RITUALS : comboRegistry;
   return c.options.every((id) => has(reg, id));

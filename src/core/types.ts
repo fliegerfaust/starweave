@@ -15,12 +15,17 @@ export const MAX_RANK = 9;
 export const GLYPHS = ['gilded', 'blazing', 'radiant', 'echo', 'glass', 'prism'] as const;
 export type Glyph = (typeof GLYPHS)[number];
 
+/** Небесные тела (GF.3): карты с правилом места. У карты либо глиф, либо тело. */
+export const BODY_IDS = ['polaris', 'meteor', 'pulsar', 'twin', 'nebula', 'blackhole'] as const;
+export type BodyId = (typeof BODY_IDS)[number];
+
 export interface Card {
   /** Уникален в пределах забега; по нему карта находится в колоде после копирования в ночь. */
   id: number;
   suit: Suit;
   rank: number;
   glyph?: Glyph;
+  body?: BodyId;
 }
 
 // ─── Созвездия ─────────────────────────────────────────────────────────────
@@ -104,6 +109,8 @@ export type StepSource =
   | { kind: 'combo'; combo: ComboId }
   | { kind: 'card'; cell: number; cardId: number }
   | { kind: 'glyph'; cell: number; cardId: number; glyph: Glyph }
+  /** Небесное тело: Чёрная дыра на своей клетке, Пульсар — без клетки (копит на всю ночь). */
+  | { kind: 'body'; body: BodyId; cell?: number; cardId?: number }
   | { kind: 'chain'; lines: number }
   | EffectSource;
 
@@ -166,6 +173,8 @@ export interface NightState {
   result: 'playing' | 'won' | 'lost';
   /** Щедрая ночь новичка: добор подыгрывает, ходов и цели меньше. */
   gentle?: boolean;
+  /** Сколько множителя накопили Пульсары за ночь: прибавляется к каждой линии. */
+  pulse?: number;
 }
 
 // ─── Забег ─────────────────────────────────────────────────────────────────
@@ -267,8 +276,12 @@ export type GameEvent =
   | { t: 'clear'; cells: number[] }
   /** Карта вспыхнувшей линии осталась на небе (политика клеток, этап хода). */
   | { t: 'cardStays'; cardId: number; cell: number }
-  /** Карта ушла из колоды насовсем: Стекло разбилось. */
-  | { t: 'cardDestroyed'; cardId: number; cell: number; reason: 'shattered' }
+  /** Карта ушла из колоды насовсем: Стекло разбилось, Чёрная дыра схлопнулась. */
+  | { t: 'cardDestroyed'; cardId: number; cell: number; reason: 'shattered' | 'consumed' }
+  /** Метеор выбил соседа с неба в сброс — до поиска линий. */
+  | { t: 'knocked'; cardId: number; cell: number; by: number }
+  /** Пульсар зарядился от вспышек рядом: `total` — множитель ко всем линиям до конца ночи. */
+  | { t: 'pulse'; cell: number; amount: number; total: number }
   | { t: 'gold'; amount: number; goldAfter: number }
   | { t: 'omenChanged'; uid: number }
   | { t: 'nightWon' }

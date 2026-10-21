@@ -42,9 +42,11 @@ const transmute = (suit: Suit): RitualDef => ({
 
 const inscribe = (glyph: Glyph): RitualDef => ({
   id: `glyph-${glyph}`,
-  price: TRAITS[glyph].inscribePrice,
+  price: TRAITS[glyph].inscribePrice!,
   minTargets: 1,
   maxTargets: 1,
+  // У карты либо глиф, либо тело: на небесное тело глиф не ложится
+  canTarget: (c) => !c.body,
   apply(run, targets) {
     for (const t of targets) replaceInDeck(run, t, withGlyph(t, glyph));
   },

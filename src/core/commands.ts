@@ -26,7 +26,7 @@ export type Command =
   | { c: 'moveOmen'; from: number; to: number }
   | { c: 'buyItem'; slot: number; targets?: number[] }
   | { c: 'buyPack'; slot: number }
-  /** Взять вариант текущего выбора из очереди (пакет, позже дар, трофей, Комета). */
+  /** Взять вариант текущего выбора из очереди (пакет, дар ночи; позже трофей, Комета). */
   | { c: 'choose'; index: number; targets?: number[] }
   | { c: 'skip' }
   | { c: 'banish'; card: number }
@@ -36,7 +36,7 @@ export type Command =
  * Версия правил, под которую записан журнал. Поднимать, когда меняется исход тех же
  * команд (баланс, порядок бросков ГПСЧ): старые журналы тогда не переигрываются как есть.
  */
-export const RULES_VERSION = 1;
+export const RULES_VERSION = 2;
 
 /** Запись забега: с чего начали и что делал игрок. `replay` восстанавливает забег из неё. */
 export interface RunLog {

@@ -88,7 +88,8 @@ describe('сохранение забега (TD.1)', () => {
 
   it('старый забег получает снимок открытий со всем контентом; незнакомое Знамение в снимке — не открывается (TD.8)', () => {
     const run = deserializeRun(fixture('save-0.5.9-shop.json'))!;
-    expect(run.unlocks).toEqual(allContent());
+    // Начатый до 0.7 забег доигрывается без дара ночи и тел (GF.1)
+    expect(run.unlocks).toEqual({ ...allContent(), gift: false, bodies: [] });
     const broken = { ...run, unlocks: { ...run.unlocks, omens: [...run.unlocks.omens, 'futureOmen'] } };
     expect(deserializeRun(JSON.stringify(broken))).toBeNull();
   });

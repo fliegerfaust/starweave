@@ -3,7 +3,9 @@ import { activeCells, buildLines } from '../grid';
 import { burnCard, placeCard } from '../night';
 import { buyItem, buyOmen, omenSlots } from '../shop';
 import { omenDef } from '../content/omens';
-import type { Card, NightState, RunState } from '../types';
+import { choose, currentChoice, skipChoice } from '../choices';
+import type { GiftOffer } from '../gift';
+import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
 /** Вес точки креста в оценке позиции (подобран симуляцией). */
 export const CROSS_WEIGHT = Number(globalThis.process?.env?.CROSS_WEIGHT ?? 60);
@@ -123,8 +125,39 @@ export function playNight(run: RunState, lookahead = LOOKAHEAD): void {
   }
 }
 
-/** Простая политика Обсерватории: Знамения по редкости, затем Звёздные карты. */
+/** Ценность черт в даре для бота: подобрано симом (GF.6), пропуск — «чистое небо». */
+const GIFT_VALUE: Record<Glyph | BodyId, number> = {
+  gilded: 2, blazing: 3, radiant: 3, echo: 3, glass: 3, prism: 2,
+  polaris: 3, meteor: 2, pulsar: 3, twin: 2, nebula: 4, blackhole: 3,
+};
+const ASCEND_VALUE = 2;
+/** Чистое небо дороже, когда колода уже толстая: нужные карты приходят реже. */
+function skipValue(run: RunState): number {
+  return 1.5 + Math.max(0, run.deck.length - 36) * 0.25;
+}
+
+/** Ценность варианта дара: черта, масть, которую колода собирает, и ранг. */
+export function giftValue(run: RunState, offer: GiftOffer): number {
+  if (offer.k === 'ascend') return ASCEND_VALUE;
+  const { card } = offer;
+  const trait = card.body ?? card.glyph;
+  const suitShare = run.deck.filter((c) => c.suit === card.suit).length / Math.max(1, run.deck.length);
+  return (trait ? GIFT_VALUE[trait] : 1) + suitShare * 2 + card.rank * 0.05;
+}
+
+/** Дар ночи: лучший вариант или «чистое небо», если ничего не дотягивает. */
+export function giftGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'gift') return;
+  const values = choice.options.map((o) => giftValue(run, o));
+  const best = values.indexOf(Math.max(...values));
+  if (values[best]! > skipValue(run)) choose(run, best);
+  else skipChoice(run);
+}
+
+/** Простая политика Обсерватории: дар ночи, Знамения по редкости, затем Звёздные карты. */
 export function shopGreedy(run: RunState): void {
+  giftGreedy(run);
   const shop = run.shop;
   if (!shop) return;
   const omens = shop.omens
