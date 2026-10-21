@@ -4,7 +4,9 @@ import { RITUALS } from './content/rituals';
 import { SKIES } from './content/skies';
 import { planChapter } from './route';
 import { SAVE_VERSION } from './run';
-import { COMBO_IDS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type RunPhase, type RunState } from './types';
+import { COMBO_IDS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
+
+const comboRegistry = Object.fromEntries(COMBO_IDS.map((id) => [id, true]));
 
 export function serializeRun(run: RunState): string {
   return JSON.stringify(run);
@@ -20,6 +22,18 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
     if (!isInt(run.ante) || !Array.isArray(run.bosses) || !isInt(run.nightIndex)) return;
     run.chapter = { ...planChapter({ ante: run.ante, bosses: run.bosses as string[] }), at: run.nightIndex };
     delete run.nightIndex;
+  },
+  // 3 (TD.7): открытый пакет Обсерватории — выбор в очереди `pending`; команды пакета в журнале — общие
+  2(run) {
+    const open = isObj(run.shop) ? run.shop.openPack : null;
+    run.pending = isObj(open) ? [{ kind: 'pack', pack: open.pack, options: open.options }] : [];
+    if (isObj(run.shop)) delete run.shop.openPack;
+    if (isObj(run.log) && Array.isArray(run.log.cmds)) {
+      for (const cmd of run.log.cmds as Raw[]) {
+        if (cmd.c === 'choosePack') cmd.c = 'choose';
+        else if (cmd.c === 'skipPack') cmd.c = 'skip';
+      }
+    }
   },
 };
 
@@ -43,6 +57,15 @@ function isLog(log: unknown): boolean {
     && Array.isArray(log.cmds) && log.cmds.every((c) => isObj(c) && typeof c.c === 'string');
 }
 
+const PACK_SET: Record<PackKind, true> = { omen: true, ritual: true, chart: true };
+
+/** Выбор в очереди: варианты существуют в этой сборке (иначе `omenDef` уронит экран). */
+function isChoice(c: unknown): boolean {
+  if (!isObj(c) || c.kind !== 'pack' || !has(PACK_SET, c.pack) || !Array.isArray(c.options) || c.options.length === 0) return false;
+  const reg = c.pack === 'omen' ? OMENS : c.pack === 'ritual' ? RITUALS : comboRegistry;
+  return c.options.every((id) => has(reg, id));
+}
+
 function isChapter(c: unknown): boolean {
   if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < 0 || c.at >= c.nodes.length) return false;
   return c.nodes.every((n) => isObj(n) && (NIGHT_KINDS as readonly unknown[]).includes(n.kind) && (n.bossId === null || has(BOSSES, n.bossId)));
@@ -56,6 +79,7 @@ function isChapter(c: unknown): boolean {
 function isPlayable(run: Raw): boolean {
   if (!PHASES.includes(run.phase as RunPhase) || !has(SKIES, run.skyId)) return false;
   if (!isInt(run.ante) || run.ante < 1 || !isChapter(run.chapter)) return false;
+  if (!Array.isArray(run.pending) || !run.pending.every(isChoice)) return false;
   if (!isCards(run.deck) || !isObj(run.rng) || typeof run.gold !== 'number') return false;
   if (!Array.isArray(run.omens) || !run.omens.every((o) => isObj(o) && isInt(o.uid) && has(OMENS, o.id) && isObj(o.data))) return false;
   if (!Array.isArray(run.bosses) || !run.bosses.every((b) => has(BOSSES, b))) return false;
@@ -91,7 +115,6 @@ export function deserializeRun(text: string | null): RunState | null {
     // Мягкая миграция: поля, добавленные после первой версии сохранений
     if (isObj(run.shop)) {
       run.shop.packs ??= [];
-      run.shop.openPack ??= null;
     }
     // Битый журнал не должен стоить игроку забега: забег открываем без журнала
     if (run.log !== undefined && !isLog(run.log)) delete run.log;

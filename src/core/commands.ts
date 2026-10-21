@@ -1,7 +1,8 @@
 import { assertNever } from './errors';
 import { burnCard, placeCard, startNight } from './night';
 import { collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight, type NewRunOptions } from './run';
-import { banishCard, buyItem, buyOmen, buyPack, choosePack, moveOmen, reroll, sellOmen, skipPack } from './shop';
+import { choose, skipChoice } from './choices';
+import { banishCard, buyItem, buyOmen, buyPack, moveOmen, reroll, sellOmen } from './shop';
 import type { GameEvent, RunState } from './types';
 
 /**
@@ -25,8 +26,9 @@ export type Command =
   | { c: 'moveOmen'; from: number; to: number }
   | { c: 'buyItem'; slot: number; targets?: number[] }
   | { c: 'buyPack'; slot: number }
-  | { c: 'choosePack'; index: number; targets?: number[] }
-  | { c: 'skipPack' }
+  /** Взять вариант текущего выбора из очереди (пакет, позже дар, трофей, Комета). */
+  | { c: 'choose'; index: number; targets?: number[] }
+  | { c: 'skip' }
   | { c: 'banish'; card: number }
   | { c: 'reroll' };
 
@@ -99,11 +101,11 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
     case 'buyPack':
       buyPack(run, cmd.slot);
       return [];
-    case 'choosePack':
-      choosePack(run, cmd.index, cmd.targets);
+    case 'choose':
+      choose(run, cmd.index, cmd.targets);
       return [];
-    case 'skipPack':
-      skipPack(run);
+    case 'skip':
+      skipChoice(run);
       return [];
     case 'banish':
       banishCard(run, cmd.card);
