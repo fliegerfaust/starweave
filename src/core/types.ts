@@ -1,3 +1,4 @@
+import type { Unlocks } from './content/pools';
 import type { Choice } from './choices';
 import type { RunLog } from './commands';
 import type { Chapter } from './route';
@@ -232,6 +233,8 @@ export interface RunState {
   shop: ShopState | null;
   /** Очередь выборов «возьми одно» (`core/choices.ts`): первый — на экране. */
   pending: Choice[];
+  /** Снимок открытий на старте (`content/pools.ts`): из чего выпадают лавка и пакеты. */
+  unlocks: Unlocks;
   stats: RunStats;
   endless: boolean;
   /** Звёздность (0 — обычная сложность). */

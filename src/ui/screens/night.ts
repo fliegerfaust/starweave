@@ -5,7 +5,7 @@ import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
 import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from '@/game/challenge';
-import { COLLECTIBLE_COMBOS, dailyNumber, recordDiscoveries } from '@/meta/profile';
+import { COLLECTIBLE_COMBOS, dailyNumber } from '@/meta/profile';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
@@ -124,7 +124,7 @@ export class NightScreen implements Screen {
   private settled(events: GameEvent[]): void {
     this.app.runs.tutorial?.emit({ type: 'settled', events });
     this.announceMove(events);
-    this.discover(events);
+    this.discover();
     const n = this.run.night;
     if (n && n.result === 'playing') {
       if (events.some((e) => e.t === 'ignite')) {
@@ -158,26 +158,24 @@ export class NightScreen implements Screen {
     this.hud.announce(`${head} ${t('a11y.status', { score: num(n.score), target: num(n.target), moves: n.movesLeft })}`.trim());
   }
 
-  /** Коллекция: впервые собранное созвездие и первый крест — маленький праздник. */
-  private discover(events: GameEvent[]): void {
-    if (this.run.tutorial) return;
+  /**
+   * Коллекция: впервые собранное созвездие и первый крест — маленький праздник. Записал
+   * находку контроллер забега (`meta/progress.ts`), экран только празднует её.
+   */
+  private discover(): void {
+    const found = this.app.runs.takeDiscovery();
+    if (!found) return;
     const p = this.app.profile;
     const banners: Parameters<typeof announceDiscovery>[0] = [];
-    for (const e of events) {
-      if (e.t !== 'ignite') continue;
-      const found = recordDiscoveries(p, e.score.lines.map((l) => l.combo), e.score.lines.length);
-      for (const id of found.combos) {
-        const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
-        banners.push({ kind: 'combo', id, count });
-        track('combo_found', { combo: id, count, ante: this.run.ante });
-      }
-      if (found.cross) {
-        banners.push({ kind: 'cross' });
-        track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
-      }
+    for (const id of found.combos) {
+      const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
+      banners.push({ kind: 'combo', id, count });
+      track('combo_found', { combo: id, count, ante: this.run.ante });
     }
-    if (!banners.length) return;
-    this.app.runs.persistProfile();
+    if (found.cross) {
+      banners.push({ kind: 'cross' });
+      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
+    }
     announceDiscovery(banners, () => this.app.svc.audio.win());
     const completed = banners.some((b) => b.kind === 'combo' && b.count === COLLECTIBLE_COMBOS.length);
     if (completed) toast(t('discovery.all'));

@@ -12,7 +12,7 @@ import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type 
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
   for (let i = 0; i < count; i++) {
-    const pool = OMEN_LIST.filter((o) => !exclude.has(o.id));
+    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && !exclude.has(o.id));
     if (!pool.length) break;
     const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
     exclude.add(def.id);
@@ -37,7 +37,7 @@ const SERVICE_RITUALS = new Set(['banish']);
 
 /** Ритуалы, которые могут выпасть в лавке или пакете. */
 function shopRituals(run: RunState) {
-  return RITUAL_LIST.filter((r) => !SERVICE_RITUALS.has(r.id) && (r.available?.(run) ?? true));
+  return RITUAL_LIST.filter((r) => run.unlocks.rituals.includes(r.id) && !SERVICE_RITUALS.has(r.id) && (r.available?.(run) ?? true));
 }
 
 /**

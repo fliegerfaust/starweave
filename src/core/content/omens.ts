@@ -1,3 +1,4 @@
+import type { Unlock } from './skies';
 import { COMBO_FAMILY } from './combos';
 import type { EffectHooks } from '../effects';
 import { cardSuits } from '../deck';
@@ -22,6 +23,8 @@ export interface OmenDef extends EffectHooks {
   vars?(data: Record<string, number>): Record<string, string | number>;
   /** Связанные масти/созвездия — для цвета сигила и подсказок. */
   tags?: { suit?: Suit; combo?: ComboId };
+  /** Как открыть (TD.8); без него — открыто сразу. Небосвод 0.8 раздаст это поле. */
+  unlock?: Unlock;
 }
 
 const strength = (combo: ComboId) => COMBO_IDS.indexOf(combo);

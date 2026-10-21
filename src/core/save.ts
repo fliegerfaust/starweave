@@ -2,6 +2,7 @@ import { BOSSES } from './content/bosses';
 import { OMENS } from './content/omens';
 import { RITUALS } from './content/rituals';
 import { SKIES } from './content/skies';
+import { allContent } from './content/pools';
 import { planChapter } from './route';
 import { SAVE_VERSION } from './run';
 import { COMBO_IDS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
@@ -35,6 +36,10 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
       }
     }
   },
+  // 4 (TD.8): снимок открытий — старые забеги играли со всем контентом
+  3(run) {
+    run.unlocks = allContent();
+  },
 };
 
 /** Запись по ключам союза: новая фаза без строки здесь — ошибка типов, а не потерянное сохранение. */
@@ -55,6 +60,12 @@ const isCards = (v: unknown) => Array.isArray(v) && v.every(isCard);
 function isLog(log: unknown): boolean {
   return isObj(log) && isInt(log.version) && isObj(log.start) && isInt(log.start.seed)
     && Array.isArray(log.cmds) && log.cmds.every((c) => isObj(c) && typeof c.c === 'string');
+}
+
+/** Снимок открытий: известные этой сборке Знамения и ритуалы. */
+function isUnlocks(u: unknown): boolean {
+  return isObj(u) && Array.isArray(u.omens) && u.omens.every((id) => has(OMENS, id))
+    && Array.isArray(u.rituals) && u.rituals.every((id) => has(RITUALS, id));
 }
 
 const PACK_SET: Record<PackKind, true> = { omen: true, ritual: true, chart: true };
@@ -80,6 +91,7 @@ function isPlayable(run: Raw): boolean {
   if (!PHASES.includes(run.phase as RunPhase) || !has(SKIES, run.skyId)) return false;
   if (!isInt(run.ante) || run.ante < 1 || !isChapter(run.chapter)) return false;
   if (!Array.isArray(run.pending) || !run.pending.every(isChoice)) return false;
+  if (!isUnlocks(run.unlocks)) return false;
   if (!isCards(run.deck) || !isObj(run.rng) || typeof run.gold !== 'number') return false;
   if (!Array.isArray(run.omens) || !run.omens.every((o) => isObj(o) && isInt(o.uid) && has(OMENS, o.id) && isObj(o.data))) return false;
   if (!Array.isArray(run.bosses) || !run.bosses.every((b) => has(BOSSES, b))) return false;
