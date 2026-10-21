@@ -11,7 +11,7 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
  */
 test.use({ locale: 'ru-RU' });
 
-type App = { profile: Record<string, unknown> & { seenOmens: string[]; seenBosses: string[] }; startRun(s: string, daily?: boolean, stake?: number, seed?: number): void };
+type App = { profile: Record<string, unknown> & { seenOmens: string[]; seenBosses: string[] }; runs: { startRun(s: string, daily?: boolean, stake?: number, seed?: number): void } };
 const TABS = ['combos', 'night', 'shop', 'glyphs'] as const;
 
 async function boot(page: Page): Promise<string[]> {
@@ -55,7 +55,7 @@ test('Справочник: живая доска, четыре вкладки, 
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
     for (const sheet of [false, true]) {
-      if (sheet) await page.evaluate(() => (window as unknown as { starweave: App }).starweave.startRun('classic', false, 0, 4242));
+      if (sheet) await page.evaluate(() => (window as unknown as { starweave: App }).starweave.runs.startRun('classic', false, 0, 4242));
       for (const tab of TABS) {
         await closeAll(page);
         await page.evaluate(async ({ lang, tab, sheet }) => {

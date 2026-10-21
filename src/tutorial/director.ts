@@ -66,7 +66,7 @@ export class TutorialDirector {
   }, 60);
 
   constructor(private readonly app: App) {
-    this.overlay = new TutorialOverlay(() => this.app.skipTutorial());
+    this.overlay = new TutorialOverlay(() => this.app.runs.skipTutorial());
     window.addEventListener('resize', this.onResize);
   }
 
@@ -361,7 +361,7 @@ export class TutorialDirector {
     await this.waitFor('reward');
     this.overlay.hideBubble();
     this.overlay.spotlight(null);
-    this.app.finishTutorial();
+    this.app.runs.finishTutorial();
   }
 
   /** Пока идёт подсчёт — подсвечиваем формулу. */

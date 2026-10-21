@@ -100,8 +100,8 @@ export class MapScreen implements Screen {
     const menu = h('button.icon-btn.medal', { type: 'button', ariaLabel: t('pause.title'), onclick: () => showRunMenu(this.app) }, h('span.burger'));
     const kind = plans[at]!.kind;
     const primary = this.peek
-      ? button(h('span.map-go', null, [icon('back'), t('pause.backToShop')]), () => void this.app.route(), { className: 'map-primary' })
-      : button(h('span.map-go', null, [t('night.begin'), h('small', null, t(`night.${kind}`))]), () => this.app.beginNight(), { className: 'map-primary' });
+      ? button(h('span.map-go', null, [icon('back'), t('pause.backToShop')]), () => void this.app.router.route(), { className: 'map-primary' })
+      : button(h('span.map-go', null, [t('night.begin'), h('small', null, t(`night.${kind}`))]), () => this.app.runs.beginNight(), { className: 'map-primary' });
 
     this.el = h(`div.map.at-${at}`, null, [
       h('div.map-tint'),
