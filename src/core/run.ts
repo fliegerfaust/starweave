@@ -9,7 +9,7 @@ import { isLastNight, planChapter } from './route';
 import { generateShop } from './shop';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface NewRunOptions {
   seed: number;
@@ -68,6 +68,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     night: null,
     reward: null,
     shop: null,
+    pending: [],
     stats: { linesIgnited: 0, bestPlacement: 0, bestCombo: 'scatter', crosses: 0, nightsWon: 0, goldEarned: 0 },
     endless: false,
     stake,
@@ -97,6 +98,8 @@ export function collectReward(run: RunState): void {
 /** Покинуть Обсерваторию: следующая ночь или победа. */
 export function leaveShop(run: RunState): void {
   if (run.phase !== 'shop') throw new RuleError('notShop');
+  // Купленный пакет не пропадает молча: сначала выбрать или пропустить
+  if (run.pending.length) throw new RuleError('nothing');
   run.shop = null;
   if (!isLastNight(run)) {
     run.chapter.at += 1;

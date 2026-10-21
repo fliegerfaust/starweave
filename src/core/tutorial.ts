@@ -98,7 +98,6 @@ export function tutorialShop(): ShopState {
     ],
     packs: [],
     rerollCost: 5,
-    openPack: null,
   };
 }
 

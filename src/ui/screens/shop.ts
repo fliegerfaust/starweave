@@ -4,9 +4,10 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
+import { currentChoice } from '@/core/choices';
 import type { Command } from '@/core/commands';
 import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/core/shop';
-import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
+import type { Card, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
 import { markOmensSeen, saveProfile } from '@/meta/profile';
@@ -14,9 +15,9 @@ import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { bonusLine } from '../bonus';
 import { icon } from '../icons';
-import { lightButton, sceneRibbon, sceneWindow } from '../scene-window';
+import { showChoice } from '../choice';
 import { coach, layoutCoach } from '../tutorial';
-import { button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
+import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
@@ -49,7 +50,7 @@ export class ShopScreen implements Screen {
     this.render();
     this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
     coach(this.app, 'shop');
-    if (this.run.shop?.openPack) this.showPack();
+    if (currentChoice(this.run)) this.showPack();
   }
 
   unmount(): void {
@@ -74,14 +75,15 @@ export class ShopScreen implements Screen {
   }
 
   private afterPackBuy(): void {
-    if (this.run.shop?.openPack) this.showPack();
+    if (currentChoice(this.run)) this.showPack();
   }
 
   private render(): void {
     const run = this.run;
     const shop = run.shop!;
     const seen = [...shop.omens.flatMap((i) => (i.kind === 'omen' ? [i.omenId] : [])), ...run.omens.map((o) => o.id)];
-    if (shop.openPack?.pack === 'omen') seen.push(...shop.openPack.options);
+    const open = currentChoice(run);
+    if (open?.pack === 'omen') seen.push(...open.options);
     if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
     const slots = omenSlots(run);
     // Прокрутка середины переживает пересборку экрана после покупки
@@ -358,67 +360,30 @@ export class ShopScreen implements Screen {
     );
   }
 
-  /** Открытый пакет — сцена «Выбери одно»: три варианта строками, взять один или пропустить. */
+  /** Выбор в очереди (купленный пакет) — общая сцена «Выбери одно» (`ui/choice.ts`). */
   private showPack(): void {
-    const open = this.run.shop?.openPack;
-    if (!open) return;
-    this.app.svc.audio.ignite(1);
-    let handle: ModalHandle | null = null;
-    const full = open.pack === 'omen' && this.run.omens.length >= omenSlots(this.run);
-    const rows = open.options.map((id, i) => {
-      let icon: HTMLCanvasElement;
-      let name: string;
-      let bonus: string;
-      let level: string | null = null;
-      if (open.pack === 'omen') {
-        const def = omenDef(id);
-        icon = canvasImg(omenSigil(id, 48, dpr()), 48);
-        ({ name, desc: bonus } = named('omen', id, def.vars?.(def.initialData?.() ?? {}) ?? {}));
-      } else if (open.pack === 'chart') {
-        icon = canvasImg(chartIcon(id as ComboId, 48, dpr()), 48);
-        const lv = this.run.comboLevels[id as ComboId];
-        const def = COMBOS[id as ComboId];
-        name = t(`combo.${id as ComboId}`);
-        level = t('shop.chartLevel', { from: lv, to: lv + 1 });
-        bonus = t('shop.chartBonus', { combo: t(`combo.${id as ComboId}`), light: def.levelLight, mult: def.levelMult });
-      } else {
-        icon = canvasImg(ritualIcon(id, 48, dpr()), 48);
-        ({ name, desc: bonus } = named('ritual', id));
-      }
-      return h('article.ware', { style: { animationDelay: `${i * 0.08}s` } }, [
-        h('div.ware-icon', null, icon),
-        h('div.ware-name', null, [name, level ? h('span.ware-level', null, level) : null]),
-        h('div.ware-bonus', null, bonusLine(bonus)),
-        button(full ? t('shop.noSlotsShort') : t('shop.take'), () => this.takeFromPack(i, id, handle!), { disabled: full, title: full ? t('shop.slotsFull') : '', className: 'take' }),
-      ]);
-    });
-    handle = sceneWindow({
-      className: 'pack-scene',
-      label: t('shop.packTitle'),
-      mid: [sceneRibbon(t('shop.packTitle'), `${named('pack', open.pack).name} · ${t('shop.oneOfThree')}`), h('div.ware-list', null, rows)],
-      acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
-        handle?.close();
-        this.act({ c: 'skipPack' }, 'click');
-      }, true))],
+    showChoice(this.app, this.run, {
+      take: (index, id, close) => this.takeFromPack(index, id, close),
+      skip: () => this.act({ c: 'skip' }, 'click'),
     });
   }
 
-  private takeFromPack(index: number, id: string, handle: ModalHandle): void {
-    const open = this.run.shop?.openPack;
-    if (!open) return;
-    if (open.pack === 'ritual') {
-      handle.close();
+  private takeFromPack(index: number, id: string, close: () => void): void {
+    const choice = currentChoice(this.run);
+    if (!choice) return;
+    close();
+    const done = () => track('pack_choose', { pack: choice.pack, id });
+    if (choice.pack === 'ritual') {
       this.pickTargets(
         id,
         (ids) => {
-          this.withRitualResult(id, () => this.act({ c: 'choosePack', index, targets: ids }, 'coin', () => track('pack_choose', { pack: open.pack, id })));
-          if (this.run.shop?.openPack) this.showPack();
+          this.withRitualResult(id, () => this.act({ c: 'choose', index, targets: ids }, 'coin', done));
+          if (currentChoice(this.run)) this.showPack();
         },
         () => this.showPack(),
       );
       return;
     }
-    handle.close();
-    this.act({ c: 'choosePack', index }, 'coin', () => track('pack_choose', { pack: open.pack, id }));
+    this.act({ c: 'choose', index }, 'coin', done);
   }
 }

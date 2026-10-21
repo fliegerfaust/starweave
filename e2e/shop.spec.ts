@@ -25,7 +25,7 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     // Фиксированный сид: витрина одна и та же, проверка не зависит от случая
     app.runs.startRun('classic', false, 0, 4242);
     await new Promise((r) => setTimeout(r, 300));
-    const run = app.run as never as { ante: number; gold: number; omens: unknown[]; phase: string; reward: unknown; night: unknown; shop: { openPack: unknown } };
+    const run = app.run as never as { ante: number; gold: number; omens: unknown[]; phase: string; reward: unknown; night: unknown; pending: unknown[] };
     run.ante = state === 'new' ? 1 : 3;
     run.gold = state === 'full' ? 23 : 14;
     const ids = state === 'full' ? ['horizon', 'corona', 'stardust', 'pyre', 'abacus'] : state === 'new' ? [] : ['horizon', 'pyre', 'stardust'];
@@ -36,7 +36,7 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     app.runs.collectReward();
     await new Promise((r) => setTimeout(r, 300));
     if (state === 'pack') {
-      app.run.shop.openPack = { pack: 'omen', options: ['twinStars', 'crossroads', 'abacus'] };
+      run.pending = [{ kind: 'pack', pack: 'omen', options: ['twinStars', 'crossroads', 'abacus'] }];
       await app.router.route();
     }
   }, { lang, state });
