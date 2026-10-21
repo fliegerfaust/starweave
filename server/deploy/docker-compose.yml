@@ -55,10 +55,12 @@ services:
       - egress
 
 networks:
-  # Caddy ↔ игра. Внутренняя: наружу из неё выхода нет, в интернет — только egress
+  # Caddy ↔ игра. Внутренняя (наружу выхода нет, в интернет — только egress) и внешняя для
+  # обоих compose: её создаёт тот, кто поднимается первым, — deploy.sh игры или деплой
+  # платформы (`docker network create --internal starweave_proxy`), и никто не удаляет её при `down`
   proxy:
     name: starweave_proxy
-    internal: true
+    external: true
   # Выход в интернет по IPv6: с этого сервера Bot API Telegram доступен только по IPv6
   # (по IPv4 соединение не устанавливается). Своя сеть проекта — сеть платформы не меняется.
   egress:
