@@ -234,6 +234,29 @@ const drawOrFinish: Stage = (turn) => {
 
 const PLACE_STAGES: readonly Stage[] = [layCard, placed, formations, scoring, settleCells, drawOrFinish];
 
+/**
+ * Этапы до подсчёта включительно. Их хуки (`onPlaced`, подсчёт, `onIgnite`) меняют только ночь,
+ * данные Знамений, ГПСЧ, золото и статистику забега — поэтому прогнозу хватает песочницы из этих
+ * полей. Хук, которому нужно больше (колода, лавка), ставится после подсчёта.
+ */
+const PREVIEW_STAGES: readonly Stage[] = [layCard, placed, formations, scoring];
+
+/**
+ * Что вспыхнет, если выложить карту (TD.16): этапы хода до подсчёта на песочнице — копия ночи,
+ * Знамений и статистики, своя случайность `seed`. Колоду, лавку и журнал не копирует: прогноз
+ * считается на каждую пару «карта × клетка». `null` — ход невозможен или ничего не вспыхнет.
+ */
+export function previewTurn(run: RunState, handIndex: number, cell: number, seed: number): PlacementScore | null {
+  const night = run.night;
+  if (run.phase !== 'night' || !night || night.result !== 'playing') return null;
+  if (handIndex < 0 || handIndex >= night.hand.length || cell < 0 || cell >= night.grid.length || night.grid[cell] || night.sealed[cell]) return null;
+  const sim: RunState = { ...run, night: structuredClone(night), omens: structuredClone(run.omens), rng: { s: seed }, stats: { ...run.stats } };
+  const simNight = sim.night!;
+  const turn: Turn = { run: sim, night: simNight, handIndex, cell, card: simNight.hand[handIndex]!, effects: activeEffects(sim, simNight), events: [], lines: [], score: null };
+  for (const stage of PREVIEW_STAGES) stage(turn);
+  return turn.score;
+}
+
 /** Выкладывает карту из руки в пустую клетку. */
 export function placeCard(run: RunState, handIndex: number, cell: number): GameEvent[] {
   const night = requireNight(run);
