@@ -28,7 +28,7 @@ Conventional Commits на английском. «✅» — сделано, по
 - AD.2 Проверить в настоящем Telegram «Второй шанс» и «Удвоить награду» без атласа
 - AT.10 Проверка Stars настоящей оплатой: чаевые 25 ⭐ и `/refund`
 - D.2 Номер счётчика Метрики → `gh variable set METRIKA_ID`
-- PL.1 Найти площадки для тестирования, кроме Telegram
+- PL.1 Найти площадки для тестирования, кроме Telegram; CrazyGames разобран — [CRAZYGAMES](docs/CRAZYGAMES.md), ждёт обсуждения
 - D.4 Проверка на своих iPhone и Android: звук, вибрация, ощущение
 - D.6 Юрлицо и счёт за рубежом — для денег в Google Play и App Store
 - FP.9 Аватар, обложки и превью в BotFather ([TELEGRAM](docs/TELEGRAM.md) §3)
