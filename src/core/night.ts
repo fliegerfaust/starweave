@@ -6,7 +6,8 @@ import type { BaseCtx, CellFate } from './effects';
 import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
 import { shuffle, weightedPick } from './rng';
 import { currentNode, planNight } from './route';
-import { activeEffects, scorePlacement, type ActiveEffect } from './scoring';
+import { activeEffects, type ActiveEffect } from './effect-sources';
+import { scorePlacement } from './scoring';
 import { COMBO_IDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
 
 import { RuleError } from './errors';
