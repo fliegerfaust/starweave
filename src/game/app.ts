@@ -700,7 +700,8 @@ export async function startGame(platform: Platform): Promise<App> {
   initAnalytics(platform.id);
   await restoreFromCloud(platform);
   const app = new App(platform);
-  (window as unknown as { starweave: App }).starweave = app;
+  // Доступ к игре из консоли — только для разработки и e2e (SEC.7)
+  if (import.meta.env.DEV) (window as unknown as { starweave: App }).starweave = app;
   // Ссылка с вызовом друга или с меткой рекламного источника (`startapp=src_<канал>`)
   const start = parseStartParam(platform.startParam?.());
   app.pendingChallenge = start.challenge ?? null;

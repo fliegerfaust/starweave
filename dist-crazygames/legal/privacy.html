@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05061a" />
+<meta name="format-detection" content="telephone=no" />
+<title>Звёздное плетение — Политика конфиденциальности</title>
+<link rel="icon" href="../favicon.png" />
+<style>
+  @font-face { font-family: 'Forum'; font-display: swap; src: url(fonts/forum-cyrillic.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Forum'; font-display: swap; src: url(fonts/forum-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215; }
+  @font-face { font-family: 'Manrope'; font-display: swap; font-weight: 200 800; src: url(fonts/manrope-cyrillic.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Manrope'; font-display: swap; font-weight: 200 800; src: url(fonts/manrope-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215; }
+  :root { color-scheme: dark; --gold: #f6c25b; --gold-hi: #ffe6a8; --ink: #eae6ff; --ink-dim: #b3aedb; --ink-faint: #8a85b8; --brass: rgb(246 194 91 / 0.3); --hair: rgb(246 194 91 / 0.16); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(70% 40% at 50% 0%, #15123d, #05061a 70%) no-repeat, #05061a; color: var(--ink); font: 400 16px/1.65 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: rgb(246 194 91 / 0.35); }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+  a { color: var(--gold-hi); text-decoration-color: rgb(246 194 91 / 0.5); text-underline-offset: 3px; }
+  main { max-width: 700px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(56px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
+  /* Без скрипта видны оба языка подряд; со скриптом — выбранный */
+  html.js section:not(.on) { display: none; }
+  html:not(.js) section + section { margin-top: 64px; }
+  .head { display: grid; justify-items: center; gap: 12px; margin-bottom: 26px; text-align: center; }
+  .mark { font: 400 13px/1 'Forum', 'Times New Roman', serif; letter-spacing: 0.3em; text-transform: uppercase; color: rgb(255 230 168 / 0.75); }
+  h1 { margin: 0; font: 400 clamp(22px, 6.2vw, 38px)/1.12 'Forum', 'Times New Roman', serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold-hi); text-wrap: balance; }
+  .sill { width: min(420px, 90%); height: 1.5px; background: radial-gradient(closest-side, rgb(255 230 168 / 0.9), transparent); }
+  .row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 16px; }
+  .ed { color: var(--ink-faint); font-size: 13.5px; }
+  .langs { display: inline-flex; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .langs a { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px; font: 700 13px/1 'Manrope', system-ui, sans-serif; color: var(--ink-dim); text-decoration: none; }
+  .langs a.on { color: #1a1206; background: var(--gold); }
+  .doc p { margin: 0 0 12px; text-wrap: pretty; }
+  .doc ul { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .doc li { position: relative; padding-left: 22px; text-wrap: pretty; }
+  .doc li::before { content: ''; position: absolute; left: 4px; top: 0.72em; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px rgb(246 194 91 / 0.6); }
+  .doc strong { color: var(--gold-hi); font-weight: 700; }
+  .doc h2 { margin: 30px 0 12px; display: flex; align-items: center; gap: 12px; font: 400 15px/1.2 'Forum', 'Times New Roman', serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+  .doc h2 .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 13px/1 'Manrope', system-ui, sans-serif; letter-spacing: 0; color: var(--gold); box-shadow: inset 0 0 0 1px var(--brass); }
+  .doc h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+  .other { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding-top: 14px; margin-top: 30px; box-shadow: 0 -1px 0 var(--hair); font-size: 14px; }
+  .other a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; overflow-wrap: anywhere; }
+  .icon { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<script>
+  // Язык: из адреса (#ru, #en), иначе — язык браузера
+  (function () {
+    var root = document.documentElement;
+    root.classList.add('js');
+    function pick() {
+      var lang = location.hash === '#en' || (location.hash !== '#ru' && !/^ru\b/i.test(navigator.language || '')) ? 'en' : 'ru';
+      root.lang = lang;
+      document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('on', s.id === lang); });
+      window.scrollTo(0, 0);
+    }
+    addEventListener('hashchange', pick);
+    addEventListener('DOMContentLoaded', pick);
+  })();
+</script>
+</head>
+<body><main>
+<section id="ru" lang="ru">
+<header class="head">
+  <span class="mark">Звёздное плетение</span>
+  <h1>Политика конфиденциальности</h1>
+  <div class="sill"></div>
+  <div class="row"><span class="ed">Редакция от 12 октября 2026 года.</span><span class="langs"><a href="#ru" data-lang="ru" class="on">Русский</a><a href="#en" data-lang="en">English</a></span></div>
+</header>
+<div class="doc">
+<p>Эта политика объясняет, какие данные обрабатываются, когда вы играете в «Звёздное плетение» (Starweave, далее — «Игра»), зачем и как вы можете ими управлять.</p>
+<h2><span class="n">1</span>Кто отвечает за данные</h2>
+<p>Оператор: Безик Денис Валерьевич, плательщик налога на профессиональный доход (самозанятый), ИНН 230910405420. Связь по вопросам данных: denis.bezik@gmail.com.</p>
+<h2><span class="n">2</span>Что мы не собираем</h2>
+<p>Игра не требует регистрации. Мы не просим и не храним ваше имя, телефон, адрес электронной почты, платёжные данные или фотографии.</p>
+<h2><span class="n">3</span>Какие данные обрабатываются</h2>
+<ul><li><strong>Прогресс и настройки</strong> — текущий забег, статистика, открытые колоды, громкость, язык. Хранятся на вашем устройстве. Если вы играете на площадке с облачными сохранениями (например, Яндекс Игры или Telegram), копия хранится у площадки и привязана к вашему аккаунту на ней.</li><li><strong>Обезличенная статистика игры</strong> — события вида «пройден шаг обучения», «ночь проиграна на третьем созвездии», «куплено Знамение», а также тип устройства, размер экрана, язык, частота кадров и технические ошибки. Собирается нашим сервером в Москве (Россия) — со случайным номером устройства, без имён, контактов и IP-адресов. Может также собираться сервисом Яндекс Метрика (ООО «Яндекс») с помощью cookie и идентификаторов устройства.</li><li><strong>Реклама</strong> — если Игра показывает рекламу, её показывает рекламная сеть площадки (например, Рекламная сеть Яндекса). Сеть может использовать идентификаторы устройства и cookie по своим правилам.</li><li><strong>Покупки</strong> — проводятся площадкой (Telegram, Яндекс Игры, App Store, Google Play, RuStore). Мы получаем только подтверждение покупки, без ваших платёжных данных. Для покупок в Telegram наш сервер хранит числовой идентификатор вашего аккаунта Telegram, купленный товар, сумму в Stars, дату и номер платежа — чтобы покупка открывалась на любом вашем устройстве и её можно было вернуть.</li><li><strong>Обращения в поддержку</strong> — если вы пишете боту игры, сообщение вместе с идентификатором и именем пользователя Telegram пересылается автору игры в Telegram, чтобы ответить вам.</li></ul>
+<h2><span class="n">4</span>Зачем</h2>
+<ul><li>чтобы сохранять ваш прогресс;</li><li>чтобы понимать, где игра непонятна или слишком сложна, и улучшать её;</li><li>чтобы находить и исправлять ошибки;</li><li>чтобы показывать рекламу и проводить покупки — это позволяет Игре оставаться бесплатной.</li></ul>
+<p>Мы не продаём данные и не используем их для решений, которые юридически затрагивают вас.</p>
+<h2><span class="n">5</span>Сроки хранения</h2>
+<p>Данные на устройстве хранятся, пока вы их не удалите. Записи о покупках хранятся, пока действует покупка, и по требованиям закона об учёте доходов. Статистика на нашем сервере — 400 дней, статистика Метрики — в сроки, установленные Яндексом. Облачные сохранения — по правилам площадки.</p>
+<h2><span class="n">6</span>Как управлять данными</h2>
+<ul><li><strong>Удалить прогресс:</strong> «Настройки → Сбросить прогресс» — удаляет данные на устройстве, облачное сохранение Игры и случайный номер устройства (новая статистика с ним не связана).</li><li><strong>Отключить сбор статистики:</strong> заблокировать cookie в браузере или воспользоваться <a href="https://yandex.ru/support/metrica/general/opt-out.html" target="_blank" rel="noopener">блокировщиком Метрики</a>.</li><li><strong>Персонализация рекламы</strong> отключается в настройках вашего устройства или аккаунта площадки.</li><li>По любым вопросам, включая доступ, исправление или удаление данных, пишите на denis.bezik@gmail.com.</li></ul>
+<h2><span class="n">7</span>Дети</h2>
+<p>Игра подходит для любого возраста и не собирает намеренно персональные данные детей. Если вы считаете, что ребёнок передал нам такие данные, напишите нам — мы их удалим.</p>
+<h2><span class="n">8</span>Изменения</h2>
+<p>Мы можем обновлять эту политику. Дата актуальной редакции указана в начале документа.</p></div>
+<footer class="other"><a href="terms.html#ru"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>Пользовательское соглашение</a><a href="mailto:denis.bezik@gmail.com"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>denis.bezik@gmail.com</a></footer>
+</section>
+<section id="en" lang="en">
+<header class="head">
+  <span class="mark">Starweave</span>
+  <h1>Privacy Policy</h1>
+  <div class="sill"></div>
+  <div class="row"><span class="ed">Effective date: October 12, 2026.</span><span class="langs"><a href="#ru" data-lang="ru">Русский</a><a href="#en" data-lang="en" class="on">English</a></span></div>
+</header>
+<div class="doc">
+<p>This policy explains what data is processed when you play Starweave (the "Game"), why, and how you can control it.</p>
+<h2><span class="n">1</span>Who is responsible</h2>
+<p>Operator: Denis Valerievich Bezik, self-employed (professional income tax payer, Russia), INN 230910405420. Contact for data questions: denis.bezik@gmail.com.</p>
+<h2><span class="n">2</span>What we do not collect</h2>
+<p>The Game requires no registration. We do not ask for or store your name, phone number, email address, payment details or photos.</p>
+<h2><span class="n">3</span>What data is processed</h2>
+<ul><li><strong>Progress and settings</strong> — your current run, stats, unlocked decks, volume, language. Stored on your device. If you play on a platform with cloud saves (e.g. Yandex Games or Telegram), a copy is stored by the platform and linked to your account there.</li><li><strong>Anonymous gameplay statistics</strong> — events such as "tutorial step completed", "night lost on constellation 3", "Omen bought", plus device type, screen size, language, frame rate and technical errors. Collected by our server in Moscow (Russia) with a random device number — no names, contacts or IP addresses. May also be collected by Yandex Metrica (Yandex LLC) using cookies and device identifiers.</li><li><strong>Advertising</strong> — if the Game shows ads, they are served by the platform's ad network (e.g. Yandex Advertising Network), which may use device identifiers and cookies under its own rules.</li><li><strong>Purchases</strong> — processed by the platform (Telegram, Yandex Games, App Store, Google Play, RuStore). We only receive a purchase confirmation, never your payment details. For Telegram purchases our server keeps your numeric Telegram account ID, the item, the amount in Stars, the date and the payment number — so the purchase unlocks on any of your devices and can be refunded.</li><li><strong>Support requests</strong> — if you message the game's bot, the message with your Telegram ID and username is forwarded to the game's author in Telegram so they can reply.</li></ul>
+<h2><span class="n">4</span>Why</h2>
+<ul><li>to save your progress;</li><li>to understand where the Game is confusing or too hard and improve it;</li><li>to find and fix bugs;</li><li>to show ads and process purchases, which keeps the Game free.</li></ul>
+<p>We do not sell data or use it for decisions that legally affect you.</p>
+<h2><span class="n">5</span>Retention</h2>
+<p>Data on your device is kept until you delete it. Purchase records are kept while the purchase is in effect and as required by income accounting law. Statistics on our server are kept for 400 days, Metrica statistics for the periods set by Yandex. Cloud saves follow the platform's rules.</p>
+<h2><span class="n">6</span>Your choices</h2>
+<ul><li><strong>Delete progress:</strong> Settings → Reset progress — removes the data on your device, the Game's cloud save and the random device number (new statistics are not linked to it).</li><li><strong>Opt out of statistics:</strong> block cookies in your browser or use the <a href="https://yandex.com/support/metrica/general/opt-out.html" target="_blank" rel="noopener">Metrica opt-out</a>.</li><li><strong>Ad personalization</strong> can be turned off in your device or platform account settings.</li><li>For any request, including access, correction or deletion, email denis.bezik@gmail.com.</li></ul>
+<h2><span class="n">7</span>Children</h2>
+<p>The Game is suitable for all ages and does not knowingly collect personal data from children. If you believe a child has sent us such data, contact us and we will delete it.</p>
+<h2><span class="n">8</span>Changes</h2>
+<p>We may update this policy. The effective date is shown at the top.</p></div>
+<footer class="other"><a href="terms.html#en"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>Terms of Use</a><a href="mailto:denis.bezik@gmail.com"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>denis.bezik@gmail.com</a></footer>
+</section>
+</main></body>
+</html>

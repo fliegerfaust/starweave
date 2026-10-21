@@ -15,8 +15,12 @@ DIR=/opt/starweave
 SITES=/var/lib/docker/volumes/repo_caddy_data/_data/sites
 
 cd "$(dirname "$0")/../.."
+# Выкладывается рабочее дерево — только закоммиченное, чтобы на сервере было то, что в git (SEC.6)
+if [ -n "$(git status --porcelain -- server src/i18n/ru.ts)" ] && [ "${ALLOW_DIRTY:-}" != 1 ]; then
+  echo "В server/ или src/i18n/ru.ts есть незакоммиченное — закоммить или ALLOW_DIRTY=1"; exit 1
+fi
 npm run --silent typecheck
-npx vitest run tests/server.test.ts --silent
+npx vitest run tests/server.test.ts tests/server-limits.test.ts --silent
 
 echo "→ код"
 ssh "$HOST" "mkdir -p $DIR/app/server/src $DIR/app/server/scripts $DIR/app/src/i18n $DIR/data $SITES"
@@ -34,6 +38,7 @@ echo "→ контейнер"
 # Код подключён в контейнер папкой и читается Node только при старте, а `up -d` не трогает
 # контейнер, если образ и compose не менялись, — перезапускаем явно, иначе новый код не
 # подхватится (так сводка v2 14.10.2026 сначала осталась старой)
+ssh "$HOST" "docker network inspect starweave_proxy >/dev/null 2>&1 || docker network create --internal starweave_proxy >/dev/null"
 ssh "$HOST" "cd $DIR && docker compose pull -q && docker compose up -d --remove-orphans && docker compose restart api"
 for i in $(seq 1 20); do
   state="$(ssh "$HOST" "docker inspect -f '{{.State.Health.Status}}' starweave-api" 2>/dev/null || true)"
@@ -46,6 +51,11 @@ echo "  starweave-api: healthy"
 echo "→ сайт в Caddy"
 CADDY="$(ssh "$HOST" "docker ps -q -f label=com.docker.compose.project=repo -f label=com.docker.compose.service=caddy")"
 [ -n "$CADDY" ] || { echo "Caddy платформы не найден — сайт не подключаю"; exit 1; }
+# Caddy платформы — в нашу сеть (SEC.3). С платформы 0.19.2 сеть starweave_proxy записана во
+# внешних сетях Caddy в её compose и переживает пересоздание Caddy (SEC.3b); здесь — страховка
+# для сервера со старой платформой
+ssh "$HOST" "docker inspect -f '{{json .NetworkSettings.Networks}}' $CADDY | grep -q '\"starweave_proxy\"' || docker network connect starweave_proxy $CADDY"
+echo "  Caddy в сети starweave_proxy"
 rsync -a --no-o --no-g server/deploy/starweave.caddy "$HOST:$SITES/starweave.caddy"
 # Если Caddyfile платформы уже подключает /data/sites (строка import) — перечитываем его.
 # Иначе собираем его копию с нашим сайтом во временный файл внутри контейнера: файлы

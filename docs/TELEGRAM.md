@@ -1,65 +1,36 @@
-# Telegram Mini App — пошагово
+# Telegram Mini App
 
-Игра открывается в Telegram с того же адреса, что и в браузере
-(https://fliegerfaust.github.io/starweave/). Отдельной сборки нет: игра сама узнаёт, что её
-открыли из Telegram (`src/platform/telegram.ts`), и тогда:
+Бот [@starweave_game_bot](https://t.me/starweave_game_bot), игра — https://t.me/starweave_game_bot/play
+(короткое имя `play`). Отдельной сборки нет: та же страница, что на Pages; игра сама узнаёт
+Telegram (`src/platform/telegram.ts`) и тогда:
 
-- разворачивается на весь экран на телефонах, свайп вниз не закрывает игру;
-- красит шапку и фон Telegram в цвет ночного неба;
-- отступает сверху под кнопки Telegram («Закрыть», «…») и снизу под системную полосу;
-- берёт язык из профиля Telegram;
-- **вибрирует через клиент Telegram — работает и на iPhone**;
-- хранит прогресс в облаке Telegram (CloudStorage): тот же забег на телефоне и компьютере;
-- «Поделиться» результатом вызова дня открывает выбор чата Telegram;
-- «Бросить вызов» после обычного забега отправляет в чат ссылку
-  `t.me/starweave_game_bot/play?startapp=c_<сид>_<небо>_<звёздность>_<глава>_<лучший ход>`:
-  друг открывает тот же расклад и видит, чей итог надо побить (`src/game/challenge.ts`).
-  Ссылка `?startapp=src_<канал>` — метка рекламного источника в аналитике (`app_open.source`).
+- разворачивается на весь экран, свайп вниз не закрывает игру, шапка и фон Telegram — цвета неба;
+- отступает под кнопки Telegram и системную полосу, берёт язык из профиля;
+- вибрирует через клиент Telegram — работает и на iPhone;
+- хранит прогресс в облаке Telegram (CloudStorage) — тот же забег на телефоне и компьютере;
+- «Поделиться» итогом вызова дня открывает выбор чата;
+- «Бросить вызов» отправляет `t.me/starweave_game_bot/play?startapp=c_<сид>_<небо>_<звёздность>_<глава>_<лучший ход>`:
+  друг играет тот же расклад и видит, чей итог побить (`src/game/challenge.ts`);
+- ссылка `?startapp=src_<канал>` (латиница, цифры, `_`, `-`) — метка источника в аналитике
+  (`app_open.source`).
 
-Покупки — за Telegram Stars: «Звёздный атлас», внешний вид, набор мецената, чаевые. Счета
-выставляет наш сервер (раздел «Покупки за Stars» ниже). Рекламы пока нет (AdsGram — релиз 0.5.8, [ADS.md](ADS.md)).
+Покупки — Stars через наш сервер, реклама — AdsGram ([ADS.md](ADS.md)).
 
-## 1. Бот и Mini App (Денис, ~10 минут)
+## 1. Проверка в настоящем Telegram
+- [ ] Игра открывается на весь экран, кнопки Telegram не перекрывают счёт и меню.
+- [ ] Выкладка карт вибрирует (iPhone и Android).
+- [ ] Закрыть посреди забега, открыть на другом устройстве — забег на месте.
+- [ ] «Поделиться» в конце вызова дня открывает выбор чата.
+- [ ] «Второй шанс» и «Удвоить награду» показывают ролик AdsGram (AD.2).
+- [ ] Атлас: цены в ⭐, оплата открывается, бот пишет «Спасибо!», атлас открыт (AT.10).
 
-В Telegram открыть [@BotFather](https://t.me/BotFather):
+Для диагностики — сайт с `?debug` в браузере телефона.
 
-1. `/newbot` → имя: `Звёздное плетение` → username, например `starweave_game_bot`
-   (должен кончаться на `bot`).
-2. `/newapp` → выбрать бота →
-   - название: `Звёздное плетение`;
-   - описание: `Карточная головоломка о созвездиях: выкладывай звёзды, собирай линии и плети кресты.`;
-   - картинка 640×360: `store/telegram/app-640x360-ru.png`;
-   - GIF: пропустить (`/empty`);
-   - адрес: `https://fliegerfaust.github.io/starweave/`;
-   - короткое имя: `play`.
-
-   BotFather пришлёт ссылку вида `https://t.me/starweave_game_bot/play` — это ссылка на игру.
-3. `/setmenubutton` → бот → адрес `https://fliegerfaust.github.io/starweave/` → текст
-   `Играть`. Кнопка появится в чате с ботом слева от поля ввода.
-4. (По желанию) `/setdescription` и `/setabouttext` — тексты бота; `/setuserpic` — аватар
-   `store/telegram/avatar-1024.png`; `/setdescriptionpic` — картинка описания
-   `store/telegram/description-640x360.png`.
-5. (По желанию) в @BotFather → бот → Bot Settings → Configure Mini App → Enable: игра
-   откроется из профиля бота кнопкой «Открыть».
-
-## 2. Ссылка «Поделиться»
-
-Прислать мне ссылку из шага 2 — я сохраню её в настройках репозитория, и следующая
-сборка будет делиться ссылкой на игру в Telegram, а не на сайт:
-
-```bash
-gh variable set TG_APP_LINK --body "https://t.me/starweave_game_bot/play" -R fliegerfaust/starweave
-```
-
-## 2а. Аналитика Telegram (без сервера)
-
-Telegram считает запуски Mini App, аудиторию и удержание сам — нужен только ключ:
-
-1. Открыть [@DataChief_bot](https://t.me/DataChief_bot) (или раздел Analytics на
-   [builders.ton.org](https://builders.ton.org)) и зарегистрировать приложение: ссылка на бота
-   `https://t.me/starweave_game_bot`, домен `fliegerfaust.github.io`.
-2. Придумать идентификатор (например, `starweave`) — это `appName`; бот выдаст токен.
-3. Прислать оба значения мне или выполнить:
+## 2. Аналитика Telegram (не подключена)
+Telegram сам считает запуски и удержание — нужен ключ:
+1. [@DataChief_bot](https://t.me/DataChief_bot) → зарегистрировать приложение: бот
+   `https://t.me/starweave_game_bot`, домен `fliegerfaust.github.io`, идентификатор `starweave`.
+2. Задать переменные — следующий деплой подключит аналитику:
 
 ```bash
 gh variable set TG_ANALYTICS_TOKEN --body "<токен>" -R fliegerfaust/starweave
@@ -69,127 +40,67 @@ gh variable set TG_ANALYTICS_TOKEN --body "<токен>" -R fliegerfaust/starwea
 gh variable set TG_ANALYTICS_APP --body "starweave" -R fliegerfaust/starweave
 ```
 
-Следующий деплой подключит аналитику (`src/platform/telegram.ts`). Наши подробные события
-(обучение, ночи, смерти, покупки) идут на свой сервер — сводка https://game.denvalclass.ru/stats
-([server/README.md](../server/README.md)); Метрика добавится, когда будет счётчик.
+Наши подробные события и так идут на свой сервер — https://game.denvalclass.ru/stats.
 
-## 3. Проверка
+## 3. Витрина в Telegram (GR.2, FP.9 — Денис, ~30 минут)
+Цель: игра — основное мини-приложение бота, с кнопкой «Открыть», превью и местом в разделе
+«Приложения» поиска; с оплатой в Stars это путь в Mini App Store. Названия пунктов BotFather
+меняются — ориентир по смыслу.
 
-- [ ] Ссылка `t.me/<бот>/play` открывает игру на весь экран, меню на русском.
-- [ ] Шапка Telegram тёмная, кнопки Telegram не перекрывают счёт и меню.
-- [ ] Перетаскивание карты вниз не закрывает игру.
-- [ ] Нажатия и выкладка карт вибрируют (iPhone и Android).
-- [ ] Закрыть посреди забега, открыть на другом устройстве с тем же аккаунтом — забег на месте.
-- [ ] В конце вызова дня «Поделиться» открывает выбор чата.
-- [ ] Меню → «Звёздный атлас»: цены в ⭐, окно оплаты Telegram открывается, после оплаты бот
-      пишет «Спасибо!», атлас открыт (архив, «Астролябия», рубашка и небо в примерочной).
+1. **Основное мини-приложение:** @BotFather → `/mybots` → бот → Bot Settings → Configure Mini
+   App → Enable → `https://fliegerfaust.github.io/starweave/`.
+2. **Превью** — на профиле бота в Telegram на телефоне: «Предпросмотр» → «Основной» →
+   «Добавить», до 12 видео и снимков:
+   - первым видео `store/telegram/preview-ru.mp4`;
+   - затем `store/screens/ru/portrait-2-cross.png`, `portrait-3-shop.png`, `portrait-4-map.png`,
+     `portrait-1-menu.png`;
+   - «+ Добавить язык» → English — то же из `store/screens/en/` и `preview-en.mp4`.
+3. **Картинки:**
+   - аватар — `/setuserpic` → `store/telegram/avatar-1024.png`;
+   - картинка описания — `/setdescriptionpic` → `store/telegram/description-640x360.png`;
+   - обложка — `/myapps` → Edit Photo → `store/telegram/app-640x360-ru.png`;
+   - загрузочный экран — Configure Splash Screen → `store/telegram/splash.svg`, фон и шапка
+     `#070818`.
+4. **Тексты** — `/setdescription` и `/setabouttext`, ru и en:
+   - описание ru: «Звёздное плетение — карточная головоломка о созвездиях. Выкладывай звёзды на
+     небо 4×4, собирай линии, плети кресты и пройди восемь глав с Затмениями. Партия — 10–15
+     минут, каждый день новый вызов. Брось вызов другу — он сыграет тот же расклад.»
+   - описание en: «Starweave is a card puzzle about constellations. Place stars on a 4×4 sky,
+     light up lines, weave crosses and survive eight chapters of Eclipses. A run takes 10–15
+     minutes, with a new daily challenge every day. Challenge a friend to play the very same deal.»
+   - о боте ru: «Карточная головоломка о созвездиях: линии на небе 4×4, вызов дня и вызовы
+     друзьям.»
+   - о боте en: «A card puzzle about constellations: light up lines on a 4×4 sky, daily
+     challenge, duels with friends.»
+5. **Проверка:** профиль бота с другого аккаунта — кнопка «Открыть», превью листаются.
 
-Если что-то не так — скриншот и пара слов, что делал. Для диагностики можно открыть сайт с
-`?debug` в обычном браузере телефона.
+Пересоздать видео превью: режим `?demo` (`src/dev/demo.ts`, только в разработке), запись в
+iOS-симуляторе `xcrun simctl io booted recordVideo --codec=h264 demo.mov`, обрезка
+`ffmpeg -ss 2.2 -to 27.5 -i demo.mov -vf "crop=1206:2144:0:180,scale=1080:1920,fps=30,format=yuv420p" -c:v libx264 -crf 20 -an preview-ru.mp4`.
+Загрузочный экран — `node scripts/make-splash.mjs`.
 
-## 4. Витрина в Telegram (GR.2, Денис, ~30 минут)
+## 4. Каталоги (GR.3)
+- **FindMini.app** — https://www.findmini.app/submit/, бесплатно, до 7 дней. Поля и картинки —
+  `store/findmini/listing.md`.
+- **tApps Center** — на 14.10.2026 закрыт на переделку, проверить позже.
+- **Mini App Store Telegram** — заявки нет: туда попадают боты с основным мини-приложением,
+  превью и оплатой в Stars (раздел 3).
 
-Цель — игра становится «основным мини-приложением» бота: на профиле крупная кнопка
-«Открыть», превью (скриншоты и видео), игра попадает в раздел «Приложения» поиска Telegram.
-Боты с основным мини-приложением и оплатой в Stars (она у нас есть) могут попасть в
-витрину Mini App Store. Названия пунктов в BotFather иногда меняются — ориентир по смыслу.
+## 5. Покупки за Stars — включены 13.10.2026
+Если придётся повторить на другом сервере:
+1. В `/opt/starweave/.env`:
+   - `BOT_TOKEN` (@BotFather → API Token);
+   - `TG_WEBHOOK_SECRET` (`openssl rand -hex 24`);
+   - `TG_ADMIN_CHAT_ID` (свой ID из @userinfobot).
+2. Подключить вебхук и меню команд:
+   `ssh denval 'cd /opt/starweave && docker compose up -d && docker compose run --rm --no-deps api node server/scripts/set-webhook.ts'`.
+3. `/start` боту → кнопка «Играть»; в атласе — цены в ⭐.
 
-1. **Основное мини-приложение.** @BotFather → `/mybots` → `@starweave_game_bot` →
-   Bot Settings → Configure Mini App → Enable Mini App → адрес
-   `https://fliegerfaust.github.io/starweave/`. Если пункта не видно — открыть @BotFather
-   кнопкой «Open» (у него своё мини-приложение) → бот → раздел Mini App → Main App.
-2. **Превью** — не в BotFather, а на профиле бота в Telegram на телефоне (видно только
-   владельцу): открыть `@starweave_game_bot` → имя вверху → под «Настройки бота» блок
-   «Предпросмотр» → «Основной» → «Добавить предпросмотр» (до 12 видео и снимков). По порядку:
-   `store/screens/ru/portrait-2-cross.png` (крест — главный «вау»), `portrait-3-shop.png`,
-   `portrait-4-map.png`, `portrait-1-menu.png`. Затем «+ Добавить язык» → English — те же
-   из `store/screens/en/`. Первым лучше поставить видео (шаг 3).
-3. **Видео** — готово: `store/telegram/preview-ru.mp4` (25 с) и `preview-en.mp4` (22 с),
-   1080×1920. Сценарий — режим `?demo` (`src/dev/demo.ts`, только в разработке): середина
-   забега, пять Знамений, «Каскад», затем крест «Флеш + Тройка» с «Цепь ×3» и победа в ночи.
-   Пересоздать: `npm run dev`, затем в iOS-симуляторе
-   `xcrun simctl io booted recordVideo --codec=h264 demo.mov` и открыть
-   `http://localhost:5173/?demo` (`&lang=en` — английский); обрезать начало и панели Safari:
-   `ffmpeg -ss 2.2 -to 27.5 -i demo.mov -vf "crop=1206:2144:0:180,scale=1080:1920,fps=30,format=yuv420p" -c:v libx264 -crf 20 -an preview-ru.mp4`.
-4. **Тексты бота** (`/setdescription` — то, что видно до старта, `/setabouttext` — профиль;
-   BotFather спросит язык — заполнить ru и en):
-   - Описание ru: `Звёздное плетение — карточная головоломка о созвездиях. Выкладывай
-     звёзды на небо 4×4, собирай линии, плети кресты и пройди восемь глав с Затмениями.
-     Партия — 10–15 минут, каждый день новый вызов. Брось вызов другу — он сыграет тот же
-     расклад.`
-   - Описание en: `Starweave is a card puzzle about constellations. Place stars on a 4×4
-     sky, light up lines, weave crosses and survive eight chapters of Eclipses. A run takes
-     10–15 minutes, with a new daily challenge every day. Challenge a friend to play the
-     very same deal.`
-   - О боте ru (до 120 знаков): `Карточная головоломка о созвездиях: линии на небе 4×4,
-     вызов дня и вызовы друзьям.`
-   - О боте en: `A card puzzle about constellations: light up lines on a 4×4 sky, daily
-     challenge, duels with friends.`
-5. **Загрузочный экран.** @BotFather → `/mybots` → бот → Bot Settings → Configure Mini App →
-   Configure Splash Screen → прислать файлом `store/telegram/splash.svg` (SVG 512×512, один
-   `<path>`: силуэт знака «Печать»; пересоздать — `node scripts/make-splash.mjs`). Цвет фона —
-   `#070818` для светлой и тёмной темы (тот же, что красит игра при запуске), цвет шапки — тот же.
-   Проверить — «Open Splash Screen Preview».
-6. **Картинки бота (FP.9: знак «Печать», обложки «Купол»)** — заменить старые:
-   - аватар: `/setuserpic` → `store/telegram/avatar-1024.png`;
-   - картинка описания (видна в пустом чате над «Старт»): `/setdescriptionpic` →
-     `store/telegram/description-640x360.png` — одна на оба языка;
-   - обложка Mini App: `/myapps` → приложение → Edit Photo → `store/telegram/app-640x360-ru.png`;
-   - загрузочный экран — пункт 5 (новый `splash.svg`).
-7. **Проверка:** открыть профиль бота с другого аккаунта — кнопка «Открыть», превью
-   листаются; в поиске Telegram на вкладке «Приложения» игра видна (у тех, кто её уже
-   запускал).
+Bot API с сервера доступен только по IPv6 — у контейнера своя сеть с IPv6. Без токена игра
+пишет в атласе «Покупки здесь скоро откроются». Команды автора боту:
+- `/sales` — сводка;
+- `/reply <id> <текст>` — ответить игроку (сообщения игроков бот пересылает автору);
+- `/refund <id> <charge_id>` — вернуть Stars.
 
-## 5. Каталоги мини-приложений (GR.3, Денис, ~15 минут)
-
-**FindMini.app** — заявка через форму https://www.findmini.app/submit/, бесплатно, модерация до
-7 дней. Все файлы и тексты — в `store/findmini/` (`listing.md` — что в какое поле вставить;
-скриншоты там же, JPEG меньше 1 МБ, как требует форма).
-
-**Telegram Apps Center (tApps Center)** — на 14.10.2026 закрыт на переделку («Something new
-is coming» на tapps.center), бот @app_moderation_bot не отвечает. Проверить позже; материалы
-те же.
-
-**Mini App Store самого Telegram** — отдельной заявки нет: туда попадают боты с основным
-мини-приложением, медиа-превью и оплатой в Stars — у нас всё это есть (раздел 4).
-
-## 6. Как продвигать
-
-План и каналы — [PROMOTION.md](PROMOTION.md). Главное в Telegram:
-
-- «Бросить вызов» после забега — ссылка с тем же раскладом; чем больше вызовов уходит в
-  чаты, тем больше новых игроков.
-- Вызов дня — повод делиться каждый день.
-- Ссылки для рекламы — с меткой источника: `t.me/starweave_game_bot/play?startapp=src_<канал>`
-  (латиница, цифры, `_`, `-`), в аналитике это `app_open.source`.
-
-## Покупки за Stars — включены 13.10.2026
-
-Как устроено и как это было включено (если придётся повторить на другом сервере):
-
-1. Токен бота: @BotFather → `/mybots` → @starweave_game_bot → **API Token**.
-2. Свой Telegram ID (куда бот будет присылать оплаты и обращения): написать @userinfobot.
-3. Дописать в `/opt/starweave/.env` на сервере:
-   ```
-   BOT_TOKEN=<токен>
-   TG_WEBHOOK_SECRET=<результат openssl rand -hex 24>
-   TG_ADMIN_CHAT_ID=<твой ID>
-   ```
-4. Перезапустить и подключить вебхук (меню команд /start, /paysupport, /terms ставится там же):
-   ```bash
-   ssh denval 'cd /opt/starweave && docker compose up -d && docker compose run --rm --no-deps api node server/scripts/set-webhook.ts'
-   ```
-5. Написать боту `/start` — придёт кнопка «Играть». В игре: меню → «Звёздный атлас» → цены в ⭐.
-6. Проверить оплату настоящей покупкой: чаевые за 25 ⭐ и возврат командой
-   `/refund <id> <charge_id>` (бот пришлёт оба числа после оплаты) — AT.10.
-
-С сервера Bot API доступен только по IPv6, поэтому у контейнера своя сеть с IPv6
-(`server/deploy/docker-compose.yml`). Пока на сервере нет токена или сервер недоступен, игра
-показывает в атласе «Покупки здесь скоро откроются», а не ошибку оплаты.
-
-Команды автора в чате с ботом: `/sales` — сводка, `/reply <id> <текст>` — ответить игроку,
-`/refund <id> <charge_id>` — вернуть Stars. Обращения игроков (любое сообщение боту) бот
-пересылает автору. Вывод Stars — @BotFather → бот → Monetization (через Fragment).
-
-Требования Telegram к цифровым товарам выполнены: оплата только в Stars, команды `/paysupport`
-и `/terms`, ответ на `pre_checkout_query`, возвраты через `refundStarPayment`.
+Требования Telegram выполнены: оплата только в Stars, `/paysupport` и `/terms`, ответ на
+`pre_checkout_query`, возвраты через `refundStarPayment`.

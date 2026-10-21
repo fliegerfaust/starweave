@@ -34,7 +34,9 @@ async function boot(): Promise<void> {
   ]);
   const ui = document.getElementById('ui')!;
   const params = new URLSearchParams(location.search);
-  if (params.has('promo')) {
+  // Витрины графики — только в разработке (SEC.7): в сборку они не попадают вовсе
+  const dev = import.meta.env.DEV;
+  if (dev && params.has('promo')) {
     const { setLang } = await import('./i18n');
     const lang = params.get('lang');
     if (lang === 'en' || lang === 'ru') setLang(lang);
@@ -42,12 +44,12 @@ async function boot(): Promise<void> {
     showPromo(ui, params.has('desc'));
     return;
   }
-  if (params.has('icon')) {
+  if (dev && params.has('icon')) {
     const { showIcon } = await import('./dev/icon');
     showIcon(ui, params.has('rounded'));
     return;
   }
-  if (params.has('gallery')) {
+  if (dev && params.has('gallery')) {
     const { showGallery } = await import('./dev/gallery');
     showGallery(ui);
     return;
