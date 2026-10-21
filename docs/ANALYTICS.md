@@ -47,6 +47,8 @@
 | `shop_banish` | услуга «Убрать карту» | ante | чистят ли колоду и с какого созвездия |
 | `shop_reroll` | переброс | cost, ante | хватает ли выбора в магазине |
 | `pack_choose` | выбор из пакета | pack, id | что берут из трёх |
+| `gift_take` | взят дар ночи (GF.2) | kind (glyph · body · ascend), id, ante, deck | что берут и как растёт колода |
+| `gift_skip` | «Чистое небо» вместо дара | ante, deck | доля пропусков: тонкая колода как стратегия |
 | `ad_request` | запрос рекламы | kind, placement | частота показов |
 | `ad_result` | итог рекламы за награду | kind, placement, result | досматриваемость |
 | `store_open` | открыт «Звёздный атлас» | from: menu / sky / archive … | откуда приходят в магазин |

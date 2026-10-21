@@ -24,7 +24,10 @@ function glyphCard(run: RunState, exclude: Glyph[]): GiftOffer {
 }
 
 function bodyCard(run: RunState, body: BodyId): GiftOffer {
-  return { k: 'card', card: { suit: pick(run.rng, SUITS), rank: rollRank(run), body } };
+  const suit = pick(run.rng, SUITS);
+  // Двойнику нужен следующий ранг — девятки у него не бывает
+  const rank = body === 'twin' ? MIN_RANK + randInt(run.rng, MAX_RANK - MIN_RANK) : rollRank(run);
+  return { k: 'card', card: { suit, rank, body } };
 }
 
 /** Карты, которые Возвышение может поднять: не девятки и не Туманность (у неё любой ранг). */

@@ -52,7 +52,9 @@ describe('дар ночи (GF.1)', () => {
     expect(run.deck.at(-1)!.id).toBe(next);
     const up = rewardRun(5);
     collectReward(up);
-    const offer = currentChoice(up)!.options[2]!;
+    const gift = currentChoice(up)!;
+    if (gift.kind !== 'gift') throw new Error('ждали дар');
+    const offer = gift.options[2]!;
     if (offer.k !== 'ascend') throw new Error('ждали Возвышение');
     const before = up.deck.find((c) => c.id === offer.cardId)!.rank;
     choose(up, 2);

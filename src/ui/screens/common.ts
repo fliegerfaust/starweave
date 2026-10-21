@@ -44,44 +44,51 @@ export function sortCards(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit) || a.rank - b.rank || a.id - b.id);
 }
 
-/** Сетка колоды по мастям. `dimmed` — id карт, которых уже нет в колоде ночи. */
-export function deckGrid(cards: Card[], opts: { dimmed?: Set<number>; selectable?: (c: Card) => boolean; selected?: Set<number>; onToggle?: (c: Card) => void } = {}): HTMLElement {
+type DeckGridOpts = { dimmed?: Set<number>; selectable?: (c: Card) => boolean; selected?: Set<number>; onToggle?: (c: Card) => void };
+
+/** Сетка колоды по мастям; небесные тела — отдельным рядом под звёздами (GF.5). `dimmed` — id карт, которых уже нет в колоде ночи. */
+export function deckGrid(cards: Card[], opts: DeckGridOpts = {}): HTMLElement {
   const grid = h('div.deck-grid');
   for (const suit of SUITS) {
-    const row = sortCards(cards.filter((c) => c.suit === suit));
-    if (!row.length) continue;
-    const line = h('div.deck-row');
-    for (const card of row) {
-      const can = opts.selectable ? opts.selectable(card) : true;
-      const cell = h('div.deck-card', null, cardThumb(card));
-      if (opts.dimmed?.has(card.id)) cell.classList.add('dim');
-      if (!can) cell.classList.add('disabled');
-      if (opts.selected?.has(card.id)) cell.classList.add('selected');
-      if (opts.onToggle && can) {
-        const toggle = () => {
-          opts.onToggle!(card);
-          const on = opts.selected?.has(card.id) ?? false;
-          cell.classList.toggle('selected', on);
-          cell.setAttribute('aria-pressed', String(on));
-        };
-        // Выбор карт для ритуала — и с клавиатуры: Tab по картам, Enter/пробел
-        cell.tabIndex = 0;
-        cell.setAttribute('role', 'button');
-        cell.setAttribute('aria-pressed', String(opts.selected?.has(card.id) ?? false));
-        cell.setAttribute('aria-label', `${card.rank} · ${t(`suitPl.${card.suit}`)}${card.glyph ? ` · ${t(`glyph.${card.glyph}`)}` : ''}`);
-        cell.addEventListener('click', toggle);
-        cell.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggle();
-          }
-        });
-      }
-      line.append(cell);
-    }
-    grid.append(line);
+    const row = sortCards(cards.filter((c) => c.suit === suit && !c.body));
+    if (row.length) grid.append(deckRow(row, opts));
   }
+  const bodies = sortCards(cards.filter((c) => c.body));
+  if (bodies.length) grid.append(h('div.deck-label', null, t('deck.bodies')), deckRow(bodies, opts, 'bodies'));
   return grid;
+}
+
+function deckRow(cards: Card[], opts: DeckGridOpts, kind = ''): HTMLElement {
+  const line = h(`div.deck-row${kind ? `.${kind}` : ''}`);
+  for (const card of cards) {
+    const can = opts.selectable ? opts.selectable(card) : true;
+    const cell = h('div.deck-card', null, cardThumb(card, card.body ? CARD_THUMB + 8 : CARD_THUMB));
+    if (opts.dimmed?.has(card.id)) cell.classList.add('dim');
+    if (!can) cell.classList.add('disabled');
+    if (opts.selected?.has(card.id)) cell.classList.add('selected');
+    if (opts.onToggle && can) {
+      const toggle = () => {
+        opts.onToggle!(card);
+        const on = opts.selected?.has(card.id) ?? false;
+        cell.classList.toggle('selected', on);
+        cell.setAttribute('aria-pressed', String(on));
+      };
+      // Выбор карт для ритуала — и с клавиатуры: Tab по картам, Enter/пробел
+      cell.tabIndex = 0;
+      cell.setAttribute('role', 'button');
+      cell.setAttribute('aria-pressed', String(opts.selected?.has(card.id) ?? false));
+      cell.setAttribute('aria-label', `${card.rank} · ${t(`suitPl.${card.suit}`)}${card.glyph ? ` · ${t(`glyph.${card.glyph}`)}` : ''}${card.body ? ` · ${t(`body.${card.body}`)}` : ''}`);
+      cell.addEventListener('click', toggle);
+      cell.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    }
+    line.append(cell);
+  }
+  return line;
 }
 
 /** Колода — нижний лист (в ландшафте — панель слева): масти рядами, сыгранные приглушены. */
