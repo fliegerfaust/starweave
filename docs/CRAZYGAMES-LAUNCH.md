@@ -40,7 +40,7 @@ CrazyGames требует **три обложки в одном стиле**: 19
 1. Начни с **промпта 1 (16:9)** — он задаёт стиль. Сгенерируй 3–4 варианта, выбери лучший.
 2. Промпты 2 и 3 вводи **в том же чате** после выбранной картинки — так стиль сохранится.
 3. Если модель добавила текст, рамку или лишние карты — допиши «remove all text and frames».
-4. Сохрани в `store/crazygames/art/`: `key-16x9.png`, `key-2x3.png`, `key-1x1.png`.
+4. Сохрани в `store/crazygames/art/`: `key-16x9`, `key-2x3`, `key-1x1` (PNG или WebP). ✅ `key-16x9.webp` — принят 21.10, 2000×1125.
 
 ### Общий стиль (уже вшит в каждый промпт)
 
@@ -71,17 +71,34 @@ Mood: magical, calm but exciting, a moment of "it all clicked". Colour palette: 
 Strictly no text, no letters, no logo, no title, no UI, no buttons, no frame or border, no watermark, no people or hands, no table, no casino or poker chips.
 ```
 
-### Промпт 2 — вертикальная обложка 2:3 (1024×1536, в том же чате)
+### Промпт 2 — вертикальная обложка 2:3 (1024×1536)
+
+Первая версия («четыре карты столбиком») не работает: четыре высокие карты не влезают в
+высоту, и модель сплющивает их в квадраты и наклоняет в перспективу. Поэтому карты — **сеткой
+2×2**, как кусок неба 4×4 из игры, а пропорции и плоский вид заданы прямо.
+
+Лучше в **новом чате**: приложи готовую горизонтальную обложку (`key-16x9`) как образец карт.
 
 ```
-Same game, same art style, same palette and lighting as the image you just made. Now a vertical portrait composition, 2:3.
+Use the attached image as the exact reference for the card design, colours, glow and background style. Recreate the same four cards in a new vertical composition, 2:3 portrait.
 
-The four glowing cards (sun gold, moon silver-blue, star violet, comet crimson, each with a large white numeral 7 and a tiny constellation in the corner, thin gold rims) stand in a vertical column in the lower-middle part of the image, slightly overlapping and tilted, a bright white-gold constellation beam running down through all four, with bloom and sparks where the light is strongest.
+Card shape — very important: every card is a tall upright rectangle with real playing-card proportions, height exactly 1.4 times the width (5:7), rounded corners, thin warm-gold rim. Cards are shown perfectly flat and facing the camera straight on, like a front scan: no perspective, no 3D tilt, no foreshortening, no squashing, all four cards exactly the same size and shape. Only a tiny in-plane rotation of 2–4 degrees is allowed.
 
-Above them, in the top third, a large calm area of deep indigo sky with a soft violet nebula and faint constellation lines — leave it empty as clean negative space for a title added later. Keep important details away from the outer 8% of the edges.
+Layout: the four cards in a neat 2×2 grid with small even gaps, centred horizontally, occupying the lower-middle part of the image (roughly from 40% to 92% of the height, each card about 30% of the image width). No overlap between cards.
+Top-left: gold card with a radiant sun. Top-right: silver-blue card with a crescent moon. Bottom-left: violet card with a four-pointed star. Bottom-right: crimson card with a comet.
+Each card has one large bold white numeral 7 in the top-left corner and a tiny constellation of dots and lines in the top-right corner.
 
-Strictly no text, no letters, no logo, no UI, no frame, no watermark, no people.
+Light: a bright white-gold beam of light runs horizontally through the centres of the two top cards, and a second beam runs vertically through the centres of the two right cards; the beams cross on the moon card with a strong bloom and a burst of small sparks — a constellation being ignited.
+
+Background: the same deep indigo-violet night sky with soft magenta and teal nebula and fine stars. The top 35% of the image is calm, darker open sky with only faint stars — leave it empty as clean negative space for a title added later. Keep all cards away from the outer 6% of the edges.
+
+Strictly no text, no letters, no logo, no title, no UI, no frame or border, no watermark, no people or hands, no table.
 ```
+
+Если всё равно сплющивает — допиши в том же чате: «The cards are still squashed. Make every
+card a tall 5:7 rectangle, perfectly flat, front-facing, same size — like the cards in the
+reference image». Запасной вариант — пришли лучшую попытку как есть: я соберу 2:3 сам из
+горизонтальной обложки (карты из неё + её же фон, достроенный вверх).
 
 ### Промпт 3 — квадрат 1:1 (1024×1024, в том же чате)
 
