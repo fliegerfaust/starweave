@@ -1,13 +1,13 @@
 import { GENTLE_NIGHT, MOVES_PER_GOLD } from './content/balance';
 import { evaluateCombo } from './combos';
-import { runNightReward, runNightTarget } from './content/stakes';
+import { runNightReward } from './content/stakes';
 import { cloneCard } from './deck';
 import type { BaseCtx, CellFate } from './effects';
 import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
 import { shuffle, weightedPick } from './rng';
-import { buildRules } from './rules';
+import { currentNode, planNight } from './route';
 import { activeEffects, scorePlacement, type ActiveEffect } from './scoring';
-import { COMBO_IDS, NIGHT_KINDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
+import { COMBO_IDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
 
 import { RuleError } from './errors';
 
@@ -80,12 +80,11 @@ function drawGentle(run: RunState, night: NightState): Card {
   return card;
 }
 
-/** Начинает ночь `run.nightIndex` текущего созвездия. */
+/** Начинает текущую ночь плана главы. */
 export function startNight(run: RunState): GameEvent[] {
   if (run.phase !== 'map') throw new RuleError('notMap');
-  const kind = NIGHT_KINDS[run.nightIndex]!;
-  const bossId = kind === 'eclipse' ? (run.bosses[run.ante - 1] ?? null) : null;
-  const rules = buildRules(run, bossId);
+  const plan = planNight(run, currentNode(run), run.chapter.at);
+  const { kind, bossId, rules } = plan;
   const cellCount = rules.gridSize * rules.gridSize;
   const sealedCells = pickSealedCells(run.rng, rules.gridSize, rules.sealedCells);
   const sealed = Array.from({ length: cellCount }, (_, i) => sealedCells.includes(i));
@@ -93,7 +92,7 @@ export function startNight(run: RunState): GameEvent[] {
   const night: NightState = {
     kind,
     bossId,
-    target: runNightTarget(run, kind, bossId),
+    target: plan.target,
     score: 0,
     rules,
     movesLeft: rules.moves,
@@ -109,12 +108,7 @@ export function startNight(run: RunState): GameEvent[] {
     bestPlacement: 0,
     result: 'playing',
   };
-  if (run.gentle && run.ante === 1 && run.nightIndex === 0 && !bossId) {
-    night.gentle = true;
-    night.rules.moves = Math.min(night.rules.moves, GENTLE_NIGHT.moves);
-    night.movesLeft = night.rules.moves;
-    night.target = Math.min(night.target, GENTLE_NIGHT.target);
-  }
+  if (plan.gentle) night.gentle = true;
   run.night = night;
   run.phase = 'night';
 

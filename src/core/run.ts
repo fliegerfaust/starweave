@@ -5,10 +5,11 @@ import { buildDeck } from './deck';
 import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
+import { isLastNight, planChapter } from './route';
 import { generateShop } from './shop';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface NewRunOptions {
   seed: number;
@@ -55,7 +56,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     skyId,
     daily,
     ante: 1,
-    nightIndex: 0,
+    chapter: planChapter({ ante: 1, bosses }),
     phase: 'map',
     gold: sky.startGold,
     deck: cards,
@@ -97,16 +98,18 @@ export function collectReward(run: RunState): void {
 export function leaveShop(run: RunState): void {
   if (run.phase !== 'shop') throw new RuleError('notShop');
   run.shop = null;
-  run.nightIndex += 1;
-  if (run.nightIndex >= 3) {
-    run.nightIndex = 0;
-    run.ante += 1;
-    if (run.ante > FINAL_ANTE && !run.endless) {
-      run.phase = 'victory';
-      return;
-    }
-    ensureBoss(run);
+  if (!isLastNight(run)) {
+    run.chapter.at += 1;
+    run.phase = 'map';
+    return;
   }
+  run.ante += 1;
+  if (run.ante > FINAL_ANTE && !run.endless) {
+    run.phase = 'victory';
+    return;
+  }
+  ensureBoss(run);
+  run.chapter = planChapter(run);
   run.phase = 'map';
 }
 
@@ -115,6 +118,7 @@ export function continueEndless(run: RunState): void {
   if (run.phase !== 'victory') throw new RuleError('notVictory');
   run.endless = true;
   ensureBoss(run);
+  run.chapter = planChapter(run);
   run.phase = 'map';
 }
 

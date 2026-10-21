@@ -110,7 +110,9 @@ test('окна главной: небо, вызов, подтверждение,
     document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
     a.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
-    Object.assign(a.run, { ante: 3, nightIndex: 1, gold: 12, omens: [{ id: 'stardust', uid: 1 }, { id: 'miser', uid: 2 }] });
+    const { planChapter } = await import('/src/core/route.ts');
+    const bosses = a.run.bosses as string[];
+    Object.assign(a.run, { ante: 3, chapter: { ...planChapter({ ante: 3, bosses }), at: 1 }, gold: 12, omens: [{ id: 'stardust', uid: 1 }, { id: 'miser', uid: 2 }] });
     await a.router.goMenu();
   });
   await page.locator('.menu-pair .menu-lite').first().click();
