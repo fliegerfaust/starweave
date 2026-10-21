@@ -10,7 +10,6 @@ import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/co
 import type { Card, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
-import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { bonusLine } from '../bonus';
@@ -84,7 +83,7 @@ export class ShopScreen implements Screen {
     const seen = [...shop.omens.flatMap((i) => (i.kind === 'omen' ? [i.omenId] : [])), ...run.omens.map((o) => o.id)];
     const open = currentChoice(run);
     if (open?.pack === 'omen') seen.push(...open.options);
-    if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
+    this.app.runs.progress({ e: 'omensShown', ids: seen }, run);
     const slots = omenSlots(run);
     // Прокрутка середины переживает пересборку экрана после покупки
     const keepScroll = this.el.querySelector('.shop-body')?.scrollTop ?? 0;
