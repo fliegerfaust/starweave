@@ -1,0 +1,42 @@
+import type { App } from '@/game/app';
+import { dict, t } from '@/i18n';
+import { h } from '../dom';
+import { button, modal } from '../widgets';
+
+/**
+ * «Обучение пройдено» (RD.9, «Нить к цели»): выученные приёмы цепочкой — загораются по
+ * очереди, как ночи на карте главы; подарок монетой; две кнопки по своей ширине (без
+ * растянутой «Начать забег» на широком экране).
+ */
+export function showTutorialDone(app: App): void {
+  const learned = dict().tut.learned;
+  const chain = h('div.tut-chain', { attrs: { 'aria-label': learned.join(', ') } }, learned.map((name, i) => {
+    const star = h('i');
+    star.style.setProperty('--d', `${0.2 + i * 0.15}s`);
+    return h('span', null, [star, name]);
+  }));
+  const gift = app.profile.tutorialGift;
+  const giftRow = gift && !app.hasSave
+    ? h('div.tut-gift', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b', null, `+${gift.gold}`), h('span', null, t('tut.giftCaption'))])
+    : null;
+  const m = modal(
+    [
+      h('h2.tut-done-title', null, t('tut.doneTitle')),
+      h('p.tut-done-sub', null, t('tut.doneSub')),
+      chain,
+      giftRow,
+      h('div.tut-done-acts', null, [
+        button(t('over.menu'), () => {
+          m.close();
+          void app.goMenu();
+        }, { variant: 'secondary' }),
+        button(app.hasSave ? t('menu.continue') : t('tut.startRun'), () => {
+          m.close();
+          if (app.hasSave) void app.route();
+          else app.startRun('classic');
+        }),
+      ]),
+    ],
+    { dismissable: false, className: 'narrow tut-done' },
+  );
+}

@@ -1,0 +1,33 @@
+{
+  "name": "starweave",
+  "private": true,
+  "version": "0.5.10",
+  "type": "module",
+  "description": "Starweave — карточный рогалик-головоломка о созвездиях",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && node scripts/build-legal.ts && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p server",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sim": "SIM=1 vitest run tests/balance.sim.test.ts",
+    "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/strip-web-only.mjs dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
+    "legal": "node scripts/build-legal.ts",
+    "e2e": "playwright test",
+    "clips": "node scripts/clips.mjs",
+    "vitrine-art": "node scripts/vitrine-art.mjs",
+    "store-assets": "ASSETS=1 playwright test e2e/store-assets.spec.ts --project=desktop --workers=1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^26.6.5",
+    "typescript": "5.9",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource/forum": "^5.3.0"
+  }
+}

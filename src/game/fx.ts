@@ -1,0 +1,242 @@
+import { BODY_FONT, DISPLAY_FONT } from '@/art/palette';
+import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
+import type { GameWorld } from './context';
+import { drawParticle } from './systems/particles';
+
+export interface BurstOptions {
+  count?: number;
+  speed?: number;
+  size?: number;
+  life?: number;
+  gravity?: number;
+  kind?: Particle['kind'];
+  spread?: number;
+  /** Направление выброса (рад) — по умолчанию во все стороны. */
+  angle?: number;
+  colors?: string[];
+}
+
+export function spawnParticle(world: GameWorld, x: number, y: number, p: Particle, layer = Layer.Effects): void {
+  const e = world.create();
+  world.add(e, Transform, transform(x, y));
+  world.add(e, Particle, p);
+  world.add(e, Drawable, { layer, z: 0, visible: true, draw: (ctx, t) => drawParticle(ctx, p, t) });
+}
+
+/** Взрыв частиц. */
+export function burst(world: GameWorld, x: number, y: number, color: string, opts: BurstOptions = {}): void {
+  const count = Math.round((opts.count ?? 18) * (world.res.reduceMotion ? 0.5 : 1));
+  const speed = opts.speed ?? 260;
+  for (let i = 0; i < count; i++) {
+    const a = opts.angle !== undefined ? opts.angle + (Math.random() - 0.5) * (opts.spread ?? 1) : Math.random() * Math.PI * 2;
+    const v = speed * (0.35 + Math.random() * 0.75);
+    const life = (opts.life ?? 0.8) * (0.6 + Math.random() * 0.6);
+    spawnParticle(world, x, y, {
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v,
+      life,
+      maxLife: life,
+      drag: 2.5,
+      gravity: opts.gravity ?? 120,
+      size: (opts.size ?? 2) * (0.6 + Math.random() * 0.8),
+      color: opts.colors ? opts.colors[i % opts.colors.length]! : color,
+      kind: opts.kind ?? 'spark',
+      spin: (Math.random() - 0.5) * 12,
+    });
+  }
+}
+
+export function ring(world: GameWorld, x: number, y: number, color: string, size = 80, life = 0.6): void {
+  spawnParticle(world, x, y, { vx: 0, vy: 0, life, maxLife: life, drag: 0, gravity: 0, size, color, kind: 'ring', spin: 0 });
+}
+
+/** Пыль от приземления карты: облачка расходятся от её низа в стороны и медленно всплывают. */
+export function dustPuff(world: GameWorld, x: number, bottom: number, width: number, count = 30): void {
+  const n = Math.round(count * (world.res.reduceMotion ? 0.4 : 1));
+  const colors = ['rgba(200,214,255,0.75)', 'rgba(255,232,190,0.7)', 'rgba(230,228,250,0.65)'];
+  for (let i = 0; i < n; i++) {
+    const side = i % 2 ? 1 : -1;
+    const a = (side > 0 ? 0 : Math.PI) + (Math.random() - 0.5) * 1.1;
+    const v = 90 + Math.random() * 190;
+    const life = 0.9 + Math.random() * 0.6;
+    spawnParticle(world, x + (Math.random() - 0.5) * width * 0.9, bottom - 8 - Math.random() * 10, {
+      vx: Math.cos(a) * v,
+      vy: Math.sin(a) * v * 0.3 - 25,
+      life,
+      maxLife: life,
+      drag: 3,
+      gravity: -45,
+      size: 9 + Math.random() * 11,
+      color: colors[i % colors.length]!,
+      kind: 'dust',
+      spin: 0,
+    });
+  }
+}
+
+/** Короткая белая вспышка на месте клетки — момент удара. */
+export function cellFlash(world: GameWorld, x: number, y: number, w: number, h: number): void {
+  const e = world.create();
+  const t = world.add(e, Transform, transform(x, y, { alpha: 1 }));
+  world.add(e, Drawable, {
+    layer: Layer.Effects,
+    z: 1,
+    visible: true,
+    draw(ctx, tr) {
+      const r = Math.max(w, h) * 0.75;
+      const g = ctx.createRadialGradient(tr.x, tr.y, 0, tr.x, tr.y, r);
+      g.addColorStop(0, `rgba(255,255,255,${0.75 * tr.alpha})`);
+      g.addColorStop(0.55, `rgba(255,230,170,${0.25 * tr.alpha})`);
+      g.addColorStop(1, 'rgba(255,230,170,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(tr.x - r, tr.y - r, r * 2, r * 2);
+    },
+  });
+  world.add(e, Lifetime, { left: 0.45 / world.res.speed });
+  void world.res.tweens.to(t, { alpha: 0 }, { duration: 0.42 / world.res.speed, ease: 'outCubic' });
+}
+
+export function shake(world: GameWorld, amount: number): void {
+  world.res.camera.trauma = Math.min(1, world.res.camera.trauma + amount);
+}
+
+export interface FloatTextOptions {
+  size?: number;
+  color?: string;
+  display?: boolean;
+  /** Сколько живёт, с. */
+  life?: number;
+  rise?: number;
+  layer?: Layer;
+  pop?: boolean;
+  /**
+   * Цифра подсчёта: выбивается из карты с перелётом, вспыхивает белым и остывает до своего
+   * цвета, на миг замирает (глаз успевает прочесть) и только потом всплывает и тает.
+   */
+  punch?: boolean;
+}
+
+/** Всплывающий текст: «+12», «×2», «ПАРА». Поднимается и тает. */
+export function floatText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions = {}): void {
+  if (opts.punch) return punchText(world, x, y, text, opts);
+  const size = opts.size ?? 22;
+  const life = (opts.life ?? 0.9) / world.res.speed;
+  const e = world.create();
+  const t = world.add(e, Transform, transform(x, y, { scale: opts.pop === false ? 1 : 0.4 }));
+  const font = `${opts.display ? 400 : 800} ${size}px ${opts.display ? DISPLAY_FONT : BODY_FONT}`;
+  world.add(e, Drawable, {
+    layer: opts.layer ?? Layer.Popups,
+    z: 0,
+    visible: true,
+    draw(ctx, tr) {
+      ctx.globalAlpha = tr.alpha;
+      ctx.translate(tr.x, tr.y);
+      ctx.scale(tr.scale, tr.scale);
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = size * 0.34;
+      ctx.strokeStyle = 'rgba(4,3,16,0.92)';
+      ctx.strokeText(text, 0, 0);
+      ctx.shadowColor = opts.color ?? '#fff';
+      ctx.shadowBlur = size * 0.5;
+      ctx.fillStyle = opts.color ?? '#fff';
+      ctx.fillText(text, 0, 0);
+      // Чёткие буквы поверх свечения (Safari масштабирует shadowBlur вместе с DPR)
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(text, 0, 0);
+    },
+  });
+  world.add(e, Lifetime, { left: life });
+  const tweens = world.res.tweens;
+  void tweens.to(t, { scale: 1 }, { duration: 0.25 / world.res.speed, ease: 'outBack' });
+  void tweens.to(t, { y: y - (opts.rise ?? 36) }, { duration: life, ease: 'outCubic' });
+  void tweens.to(t, { alpha: 0 }, { duration: life * 0.35, delay: life * 0.65, ease: 'inQuad' });
+}
+
+/** Цифра подсчёта с ударом — см. FloatTextOptions.punch. */
+function punchText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions): void {
+  const size = opts.size ?? 30;
+  const speed = world.res.speed;
+  const life = (opts.life ?? 1) / speed;
+  const calm = world.res.reduceMotion;
+  const color = opts.color ?? '#fff';
+  const e = world.create();
+  // heat — доля белого в заливке: 1 в момент удара, 0 — свой цвет
+  const t = world.add(e, Transform, transform(x, y, { scale: calm ? 1 : 0.3 }));
+  const state = { heat: 1 };
+  const font = `800 ${size}px ${BODY_FONT}`;
+  world.add(e, Drawable, {
+    layer: opts.layer ?? Layer.Popups,
+    z: 1,
+    visible: true,
+    draw(ctx, tr) {
+      ctx.globalAlpha = tr.alpha;
+      ctx.translate(tr.x, tr.y);
+      ctx.scale(tr.scale, tr.scale);
+      // Тёмная подложка-ореол: цифра читается и на яркой карте, и на вспышке
+      const r = size * (0.5 + text.length * 0.22);
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+      g.addColorStop(0, 'rgba(6,5,22,0.62)');
+      g.addColorStop(0.6, 'rgba(6,5,22,0.38)');
+      g.addColorStop(1, 'rgba(6,5,22,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-r, -r, r * 2, r * 2);
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = size * 0.3;
+      ctx.strokeStyle = 'rgba(4,3,16,0.95)';
+      ctx.strokeText(text, 0, 0);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = size * (0.45 + state.heat * 0.6);
+      ctx.fillStyle = color;
+      ctx.fillText(text, 0, 0);
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(text, 0, 0);
+      if (state.heat > 0.01) {
+        ctx.globalAlpha = tr.alpha * state.heat;
+        ctx.fillStyle = '#fffaf0';
+        ctx.fillText(text, 0, 0);
+      }
+    },
+  });
+  world.add(e, Lifetime, { left: life });
+  const tweens = world.res.tweens;
+  if (!calm) {
+    void tweens.to(t, { scale: 1.32 }, { duration: 0.09 / speed, ease: 'outCubic' }).then(() =>
+      tweens.to(t, { scale: 1 }, { duration: 0.22 / speed, ease: 'outBack' }),
+    );
+  }
+  void tweens.to(state, { heat: 0 }, { duration: 0.32 / speed, delay: 0.06 / speed, ease: 'outQuad' });
+  // Замирает на 45 % жизни, потом всплывает и тает
+  void tweens.to(t, { y: y - (opts.rise ?? 26) }, { duration: life * 0.55, delay: life * 0.45, ease: 'inOutQuad' });
+  void tweens.to(t, { alpha: 0 }, { duration: life * 0.3, delay: life * 0.7, ease: 'inQuad' });
+}
+
+/** Вспышка всего экрана — для крупных ходов. */
+export function flash(world: GameWorld, color = '255,240,200', strength = 0.5, duration = 0.5): void {
+  if (world.res.reduceMotion) strength *= 0.4;
+  const e = world.create();
+  const t = world.add(e, Transform, transform(0, 0, { alpha: strength }));
+  const { renderer } = world.res;
+  world.add(e, Drawable, {
+    layer: Layer.Popups,
+    z: -1,
+    visible: true,
+    draw(ctx, tr) {
+      const w = renderer.width;
+      const h = renderer.height;
+      const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
+      g.addColorStop(0, `rgba(${color},${tr.alpha})`);
+      g.addColorStop(1, `rgba(${color},0)`);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = g;
+      ctx.fillRect(-20, -20, w + 40, h + 40);
+    },
+  });
+  world.add(e, Lifetime, { left: duration });
+  void world.res.tweens.to(t, { alpha: 0 }, { duration, ease: 'outQuad' });
+}

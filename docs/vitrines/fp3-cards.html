@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Карты мастей</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-0: #05061a;
+    --night-1: #0c0d2c;
+    --night-2: #191641;
+    --panel: #0e0c26;
+    --ink: #eae6ff;
+    --ink-dim: #a5a0cf;
+    --ink-faint: #8a85b8;
+    --gold: #f6c25b;
+    --gold-hi: #ffe6a8;
+    --brass-line: rgb(246 194 91 / .22);
+    --brass-strong: rgb(246 194 91 / .45);
+    --sun: #f6c25b;
+    --moon: #8fd0ff;
+    --star: #c39bff;
+    --comet: #ff7f62;
+    --gutter: 16px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; overflow-x: clip; }
+  body {
+    background: radial-gradient(120% 60% at 50% 0%, #15123a 0%, var(--night-0) 60%) fixed, var(--night-0);
+    background-color: var(--night-0);
+    color: var(--ink);
+    font: 400 14px/1.5 Manrope, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .wrap { overflow-x: clip; max-width: 1200px; margin: 0 auto; padding: 28px var(--gutter) 64px; }
+  header.top { text-align: center; padding: 18px 0 8px; }
+  h1 {
+    font: 400 30px/1 Forum, serif; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--gold-hi); margin: 0 0 14px;
+  }
+  .sill { height: 2px; width: min(420px, 80%); margin: 0 auto 18px;
+    background: radial-gradient(closest-side, rgb(255 230 168 / .9), rgb(246 194 91 / .25) 60%, transparent); }
+  .lead { color: var(--ink-dim); max-width: 640px; margin: 0 auto; }
+  nav.jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; margin: 20px 0 6px; }
+  nav.jump a { color: var(--gold-hi); text-decoration: none; font-weight: 700; padding: 10px 14px; }
+  nav.jump a + a { border-left: 1px solid var(--brass-line); }
+  nav.jump a:hover { color: #fff; }
+  @media (max-width: 480px) { nav.jump a { padding: 8px 9px; font-size: 13px; } }
+
+  .label {
+    font: 400 13px/1 Forum, serif; letter-spacing: .24em; text-transform: uppercase; color: var(--gold-hi);
+    display: flex; align-items: center; gap: 12px; margin: 26px 0 14px;
+  }
+  .label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--brass-line), transparent); }
+
+  section.variant { margin-top: 56px; padding-top: 8px; }
+  .vhead { text-align: center; margin-bottom: 8px; }
+  .vname { font: 400 26px/1 Forum, serif; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); margin: 0 0 12px; }
+  .vname small { display: block; font: 800 11px/1 Manrope, sans-serif; letter-spacing: .14em; color: var(--ink-faint); margin-bottom: 10px; }
+  .videa { color: var(--ink); max-width: 720px; margin: 0 auto; }
+  .videa b { color: var(--gold-hi); font-weight: 700; }
+
+  .deck { display: grid; gap: 14px; }
+  .suitrow { display: grid; grid-template-columns: repeat(var(--cols, 9), 1fr); gap: var(--g, 10px); justify-items: center; }
+  .slot { position: relative; }
+  .slot canvas, .slot img { position: absolute; display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 8px 40px; align-items: start; }
+  @media (min-width: 900px) { .grid2 { grid-template-columns: 390px 1fr; } }
+  .phone {
+    position: relative; width: 100%; max-width: 390px; margin: 0 auto; aspect-ratio: 390 / 844;
+    border-radius: 44px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgb(246 194 91 / .25), 0 0 0 7px #0a0a18, 0 0 0 8px rgb(255 255 255 / .06), 0 30px 60px -20px rgb(0 0 0 / .8);
+  }
+  .phone canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .phone-cap { text-align: center; color: var(--ink-faint); font-size: 12px; margin-top: 16px; }
+
+  .row { display: flex; flex-wrap: wrap; gap: var(--g, 14px); align-items: flex-end; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .cap { font-size: 12px; color: var(--ink-dim); text-align: center; line-height: 1.3; max-width: 110px; }
+  .cap b { color: var(--ink); font-weight: 700; display: block; }
+  .tiny { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tiny .sz { width: 44px; font: 800 11px/1 Manrope; letter-spacing: .1em; color: var(--ink-faint); }
+  .tinybox { display: grid; gap: 14px; padding: 18px 0 4px; }
+
+  .fontcmp { display: grid; gap: 18px; grid-template-columns: 1fr; }
+  @media (min-width: 700px) { .fontcmp { grid-template-columns: 1fr 1fr; } }
+  .fontcmp h3 { margin: 0 0 10px; font: 700 15.5px/1.2 Manrope; color: var(--ink); }
+  .fontcmp p { margin: 12px 0 0; color: var(--ink-dim); font-size: 13px; }
+  .note { color: var(--ink-dim); font-size: 13px; margin: 10px 0 0; }
+  .hr { height: 1px; background: linear-gradient(90deg, transparent, var(--brass-line), transparent); margin: 56px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Карты мастей</h1>
+    <div class="sill"></div>
+    <p class="lead">Лицо карты — то, на что игрок смотрит всю ночь. Три варианта в языке «Латунной обсерватории»: ранг и масть читаются с одного взгляда даже на 44&nbsp;px, у каждой масти своя форма знака, а не только цвет. Всё нарисовано кодом прямо на странице — так же, как будет в игре.</p>
+    <nav class="jump">
+      <a href="#now">Сейчас</a><a href="#v-index">«Индекс»</a><a href="#v-medal">«Медальон»</a><a href="#v-field">«Небо масти»</a>
+    </nav>
+  </header>
+
+  <div class="label">Шрифт ранга</div>
+  <div class="fontcmp">
+    <div><h3>Forum</h3><div class="tinybox" id="font-forum"></div></div>
+    <div><h3>Manrope 800</h3><div class="tinybox" id="font-manrope"></div></div>
+  </div>
+  <p class="note">На 44–56&nbsp;px у Forum тонкие штрихи и узкая «1» — цифра светлеет и сливается с фоном. Manrope 800 держит вес до самых мелких размеров, поэтому угловой индекс — Manrope. Forum остаётся там, где цифра крупная: в «Медальоне».</p>
+
+  <div id="variants"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ─── Данные игры ───────────────────────────────────────────────────────────
+const SUITS = ['sun', 'moon', 'star', 'comet'];
+const SUIT_NAME = { sun: 'Солнце', moon: 'Луна', star: 'Звезда', comet: 'Комета' };
+const SC = {
+  sun:   { main: '#f6c25b', light: '#ffe6a8', deep: '#3a2408', rgb: [246, 194, 91] },
+  moon:  { main: '#8fd0ff', light: '#d9f0ff', deep: '#0c2238', rgb: [143, 208, 255] },
+  star:  { main: '#c39bff', light: '#eadcff', deep: '#22113f', rgb: [195, 155, 255] },
+  comet: { main: '#ff7f62', light: '#ffd3c4', deep: '#3d110a', rgb: [255, 127, 98] },
+};
+const GLYPH_RGB = {
+  gilded: [255, 214, 102], blazing: [255, 110, 64], radiant: [127, 224, 255],
+  echo: [190, 160, 255], glass: [200, 240, 255], prism: [255, 255, 255],
+};
+const GLYPH_NAME = { gilded: 'Позолота', blazing: 'Пламя', radiant: 'Сияние', echo: 'Эхо', glass: 'Стекло', prism: 'Призма' };
+const PRISM = ['#ff6b8b', '#ffd36b', '#7cf0b0', '#7fe0ff', '#c39bff'];
+// Те же сочетания, что выгружает scripts/vitrine-art.mjs, — чтобы «Сейчас» было честным
+const GLYPH_CARDS = [
+  { suit: 'sun', rank: 7, glyph: 'gilded' }, { suit: 'moon', rank: 8, glyph: 'blazing' },
+  { suit: 'star', rank: 9, glyph: 'radiant' }, { suit: 'comet', rank: 7, glyph: 'echo' },
+  { suit: 'sun', rank: 8, glyph: 'glass' }, { suit: 'moon', rank: 9, glyph: 'prism' },
+];
+const CONST = {
+  1: { s: [[0, 0]], e: [] },
+  2: { s: [[-0.45, 0.45], [0.45, -0.45]], e: [[0, 1]] },
+  3: { s: [[-0.6, 0.5], [0.05, -0.6], [0.6, 0.45]], e: [[0, 1], [1, 2], [2, 0]] },
+  4: { s: [[-0.55, -0.45], [0.5, -0.6], [0.6, 0.5], [-0.45, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 0]] },
+  5: { s: [[-0.85, -0.3], [-0.42, 0.42], [0, -0.1], [0.42, 0.45], [0.85, -0.38]], e: [[0, 1], [1, 2], [2, 3], [3, 4]] },
+  6: { s: [[-0.75, -0.55], [-0.2, -0.35], [0.35, -0.6], [0.75, -0.05], [0.4, 0.55], [-0.35, 0.6]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 1]] },
+  7: { s: [[-0.9, -0.6], [-0.55, -0.42], [-0.22, -0.25], [0.1, -0.05], [0.2, 0.55], [0.85, 0.5], [0.78, -0.08]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]] },
+  8: { s: [[-0.7, -0.72], [0, -0.85], [0.72, -0.6], [0.48, 0], [0.75, 0.68], [0, 0.82], [-0.65, 0.6], [-0.45, -0.02]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0]] },
+  9: { s: [[0, -0.92], [-0.5, -0.55], [0.52, -0.6], [-0.22, 0.02], [0, 0.07], [0.22, 0.12], [-0.55, 0.8], [0.6, 0.75], [0.04, 0.48]], e: [[0, 1], [0, 2], [1, 3], [2, 5], [3, 4], [4, 5], [3, 6], [5, 7], [4, 8]] },
+};
+const ASPECT = 0.7;
+
+// ─── Утилиты рисования (перенесены из src/art/glyphs.ts) ──────────────────
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mix = (a, b, t) => { const pa = hex(a), pb = hex(b); return `rgb(${pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(',')})`; };
+const frac = (x) => x - Math.floor(x);
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+function sparklePath(ctx, x, y, r, points, waist) {
+  for (let i = 0; i < points; i++) {
+    const a = (i / points) * Math.PI * 2 - Math.PI / 2;
+    const n = ((i + 1) / points) * Math.PI * 2 - Math.PI / 2;
+    const m = (a + n) / 2;
+    if (i === 0) ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    ctx.quadraticCurveTo(x + Math.cos(m) * r * waist, y + Math.sin(m) * r * waist, x + Math.cos(n) * r, y + Math.sin(n) * r);
+  }
+  ctx.closePath();
+}
+function sunPath(ctx, x, y, r) {
+  const rays = 12, inner = r * 0.56;
+  for (let i = 0; i < rays * 2; i++) {
+    const a = (i / (rays * 2)) * Math.PI * 2 - Math.PI / 2;
+    const rad = i % 2 === 0 ? (i % 4 === 0 ? r : r * 0.78) : inner;
+    const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.moveTo(x + r * 0.46, y);
+  ctx.arc(x, y, r * 0.46, 0, Math.PI * 2);
+}
+function moonPath(ctx, x, y, r) {
+  const R = r * 0.92, cx2 = x + R * 0.52, cy2 = y - R * 0.18, R2 = R * 0.82;
+  const dx = cx2 - x, dy = cy2 - y, d = Math.hypot(dx, dy);
+  const l = (R * R - R2 * R2 + d * d) / (2 * d);
+  const h = Math.sqrt(Math.max(0, R * R - l * l));
+  const mx = x + (dx * l) / d, my = y + (dy * l) / d;
+  const p1 = { x: mx + (h * dy) / d, y: my - (h * dx) / d };
+  const p2 = { x: mx - (h * dy) / d, y: my + (h * dx) / d };
+  ctx.arc(x, y, R, Math.atan2(p1.y - y, p1.x - x), Math.atan2(p2.y - y, p2.x - x), true);
+  ctx.arc(cx2, cy2, R2, Math.atan2(p2.y - cy2, p2.x - cx2), Math.atan2(p1.y - cy2, p1.x - cx2), false);
+  ctx.closePath();
+}
+function cometPath(ctx, x, y, r) {
+  const hx = x + r * 0.38, hy = y - r * 0.38, hr = r * 0.36;
+  const ang = Math.atan2(hy - (y + r), hx - (x - r));
+  const nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2);
+  ctx.moveTo(hx + nx * hr, hy + ny * hr);
+  for (const t of [{ len: 1, off: 0 }, { len: 0.72, off: 0.8 }, { len: 0.72, off: -0.8 }]) {
+    ctx.lineTo(hx - Math.cos(ang) * r * 1.55 * t.len + nx * hr * t.off * 0.9, hy - Math.sin(ang) * r * 1.55 * t.len + ny * hr * t.off * 0.9);
+    ctx.lineTo(hx + nx * hr * t.off * 0.35, hy + ny * hr * t.off * 0.35);
+  }
+  ctx.lineTo(hx - nx * hr, hy - ny * hr);
+  ctx.arc(hx, hy, hr, ang - Math.PI / 2, ang + Math.PI / 2, false);
+  ctx.closePath();
+}
+function suitPath(ctx, suit, x, y, r) {
+  ctx.beginPath();
+  if (suit === 'sun') sunPath(ctx, x, y, r);
+  else if (suit === 'moon') moonPath(ctx, x, y, r);
+  else if (suit === 'star') sparklePath(ctx, x, y, r, 4, 0.28);
+  else cometPath(ctx, x, y, r);
+}
+function star(ctx, x, y, r, rgb, core, glow = 0.45) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
+  g.addColorStop(0, rgba(rgb, glow));
+  g.addColorStop(1, rgba(rgb, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = core;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+}
+function dust(ctx, card, w, h, n, k = 1) {
+  const seed = card.rank * 31 + card.suit.length * 7 + card.suit.charCodeAt(0);
+  for (let i = 0; i < n; i++) {
+    const px = frac(Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453) * w;
+    const py = frac(Math.sin(seed * 4.1414 + i * 12.345) * 24634.6345) * h;
+    ctx.fillStyle = `rgba(255,255,255,${(0.12 + frac(i * 0.618) * 0.3) * k})`;
+    const s = Math.max(0.6, w * 0.008);
+    ctx.fillRect(px, py, s, s);
+  }
+}
+/** Созвездие ранга: линии масти, звёзды светлым ядром. */
+function constellation(ctx, rank, rgb, core, cx, cy, sx, sy, o = {}) {
+  const p = CONST[rank];
+  const pts = p.s.map(([x, y]) => [cx + x * sx, cy + y * sy]);
+  ctx.save();
+  ctx.lineWidth = Math.max(0.7, sx * (o.lw ?? 0.03));
+  ctx.strokeStyle = rgba(o.lineRgb ?? rgb, o.line ?? 0.45);
+  ctx.lineCap = 'round';
+  for (const [a, b] of p.e) { ctx.beginPath(); ctx.moveTo(...pts[a]); ctx.lineTo(...pts[b]); ctx.stroke(); }
+  const dot = Math.max(o.minDot ?? 1.1, sx * (rank === 1 ? 0.13 : (o.dot ?? 0.065)));
+  pts.forEach(([x, y], i) => star(ctx, x, y, i === 0 && rank > 1 ? dot * 1.2 : dot, o.glowRgb ?? rgb, core, o.glow ?? 0.5));
+  if (rank === 1) { ctx.fillStyle = rgba(o.glowRgb ?? rgb, 0.55); ctx.beginPath(); sparklePath(ctx, cx, cy, sx * 0.6, 4, 0.12); ctx.fill(); star(ctx, cx, cy, dot, o.glowRgb ?? rgb, core, 0.6); }
+  ctx.restore();
+}
+function glyphBackdrop(ctx, glyph, w, h, k = 1) {
+  const rgb = GLYPH_RGB[glyph];
+  ctx.save();
+  ctx.globalAlpha = k;
+  if (glyph === 'gilded') {
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, rgba(rgb, 0.22)); g.addColorStop(0.5, rgba(rgb, 0.03)); g.addColorStop(1, rgba(rgb, 0.18));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  } else if (glyph === 'blazing') {
+    const g = ctx.createLinearGradient(0, h, 0, h * 0.45);
+    g.addColorStop(0, rgba(rgb, 0.45)); g.addColorStop(1, rgba(rgb, 0));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  } else if (glyph === 'radiant') {
+    ctx.translate(w / 2, h * 0.6);
+    for (let i = 0; i < 16; i++) {
+      ctx.rotate(Math.PI / 8);
+      ctx.fillStyle = rgba(rgb, i % 2 ? 0.05 : 0.1);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-w * 0.08, -h); ctx.lineTo(w * 0.08, -h); ctx.closePath(); ctx.fill();
+    }
+  } else if (glyph === 'glass') {
+    ctx.fillStyle = 'rgba(200,240,255,0.06)'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    ctx.beginPath(); ctx.moveTo(w * 0.1, 0); ctx.lineTo(w * 0.42, 0); ctx.lineTo(0, h * 0.46); ctx.lineTo(0, h * 0.2); ctx.closePath(); ctx.fill();
+  } else if (glyph === 'prism') {
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    PRISM.forEach((c, i) => g.addColorStop(i / 4, c));
+    ctx.globalAlpha = 0.13 * k; ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  } else if (glyph === 'echo') {
+    ctx.strokeStyle = rgba(rgb, 0.16); ctx.lineWidth = w * 0.01;
+    for (let i = 1; i <= 4; i++) { ctx.beginPath(); ctx.arc(w / 2, h * 0.6, w * 0.12 * i, 0, Math.PI * 2); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+/** Значок глифа — как drawGlyphBadge в игре. */
+function glyphBadge(ctx, glyph, x, y, r) {
+  const rgb = GLYPH_RGB[glyph];
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(8,8,24,0.9)'; ctx.fill();
+  ctx.lineWidth = Math.max(0.8, r * 0.16); ctx.strokeStyle = rgba(rgb, 0.95); ctx.stroke();
+  ctx.fillStyle = rgba(rgb, 1); ctx.strokeStyle = rgba(rgb, 1);
+  ctx.lineWidth = Math.max(0.8, r * 0.16); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const s = r * 0.55;
+  ctx.beginPath();
+  if (glyph === 'gilded') { ctx.arc(x, y, s * 0.75, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(8,8,24,0.6)'; ctx.fillRect(x - s * 0.1, y - s * 0.45, s * 0.2, s * 0.9); }
+  else if (glyph === 'blazing') { ctx.moveTo(x, y - s); ctx.quadraticCurveTo(x + s, y, x, y + s); ctx.quadraticCurveTo(x - s, y, x, y - s); ctx.fill(); }
+  else if (glyph === 'radiant') { sparklePath(ctx, x, y, s * 1.1, 8, 0.4); ctx.fill(); }
+  else if (glyph === 'echo') { ctx.arc(x, y, s * 0.35, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(x, y, s * 0.85, 0, Math.PI * 2); ctx.stroke(); }
+  else if (glyph === 'glass') { ctx.moveTo(x, y - s); ctx.lineTo(x + s * 0.8, y); ctx.lineTo(x, y + s); ctx.lineTo(x - s * 0.8, y); ctx.closePath(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - s * 0.8, y); ctx.lineTo(x + s * 0.8, y); ctx.stroke(); }
+  else if (glyph === 'prism') { const g = ctx.createLinearGradient(x - s, y - s, x + s, y + s); PRISM.forEach((c, i) => g.addColorStop(i / 4, c)); ctx.fillStyle = g; ctx.moveTo(x, y - s); ctx.lineTo(x + s * 0.9, y + s * 0.7); ctx.lineTo(x - s * 0.9, y + s * 0.7); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+/** Кромка глифа: Призма — радугой, остальные — своим цветом. */
+function glyphStroke(ctx, glyph, w, h) {
+  if (glyph === 'prism') { const g = ctx.createLinearGradient(0, 0, w, h); PRISM.forEach((c, i) => g.addColorStop(i / 4, c)); return g; }
+  return rgba(GLYPH_RGB[glyph], 0.9);
+}
+/** Затмение: приглушить карту и закрыть место чёрным диском в жемчужной короне. */
+function eclipse(ctx, w, h, cx, cy, R, dim = 0.5, corona = 1) {
+  roundRect(ctx, 0, 0, w, h, w * 0.09);
+  ctx.fillStyle = `rgba(4,3,12,${dim})`; ctx.fill();
+  const g = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 2);
+  g.addColorStop(0, `rgba(255,238,210,${0.5 * corona})`); g.addColorStop(0.35, `rgba(255,230,200,${0.16 * corona})`); g.addColorStop(1, 'rgba(150,170,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(cx - R * 2, cy - R * 2, R * 4, R * 4);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.fillStyle = '#03020a'; ctx.fill();
+  ctx.lineWidth = Math.max(1, w * 0.014); ctx.strokeStyle = 'rgba(255,245,225,0.95)'; ctx.stroke();
+}
+/** Текст с центром по видимым границам глифа — цифры встают ровно в середину. */
+function centeredText(ctx, t, cx, cy) {
+  const m = ctx.measureText(t);
+  const x = cx - (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2 + m.actualBoundingBoxLeft;
+  const y = cy + (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2;
+  ctx.fillText(t, x, y);
+}
+function rankText(ctx, t, cx, cy, fill, w, shadow = 0.55) {
+  ctx.save();
+  ctx.fillStyle = fill;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = `rgba(0,0,0,${shadow})`; ctx.shadowBlur = w * 0.05; ctx.shadowOffsetY = w * 0.012;
+  centeredText(ctx, t, cx, cy);
+  ctx.shadowColor = 'transparent';
+  centeredText(ctx, t, cx, cy);
+  ctx.restore();
+}
+
+// ─── Вариант «Индекс» ─────────────────────────────────────────────────────
+// Ранг — крупный индекс в левом верхнем углу (Manrope 800) цветом масти, под ним знак масти.
+// Поле тихое, созвездие ранга внизу справа как подпись. Кромка — цвет масти.
+function faceIndex(ctx, card, w, h, st) {
+  const c = SC[card.suit], r = w * 0.09, small = w < 62;
+  ctx.save();
+  roundRect(ctx, 0, 0, w, h, r); ctx.clip();
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, mix('#1b1944', c.deep, 0.5)); bg.addColorStop(1, '#08081b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const tl = ctx.createRadialGradient(w * 0.24, w * 0.3, 0, w * 0.24, w * 0.3, w * 0.75);
+  tl.addColorStop(0, rgba(c.rgb, 0.16)); tl.addColorStop(1, rgba(c.rgb, 0));
+  ctx.fillStyle = tl; ctx.fillRect(0, 0, w, h);
+  if (!small) dust(ctx, card, w, h, 12, 0.7);
+  if (card.glyph) glyphBackdrop(ctx, card.glyph, w, h, 0.8);
+  if (!st.fog) constellation(ctx, card.rank, c.rgb, c.light, w * 0.6, w * 1.0, w * 0.27, w * 0.27, { line: 0.5, dot: 0.07, lw: 0.035 });
+  ctx.restore();
+  // Кромка масти и латунная волосяная линия внутри
+  roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
+  ctx.lineWidth = Math.max(1.2, w * 0.022); ctx.strokeStyle = rgba(c.rgb, 0.85); ctx.stroke();
+  if (card.glyph) {
+    roundRect(ctx, w * 0.045, w * 0.045, w * 0.91, h - w * 0.09, r * 0.6);
+    ctx.lineWidth = Math.max(0.8, w * 0.012); ctx.strokeStyle = glyphStroke(ctx, card.glyph, w, h); ctx.stroke();
+  } else if (!small) {
+    roundRect(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55);
+    ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(246,194,91,0.2)'; ctx.stroke();
+  }
+  // Индекс
+  ctx.font = st.font === 'forum' ? `400 ${w * 0.56}px Forum` : `800 ${w * 0.47}px Manrope`;
+  rankText(ctx, st.fog ? '?' : String(card.rank), w * 0.235, w * 0.32, st.fog ? 'rgba(234,230,255,0.55)' : c.light, w);
+  ctx.save();
+  suitPath(ctx, card.suit, w * 0.235, w * 0.71, w * 0.12);
+  ctx.fillStyle = c.main; ctx.fill('evenodd');
+  ctx.restore();
+  if (card.glyph) glyphBadge(ctx, card.glyph, w * 0.79, w * 0.2, w * 0.105);
+  if (st.fog) { ctx.save(); const g = ctx.createRadialGradient(w * 0.6, w, 0, w * 0.6, w, w * 0.4); g.addColorStop(0, 'rgba(200,200,230,0.22)'); g.addColorStop(1, 'rgba(200,200,230,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h); ctx.restore(); }
+  if (st.ecl) eclipse(ctx, w, h, w * 0.6, w * 1.0, w * 0.2, 0.5);
+}
+
+// ─── Вариант «Медальон» ───────────────────────────────────────────────────
+// Ранг — крупная цифра Forum в латунном медальоне по центру. На кольце медальона
+// ровно столько звёзд, каков ранг: число читается и цифрой, и счётом звёзд.
+function faceMedal(ctx, card, w, h, st) {
+  const c = SC[card.suit], r = w * 0.09, small = w < 62;
+  const cx = w / 2, cy = h * 0.53, R = w * 0.33;
+  ctx.save();
+  roundRect(ctx, 0, 0, w, h, r); ctx.clip();
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, mix('#17153c', c.deep, 0.35)); bg.addColorStop(1, '#07071a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.7);
+  halo.addColorStop(0, rgba(c.rgb, 0.2)); halo.addColorStop(1, rgba(c.rgb, 0));
+  ctx.fillStyle = halo; ctx.fillRect(0, 0, w, h);
+  if (!small) dust(ctx, card, w, h, 14, 0.7);
+  if (card.glyph) glyphBackdrop(ctx, card.glyph, w, h, 0.7);
+  ctx.restore();
+  // Рамка: кромка масти + латунная гравюра внутри
+  roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
+  ctx.lineWidth = Math.max(1.1, w * 0.018); ctx.strokeStyle = rgba(c.rgb, 0.7); ctx.stroke();
+  roundRect(ctx, w * 0.06, w * 0.06, w * 0.88, h - w * 0.12, r * 0.55);
+  ctx.lineWidth = Math.max(0.6, w * 0.008);
+  ctx.strokeStyle = card.glyph ? glyphStroke(ctx, card.glyph, w, h) : 'rgba(246,194,91,0.32)'; ctx.stroke();
+  // Медальон
+  ctx.save();
+  const disc = ctx.createRadialGradient(cx, cy - R * 0.4, R * 0.1, cx, cy, R);
+  disc.addColorStop(0, mix(c.deep, '#2a2660', 0.35)); disc.addColorStop(1, '#0a0920');
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = disc; ctx.fill();
+  ctx.lineWidth = Math.max(1, w * 0.02); ctx.strokeStyle = rgba(c.rgb, st.lit ? 1 : 0.8); ctx.stroke();
+  if (!small) { ctx.beginPath(); ctx.arc(cx, cy, R + w * 0.045, 0, Math.PI * 2); ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(246,194,91,0.3)'; ctx.stroke(); }
+  // Звёзды ранга на кольце
+  if (!st.fog && !st.ecl) {
+    const n = card.rank, pr = Math.max(1.25, w * 0.03);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI * 2) / n;
+      const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+      ctx.beginPath(); ctx.arc(x, y, pr * 1.9, 0, Math.PI * 2); ctx.fillStyle = '#0a0920'; ctx.fill();
+      star(ctx, x, y, pr, c.rgb, c.light, 0.6);
+    }
+  }
+  ctx.restore();
+  if (st.ecl) {
+    eclipse(ctx, w, h, cx, cy, R * 0.98, 0.62, 0.35);
+    ctx.font = st.font === 'manrope' ? `800 ${w * 0.4}px Manrope` : `400 ${w * 0.5}px Forum`;
+    rankText(ctx, String(card.rank), cx, cy, 'rgba(255,245,225,0.32)', w, 0);
+  } else {
+    ctx.font = st.font === 'manrope' ? `800 ${w * 0.4}px Manrope` : `400 ${w * 0.5}px Forum`;
+    rankText(ctx, st.fog ? '?' : String(card.rank), cx, cy, st.fog ? 'rgba(234,230,255,0.5)' : c.light, w, 0.5);
+  }
+  // Знак масти сверху и снизу (снизу — перевёрнут, как на настоящей карте)
+  ctx.save();
+  if (st.ecl) ctx.globalAlpha = 0.4;
+  suitPath(ctx, card.suit, cx, w * 0.2, w * 0.095); ctx.fillStyle = c.main; ctx.fill('evenodd');
+  ctx.restore();
+  if (card.glyph) glyphBadge(ctx, card.glyph, cx, h - w * 0.2, w * 0.095);
+  else {
+    ctx.save(); ctx.translate(cx, h - w * 0.2); ctx.rotate(Math.PI);
+    suitPath(ctx, card.suit, 0, 0, w * 0.095); ctx.fillStyle = c.main; ctx.globalAlpha = st.ecl ? 0.35 : 0.85; ctx.fill('evenodd');
+    ctx.restore();
+  }
+}
+
+// ─── Вариант «Небо масти» ─────────────────────────────────────────────────
+// Масть — это цвет всего поля и крупная эмблема: флеш виден через весь стол.
+// Ранг — слоновая кость, одинаковая для всех мастей: максимальный контраст. Золочёная кромка.
+const FIELD = {
+  sun:   ['#5a3b14', '#1d1208'],
+  moon:  ['#173a60', '#081226'],
+  star:  ['#3a2566', '#110a25'],
+  comet: ['#5a2418', '#1c0a07'],
+};
+function faceField(ctx, card, w, h, st) {
+  const c = SC[card.suit], r = w * 0.09, small = w < 62;
+  const f = FIELD[card.suit];
+  const ex = w * 0.62, ey = h * 0.665, er = w * 0.27;
+  ctx.save();
+  roundRect(ctx, 0, 0, w, h, r); ctx.clip();
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, f[0]); bg.addColorStop(1, f[1]);
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const tl = ctx.createRadialGradient(w * 0.3, 0, 0, w * 0.3, 0, w * 1.05);
+  tl.addColorStop(0, 'rgba(255,244,220,0.12)'); tl.addColorStop(1, 'rgba(255,244,220,0)');
+  ctx.fillStyle = tl; ctx.fillRect(0, 0, w, h);
+  const eh = ctx.createRadialGradient(ex, ey, 0, ex, ey, er * 1.9);
+  eh.addColorStop(0, rgba(c.rgb, 0.32)); eh.addColorStop(1, rgba(c.rgb, 0));
+  ctx.fillStyle = eh; ctx.fillRect(0, 0, w, h);
+  if (!small) dust(ctx, card, w, h, 12, 0.6);
+  if (card.glyph) glyphBackdrop(ctx, card.glyph, w, h, 0.7);
+  // Эмблема масти
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = w * 0.06; ctx.shadowOffsetY = w * 0.02;
+  suitPath(ctx, card.suit, ex, ey, er);
+  const eg = ctx.createLinearGradient(0, ey - er, 0, ey + er);
+  eg.addColorStop(0, c.light); eg.addColorStop(1, c.main);
+  ctx.fillStyle = eg; ctx.fill('evenodd');
+  ctx.restore();
+  // Созвездие ранга — гравировкой в свободном углу
+  if (!small && !card.glyph && !st.fog) constellation(ctx, card.rank, [255, 246, 228], '#fff8ea', w * 0.74, w * 0.3, w * 0.15, w * 0.15, { line: 0.35, dot: 0.08, lw: 0.04, glow: 0.35, minDot: 0.9 });
+  ctx.restore();
+  // Золочёная кромка
+  const fg = ctx.createLinearGradient(0, 0, w, h);
+  fg.addColorStop(0, '#ffe6a8'); fg.addColorStop(0.45, '#c8912f'); fg.addColorStop(0.7, '#f6c25b'); fg.addColorStop(1, '#9a6a22');
+  roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
+  ctx.lineWidth = Math.max(1.2, w * 0.022); ctx.strokeStyle = card.glyph ? glyphStroke(ctx, card.glyph, w, h) : fg; ctx.stroke();
+  if (!small) {
+    roundRect(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55);
+    ctx.lineWidth = Math.max(0.6, w * 0.007); ctx.strokeStyle = 'rgba(255,240,210,0.2)'; ctx.stroke();
+  }
+  ctx.font = st.font === 'forum' ? `400 ${w * 0.58}px Forum` : `800 ${w * 0.49}px Manrope`;
+  rankText(ctx, st.fog ? '?' : String(card.rank), w * 0.255, w * 0.33, st.fog ? 'rgba(255,248,234,0.55)' : '#fff8ea', w, 0.5);
+  if (card.glyph) glyphBadge(ctx, card.glyph, w * 0.79, w * 0.2, w * 0.105);
+  if (st.ecl) {
+    ctx.save(); roundRect(ctx, 0, 0, w, h, r); ctx.clip();
+    ctx.globalCompositeOperation = 'saturation'; ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    eclipse(ctx, w, h, ex, ey, er * 0.82, 0.5);
+  }
+}
+
+// ─── «Сейчас»: картинки из scripts/vitrine-art.mjs ─────────────────────────
+const IMG = {};
+function imgName(card) { return `now/card-${card.suit}-${card.rank}${card.glyph ? '-' + card.glyph : ''}.webp`; }
+function loadImages() {
+  const all = [];
+  for (const s of SUITS) for (let r = 1; r <= 9; r++) all.push({ suit: s, rank: r });
+  all.push(...GLYPH_CARDS);
+  return Promise.all(all.map((c) => new Promise((res) => {
+    const im = new Image(); im.onload = () => { IMG[imgName(c)] = im; res(); }; im.onerror = res; im.src = imgName(c);
+  })));
+}
+function faceNow(ctx, card, w, h, st) {
+  const im = IMG[imgName(card)];
+  if (im) {
+    // Картинка 120 px + поля 15 px со всех сторон под свечение
+    const k = w / 120;
+    ctx.drawImage(im, -15 * k, -15 * k, im.naturalWidth / 2 * k, im.naturalHeight / 2 * k);
+  }
+  if (st.ecl) eclipse(ctx, w, h, w / 2, h * 0.52, w * 0.23, 0.5);
+}
+
+const VARIANTS = [
+  { id: 'now', name: 'Сейчас', tag: 'для сравнения', face: faceNow, noFog: true,
+    idea: 'Как в игре сейчас: цифра Forum с неоновым ореолом в углу, крупное созвездие и призрак масти в центре, кромка масти. На 44–56&nbsp;px цифра тонкая, ореол её мылит, центр шумит.' },
+  { id: 'v-index', name: 'Индекс', tag: 'вариант 1', face: faceIndex,
+    idea: '<b>Угловой индекс, как у настоящих игральных карт.</b> Крупный ранг Manrope 800 и знак масти в левом верхнем углу — читаются даже из-под соседней карты и пальца; поле тихое, созвездие ранга внизу — подпись, а не шум. Цвет масти — в цифре и кромке.' },
+  { id: 'v-medal', name: 'Медальон', tag: 'вариант 2', face: faceMedal,
+    idea: '<b>Ранг — гравировка в латунном медальоне по центру.</b> Цифра Forum крупнее всех вариантов, на кольце ровно столько звёзд, каков ранг: число читается дважды. Знак масти сверху и снизу. Самый «ювелирный» и симметричный.' },
+  { id: 'v-field', name: 'Небо масти', tag: 'вариант 3', face: faceField,
+    idea: '<b>Масть — цветом всего поля и крупной эмблемой.</b> Ранг белой костью одинаков для всех мастей — самый высокий контраст. Флеш виден через весь стол, а форма эмблемы отличает масть и без цвета. Золочёная кромка — «дорогая колода».' },
+];
+
+// ─── Карта в состоянии ─────────────────────────────────────────────────────
+function drawCard(ctx, V, card, x, y, w, st = {}) {
+  const h = w / ASPECT, r = w * 0.09;
+  ctx.save();
+  ctx.translate(x, y);
+  if (st.sel || st.lit) {
+    ctx.save();
+    ctx.shadowColor = st.sel ? 'rgba(255,214,120,0.7)' : rgba(SC[card.suit].rgb, 0.85);
+    ctx.shadowBlur = w * (st.sel ? 0.2 : 0.3);
+    roundRect(ctx, 0, 0, w, h, r); ctx.fillStyle = '#0a0a1f'; ctx.fill();
+    ctx.restore();
+  } else if (!st.flat) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = w * 0.12; ctx.shadowOffsetY = w * 0.04;
+    roundRect(ctx, 1, 1, w - 2, h - 2, r); ctx.fillStyle = '#0a0a1f'; ctx.fill();
+    ctx.restore();
+  }
+  V.face(ctx, card, w, h, st);
+  if (st.lit) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    roundRect(ctx, 0, 0, w, h, r); ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fill();
+    ctx.restore();
+    roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
+    ctx.lineWidth = Math.max(1.5, w * 0.03); ctx.strokeStyle = SC[card.suit].light; ctx.stroke();
+  }
+  if (st.sel) {
+    roundRect(ctx, -3, -3, w + 6, h + 6, r + 3);
+    ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(255,230,168,0.95)'; ctx.stroke();
+  }
+  ctx.restore();
+}
+const DPR = () => Math.min(3, window.devicePixelRatio || 1);
+/** Слот w×h с канвасом, у которого запас под свечение. */
+function cardSlot(V, card, w, st = {}) {
+  const h = Math.round(w / ASPECT), pad = Math.ceil(w * 0.3) + 4, dpr = DPR();
+  const slot = document.createElement('div');
+  slot.className = 'slot'; slot.style.width = w + 'px'; slot.style.height = h + 'px';
+  const cv = document.createElement('canvas');
+  cv.width = Math.round((w + pad * 2) * dpr); cv.height = Math.round((h + pad * 2) * dpr);
+  cv.style.width = (w + pad * 2) + 'px'; cv.style.height = (h + pad * 2) + 'px';
+  cv.style.left = -pad + 'px'; cv.style.top = -pad + 'px';
+  cv.setAttribute('role', 'img');
+  cv.setAttribute('aria-label', `${SUIT_NAME[card.suit]}, ${card.rank}${card.glyph ? ', ' + GLYPH_NAME[card.glyph] : ''}`);
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  drawCard(ctx, V, card, pad, pad, w, st);
+  slot.appendChild(cv);
+  return slot;
+}
+
+// ─── Мокап ночи на телефоне 390×844 ───────────────────────────────────────
+const BOARD = [
+  { suit: 'sun', rank: 9 }, null, { suit: 'star', rank: 2 }, { suit: 'comet', rank: 4, ecl: true },
+  { suit: 'moon', rank: 3, lit: true }, { suit: 'moon', rank: 5, lit: true }, { suit: 'moon', rank: 6, lit: true }, { suit: 'moon', rank: 8, lit: true },
+  null, { suit: 'star', rank: 7 }, null, { suit: 'sun', rank: 1 },
+  { suit: 'comet', rank: 6, ecl: true }, null, { suit: 'sun', rank: 7, glyph: 'gilded' }, null,
+];
+const HAND = [
+  { suit: 'star', rank: 4 }, { suit: 'sun', rank: 2 }, { suit: 'moon', rank: 9, sel: true }, { suit: 'comet', rank: 1 }, { suit: 'star', rank: 9, glyph: 'radiant' },
+];
+function drawPhone(cv, V) {
+  const box = cv.parentElement.getBoundingClientRect();
+  const W = box.width, H = box.width * 844 / 390, dpr = DPR();
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr * W / 390, 0, 0, dpr * W / 390, 0, 0);
+  // Небо
+  const sky = ctx.createLinearGradient(0, 0, 0, 844);
+  sky.addColorStop(0, '#191641'); sky.addColorStop(0.55, '#0c0d2c'); sky.addColorStop(1, '#05061a');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 390, 844);
+  const neb = ctx.createRadialGradient(300, 260, 0, 300, 260, 300);
+  neb.addColorStop(0, 'rgba(120,80,200,0.16)'); neb.addColorStop(1, 'rgba(120,80,200,0)');
+  ctx.fillStyle = neb; ctx.fillRect(0, 0, 390, 844);
+  for (let i = 0; i < 90; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.15 + frac(i * 0.618) * 0.45})`;
+    const s = frac(i * 0.377) > 0.85 ? 1.6 : 1;
+    ctx.fillRect(frac(Math.sin(i * 91.7) * 4375.5) * 390, frac(Math.sin(i * 17.3) * 2463.6) * 844, s, s);
+  }
+  // Вырез и статус-бар
+  ctx.fillStyle = '#000'; roundRect(ctx, 133, 11, 124, 36, 18); ctx.fill();
+  ctx.fillStyle = '#eae6ff'; ctx.font = '600 15px Manrope'; ctx.textAlign = 'left'; ctx.fillText('9:41', 36, 34);
+  // Табло (упрощённо — как «Рама»)
+  ctx.textAlign = 'center';
+  ctx.font = '400 13px Forum'; ctx.letterSpacing = '3px'; ctx.fillStyle = '#ffe6a8';
+  ctx.fillText('ГЛАВА III · ПОЛНОЧЬ', 195, 82);
+  ctx.letterSpacing = '0px';
+  const sill = ctx.createRadialGradient(195, 92, 0, 195, 92, 110);
+  sill.addColorStop(0, 'rgba(255,230,168,0.8)'); sill.addColorStop(1, 'rgba(246,194,91,0)');
+  ctx.fillStyle = sill; ctx.fillRect(85, 91, 220, 1.5);
+  ctx.font = '800 34px Manrope'; ctx.fillStyle = '#eae6ff'; ctx.fillText('1 240', 195, 134);
+  ctx.font = '600 13px Manrope'; ctx.fillStyle = '#a5a0cf'; ctx.fillText('из 2 800', 195, 154);
+  ctx.fillStyle = 'rgba(246,194,91,0.18)'; roundRect(ctx, 115, 164, 160, 3, 1.5); ctx.fill();
+  ctx.fillStyle = '#f6c25b'; roundRect(ctx, 115, 164, 71, 3, 1.5); ctx.fill();
+  ctx.font = '800 11px Manrope'; ctx.letterSpacing = '1px'; ctx.fillStyle = '#8a85b8';
+  ctx.textAlign = 'left'; ctx.fillText('ХОДЫ 9', 28, 134); ctx.textAlign = 'right'; ctx.fillText('СЖЕЧЬ 2', 362, 134);
+  ctx.letterSpacing = '0px';
+  // Небо 4×4
+  const cw = 70, ch = cw / ASPECT, gap = 7, bx = (390 - (cw * 4 + gap * 3)) / 2, by = 192;
+  for (let i = 0; i < 16; i++) {
+    const x = bx + (i % 4) * (cw + gap), y = by + Math.floor(i / 4) * (ch + gap);
+    roundRect(ctx, x + 0.5, y + 0.5, cw - 1, ch - 1, cw * 0.09);
+    ctx.fillStyle = 'rgba(14,12,38,0.55)'; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(246,194,91,0.16)'; ctx.stroke();
+  }
+  for (let i = 0; i < 16; i++) {
+    const c = BOARD[i]; if (!c) continue;
+    const x = bx + (i % 4) * (cw + gap), y = by + Math.floor(i / 4) * (ch + gap);
+    drawCard(ctx, V, c, x, y, cw, { lit: c.lit, ecl: c.ecl });
+  }
+  // Лента созвездия поперёк собранной линии
+  const ly = by + (ch + gap) + ch / 2;
+  const rb = ctx.createLinearGradient(bx - 10, 0, 390 - bx + 10, 0);
+  rb.addColorStop(0, 'rgba(10,9,32,0)'); rb.addColorStop(0.2, 'rgba(10,9,32,0.86)'); rb.addColorStop(0.8, 'rgba(10,9,32,0.86)'); rb.addColorStop(1, 'rgba(10,9,32,0)');
+  ctx.fillStyle = rb; ctx.fillRect(bx - 10, ly + ch * 0.5 - 8, 390 - 2 * bx + 20, 26);
+  ctx.font = '400 15px Forum'; ctx.letterSpacing = '3px'; ctx.fillStyle = '#ffe6a8'; ctx.textAlign = 'center';
+  ctx.fillText('ФЛЕШ', 195, ly + ch * 0.5 + 10); ctx.letterSpacing = '0px';
+  // Рука
+  const hw = 66, hh = hw / ASPECT, hg = 7, hx = (390 - (hw * 5 + hg * 4)) / 2, hy = 668;
+  HAND.forEach((c, i) => drawCard(ctx, V, c, hx + i * (hw + hg), hy - (c.sel ? 14 : 0), hw, { sel: c.sel }));
+  // Лёгкие кнопки
+  ctx.font = '700 14px Manrope'; ctx.fillStyle = '#ffe6a8';
+  ctx.textAlign = 'center'; ctx.fillText('Колода', 120, 800); ctx.fillText('Сжечь', 270, 800);
+  ctx.fillStyle = 'rgba(246,194,91,0.25)'; ctx.fillRect(195, 786, 1, 20);
+  ctx.fillStyle = 'rgba(234,230,255,0.85)'; roundRect(ctx, 128, 828, 134, 5, 2.5); ctx.fill();
+}
+
+// ─── Сборка страницы ───────────────────────────────────────────────────────
+const SMALL = [
+  { suit: 'sun', rank: 1 }, { suit: 'moon', rank: 7 }, { suit: 'star', rank: 4 }, { suit: 'comet', rank: 9 },
+  { suit: 'sun', rank: 6 }, { suit: 'moon', rank: 8 }, { suit: 'star', rank: 3 }, { suit: 'comet', rank: 5 },
+];
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+function buildSkeleton() {
+  const root = document.getElementById('variants');
+  for (const V of VARIANTS) {
+    const s = el('section', 'variant'); s.id = V.id;
+    s.innerHTML = `<div class="hr"></div>
+      <div class="vhead" style="margin-top:40px"><h2 class="vname"><small>${V.tag.toUpperCase()}</small>${V.id === 'now' ? V.name : '«' + V.name + '»'}</h2>
+      <p class="videa">${V.idea}</p></div>
+      <div class="label">Колода: 4 масти × 9 рангов</div><div class="deck" data-k="deck"></div>
+      <div class="grid2">
+        <div><div class="label">В игре · 390 × 844</div><div class="phone"><canvas></canvas></div>
+          <p class="phone-cap">Небо 4×4: собранная линия Луны, Затмение Кометы, карта с Позолотой; в руке выбрана девятка Луны.</p></div>
+        <div>
+          <div class="label">Глифы</div><div class="row" data-k="glyph"></div>
+          <div class="label">Состояния</div><div class="row" data-k="state"></div>
+          <div class="label">Мелко: 56 и 44 px</div><div class="tinybox" data-k="tiny"></div>
+        </div>
+      </div>`;
+    root.appendChild(s);
+  }
+}
+
+function render() {
+  for (const V of VARIANTS) {
+    const s = document.getElementById(V.id);
+    // Колода
+    const deck = s.querySelector('[data-k=deck]'); deck.innerHTML = '';
+    const dw = deck.getBoundingClientRect().width;
+    const cols = dw >= 640 ? 9 : 5;
+    const g = dw >= 640 ? 12 : 8;
+    const w = Math.min(118, Math.floor((dw - g * (cols - 1)) / cols));
+    for (const suit of SUITS) {
+      const row = el('div', 'suitrow'); row.style.setProperty('--cols', cols); row.style.setProperty('--g', g + 'px');
+      for (let r = 1; r <= 9; r++) row.appendChild(cardSlot(V, { suit, rank: r }, w, {}));
+      deck.appendChild(row);
+    }
+    // Глифы
+    const gl = s.querySelector('[data-k=glyph]'); gl.innerHTML = '';
+    const gw = gl.getBoundingClientRect().width;
+    const gcw = Math.min(100, Math.floor((gw - 14 * 2) / 3));
+    const ggap = gw >= 640 ? 14 : 14;
+    const perRow = Math.max(3, Math.min(6, Math.floor((gw + ggap) / (gcw + ggap))));
+    const gcw2 = Math.min(100, Math.floor((gw - ggap * (perRow - 1)) / perRow));
+    for (const c of GLYPH_CARDS) {
+      const cell = el('div', 'cell');
+      cell.appendChild(cardSlot(V, c, gcw2, {}));
+      cell.appendChild(el('div', 'cap', `<b>${GLYPH_NAME[c.glyph]}</b>${SUIT_NAME[c.suit]} ${c.rank}`));
+      gl.appendChild(cell);
+    }
+    // Состояния
+    const stRow = s.querySelector('[data-k=state]'); stRow.innerHTML = '';
+    const states = [
+      ['Обычная', {}], ['Выбрана', { sel: true }], ['В собранной линии', { lit: true }], ['Затмение масти', { ecl: true }],
+    ];
+    if (!V.noFog) states.push(['Туман: ранг скрыт', { fog: true }]);
+    const sn = states.length;
+    const sPer = gw >= 560 ? sn : 3;
+    const scw = Math.min(100, Math.floor((gw - 14 * (sPer - 1)) / sPer));
+    for (const [name, st] of states) {
+      const cell = el('div', 'cell');
+      const slot = cardSlot(V, { suit: 'moon', rank: 7 }, scw, st);
+      if (st.sel) slot.style.transform = 'translateY(-10px)';
+      cell.appendChild(slot);
+      cell.appendChild(el('div', 'cap', name));
+      stRow.appendChild(cell);
+    }
+    // Мелко
+    const tiny = s.querySelector('[data-k=tiny]'); tiny.innerHTML = '';
+    for (const size of [56, 44]) {
+      const row = el('div', 'tiny');
+      row.appendChild(el('div', 'sz', size + ' px'));
+      const avail = tiny.getBoundingClientRect().width - 52;
+      const n = Math.min(8, Math.floor((avail + 8) / (size + 8)));
+      SMALL.slice(0, n).forEach((c) => row.appendChild(cardSlot(V, c, size, { flat: true })));
+      tiny.appendChild(row);
+    }
+    drawPhone(s.querySelector('.phone canvas'), V);
+  }
+  // Сравнение шрифтов — на «Индексе»
+  for (const [id, font] of [['font-forum', 'forum'], ['font-manrope', 'manrope']]) {
+    const box = document.getElementById(id); box.innerHTML = '';
+    const avail = box.getBoundingClientRect().width - 52;
+    for (const size of [56, 44]) {
+      const row = el('div', 'tiny');
+      row.appendChild(el('div', 'sz', size + ' px'));
+      const n = Math.min(8, Math.floor((avail + 8) / (size + 8)));
+      SMALL.slice(0, n).forEach((c) => row.appendChild(cardSlot(VARIANTS[1], c, size, { flat: true, font })));
+      box.appendChild(row);
+    }
+  }
+}
+
+let timer = 0, lastW = 0;
+window.addEventListener('resize', () => {
+  if (Math.abs(window.innerWidth - lastW) < 2) return;
+  clearTimeout(timer); timer = setTimeout(() => { lastW = window.innerWidth; render(); }, 150);
+});
+buildSkeleton();
+Promise.all([
+  document.fonts.load('400 40px Forum'), document.fonts.load('800 40px Manrope'), document.fonts.load('600 14px Manrope'), document.fonts.load('700 14px Manrope'),
+  loadImages(),
+]).catch(() => {}).then(() => document.fonts.ready).then(() => { lastW = window.innerWidth; render(); document.body.dataset.ready = '1'; });
+})();
+</script>
+</body>
+</html>

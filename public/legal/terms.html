@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05061a" />
+<meta name="format-detection" content="telephone=no" />
+<title>Звёздное плетение — Пользовательское соглашение</title>
+<link rel="icon" href="../favicon.png" />
+<style>
+  @font-face { font-family: 'Forum'; font-display: swap; src: url(fonts/forum-cyrillic.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Forum'; font-display: swap; src: url(fonts/forum-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215; }
+  @font-face { font-family: 'Manrope'; font-display: swap; font-weight: 200 800; src: url(fonts/manrope-cyrillic.woff2) format('woff2'); unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: 'Manrope'; font-display: swap; font-weight: 200 800; src: url(fonts/manrope-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215; }
+  :root { color-scheme: dark; --gold: #f6c25b; --gold-hi: #ffe6a8; --ink: #eae6ff; --ink-dim: #b3aedb; --ink-faint: #8a85b8; --brass: rgb(246 194 91 / 0.3); --hair: rgb(246 194 91 / 0.16); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(70% 40% at 50% 0%, #15123d, #05061a 70%) no-repeat, #05061a; color: var(--ink); font: 400 16px/1.65 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  ::selection { background: rgb(246 194 91 / 0.35); }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+  a { color: var(--gold-hi); text-decoration-color: rgb(246 194 91 / 0.5); text-underline-offset: 3px; }
+  main { max-width: 700px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(56px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
+  /* Без скрипта видны оба языка подряд; со скриптом — выбранный */
+  html.js section:not(.on) { display: none; }
+  html:not(.js) section + section { margin-top: 64px; }
+  .head { display: grid; justify-items: center; gap: 12px; margin-bottom: 26px; text-align: center; }
+  .mark { font: 400 13px/1 'Forum', 'Times New Roman', serif; letter-spacing: 0.3em; text-transform: uppercase; color: rgb(255 230 168 / 0.75); }
+  h1 { margin: 0; font: 400 clamp(22px, 6.2vw, 38px)/1.12 'Forum', 'Times New Roman', serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold-hi); text-wrap: balance; }
+  .sill { width: min(420px, 90%); height: 1.5px; background: radial-gradient(closest-side, rgb(255 230 168 / 0.9), transparent); }
+  .row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 16px; }
+  .ed { color: var(--ink-faint); font-size: 13.5px; }
+  .langs { display: inline-flex; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .langs a { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 999px; font: 700 13px/1 'Manrope', system-ui, sans-serif; color: var(--ink-dim); text-decoration: none; }
+  .langs a.on { color: #1a1206; background: var(--gold); }
+  .doc p { margin: 0 0 12px; text-wrap: pretty; }
+  .doc ul { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .doc li { position: relative; padding-left: 22px; text-wrap: pretty; }
+  .doc li::before { content: ''; position: absolute; left: 4px; top: 0.72em; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px rgb(246 194 91 / 0.6); }
+  .doc strong { color: var(--gold-hi); font-weight: 700; }
+  .doc h2 { margin: 30px 0 12px; display: flex; align-items: center; gap: 12px; font: 400 15px/1.2 'Forum', 'Times New Roman', serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+  .doc h2 .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 800 13px/1 'Manrope', system-ui, sans-serif; letter-spacing: 0; color: var(--gold); box-shadow: inset 0 0 0 1px var(--brass); }
+  .doc h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+  .other { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding-top: 14px; margin-top: 30px; box-shadow: 0 -1px 0 var(--hair); font-size: 14px; }
+  .other a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; overflow-wrap: anywhere; }
+  .icon { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<script>
+  // Язык: из адреса (#ru, #en), иначе — язык браузера
+  (function () {
+    var root = document.documentElement;
+    root.classList.add('js');
+    function pick() {
+      var lang = location.hash === '#en' || (location.hash !== '#ru' && !/^ru\b/i.test(navigator.language || '')) ? 'en' : 'ru';
+      root.lang = lang;
+      document.querySelectorAll('section').forEach(function (s) { s.classList.toggle('on', s.id === lang); });
+      window.scrollTo(0, 0);
+    }
+    addEventListener('hashchange', pick);
+    addEventListener('DOMContentLoaded', pick);
+  })();
+</script>
+</head>
+<body><main>
+<section id="ru" lang="ru">
+<header class="head">
+  <span class="mark">Звёздное плетение</span>
+  <h1>Пользовательское соглашение</h1>
+  <div class="sill"></div>
+  <div class="row"><span class="ed">Редакция от 12 октября 2026 года.</span><span class="langs"><a href="#ru" data-lang="ru" class="on">Русский</a><a href="#en" data-lang="en">English</a></span></div>
+</header>
+<div class="doc">
+<h2><span class="n">1</span>Общее</h2>
+<p>«Звёздное плетение» (Starweave, далее — «Игра») предоставляет Безик Денис Валерьевич, плательщик налога на профессиональный доход (самозанятый), ИНН 230910405420 («мы»). Играя, вы соглашаетесь с этими условиями. Если вы не согласны — не используйте Игру.</p>
+<h2><span class="n">2</span>Игра</h2>
+<p>Игра бесплатна. Она может показывать рекламу и предлагать необязательные покупки. Внутриигровые ценности (золото, Знамения, косметика и т.п.) не являются деньгами, не обмениваются на них и не передаются другим игрокам.</p>
+<h2><span class="n">3</span>Покупки</h2>
+<p>Покупки проводит площадка, на которой вы играете (в Telegram — за Telegram Stars), по своим правилам. «Звёздный атлас», набор мецената и внешний вид открываются навсегда и действуют в той версии Игры, где были куплены. Чаевые ничего не открывают. Ничто из продаваемого не даёт преимущества в рекордах и вызове дня.</p>
+<p>Если купленное не открылось, напишите боту игры команду /paysupport — мы разберёмся и при необходимости вернём оплату. При возврате покупка перестаёт действовать.</p>
+<h2><span class="n">4</span>Честная игра</h2>
+<p>Запрещено вмешиваться в работу Игры, подделывать результаты рейтингов и вызова дня, использовать уязвимости. Мы можем исключать такие результаты из рейтингов.</p>
+<h2><span class="n">5</span>Права</h2>
+<p>Игра, её код, графика, звук и тексты принадлежат нам. Вы можете играть в Игру для личного некоммерческого использования.</p>
+<h2><span class="n">6</span>Ответственность</h2>
+<p>Игра предоставляется «как есть». Мы стараемся, чтобы она работала без ошибок, но не гарантируем этого и не отвечаем за потерю прогресса из-за сбоев устройства или площадки.</p>
+<h2><span class="n">7</span>Изменения и связь</h2>
+<p>Мы можем обновлять Игру и эти условия. Вопросы: denis.bezik@gmail.com.</p></div>
+<footer class="other"><a href="privacy.html#ru"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>Политика конфиденциальности</a><a href="mailto:denis.bezik@gmail.com"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>denis.bezik@gmail.com</a></footer>
+</section>
+<section id="en" lang="en">
+<header class="head">
+  <span class="mark">Starweave</span>
+  <h1>Terms of Use</h1>
+  <div class="sill"></div>
+  <div class="row"><span class="ed">Effective date: October 12, 2026.</span><span class="langs"><a href="#ru" data-lang="ru">Русский</a><a href="#en" data-lang="en" class="on">English</a></span></div>
+</header>
+<div class="doc">
+<h2><span class="n">1</span>General</h2>
+<p>Starweave (the "Game") is provided by Denis Valerievich Bezik, self-employed (professional income tax payer, Russia), INN 230910405420 ("we"). By playing you agree to these terms. If you do not agree, do not use the Game.</p>
+<h2><span class="n">2</span>The Game</h2>
+<p>The Game is free. It may show ads and offer optional purchases. In-game items (gold, Omens, cosmetics, etc.) are not money, cannot be exchanged for money and cannot be transferred to other players.</p>
+<h2><span class="n">3</span>Purchases</h2>
+<p>Purchases are processed by the platform you play on (Telegram Stars in Telegram), under its rules. The Star Atlas, the Patron Pack and cosmetics unlock forever in the version of the Game where they were bought. Tips unlock nothing. Nothing on sale gives an advantage in records or the daily challenge.</p>
+<p>If a purchase did not unlock, send /paysupport to the game's bot — we will sort it out and refund if needed. A refunded purchase stops working.</p>
+<h2><span class="n">4</span>Fair play</h2>
+<p>Do not tamper with the Game, fake leaderboard or daily challenge results, or exploit bugs. We may remove such results from leaderboards.</p>
+<h2><span class="n">5</span>Rights</h2>
+<p>The Game, its code, art, sound and texts belong to us. You may play it for personal, non-commercial use.</p>
+<h2><span class="n">6</span>Liability</h2>
+<p>The Game is provided "as is". We try to keep it bug-free but do not guarantee it and are not liable for lost progress caused by device or platform failures.</p>
+<h2><span class="n">7</span>Changes and contact</h2>
+<p>We may update the Game and these terms. Questions: denis.bezik@gmail.com.</p></div>
+<footer class="other"><a href="privacy.html#en"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7Z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>Privacy Policy</a><a href="mailto:denis.bezik@gmail.com"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>denis.bezik@gmail.com</a></footer>
+</section>
+</main></body>
+</html>
