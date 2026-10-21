@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Резонанс · Starweave 0.9</title>
+<!--KIT-->
+<style>
+#center { flex: 1; display: grid; align-content: center; }
+em { font-style: normal; }
+.shop-head { display: flex; justify-content: space-between; align-items: center; }
+.shop-head .plate-title { font-size: 16px; }
+.gold { display: inline-flex; align-items: center; gap: 6px; font: 800 17px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.gold i { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); }
+.sec { display: flex; align-items: center; gap: 10px; font: 400 12px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.sec::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+
+.belt { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); justify-items: center; gap: 4px; padding: 12px 0 6px; }
+.belt .om { position: relative; width: 56px; height: 56px; border: 0; padding: 0; background: none; cursor: pointer; border-radius: 50%; transition: transform 0.25s cubic-bezier(.2,.9,.3,1.2), filter 0.2s ease; }
+.belt .om.sel { transform: translateY(-8px); filter: drop-shadow(0 0 10px rgb(var(--gold-rgb) / 0.8)); }
+.belt .om.empty { cursor: default; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.22); }
+.belt .om .k-sig, .belt .om canvas { width: 56px; height: 56px; }
+.belt .om.res { animation: hum 1.4s ease-in-out infinite; }
+@keyframes hum { 50% { filter: drop-shadow(0 0 9px rgb(255 214 120 / 0.9)); } }
+.belt svg.thread { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.thread path { fill: none; stroke: #ffe6a8; stroke-width: 1.5; stroke-dasharray: 3 4; animation: flow 0.9s linear infinite; filter: drop-shadow(0 0 4px rgb(246 194 91 / 0.9)); }
+@keyframes flow { to { stroke-dashoffset: -14; } }
+.belt .om.fly-l { transform: translateX(var(--dx)) scale(0.6); opacity: 0; transition: transform 0.7s cubic-bezier(.6,0,.3,1), opacity 0.7s ease 0.2s; }
+.belt .om.fly-r { transform: translateX(calc(var(--dx) * -1)) scale(0.6); opacity: 0; transition: transform 0.7s cubic-bezier(.6,0,.3,1), opacity 0.7s ease 0.2s; }
+
+.legend-big { display: grid; justify-items: center; gap: 10px; min-height: 210px; align-content: center; }
+.legend-big canvas { width: 132px; height: 132px; }
+.legend-big .nm { font: 400 18px/1.1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: var(--gold-hi); text-align: center; }
+.legend-big .ef { font: 600 13px/1.4 var(--font-body); color: var(--ink); text-align: center; max-width: 280px; text-wrap: balance; }
+.legend-big .ef em { font-style: normal; }
+.legend-big .from { display: flex; align-items: center; gap: 8px; color: var(--ink-faint); font: 600 12px/1 var(--font-body); }
+.spin { animation: born 1.1s cubic-bezier(.16,1,.3,1) both; }
+@keyframes born { from { transform: scale(0.3) rotate(-90deg); filter: brightness(2.4) blur(4px); opacity: 0; } 60% { filter: brightness(1.6) blur(0); opacity: 1; } to { transform: none; filter: none; } }
+.idle-tip { display: grid; justify-items: center; gap: 10px; min-height: 210px; align-content: center; text-align: center; }
+.idle-tip .pairline { display: flex; align-items: center; gap: 10px; }
+.idle-tip .pairline .plus { color: var(--gold); font: 800 18px/1 var(--font-body); }
+
+/* Коллекция легендарных */
+.lex { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 22px; }
+.lx { display: grid; grid-template-columns: 36px 12px 36px 18px 48px minmax(0, 1fr); align-items: center; gap: 8px; padding: 10px 0; box-shadow: 0 -1px 0 var(--hair); }
+.lx .op { color: var(--ink-faint); font: 800 13px/1 var(--font-body); text-align: center; }
+.lx .op.eq { color: var(--gold); }
+.lx b { display: block; font: 700 13.5px/1.2 var(--font-body); color: var(--ink-dim); }
+.lx small { display: block; margin-top: 2px; font: 600 11.5px/1.3 var(--font-body); color: var(--ink-faint); }
+.lx.found b { color: var(--gold-hi); }
+.lx.found small { color: var(--ink-dim); }
+.lx .unseen { filter: grayscale(1) brightness(0.35); }
+.lx canvas { width: 48px; height: 48px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="shop-head"><div class="plate-title">Обсерватория</div><span class="gold"><i></i>14</span></div>
+          <div class="sec">Твои Знамения</div>
+          <div class="belt" id="belt"></div>
+          <div id="center"></div>
+          <div class="stage-foot">
+            <div class="stage-note" id="note">Нажми на два Знамения — они поменяются местами</div>
+            <button class="btn btn-primary" id="go" disabled>Резонанс</button>
+            <div class="btn-row"><button class="btn btn-light" id="reset">Сначала</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Восемь резонансов <small>пара Знамений → легендарное · силуэт, пока не найдено</small></div>
+  <div class="lex" id="lex"></div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.9 · Резонанс Знамений · 21.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'resonance', lead: 'Два Знамения одной темы, поставленные <b>рядом</b>, начинают звучать вместе — и сливаются в легендарное. Его не купить: его находят.' });
+
+/* art: omen-sunWorship omen-highNoon omen-crossroads omen-doubleStar omen-nightOwl omen-patientSky omen-moonTide omen-lowTide
+   omen-ladder omen-shortcut omen-monochrome omen-prismLens omen-pyre omen-ember omen-hoarder omen-miser omen-stardust nebula-5 */
+const PAIRS = [
+  { a: 'sunWorship', b: 'highNoon', name: 'Полдень', ef: 'Карты Солнца 7–9: <em class="c-mult">+6</em> множ. и <em class="c-mult">×1.5</em>', c1: '#f2a93b', c2: '#ffd36a' },
+  { a: 'crossroads', b: 'doubleStar', name: 'Звёздный узел', ef: 'Крест: <em class="c-mult">×4</em> к итогу хода', c1: '#1f9e84', c2: '#64e0c4' },
+  { a: 'nightOwl', b: 'patientSky', name: 'Полуночная сова', ef: 'Последние 3 хода ночи: <em class="c-mult">×2</em> к итогу', c1: '#7d86b8', c2: '#c4cbff' },
+  { a: 'moonTide', b: 'lowTide', name: 'Прилив', ef: 'Карты Луны и ранги 1–3: <em class="c-light">+40</em> света', c1: '#4f9be0', c2: '#9fd8ff' },
+  { a: 'ladder', b: 'shortcut', name: 'Млечный путь', ef: 'Стрит с пропуском, множ. стрита <em class="c-mult">×2</em>', c1: '#4362d8', c2: '#9aaeff' },
+  { a: 'monochrome', b: 'prismLens', name: 'Чистый спектр', ef: 'Флешу хватает трёх карт, <em class="c-mult">+15</em> множ.', c1: '#4362d8', c2: '#c39bff' },
+  { a: 'pyre', b: 'ember', name: 'Пожар', ef: '<em class="c-gold">+2</em> сжигания, <em class="c-mult">+5</em> множ. за каждое', c1: '#e5633f', c2: '#ffb36a' },
+  { a: 'hoarder', b: 'miser', name: 'Сокровищница', ef: '<em class="c-mult">+1</em> множ. за каждые 2 золота, проценты до <em class="c-gold">+10</em>', c1: '#c98a22', c2: '#ffe6a8' },
+];
+const START = ['sunWorship', 'ladder', 'highNoon', 'nightOwl', 'stardust'];
+/* Что игрок уже видел за прошлые забеги: найденный резонанс и «половинки» */
+const SEEN = new Set(['crossroads', 'doubleStar', 'nightOwl', 'monochrome']);
+const FOUND = new Set(['Звёздный узел']);
+let belt, sel, made, busy;
+const stage = sky(q('#stage'), 5);
+
+/* Легендарная медаль: латунная оправа с насечками, эмаль двух цветов пары, лучистое сердце */
+function legendMedal(p, size = 132, mode = 'full') {
+  const dpr = min(2, devicePixelRatio || 1), cv = h('canvas');
+  cv.width = cv.height = size * dpr;
+  cv.style.width = cv.style.height = size + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const c = size / 2, R = size * 0.47;
+  if (mode === 'none') {
+    // Силуэт: тёмный диск и пунктир оправы — видно, что место есть, но не что внутри
+    ctx.fillStyle = 'rgba(20,18,52,.9)'; ctx.beginPath(); ctx.arc(c, c, R, 0, PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(165,160,207,.4)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(c, c, R - 1, 0, PI * 2); ctx.stroke();
+    return cv;
+  }
+  ctx.save();
+  if (mode === 'half') { ctx.beginPath(); ctx.rect(0, 0, c, size); ctx.clip(); }
+  // Оправа
+  const rim = ctx.createLinearGradient(0, 0, size, size);
+  rim.addColorStop(0, '#fff1c2'); rim.addColorStop(0.45, '#e2a43c'); rim.addColorStop(1, '#8a5a14');
+  ctx.fillStyle = rim; ctx.beginPath(); ctx.arc(c, c, R, 0, PI * 2); ctx.fill();
+  ctx.fillStyle = '#5a3a0a';
+  for (let i = 0; i < 32; i++) { const a = (i / 32) * PI * 2; ctx.beginPath(); ctx.arc(c + cos(a) * R * 0.93, c + sin(a) * R * 0.93, size * 0.008, 0, PI * 2); ctx.fill(); }
+  // Эмаль: два цвета пары сходятся в шве
+  const r2 = R * 0.82;
+  const g = ctx.createConicGradient ? ctx.createConicGradient(-PI / 2, c, c) : null;
+  if (g) { g.addColorStop(0, p.c1); g.addColorStop(0.5, p.c2); g.addColorStop(1, p.c1); ctx.fillStyle = g; } else ctx.fillStyle = p.c1;
+  ctx.beginPath(); ctx.arc(c, c, r2, 0, PI * 2); ctx.fill();
+  const dark = ctx.createRadialGradient(c, c * 0.8, 0, c, c, r2);
+  dark.addColorStop(0, 'rgba(255,255,255,.18)'); dark.addColorStop(0.55, 'rgba(10,8,30,.15)'); dark.addColorStop(1, 'rgba(10,8,30,.6)');
+  ctx.fillStyle = dark; ctx.beginPath(); ctx.arc(c, c, r2, 0, PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,240,200,.85)'; ctx.lineWidth = size * 0.012; ctx.beginPath(); ctx.arc(c, c, r2, 0, PI * 2); ctx.stroke();
+  // Лучистое сердце: восьмилучевая звезда
+  ctx.translate(c, c);
+  for (const [rad, w, col] of [[r2 * 0.78, 0.2, 'rgba(255,246,224,.35)'], [r2 * 0.62, 0.16, '#fff6e0']]) {
+    ctx.fillStyle = col; ctx.beginPath();
+    for (let i = 0; i < 16; i++) { const a = (i / 16) * PI * 2 - PI / 2, rr2 = i % 2 ? rad * w : i % 4 === 0 ? rad : rad * 0.62; ctx.lineTo(cos(a) * rr2, sin(a) * rr2); }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, r2 * 0.12, 0, PI * 2); ctx.fill();
+  ctx.restore();
+  if (mode === 'half') { ctx.strokeStyle = 'rgba(165,160,207,.35)'; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(c, c, R - 1, -PI / 2, PI / 2); ctx.stroke(); }
+  return cv;
+}
+const pairOf = (x, y) => PAIRS.find((p) => (p.a === x && p.b === y) || (p.a === y && p.b === x));
+function adjacentPair() {
+  for (let i = 0; i < belt.length - 1; i++) { const p = belt[i] && belt[i + 1] && pairOf(belt[i], belt[i + 1]); if (p) return { p, i }; }
+  return null;
+}
+function reset() { belt = [...START]; sel = null; made = null; busy = false; render(); }
+function render() {
+  const el = q('#belt'), res = adjacentPair();
+  el.replaceChildren(...belt.map((id, i) => {
+    if (id === 'legend') return h('button', { class: 'om', 'aria-label': made.name }, legendMedal(made, 56));
+    if (!id) return h('div', { class: 'om empty' });
+    return h('button', { class: 'om' + (sel === i ? ' sel' : '') + (res && (i === res.i || i === res.i + 1) ? ' res' : ''), 'aria-label': OMEN_RU[id][0], onclick: () => tap(i) }, omen(id, 56));
+  }));
+  if (res) {
+    requestAnimationFrame(() => {
+      const kids = el.children, b0 = el.getBoundingClientRect();
+      const A = kids[res.i].getBoundingClientRect(), B = kids[res.i + 1].getBoundingClientRect();
+      const x1 = A.right - b0.left - 4, x2 = B.left - b0.left + 4, y = A.top - b0.top + A.height / 2;
+      const t = svg(`<path d="M${x1} ${y}Q${(x1 + x2) / 2} ${y - 16} ${x2} ${y}"/>`, b0.width, b0.height);
+      t.classList.add('thread'); t.removeAttribute('width'); t.removeAttribute('height');
+      el.append(t);
+    });
+  }
+  q('#go').disabled = !res || busy;
+  q('#go').style.display = made ? 'none' : '';
+  const center = q('#center');
+  if (made) {
+    center.replaceChildren(h('div', { class: 'legend-big' }, h('div', { class: 'spin' }, legendMedal(made, 132)), h('div', { class: 'nm' }, made.name), h('div', { class: 'ef', html: made.ef }),
+      h('div', { class: 'from' }, omen(made.a, 24), '+', omen(made.b, 24), 'освободили слот')));
+    q('#note').textContent = 'Легендарное занимает одно место — в ряду появился свободный слот';
+  } else if (res) {
+    center.replaceChildren(h('div', { class: 'idle-tip rise' }, h('div', { class: 'pairline' }, omen(res.p.a, 44), h('span', { class: 'plus' }, '+'), omen(res.p.b, 44)),
+      h('div', { class: 'plate-sub' }, 'Знамения звучат вместе'), legendMedal(res.p, 56, 'none')));
+    q('#note').textContent = 'Пара стоит рядом — между ними нить. Сольются в одно легендарное';
+  } else {
+    const hint = PAIRS[0];
+    center.replaceChildren(h('div', { class: 'idle-tip' }, h('div', { class: 'pairline' }, omen(hint.a, 44), h('span', { class: 'plus' }, '+'), omen(hint.b, 44)),
+      h('div', { class: 'plate-sub' }, 'Солнцепоклонник и Зенит — одной темы. Поставь их рядом')));
+    q('#note').textContent = 'Нажми на два Знамения — они поменяются местами';
+  }
+}
+function tap(i) {
+  if (busy || made) return;
+  if (sel == null) sel = i;
+  else if (sel === i) sel = null;
+  else { [belt[sel], belt[i]] = [belt[i], belt[sel]]; sel = null; }
+  render();
+}
+async function fuse() {
+  const res = adjacentPair();
+  if (!res || busy) return;
+  busy = true;
+  const kids = q('#belt').children, A = kids[res.i], B = kids[res.i + 1];
+  const dx = (B.getBoundingClientRect().left - A.getBoundingClientRect().left) / 2;
+  A.style.setProperty('--dx', dx + 'px'); B.style.setProperty('--dx', dx + 'px');
+  A.classList.add('fly-l'); B.classList.add('fly-r');
+  await wait(REDUCED ? 30 : 750);
+  made = res.p;
+  belt.splice(res.i, 2, 'legend', null);
+  FOUND.add(made.name);
+  SEEN.add(made.a); SEEN.add(made.b);
+  render();
+  renderLex(made);
+  ribbon(stage, 'Резонанс', made.name, 1900);
+  busy = false;
+}
+function renderLex(fresh) {
+  q('#lex').replaceChildren(...PAIRS.map((p) => {
+    const sa = SEEN.has(p.a), sb = SEEN.has(p.b), found = FOUND.has(p.name);
+    const mode = found ? 'full' : sa || sb ? 'half' : 'none';
+    const a = omen(p.a, 36), b = omen(p.b, 36);
+    if (!sa && !found) a.classList.add('unseen');
+    if (!sb && !found) b.classList.add('unseen');
+    return h('div', { class: 'lx' + (found ? ' found' : '') }, a, h('span', { class: 'op' }, '+'), b, h('span', { class: 'op eq' }, '='), legendMedal(p, 48, mode),
+      h('div', {}, h('b', {}, found ? p.name : mode === 'half' ? 'Половинка найдена' : 'Неизвестный резонанс'),
+        h('small', { html: found ? p.ef : mode === 'half' ? `Видел «${OMEN_RU[sa ? p.a : p.b][0]}» — вторая половина ждёт` : 'Ни одного из двух ещё не встречал' })));
+  }));
+}
+q('#go').onclick = fuse;
+q('#reset').onclick = () => !busy && reset();
+
+facts(q('#aside'), [
+  ['Суть', 'Восемь пар Знамений одной темы. Поставь пару <b>рядом</b> — между медалями натягивается нить, и в Обсерватории можно слить их в одно <b>легендарное</b>: сильнее обоих и занимает одно место.'],
+  ['Глубина', 'Порядок Знамений уже важен (срабатывают слева направо) — теперь важно и соседство. Покупка второго из пары — отдельный путь сборки: ради «Полудня» тянешь Солнце.'],
+  ['Откуда', 'Эволюции Vampire Survivors: предмет A + предмет B = находка. Нигде не написано, что сольётся, — силуэт в Коллекции только намекает.'],
+  ['Коллекция', 'Видел одно Знамение из пары — медаль открыта <b>наполовину</b>. Полная медаль — только после слияния. Восемь медалей — повод собирать разные сборки.'],
+  ['Новичку', 'Ступень 8: когда открыто 25 Знамений и порядок в ряду уже понятен. Пары подсказываются нитью, а не текстом.'],
+], [
+  ['RS.1', 'Ядро: 8 пар → 8 легендарных, слияние в Обсерватории при соседстве; тесты'],
+  ['RS.2', 'Нить между соседями, сцена слияния: медали сходятся, эмаль переливается'],
+  ['RS.3', 'Коллекция: силуэт и «половинка», когда видел одно из двух'],
+]);
+ladder(q('#ladder'), 8);
+renderLex();
+reset();
+</script>
+</body>
+</html>

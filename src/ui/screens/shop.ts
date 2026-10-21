@@ -1,21 +1,22 @@
+import { hasNextNight } from '@/core/route';
 import { chartIcon, omenSigil, packIcon, ritualIcon } from '@/art/sigil';
-import { FINAL_ANTE } from '@/core/content/balance';
 import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { banishCard, banishServicePrice, buyItem, buyOmen, buyPack, choosePack, moveOmen, omenSlots, reroll, ritualMaxTargets, sellOmen, sellPrice, skipPack } from '@/core/shop';
-import type { Card, ComboId, RunState, ShopItem } from '@/core/types';
+import { currentChoice } from '@/core/choices';
+import type { Command } from '@/core/commands';
+import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/core/shop';
+import type { Card, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
-import { markOmensSeen, saveProfile } from '@/meta/profile';
 import { dict, named, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { bonusLine } from '../bonus';
 import { icon } from '../icons';
-import { lightButton, sceneRibbon, sceneWindow } from '../scene-window';
+import { showChoice } from '../choice';
 import { coach, layoutCoach } from '../tutorial';
-import { button, confirmDialog, hideTooltip, modal, type ModalHandle, withCoin } from '../widgets';
+import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
@@ -46,23 +47,23 @@ export class ShopScreen implements Screen {
     this.el = h('div.shop');
     root.append(this.el);
     this.render();
-    this.app.tutorial?.emit({ type: 'shop', root: this.el });
+    this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
     coach(this.app, 'shop');
-    if (this.run.shop?.openPack) this.showPack();
+    if (currentChoice(this.run)) this.showPack();
   }
 
   unmount(): void {
     this.el.remove();
   }
 
-  private act(fn: (run: RunState) => void, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
-    if (this.app.shopAction(fn)) {
+  private act(cmd: Command, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
+    if (this.app.runs.shopAction(cmd)) {
       onSuccess?.();
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
       // Экран пересобран — подсказка первых забегов переставляется к своей цели
       requestAnimationFrame(layoutCoach);
-      this.app.tutorial?.emit({ type: 'shopChanged' });
+      this.app.runs.tutorial?.emit({ type: 'shopChanged' });
     }
     return false;
   }
@@ -73,15 +74,16 @@ export class ShopScreen implements Screen {
   }
 
   private afterPackBuy(): void {
-    if (this.run.shop?.openPack) this.showPack();
+    if (currentChoice(this.run)) this.showPack();
   }
 
   private render(): void {
     const run = this.run;
     const shop = run.shop!;
     const seen = [...shop.omens.flatMap((i) => (i.kind === 'omen' ? [i.omenId] : [])), ...run.omens.map((o) => o.id)];
-    if (shop.openPack?.pack === 'omen') seen.push(...shop.openPack.options);
-    if (markOmensSeen(this.app.profile, seen)) saveProfile(this.app.profile);
+    const open = currentChoice(run);
+    if (open?.pack === 'omen') seen.push(...open.options);
+    this.app.runs.progress({ e: 'omensShown', ids: seen }, run);
     const slots = omenSlots(run);
     // Прокрутка середины переживает пересборку экрана после покупки
     const keepScroll = this.el.querySelector('.shop-body')?.scrollTop ?? 0;
@@ -98,9 +100,9 @@ export class ShopScreen implements Screen {
       else if (was && item.sold && !was.sold) row.classList.add('just-sold');
       return row;
     };
-    const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.act((r) => buyOmen(r, i), 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item));
+    const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.act({ c: 'buyOmen', slot: i }, 'coin', () => this.trackBuy(item))), `omen-${i}`), `omen-${i}`, item));
     const itemRows = shop.items.map((item, i) => mark(this.wareRow(item, () => this.buyItem(item, i)), `item-${i}`, item));
-    const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act((r) => buyPack(r, i), 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
+    const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act({ c: 'buyPack', slot: i }, 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
 
     // Свои Знамения: только знаки, порядок — слева направо; касание — лист с бонусом и «Продать»
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
@@ -113,20 +115,20 @@ export class ShopScreen implements Screen {
       owned.append(chip);
     });
     for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
-    makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act((r) => moveOmen(r, from, to), 'click'), () => hideTooltip());
+    makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act({ c: 'moveOmen', from, to }, 'click'), () => hideTooltip());
     const ownedHint = misordered
       ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
       : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint'));
 
     // После последней ночи финального созвездия впереди победа, а не карта
-    const canPeek = run.endless || run.ante < FINAL_ANTE || run.nightIndex < 2;
+    const canPeek = hasNextNight(run);
     const goods = [...itemRows, ...packRows];
     const hasRituals = shop.items.some((i) => i.kind === 'ritual');
     const sections: (HTMLElement | null)[] = [
       h('header.shop-top', null, [
-        menuButton(() => showRunMenu(this.app, canPeek ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
+        menuButton(() => showRunMenu(this.app, canPeek ? [button(t('pause.viewMap'), () => this.app.router.peekMap(), { variant: 'secondary' })] : [])),
         h('h1.shop-title', null, t('shop.title')),
-        canPeek ? h('button.icon-btn.shop-map', { type: 'button', ariaLabel: t('pause.viewMap'), title: t('pause.viewMap'), onclick: () => this.app.peekMap() }, icon('daily')) : h('span'),
+        canPeek ? h('button.icon-btn.shop-map', { type: 'button', ariaLabel: t('pause.viewMap'), title: t('pause.viewMap'), onclick: () => this.app.router.peekMap() }, icon('daily')) : h('span'),
         h(`div.gold-pill${prev && prev.gold !== run.gold ? '.pop' : ''}`, null, String(run.gold)),
       ]),
       // Середина прокручивается сама; шапка и кнопки на месте — ничего не прячется под панелью
@@ -153,10 +155,10 @@ export class ShopScreen implements Screen {
       ]),
       ]),
       h('footer.shop-actions', null, [
-        button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
+        button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act({ c: 'reroll' }, 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
           variant: 'secondary', disabled: run.gold < shop.rerollCost, ariaLabel: t('shop.reroll', { n: shop.rerollCost }), className: 'reroll',
         }),
-        tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
+        tag(button(t('shop.next'), () => this.app.runs.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
     this.el.replaceChildren(...sections.filter((x): x is HTMLElement => x !== null));
@@ -240,7 +242,7 @@ export class ShopScreen implements Screen {
             t('shop.sellConfirm', { name, n: price }),
             () => {
               m.close();
-              this.act((r) => sellOmen(r, o.uid), 'coin', () => track('shop_sell', { id: o.id, ante: this.run.ante }));
+              this.act({ c: 'sellOmen', uid: o.uid }, 'coin', () => track('shop_sell', { id: o.id, ante: this.run.ante }));
             },
             'danger',
             { yes: t('shop.sell', { n: price }), no: t('shop.keep') },
@@ -254,10 +256,10 @@ export class ShopScreen implements Screen {
 
   private buyItem(item: ShopItem, slot: number): void {
     if (item.kind !== 'ritual') {
-      this.act((r) => buyItem(r, slot), 'coin', () => this.trackBuy(item));
+      this.act({ c: 'buyItem', slot }, 'coin', () => this.trackBuy(item));
       return;
     }
-    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act((r) => buyItem(r, slot, ids), 'coin', () => this.trackBuy(item))));
+    this.pickTargets(item.ritualId, (ids) => this.withRitualResult(item.ritualId, () => this.act({ c: 'buyItem', slot, targets: ids }, 'coin', () => this.trackBuy(item))));
   }
 
   /** Выполняет ритуал и показывает, что стало с картами: было → стало. */
@@ -305,7 +307,7 @@ export class ShopScreen implements Screen {
     const banish = h('button.ware-light', {
       type: 'button',
       disabled: used || price === null || run.gold < (price ?? 0),
-      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act((r) => banishCard(r, ids[0]!), 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1, { name: t('shop.banishTitle'), desc: t('shop.banishDesc') }),
+      onclick: () => this.pickTargets('banish', (ids) => this.withRitualResult('banish', () => this.act({ c: 'banish', card: ids[0]! }, 'coin', () => track('shop_banish', { ante: run.ante }))), undefined, 1, { name: t('shop.banishTitle'), desc: t('shop.banishDesc') }),
     }, [icon('cut'), used ? t('shop.banishUsed') : withCoin(t('shop.banish', { n: price ?? '—' }))]);
     return h('section.shop-section.shop-deck', null, [
       h('div.shop-label-row', null, [h('h2.shop-label', null, t('night.deck')), h('span.shop-count', null, String(run.deck.length))]),
@@ -357,67 +359,30 @@ export class ShopScreen implements Screen {
     );
   }
 
-  /** Открытый пакет — сцена «Выбери одно»: три варианта строками, взять один или пропустить. */
+  /** Выбор в очереди (купленный пакет) — общая сцена «Выбери одно» (`ui/choice.ts`). */
   private showPack(): void {
-    const open = this.run.shop?.openPack;
-    if (!open) return;
-    this.app.svc.audio.ignite(1);
-    let handle: ModalHandle | null = null;
-    const full = open.pack === 'omen' && this.run.omens.length >= omenSlots(this.run);
-    const rows = open.options.map((id, i) => {
-      let icon: HTMLCanvasElement;
-      let name: string;
-      let bonus: string;
-      let level: string | null = null;
-      if (open.pack === 'omen') {
-        const def = omenDef(id);
-        icon = canvasImg(omenSigil(id, 48, dpr()), 48);
-        ({ name, desc: bonus } = named('omen', id, def.vars?.(def.initialData?.() ?? {}) ?? {}));
-      } else if (open.pack === 'chart') {
-        icon = canvasImg(chartIcon(id as ComboId, 48, dpr()), 48);
-        const lv = this.run.comboLevels[id as ComboId];
-        const def = COMBOS[id as ComboId];
-        name = t(`combo.${id}`);
-        level = t('shop.chartLevel', { from: lv, to: lv + 1 });
-        bonus = t('shop.chartBonus', { combo: t(`combo.${id}`), light: def.levelLight, mult: def.levelMult });
-      } else {
-        icon = canvasImg(ritualIcon(id, 48, dpr()), 48);
-        ({ name, desc: bonus } = named('ritual', id));
-      }
-      return h('article.ware', { style: { animationDelay: `${i * 0.08}s` } }, [
-        h('div.ware-icon', null, icon),
-        h('div.ware-name', null, [name, level ? h('span.ware-level', null, level) : null]),
-        h('div.ware-bonus', null, bonusLine(bonus)),
-        button(full ? t('shop.noSlotsShort') : t('shop.take'), () => this.takeFromPack(i, id, handle!), { disabled: full, title: full ? t('shop.slotsFull') : '', className: 'take' }),
-      ]);
-    });
-    handle = sceneWindow({
-      className: 'pack-scene',
-      label: t('shop.packTitle'),
-      mid: [sceneRibbon(t('shop.packTitle'), `${named('pack', open.pack).name} · ${t('shop.oneOfThree')}`), h('div.ware-list', null, rows)],
-      acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
-        handle?.close();
-        this.act((r) => skipPack(r), 'click');
-      }, true))],
+    showChoice(this.app, this.run, {
+      take: (index, id, close) => this.takeFromPack(index, id, close),
+      skip: () => this.act({ c: 'skip' }, 'click'),
     });
   }
 
-  private takeFromPack(index: number, id: string, handle: ModalHandle): void {
-    const open = this.run.shop?.openPack;
-    if (!open) return;
-    if (open.pack === 'ritual') {
-      handle.close();
+  private takeFromPack(index: number, id: string, close: () => void): void {
+    const choice = currentChoice(this.run);
+    if (!choice) return;
+    close();
+    const done = () => track('pack_choose', { pack: choice.pack, id });
+    if (choice.pack === 'ritual') {
       this.pickTargets(
         id,
         (ids) => {
-          this.withRitualResult(id, () => this.act((r) => choosePack(r, index, ids), 'coin', () => track('pack_choose', { pack: open.pack, id })));
-          if (this.run.shop?.openPack) this.showPack();
+          this.withRitualResult(id, () => this.act({ c: 'choose', index, targets: ids }, 'coin', done));
+          if (currentChoice(this.run)) this.showPack();
         },
         () => this.showPack(),
       );
       return;
     }
-    handle.close();
-    this.act((r) => choosePack(r, index), 'coin', () => track('pack_choose', { pack: open.pack, id }));
+    this.act({ c: 'choose', index }, 'coin', done);
   }
 }

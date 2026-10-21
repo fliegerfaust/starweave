@@ -11,9 +11,8 @@ test.use({ locale: 'ru-RU' });
 
 type W = {
   starweave: {
-    goAtlas(from: string, focus?: string): Promise<void>;
-    goArchive(): Promise<void>;
-    purchases: { has(id: string): boolean; add(id: string): void };
+    router: { goAtlas(from: string, focus?: string): Promise<void>; goArchive(): Promise<void> };
+    money: { purchases: { has(id: string): boolean; add(id: string): void } };
     profile: { archive?: Record<string, { ante: number; best: number; won?: boolean }> };
   };
 };
@@ -53,7 +52,7 @@ async function fits(page: Page, root: string): Promise<void> {
 }
 
 const openAtlas = async (page: Page, focus?: string) => {
-  await page.evaluate((f) => (window as unknown as W).starweave.goAtlas('e2e', f), focus);
+  await page.evaluate((f) => (window as unknown as W).starweave.router.goAtlas('e2e', f), focus);
   await page.waitForSelector('.atl-body');
 };
 
@@ -113,7 +112,7 @@ test('атлас: обложка, покупка, примерочная, мец
   await page.evaluate(() => document.querySelector<HTMLElement>('[data-r]')!.parentElement!.parentElement!.style.removeProperty('visibility'));
   await page.click('[data-r="paid"]');
   await page.waitForSelector('.atl-owned');
-  expect(await page.evaluate(() => (window as unknown as W).starweave.purchases.has('atlas'))).toBe(true);
+  expect(await page.evaluate(() => (window as unknown as W).starweave.money.purchases.has('atlas'))).toBe(true);
   // Тост исчезает через ~2 с
   await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 5000 });
   await expect(page.locator('.atl-two .btn').nth(1)).toHaveText(/Астролябия/);
@@ -134,7 +133,7 @@ test('атлас: вкладки и состояния без вылезаний
       await page.evaluate(async ({ lang, owned }) => {
         const { setLang } = await import('/src/i18n/index.ts');
         setLang(lang);
-        if (owned) (window as unknown as W).starweave.purchases.add('supporter');
+        if (owned) (window as unknown as W).starweave.money.purchases.add('supporter');
       }, { lang, owned });
       for (const focus of [undefined, 'wardrobe', 'support']) {
         await openAtlas(page, focus);
@@ -183,7 +182,7 @@ test('атлас на обычном сайте без покупок', async ({
 
 test('архив: журнал без атласа и у владельца', async ({ page }) => {
   const errors = await boot(page);
-  await page.evaluate(() => (window as unknown as W).starweave.goArchive());
+  await page.evaluate(() => (window as unknown as W).starweave.router.goArchive());
   await page.waitForSelector('.arc-log');
   await fits(page, '.archive');
   // Без атласа прошлый день мягко ведёт в атлас
@@ -191,9 +190,9 @@ test('архив: журнал без атласа и у владельца', as
   await shot(page, '22-archive');
   await page.evaluate(() => {
     const app = (window as unknown as W).starweave;
-    app.purchases.add('atlas');
+    app.money.purchases.add('atlas');
     app.profile.archive = { '2026-10-03': { ante: 4, best: 812 }, '2026-10-05': { ante: 8, best: 2400, won: true }, '2026-10-01': { ante: 2, best: 120 } };
-    return app.goArchive();
+    return app.router.goArchive();
   });
   await page.waitForSelector('.arc-log');
   await page.click('.arc-row:has(.arc-best:not(.none))');
@@ -216,9 +215,9 @@ test('архив: состояния без вылезаний, прокрутк
         const { setLang } = await import('/src/i18n/index.ts');
         setLang(lang);
         const app = (window as unknown as W).starweave;
-        if (st !== 'free') app.purchases.add('atlas');
+        if (st !== 'free') app.money.purchases.add('atlas');
         app.profile.archive = st === 'fresh' ? {} : { '2026-10-14': { ante: 3, best: 412 }, '2026-10-12': { ante: 5, best: 980 }, '2026-10-10': { ante: 8, best: 2400, won: true }, '2026-10-09': { ante: 2, best: 160 }, '2026-10-05': { ante: 6, best: 1310 } };
-        await app.goArchive();
+        await app.router.goArchive();
       }, { lang, st });
       await page.waitForSelector('.arc-log');
       await settle(page);

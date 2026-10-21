@@ -1,3 +1,7 @@
+import type { Unlocks } from './content/pools';
+import type { Choice } from './choices';
+import type { RunLog } from './commands';
+import type { Chapter } from './route';
 import type { RngState } from './rng';
 
 // ─── Карты ─────────────────────────────────────────────────────────────────
@@ -87,13 +91,21 @@ export interface OmenInstance {
 
 // ─── Подсчёт ───────────────────────────────────────────────────────────────
 
+/**
+ * Чей эффект записал шаг подсчёта (TD.5). Новый источник — трофей, покровитель,
+ * пророчество — новый вариант здесь и строка в `EFFECT_SOURCES`; подписи шагов в UI
+ * перечисляют варианты полностью, так что забытая подпись — ошибка типов.
+ */
+export type EffectSource =
+  | { kind: 'omen'; uid: number; omenId: string; cell?: number }
+  | { kind: 'boss'; bossId: string };
+
 export type StepSource =
   | { kind: 'combo'; combo: ComboId }
   | { kind: 'card'; cell: number; cardId: number }
   | { kind: 'glyph'; cell: number; cardId: number; glyph: Glyph }
-  | { kind: 'omen'; uid: number; omenId: string; cell?: number }
-  | { kind: 'boss'; bossId: string }
-  | { kind: 'chain'; lines: number };
+  | { kind: 'chain'; lines: number }
+  | EffectSource;
 
 /** Один вклад в подсчёт. Презентер проигрывает шаги по порядку как всплывающие числа. */
 export interface ScoreStep {
@@ -176,18 +188,11 @@ export type ShopItem =
   | { kind: 'ritual'; ritualId: string; price: number; sold: boolean }
   | { kind: 'pack'; pack: PackKind; price: number; sold: boolean };
 
-/** Открытый пакет: варианты на выбор (id Знамений, ритуалов или созвездий). */
-export interface OpenPack {
-  pack: PackKind;
-  options: string[];
-}
-
 export interface ShopState {
   omens: ShopItem[];
   items: ShopItem[];
   packs: ShopItem[];
   rerollCost: number;
-  openPack: OpenPack | null;
   /** Услуга «Убрать карту» уже использована в этот визит (нет в старых сохранениях). */
   banishUsed?: boolean;
 }
@@ -212,8 +217,8 @@ export interface RunState {
   /** Вызов из архива атласа: прошедший день, попыток сколько угодно, лучший итог в профиль. */
   archive?: boolean;
   ante: number;
-  /** 0..2 — Сумерки, Полночь, Затмение. */
-  nightIndex: number;
+  /** План текущей главы и место в нём (`core/route.ts`). */
+  chapter: Chapter;
   phase: RunPhase;
   gold: number;
   deck: Card[];
@@ -226,6 +231,10 @@ export interface RunState {
   night: NightState | null;
   reward: RewardSummary | null;
   shop: ShopState | null;
+  /** Очередь выборов «возьми одно» (`core/choices.ts`): первый — на экране. */
+  pending: Choice[];
+  /** Снимок открытий на старте (`content/pools.ts`): из чего выпадают лавка и пакеты. */
+  unlocks: Unlocks;
   stats: RunStats;
   endless: boolean;
   /** Звёздность (0 — обычная сложность). */
@@ -238,6 +247,8 @@ export interface RunState {
   challenge?: { ante: number; best: number };
   /** Второй шанс уже использован в этом забеге. */
   revived?: boolean;
+  /** Журнал команд (TD.9): с чего начали и что делал игрок. Нет у обучения и старых сохранений. */
+  log?: RunLog;
   /** В каком созвездии награду уже удваивали. */
   doubledAnte?: number;
   /** Сколько линий уже записано в профиль (забег после победы продолжается). */
@@ -254,7 +265,10 @@ export type GameEvent =
   | { t: 'burn'; card: Card; handIndex: number }
   | { t: 'ignite'; score: PlacementScore; scoreAfter: number }
   | { t: 'clear'; cells: number[] }
-  | { t: 'shatter'; cardId: number; cell: number }
+  /** Карта вспыхнувшей линии осталась на небе (политика клеток, этап хода). */
+  | { t: 'cardStays'; cardId: number; cell: number }
+  /** Карта ушла из колоды насовсем: Стекло разбилось. */
+  | { t: 'cardDestroyed'; cardId: number; cell: number; reason: 'shattered' }
   | { t: 'gold'; amount: number; goldAfter: number }
   | { t: 'omenChanged'; uid: number }
   | { t: 'nightWon' }

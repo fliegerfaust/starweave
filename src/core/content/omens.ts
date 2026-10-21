@@ -1,5 +1,7 @@
+import type { Unlock } from './skies';
 import { COMBO_FAMILY } from './combos';
 import type { EffectHooks } from '../effects';
+import { cardSuits } from '../deck';
 import { isCorner } from '../grid';
 import { chance, pick } from '../rng';
 import { COMBO_IDS, GLYPHS, type ComboId, type Suit } from '../types';
@@ -21,6 +23,8 @@ export interface OmenDef extends EffectHooks {
   vars?(data: Record<string, number>): Record<string, string | number>;
   /** Связанные масти/созвездия — для цвета сигила и подсказок. */
   tags?: { suit?: Suit; combo?: ComboId };
+  /** Как открыть (TD.8); без него — открыто сразу. Небосвод 0.9 раздаст это поле. */
+  unlock?: Unlock;
 }
 
 const strength = (combo: ComboId) => COMBO_IDS.indexOf(combo);
@@ -32,7 +36,7 @@ const suitOmen = (id: string, suit: Suit, effect: 'mult' | 'light' | 'both' | 'r
   kind: effect === 'light' || effect === 'rank' ? 'light' : 'mult',
   tags: { suit },
   onCardScored(ctx) {
-    if (ctx.card.suit !== suit && ctx.card.glyph !== 'prism') return;
+    if (!cardSuits(ctx.card).includes(suit)) return;
     if (effect === 'mult') ctx.mult(3);
     else if (effect === 'light') ctx.light(25);
     else if (effect === 'rank') ctx.light(ctx.card.rank * 3);

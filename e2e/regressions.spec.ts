@@ -20,31 +20,33 @@ test('конец обучения поверх окна награды не ло
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     type AppLike = {
       run: { phase: string; reward: unknown } | null;
-      tutorial: { stop(): void; emit(e: unknown): void } | null;
-      screen: { showReward(): void };
-      startTutorial(): void;
-      finishTutorial(): void;
-      collectReward(): void;
-      leaveShop(): void;
-      beginNight(): void;
+      runs: {
+        tutorial: { stop(): void; emit(e: unknown): void } | null;
+        startTutorial(): void;
+        finishTutorial(): void;
+        collectReward(): void;
+        leaveShop(): void;
+        beginNight(): void;
+      };
+      router: { screen: { showReward(): void } };
     };
     const app = (window as unknown as { starweave: AppLike }).starweave;
     localStorage.removeItem('starweave.run.v1');
-    app.startTutorial();
+    app.runs.startTutorial();
     await sleep(1200);
-    app.tutorial?.stop();
-    app.tutorial = { stop() {}, emit() {} };
+    app.runs.tutorial?.stop();
+    app.runs.tutorial = { stop() {}, emit() {} };
     app.run!.phase = 'reward';
     app.run!.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
-    app.screen.showReward();
+    app.router.screen.showReward();
     await sleep(300);
-    app.finishTutorial();
+    app.runs.finishTutorial();
     await sleep(500);
     const titles = [...document.querySelectorAll('.modal-backdrop .modal-panel')].map((p) => (p as HTMLElement).innerText.split('\n').find((l) => l.trim()) ?? '');
     // Всё, что может нажать игрок, пока висит «Обучение пройдено»
-    app.collectReward();
-    app.leaveShop();
-    app.beginNight();
+    app.runs.collectReward();
+    app.runs.leaveShop();
+    app.runs.beginNight();
     return { runIsNull: app.run === null, modals: titles.length };
   });
   expect(result.runIsNull).toBe(true);
@@ -61,11 +63,11 @@ test('сжечь карту, которую держишь, — без ошиб�
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave);
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void; beginNight(): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void; beginNight(): void } } }).starweave;
     app.profile.tutorialDone = true;
     localStorage.removeItem('starweave.run.v1');
-    app.startRun('classic');
-    app.beginNight();
+    app.runs.startRun('classic');
+    app.runs.beginNight();
   });
   await page.waitForFunction(() => {
     const s = (window as unknown as { __scene?: { busy: boolean; hand: number[] } }).__scene;
@@ -97,11 +99,11 @@ test('потерянное отпускание мыши не оставляет
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave);
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void; beginNight(): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void; beginNight(): void } } }).starweave;
     app.profile.tutorialDone = true;
     localStorage.removeItem('starweave.run.v1');
-    app.startRun('classic');
-    app.beginNight();
+    app.runs.startRun('classic');
+    app.runs.beginNight();
   });
   await page.waitForFunction(() => {
     const s = (window as unknown as { __scene?: { busy: boolean; hand: number[] } }).__scene;
@@ -121,7 +123,7 @@ test('потерянное отпускание мыши не оставляет
   const dragAfter = await page.evaluate(({ x, y }) => {
     const canvas = document.querySelector('canvas')!;
     canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, pointerType: 'mouse', clientX: x, clientY: y, buttons: 0, bubbles: true }));
-    return (window as unknown as { __scene: { drag: unknown } }).__scene.drag;
+    return (window as unknown as { __scene: { input: { drag: unknown } } }).__scene.input.drag;
   }, { x: card.x - 90, y: card.y - 60 });
   expect(dragAfter, 'перетаскивание закончилось').toBeNull();
   await page.mouse.up();

@@ -1,10 +1,11 @@
+import { assertNever } from '@/core/errors';
 import { canDoubleReward, canRevive } from '@/core/run';
 import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
 import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from '@/game/challenge';
-import { COLLECTIBLE_COMBOS, dailyNumber, recordDiscoveries } from '@/meta/profile';
+import { COLLECTIBLE_COMBOS, dailyNumber } from '@/meta/profile';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
@@ -43,7 +44,7 @@ export class NightScreen implements Screen {
 
     if (this.run.night) {
       this.scene = new NightScene(this.app.svc, this.run, this.hud, {
-        act: (a) => this.app.act(a),
+        act: (a) => this.app.runs.act(a),
         onSettled: (events) => this.settled(events),
         onSelect: (i) => {
           this.hud.setBurnEnabled(i !== null && (this.run.night?.burnsLeft ?? 0) > 0);
@@ -59,12 +60,15 @@ export class NightScreen implements Screen {
         const board = scene.layout.board;
         return { handTop: hand.y, boardBottom: board.y + board.h, board, hand };
       });
-      this.app.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
+      this.app.runs.tutorial?.emit({ type: 'night', scene: this.scene, hud: this.hud });
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
       if (fresh) {
-        void this.scene.dealIn().then(() => {
-          this.app.tutorial?.emit({ type: 'dealt' });
+        const scene = this.scene;
+        void scene.dealIn().then(() => {
+          // Пока карты летели, экран могли закрыть (забег брошен, фаза сменилась): ночи уже нет
+          if (scene.isDestroyed || !this.run.night) return;
+          this.app.runs.tutorial?.emit({ type: 'dealt' });
           if (!this.run.tutorial) this.introHints();
         });
       }
@@ -102,7 +106,7 @@ export class NightScreen implements Screen {
     const p = this.app.profile;
     if (!p.tutorial.includes('guideSeen')) {
       p.tutorial.push('guideSeen');
-      this.app.persistProfile();
+      this.app.runs.persistProfile();
     }
     this.hud.setGuideAttention(false);
   }
@@ -121,9 +125,9 @@ export class NightScreen implements Screen {
   }
 
   private settled(events: GameEvent[]): void {
-    this.app.tutorial?.emit({ type: 'settled', events });
+    this.app.runs.tutorial?.emit({ type: 'settled', events });
     this.announceMove(events);
-    this.discover(events);
+    this.discover();
     const n = this.run.night;
     if (n && n.result === 'playing') {
       if (events.some((e) => e.t === 'ignite')) {
@@ -157,26 +161,24 @@ export class NightScreen implements Screen {
     this.hud.announce(`${head} ${t('a11y.status', { score: num(n.score), target: num(n.target), moves: n.movesLeft })}`.trim());
   }
 
-  /** Коллекция: впервые собранное созвездие и первый крест — маленький праздник. */
-  private discover(events: GameEvent[]): void {
-    if (this.run.tutorial) return;
+  /**
+   * Коллекция: впервые собранное созвездие и первый крест — маленький праздник. Записал
+   * находку контроллер забега (`meta/progress.ts`), экран только празднует её.
+   */
+  private discover(): void {
+    const found = this.app.runs.takeDiscovery();
+    if (!found) return;
     const p = this.app.profile;
     const banners: Parameters<typeof announceDiscovery>[0] = [];
-    for (const e of events) {
-      if (e.t !== 'ignite') continue;
-      const found = recordDiscoveries(p, e.score.lines.map((l) => l.combo), e.score.lines.length);
-      for (const id of found.combos) {
-        const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
-        banners.push({ kind: 'combo', id, count });
-        track('combo_found', { combo: id, count, ante: this.run.ante });
-      }
-      if (found.cross) {
-        banners.push({ kind: 'cross' });
-        track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
-      }
+    for (const id of found.combos) {
+      const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
+      banners.push({ kind: 'combo', id, count });
+      track('combo_found', { combo: id, count, ante: this.run.ante });
     }
-    if (!banners.length) return;
-    this.app.persistProfile();
+    if (found.cross) {
+      banners.push({ kind: 'cross' });
+      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
+    }
     announceDiscovery(banners, () => this.app.svc.audio.win());
     const completed = banners.some((b) => b.kind === 'combo' && b.count === COLLECTIBLE_COMBOS.length);
     if (completed) toast(t('discovery.all'));
@@ -191,8 +193,12 @@ export class NightScreen implements Screen {
         return this.showGameOver();
       case 'victory':
         return this.showVictory();
-      default:
+      case 'map':
+      case 'night':
+      case 'shop':
         return;
+      default:
+        return assertNever(this.run.phase, 'phase');
     }
   }
 
@@ -216,7 +222,7 @@ export class NightScreen implements Screen {
           ]),
           h('div.scene-lights', null, lightButton('flag', t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
             m.close();
-            this.app.abandonRun();
+            this.app.runs.abandonRun();
           }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), true)),
         ]),
       ],
@@ -264,11 +270,11 @@ export class NightScreen implements Screen {
         button(withCoin(t('reward.collect', { n: reward.total })), () => {
           this.overlay?.close();
           this.overlay = null;
-          this.app.collectReward();
+          this.app.runs.collectReward();
         }),
         this.app.platform.rewardedAvailable && canDoubleReward(this.run)
           ? this.adButton(t('ads.double'), async () => {
-              if (await this.app.doubleReward()) {
+              if (await this.app.runs.doubleReward()) {
                 this.overlay?.close();
                 this.overlay = null;
                 this.showReward();
@@ -280,7 +286,7 @@ export class NightScreen implements Screen {
       ],
     });
     this.overlay = scene;
-    this.app.tutorial?.emit({ type: 'reward', panel: scene.acts });
+    this.app.runs.tutorial?.emit({ type: 'reward', panel: scene.acts });
   }
 
   private showGameOver(): void {
@@ -292,19 +298,19 @@ export class NightScreen implements Screen {
         label: t('over.lostTitle'),
         mid: [sceneRibbon(t('over.lostTitle'), t('tut.lost'), true)],
         acts: [
-          button(t('tut.retry'), () => this.app.startTutorial('retry')),
-          h('div.scene-lights', null, lightButton('flag', t('tut.skip'), () => this.app.skipTutorial(), true)),
+          button(t('tut.retry'), () => this.app.runs.startTutorial('retry')),
+          h('div.scene-lights', null, lightButton('flag', t('tut.skip'), () => this.app.runs.skipTutorial(), true)),
         ],
       });
       return;
     }
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
-    const isRecord = run.stats.bestPlacement > this.app.bestBefore && run.stats.bestPlacement > 0;
-    const revive = canRevive(run) && (this.app.adFree || this.app.platform.rewardedAvailable);
+    const isRecord = run.stats.bestPlacement > this.app.runs.bestBefore && run.stats.bestPlacement > 0;
+    const revive = canRevive(run) && (this.app.money.adFree || this.app.platform.rewardedAvailable);
     const again = () => {
       this.overlay?.close();
-      this.app.startRun(run.skyId);
+      this.app.runs.startRun(run.skyId);
     };
     // Тот же расклад: те же карты в том же порядке — понять, где можно было сыграть лучше.
     // Вызов дня и так один на всех, у него своё «ещё раз» из архива
@@ -312,12 +318,12 @@ export class NightScreen implements Screen {
       ? null
       : button(h('span.btn-row', null, [icon('same'), t('over.sameDeal')]), () => {
           this.overlay?.close();
-          this.app.startRun(run.skyId, false, run.stake ?? 0, run.seed);
+          this.app.runs.startRun(run.skyId, false, run.stake ?? 0, run.seed);
         }, { variant: 'secondary' });
     const share = run.daily ? button(h('span.btn-row', null, [icon('share'), t('over.share')]), () => this.share(), { variant: 'secondary' }) : null;
     // Главная — «Второй шанс», если он есть (решение Дениса); иначе «Ещё забег»
     const primary = revive
-      ? this.adButton(t('ads.revive'), () => this.app.revive(), 'primary')
+      ? this.adButton(t('ads.revive'), () => this.app.runs.revive(), 'primary')
       : button(h('span.btn-row', null, [icon('again'), t('over.again')]), again);
     const pair = [revive ? button(h('span.btn-row', null, [icon('again'), t('over.again')]), again, { variant: 'secondary' }) : null, same ?? share].filter(Boolean) as HTMLElement[];
     this.overlay = sceneWindow({
@@ -336,7 +342,7 @@ export class NightScreen implements Screen {
         pair.length ? h(`div.scene-pair${pair.length === 1 ? '.one' : ''}`, null, pair) : null,
         h('div.scene-lights', null, [
           run.daily ? null : this.challengeLight(false),
-          lightButton('home', t('over.menu'), () => this.app.abandonRun(), true),
+          lightButton('home', t('over.menu'), () => this.app.runs.abandonRun(), true),
         ]),
       ],
     });
@@ -351,7 +357,7 @@ export class NightScreen implements Screen {
       mid: [
         chapterChain(),
         sceneRibbon(t('over.winTitle'), t('over.winSub', { sky: named('sky', run.skyId).name, stake: stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal') })),
-        run.stats.bestPlacement > this.app.bestBefore ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
+        run.stats.bestPlacement > this.app.runs.bestBefore ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
         this.challengeVersus(true),
         statsTable(run),
       ],
@@ -359,16 +365,16 @@ export class NightScreen implements Screen {
         // Главное после победы — следующий забег
         button(h('span.btn-row', null, [icon('again'), t('over.again')]), () => {
           this.overlay?.close();
-          this.app.startRun(run.skyId, false, stake);
+          this.app.runs.startRun(run.skyId, false, stake);
         }),
         button(h('span.btn-row', null, [icon('infinity'), t('over.endless')]), () => {
           this.overlay?.close();
           this.overlay = null;
-          this.app.continueEndless();
+          this.app.runs.continueEndless();
         }, { variant: 'secondary', sub: t('over.endlessSub') }),
         h('div.scene-lights', null, [
           run.daily ? lightButton('share', t('over.share'), () => this.share()) : this.challengeLight(true),
-          lightButton('home', t('over.menu'), () => this.app.abandonRun(), true),
+          lightButton('home', t('over.menu'), () => this.app.runs.abandonRun(), true),
         ]),
       ],
     });
@@ -377,7 +383,7 @@ export class NightScreen implements Screen {
   /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */
   private adButton(label: string, action: () => Promise<boolean>, variant: 'primary' | 'secondary' = 'secondary'): HTMLButtonElement {
     // С атласом «второй шанс» без ролика — кнопка без значка рекламы
-    const free = this.app.adFree && label === t('ads.revive');
+    const free = this.app.money.adFree && label === t('ads.revive');
     const btn = button(h('span.btn-row', null, [free ? null : icon('play', 'icon ad-mark'), label]), async () => {
       btn.disabled = true;
       const ok = await action();
@@ -415,7 +421,7 @@ export class NightScreen implements Screen {
     const text = t('challenge.shareText', { score: challengeScore(c.ante, c.best) });
     track('challenge_share', { ante: c.ante, best: c.best, won });
     if (this.app.platform.share?.(text, param)) return;
-    const url = `${location.origin}${location.pathname}?startapp=${param}`;
+    const url = this.app.platform.inviteUrl?.(param) ?? `${location.origin}${location.pathname}?startapp=${param}`;
     if (navigator.share) {
       void navigator.share({ text, url }).catch(() => undefined);
     } else {

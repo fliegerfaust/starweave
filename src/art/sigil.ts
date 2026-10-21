@@ -1,12 +1,13 @@
 import { omenDef } from '@/core/content/omens';
 import type { ComboId, Glyph } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
+import { SpriteCache } from './sprite-cache';
 import { drawGlyphBadge } from './card';
 import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
 
 type Ctx = CanvasRenderingContext2D;
 
-const cache = new Map<string, HTMLCanvasElement>();
+const cache = new SpriteCache(160);
 
 /** Холст из кэша или новый, нарисованный `draw` в CSS-пикселях. */
 function cached(key: string, w: number, h: number, scale: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {

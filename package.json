@@ -1,7 +1,7 @@
 {
   "name": "starweave",
   "private": true,
-  "version": "0.5.10",
+  "version": "0.6.0",
   "type": "module",
   "description": "Starweave — карточный рогалик-головоломка о созвездиях",
   "scripts": {
@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "sim": "SIM=1 vitest run tests/balance.sim.test.ts",
     "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/strip-web-only.mjs dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
+    "build:crazygames": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=crazygames vite build --outDir dist-crazygames && node scripts/strip-web-only.mjs dist-crazygames && node scripts/zip.mjs dist-crazygames release/starweave-crazygames.zip",
     "legal": "node scripts/build-legal.ts",
     "e2e": "playwright test",
     "clips": "node scripts/clips.mjs",

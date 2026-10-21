@@ -23,7 +23,7 @@ describe('регрессии ревью', () => {
     run.phase = 'shop';
     run.gold = 50;
     for (const id of ['stardust', 'pyre', 'abacus', 'miser', 'horizon']) run.omens.push(createOmen(run, id));
-    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5 };
     expect(() => buyPack(run, 0)).toThrow(RuleError);
     expect(run.gold).toBe(50);
   });
@@ -33,7 +33,7 @@ describe('регрессии ревью', () => {
     run.deck = run.deck.slice(0, 21);
     run.phase = 'shop';
     run.gold = 10;
-    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'banish', price: 3, sold: false }], packs: [], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'banish', price: 3, sold: false }], packs: [], rerollCost: 5 };
     expect(() => buyItem(run, 0, [run.deck[0]!.id, run.deck[1]!.id])).toThrow(RuleError);
     expect(run.gold).toBe(10);
     buyItem(run, 0, [run.deck[0]!.id]);
@@ -48,7 +48,7 @@ describe('регрессии ревью', () => {
       setGrid(run, { 0: '1s', 1: '4m', 2: '7t', 7: '2m', 11: '5t', 15: '8c' });
       setHand(run, '9c*glass');
       const events = placeCard(run, 0, 3);
-      if (events.some((e) => e.t === 'shatter')) broke++;
+      if (events.some((e) => e.t === 'cardDestroyed')) broke++;
     }
     expect(broke / trials).toBeGreaterThan(0.17);
     expect(broke / trials).toBeLessThan(0.33);

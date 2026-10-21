@@ -11,7 +11,7 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
  * не заходят под панель, на ПК лавка — собранный блок без пустого поля (правило Дениса:
  * место на экране используется рационально); касание своего Знамения открывает лист продажи.
  */
-type App = { profile: { tutorialDone: boolean; runs: number }; run: Record<string, unknown> & { shop: Record<string, unknown> }; startRun(s: string, daily?: boolean, stake?: number, seed?: number): void; collectReward(): void; route(): Promise<void> };
+type App = { profile: { tutorialDone: boolean; runs: number }; run: Record<string, unknown> & { shop: Record<string, unknown> }; runs: { startRun(s: string, daily?: boolean, stake?: number, seed?: number): void; collectReward(): void }; router: { route(): Promise<void> } };
 
 async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void> {
   await page.evaluate(async ({ lang, state }) => {
@@ -23,9 +23,9 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     app.profile.tutorialDone = true;
     app.profile.runs = 12;
     // Фиксированный сид: витрина одна и та же, проверка не зависит от случая
-    app.startRun('classic', false, 0, 4242);
+    app.runs.startRun('classic', false, 0, 4242);
     await new Promise((r) => setTimeout(r, 300));
-    const run = app.run as never as { ante: number; gold: number; omens: unknown[]; phase: string; reward: unknown; night: unknown; shop: { openPack: unknown } };
+    const run = app.run as never as { ante: number; gold: number; omens: unknown[]; phase: string; reward: unknown; night: unknown; pending: unknown[] };
     run.ante = state === 'new' ? 1 : 3;
     run.gold = state === 'full' ? 23 : 14;
     const ids = state === 'full' ? ['horizon', 'corona', 'stardust', 'pyre', 'abacus'] : state === 'new' ? [] : ['horizon', 'pyre', 'stardust'];
@@ -33,11 +33,11 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     run.phase = 'reward';
     run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
     run.night = null;
-    app.collectReward();
+    app.runs.collectReward();
     await new Promise((r) => setTimeout(r, 300));
     if (state === 'pack') {
-      app.run.shop.openPack = { pack: 'omen', options: ['twinStars', 'crossroads', 'abacus'] };
-      await app.route();
+      run.pending = [{ kind: 'pack', pack: 'omen', options: ['twinStars', 'crossroads', 'abacus'] }];
+      await app.router.route();
     }
   }, { lang, state });
   await page.waitForTimeout(700);
@@ -112,12 +112,12 @@ test('Обсерватория: после покупки Знамения мо�
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   await page.evaluate(async () => {
-    const a = (window as unknown as { starweave: { profile: Record<string, unknown>; run: Record<string, unknown>; startRun(s: string): void; collectReward(): void } }).starweave;
+    const a = (window as unknown as { starweave: { profile: Record<string, unknown>; run: Record<string, unknown>; runs: { startRun(s: string): void; collectReward(): void } } }).starweave;
     Object.assign(a.profile, { tutorialDone: true, runs: 0, tutorial: [] });
-    a.startRun('classic');
+    a.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
     Object.assign(a.run, { gold: 30, phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
-    a.collectReward();
+    a.runs.collectReward();
   });
   await page.waitForSelector('.shop');
   await page.waitForTimeout(900);

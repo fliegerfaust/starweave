@@ -68,7 +68,7 @@ export class ArchiveScreen implements Screen {
   }
 
   private get owned(): boolean {
-    return this.app.purchases.has('atlas');
+    return this.app.money.purchases.has('atlas');
   }
 
   private rec(date: string): ArchiveRecord | undefined {
@@ -93,7 +93,7 @@ export class ArchiveScreen implements Screen {
     }
     this.el.replaceChildren(
       h('header.arc-top', null, [
-        h('button.arc-back', { type: 'button', onclick: () => void this.app.goMenu() }, [icon('back'), t('menu.back')]),
+        h('button.arc-back', { type: 'button', onclick: () => void this.app.router.goMenu() }, [icon('back'), t('menu.back')]),
         h('h1.arc-plaque', null, t('archive.title')),
         h('span'),
       ]),
@@ -188,20 +188,20 @@ export class ArchiveScreen implements Screen {
     const foot = h('footer.arc-cta');
     const playLabel = (label: string) => h('span.btn-row', null, [icon('play'), label]);
     if (date === todayKey()) {
-      const done = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
-      foot.append(button(done ? t('menu.dailyDone') : playLabel(t('archive.playToday')), () => this.guard(() => app.startRun('classic', true)), { disabled: done, variant: done ? 'secondary' : 'primary' }));
+      const done = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.runs.hasSave);
+      foot.append(button(done ? t('menu.dailyDone') : playLabel(t('archive.playToday')), () => this.guard(() => app.runs.startRun('classic', true)), { disabled: done, variant: done ? 'secondary' : 'primary' }));
       return foot;
     }
     const r = this.rec(date);
     if (this.owned) {
-      foot.append(button(playLabel(r ? t('archive.replay') : t('archive.playN', { n: dailyNumber(date) })), () => this.guard(() => app.startArchive(date))));
+      foot.append(button(playLabel(r ? t('archive.replay') : t('archive.playN', { n: dailyNumber(date) })), () => this.guard(() => app.runs.startArchive(date))));
       return foot;
     }
     const price = this.prices?.atlas;
     const m = price ? /^(\d+)\s*⭐$/.exec(price.trim()) : null;
     foot.append(
       h('p.arc-note', null, [t('archive.lockedLead'), h('b', null, t('archive.lockedAtlas')), r ? t('archive.lockedOwn') : '.']),
-      button(h('span.btn-row', null, [t('archive.toAtlas'), price ? h('span.arc-pr', null, m ? [tstar(), m[1]!] : [price]) : null]), () => void app.goAtlas('archive', 'archive'), { variant: 'secondary' }),
+      button(h('span.btn-row', null, [t('archive.toAtlas'), price ? h('span.arc-pr', null, m ? [tstar(), m[1]!] : [price]) : null]), () => void app.router.goAtlas('archive', 'archive'), { variant: 'secondary' }),
     );
     return foot;
   }

@@ -1,8 +1,8 @@
 import { bossSigil, omenSigil } from '@/art/sigil';
 import { omenDef, type OmenKind } from '@/core/content/omens';
 import { omenSlots } from '@/core/shop';
-import type { Card, ComboId, Glyph, OmenInstance, RunState } from '@/core/types';
-import { dict, named, num, t } from '@/i18n';
+import type { Card, ComboId, Glyph, NightKind, OmenInstance, RunState } from '@/core/types';
+import { dict, getLang, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
 import { rich } from './rich';
 import { attachTooltip, button } from './widgets';
@@ -167,23 +167,20 @@ export class Hud {
     window.setTimeout(() => (this.live.textContent = text), 30);
   }
 
+  /** Что уже нарисовано в табличке и ряду Знамений: `sync` после хода пересобирает только изменившееся. */
+  private drawnHead = '';
+  private drawnOmens = '';
+  /** Знамения последнего `sync`: подсказка читает свежие счётчики, а не снимок на момент сборки. */
+  private omenList: OmenInstance[] = [];
+
   /** Полное обновление из стейта (кроме счёта — он анимируется отдельно). */
   sync(run: RunState, opts: { score?: boolean } = {}): void {
     const night = run.night;
     const kind = night?.kind ?? 'dusk';
-    // Глава — отдельным кусочком: в тесном заголовке (ландшафт) остаётся только ночь
-    this.title.replaceChildren(h('span.hud-chapter', null, `${t('night.constellation', { n: run.ante })} · `), t(`night.${kind}`));
-    clear(this.bossBadge);
-    this.title.parentElement?.classList.toggle('boss', !!night?.bossId);
-    // Затмение: рама в жемчужной короне, правило — одной строкой с сигилом под табличкой
-    this.el.classList.toggle('boss', !!night?.bossId);
-    if (night?.bossId) {
-      const icon = canvasImg(bossSigil(night.bossId, 24, dpr()), 24);
-      // Кнопка, а не подпись: правило Затмения можно открыть касанием в любой момент ночи
-      const boss = named('boss', night.bossId);
-      const badge = h('button.boss-chip', { type: 'button', ariaLabel: `${boss.name}: ${boss.desc}` }, [icon, h('span.boss-chip-name', null, `${boss.name}: ${boss.desc.charAt(0).toLocaleLowerCase()}${boss.desc.slice(1)}`)]);
-      attachTooltip(badge, () => bossTooltip(night.bossId!));
-      this.bossBadge.append(badge);
+    const head = `${getLang()}|${run.ante}|${kind}|${night?.bossId ?? ''}`;
+    if (head !== this.drawnHead) {
+      this.drawnHead = head;
+      this.renderHead(run.ante, kind, night?.bossId ?? null);
     }
     this.gold.textContent = `${run.gold}`;
     if (night) {
@@ -195,7 +192,30 @@ export class Hud {
       if (opts.score !== false) this.setScore(night.score, night.target, false);
       this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${night.drawPile.length}`;
     }
-    this.renderOmens(run.omens, omenSlots(run));
+    this.omenList = run.omens;
+    const slots = omenSlots(run);
+    const omens = `${getLang()}|${slots}|${run.omens.map((o) => `${o.uid}:${o.id}`).join(',')}`;
+    if (omens !== this.drawnOmens) {
+      this.drawnOmens = omens;
+      this.renderOmens(run.omens, slots);
+    }
+  }
+
+  private renderHead(ante: number, kind: NightKind, bossId: string | null): void {
+    // Глава — отдельным кусочком: в тесном заголовке (ландшафт) остаётся только ночь
+    this.title.replaceChildren(h('span.hud-chapter', null, `${t('night.constellation', { n: ante })} · `), t(`night.${kind}`));
+    clear(this.bossBadge);
+    this.title.parentElement?.classList.toggle('boss', !!bossId);
+    // Затмение: рама в жемчужной короне, правило — одной строкой с сигилом под табличкой
+    this.el.classList.toggle('boss', !!bossId);
+    if (bossId) {
+      const icon = canvasImg(bossSigil(bossId, 24, dpr()), 24);
+      // Кнопка, а не подпись: правило Затмения можно открыть касанием в любой момент ночи
+      const boss = named('boss', bossId);
+      const badge = h('button.boss-chip', { type: 'button', ariaLabel: `${boss.name}: ${boss.desc}` }, [icon, h('span.boss-chip-name', null, `${boss.name}: ${boss.desc.charAt(0).toLocaleLowerCase()}${boss.desc.slice(1)}`)]);
+      attachTooltip(badge, () => bossTooltip(bossId));
+      this.bossBadge.append(badge);
+    }
   }
 
   private renderOmens(omens: OmenInstance[], slots: number): void {
@@ -209,7 +229,7 @@ export class Hud {
         continue;
       }
       const el = h('div.omen-slot', { dataset: { uid: String(omen.uid) } }, omenMedal(omen.id, 34));
-      attachTooltip(el, () => omenTooltip(omen));
+      attachTooltip(el, () => omenTooltip(this.omenList.find((o) => o.uid === omen.uid) ?? omen));
       this.omens.append(el);
     }
   }

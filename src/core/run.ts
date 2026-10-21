@@ -5,10 +5,12 @@ import { buildDeck } from './deck';
 import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
+import { allContent, type Unlocks } from './content/pools';
+import { isLastNight, planChapter } from './route';
 import { generateShop } from './shop';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 4;
 
 export interface NewRunOptions {
   seed: number;
@@ -21,6 +23,8 @@ export interface NewRunOptions {
   gentle?: boolean;
   /** Что игрок заработал в обучении и забирает в первый забег. */
   gift?: TutorialGift;
+  /** Снимок открытий (TD.8); без него — весь контент (сим, бот, тесты). */
+  unlocks?: Unlocks;
 }
 
 /**
@@ -40,7 +44,7 @@ export function rollBoss(rng: RngState, ante: number, previous: readonly string[
   return pick(rng, pool.length ? pool : BOSS_LIST).id;
 }
 
-export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false, gift }: NewRunOptions): RunState {
+export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false, gift, unlocks }: NewRunOptions): RunState {
   const sky = skyDef(skyId);
   const rng = createRng(seed);
   const { cards, nextId } = buildDeck(sky.deck, 1);
@@ -55,7 +59,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     skyId,
     daily,
     ante: 1,
-    nightIndex: 0,
+    chapter: planChapter({ ante: 1, bosses }),
     phase: 'map',
     gold: sky.startGold,
     deck: cards,
@@ -67,6 +71,8 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     night: null,
     reward: null,
     shop: null,
+    pending: [],
+    unlocks: unlocks ? structuredClone(unlocks) : allContent(),
     stats: { linesIgnited: 0, bestPlacement: 0, bestCombo: 'scatter', crosses: 0, nightsWon: 0, goldEarned: 0 },
     endless: false,
     stake,
@@ -96,17 +102,21 @@ export function collectReward(run: RunState): void {
 /** Покинуть Обсерваторию: следующая ночь или победа. */
 export function leaveShop(run: RunState): void {
   if (run.phase !== 'shop') throw new RuleError('notShop');
+  // Купленный пакет не пропадает молча: сначала выбрать или пропустить
+  if (run.pending.length) throw new RuleError('nothing');
   run.shop = null;
-  run.nightIndex += 1;
-  if (run.nightIndex >= 3) {
-    run.nightIndex = 0;
-    run.ante += 1;
-    if (run.ante > FINAL_ANTE && !run.endless) {
-      run.phase = 'victory';
-      return;
-    }
-    ensureBoss(run);
+  if (!isLastNight(run)) {
+    run.chapter.at += 1;
+    run.phase = 'map';
+    return;
   }
+  run.ante += 1;
+  if (run.ante > FINAL_ANTE && !run.endless) {
+    run.phase = 'victory';
+    return;
+  }
+  ensureBoss(run);
+  run.chapter = planChapter(run);
   run.phase = 'map';
 }
 
@@ -115,6 +125,7 @@ export function continueEndless(run: RunState): void {
   if (run.phase !== 'victory') throw new RuleError('notVictory');
   run.endless = true;
   ensureBoss(run);
+  run.chapter = planChapter(run);
   run.phase = 'map';
 }
 

@@ -78,6 +78,10 @@ export function initAnalytics(platform = 'web'): void {
     const err = reason instanceof Error ? reason : null;
     reportError(`Unhandled rejection: ${err ? `${err.name}: ${err.message}` : String(reason)}`, '', err?.stack);
   });
+  // CSP что-то заблокировала (SEC.8): в сводку, чтобы не сломать рекламу или SDK площадки молча
+  document.addEventListener('securitypolicyviolation', (e) => {
+    reportError(`CSP ${e.effectiveDirective}: ${e.blockedURI || 'inline'}`, e.sourceFile ? `${e.sourceFile}:${e.lineNumber}` : '');
+  });
 }
 
 /** Сколько раз за сессию ошибка с этим сообщением уже ушла со стеком. */
@@ -88,7 +92,8 @@ const stackSent = new Map<string, number>();
  */
 const STACKS_PER_MESSAGE = 3;
 
-function reportError(message: string, where: string, stack: string | undefined): void {
+/** Ошибка, которую игра пережила сама (например, неизвестная фаза), — в ту же сводку `js_error`. */
+export function reportError(message: string, where: string, stack?: string): void {
   const msg = message.slice(0, 200);
   const sent = stackSent.get(msg) ?? 0;
   const compact = sent < STACKS_PER_MESSAGE ? compactStack(stack, location.origin) : '';

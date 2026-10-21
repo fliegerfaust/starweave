@@ -1,33 +1,11 @@
 import { comboBase } from './content/combos';
-import { bossDef } from './content/bosses';
-import { omenDef } from './content/omens';
 import { evaluateCombo } from './combos';
-import type { BaseCtx, CardCtx, Contrib, EffectHooks, LineInfo, PlacementCtx } from './effects';
+import { activeEffects, type ActiveEffect } from './effect-sources';
+import type { BaseCtx, CardCtx, Contrib, LineInfo, PlacementCtx } from './effects';
 import { activeCells } from './grid';
-import { chance, type RngState } from './rng';
-import type { Card, Line, LineScore, NightState, PlacementScore, RunState, ScoreStep, StepSource } from './types';
-
-/** Активный эффект: хуки + состояние + как подписывать его шаги. */
-export interface ActiveEffect {
-  hooks: EffectHooks;
-  data: Record<string, number>;
-  source: StepSource;
-}
-
-/** Знамения по слотам, затем Затмение — порядок важен для ×множителей. */
-export function activeEffects(run: RunState, night: NightState | null): ActiveEffect[] {
-  const effects: ActiveEffect[] = run.omens.map((o) => ({
-    hooks: omenDef(o.id),
-    data: o.data,
-    source: { kind: 'omen', uid: o.uid, omenId: o.id },
-  }));
-  if (night?.bossId) {
-    effects.push({ hooks: bossDef(night.bossId), data: {}, source: { kind: 'boss', bossId: night.bossId } });
-  }
-  return effects;
-}
-
-export const GLASS_BREAK_CHANCE = 0.25;
+import type { RngState } from './rng';
+import { traitOf } from './content/traits';
+import type { Card, Line, LineScore, NightState, PlacementScore, RunState, ScoreStep, StepSource, EffectSource } from './types';
 
 /** Накопитель шагов одной линии. */
 class Tally {
@@ -90,33 +68,19 @@ function scoreLine(
       cell,
     });
 
-    let times = 1 + (card.glyph === 'echo' ? 1 : 0);
+    const trait = traitOf(card);
+    let times = 1 + (trait?.retriggers ?? 0);
     for (const fx of effects) times += fx.hooks.retriggers?.(cardCtx(fx)) ?? 0;
 
     for (let t = 0; t < times; t++) {
       tally.push(cardSource, { light: card.rank });
-      switch (card.glyph) {
-        case 'radiant':
-          tally.push(glyphSource(), { light: 30 });
-          break;
-        case 'blazing':
-          tally.push(glyphSource(), { mult: 4 });
-          break;
-        case 'glass':
-          tally.push(glyphSource(), { xMult: 2 });
-          break;
-        case 'gilded':
-          tally.push(glyphSource(), { gold: 2 });
-          break;
-        default:
-          break;
-      }
+      if (trait?.onScored) trait.onScored({ ...tally.contrib(glyphSource()), card, cell });
       for (const fx of effects) fx.hooks.onCardScored?.(cardCtx(fx));
     }
     // Один бросок на карту за ход, даже если она в двух линиях креста
-    if (card.glyph === 'glass' && !rolled.has(card.id)) {
+    if (trait?.breaks && !rolled.has(card.id)) {
       rolled.add(card.id);
-      if (chance(rng, GLASS_BREAK_CHANCE)) shattered.add(card.id);
+      if (trait.breaks(rng)) shattered.add(card.id);
     }
   });
 
@@ -129,7 +93,7 @@ function scoreLine(
   return { line, combo, cells, steps: tally.steps, light, mult, total: Math.floor(light * mult), gold: tally.gold };
 }
 
-function withCell(source: StepSource, cell: number): StepSource {
+function withCell(source: EffectSource, cell: number): EffectSource {
   return source.kind === 'omen' ? { ...source, cell } : source;
 }
 

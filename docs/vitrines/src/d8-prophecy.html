@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Пророчества · Starweave 0.9</title>
+<!--KIT-->
+<style>
+.pick-mid { flex: 1; display: grid; align-content: center; gap: 12px; }
+.lineview { flex: 1; }
+.pline .ico svg, .pline .k-sig, .pline > svg { width: 28px !important; height: 28px !important; }
+em { font-style: normal; }
+.scroll { position: relative; display: grid; gap: 6px; padding: 16px 14px 12px; border-radius: 18px;
+  background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.08), transparent 70%), rgb(10 9 30 / 0.78); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.scroll::before, .scroll::after { content: ''; position: absolute; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.7), transparent); }
+.scroll::before { top: 0; } .scroll::after { bottom: 0; }
+.scroll .cap { text-align: center; font: 400 12px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); margin-bottom: 4px; }
+.pro { display: grid; grid-template-columns: 44px minmax(0, 1fr) 40px; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; border: 0; background: none; text-align: left; cursor: pointer; transition: box-shadow 0.2s ease, background 0.2s ease; }
+.pro.on { background: rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.pro b { display: block; font: 700 14.5px/1.25 var(--font-body); color: var(--ink); }
+.pro small { display: block; margin-top: 3px; font: 600 12.5px/1.3 var(--font-body); color: var(--ink-dim); }
+.pro small em { font-style: normal; color: var(--gold-hi); font-weight: 700; }
+.pro .ico, .bk .ico { width: 44px; height: 44px; display: grid; place-items: center; }
+
+/* Рама ночи со свитком */
+.nframe { display: grid; gap: 10px; padding: 12px 14px; border-radius: 18px; background: rgb(10 9 30 / 0.72); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.nframe .row1 { display: flex; justify-content: space-between; align-items: baseline; }
+.nframe .row1 span { font: 400 12px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.nframe .row1 b { font: 800 24px/1 var(--font-body); color: #fff6e0; font-variant-numeric: tabular-nums; }
+.pline { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding-top: 10px; box-shadow: 0 -1px 0 var(--hair); }
+.pline .t { font: 600 12.5px/1.3 var(--font-body); color: var(--ink-dim); }
+.pline .t b { color: var(--ink); font-weight: 700; }
+.pline .n { font: 800 13px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.bar { grid-column: 1 / -1; height: 3px; border-radius: 3px; background: rgb(var(--gold-rgb) / 0.14); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, #e09a2f, #ffe6a8); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.8); transition: width 0.6s cubic-bezier(.16,1,.3,1); }
+.nframe.done { animation: flare 1s ease-out both; }
+.nframe.done .pline .t b { color: var(--gold-hi); }
+
+.lineview { display: grid; justify-items: center; gap: 8px; min-height: 150px; align-content: center; }
+.lineview .cards { display: flex; gap: 6px; }
+.lineview .nm { font: 400 18px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: #fff6e0; }
+.lineview .nm.hit { color: var(--gold-hi); text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.7); }
+.lineview .pts { font: 700 13px/1 var(--font-body); color: var(--ink-dim); }
+.reward { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 4px 4px; }
+.reward b { display: block; color: var(--gold-hi); font: 700 14.5px/1.2 var(--font-body); }
+.reward small { display: block; color: var(--ink-dim); font: 600 12.5px/1.3 var(--font-body); margin-top: 3px; }
+
+/* Книга пророчеств */
+.book { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0 22px; }
+.bk { display: grid; grid-template-columns: 44px minmax(0, 1fr) 36px; align-items: center; gap: 12px; padding: 9px 0; box-shadow: 0 -1px 0 var(--hair); }
+.bk b { display: block; font: 700 13.5px/1.25 var(--font-body); color: var(--ink-dim); }
+.bk small { display: block; margin-top: 2px; font: 600 11.5px/1.3 var(--font-body); color: var(--ink-faint); }
+.bk.got b { color: var(--gold-hi); }
+.bk.got small { color: var(--ink-dim); }
+.bk:not(.got) .ico, .bk:not(.got) .rw { opacity: 0.45; filter: grayscale(0.7); }
+.bk .rw { justify-self: end; }
+.bk.fresh { animation: flare 1s ease-out both; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner" id="inner"></div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Книга пророчеств <small>16 первой волны · исполненные хоть раз — золотом</small></div>
+  <div class="book" id="book"></div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.9 · Пророчества · 21.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'prophecy', lead: 'В начале главы небо даёт <b>пророчество</b> — цель на три ночи. Сбылось — награда сразу в забег. Цель меняет план: ради двух флешей уже стоит купить Линзу.' });
+
+/* art: chart-flush chart-straight chart-cascade chart-quartet chart-mirror chart-supernova chart-triple chart-pair
+   omen-monochrome omen-prismLens omen-crossroads omen-ladder omen-twinStars omen-supernovaSeed omen-cometTrail omen-echoChamber omen-abacus omen-stardust nebula-4 */
+const IC = {
+  cross: '<path d="M22 8v28M8 22h28" stroke="#ff6b8b" stroke-width="3" stroke-linecap="round"/><circle cx="22" cy="22" r="5" fill="#fff2cc"/>',
+  coin: '<circle cx="22" cy="22" r="12" fill="#f6c25b"/><circle cx="22" cy="22" r="8" fill="none" stroke="#b9791b" stroke-width="1.5"/>',
+  hour: '<path d="M14 9h16M14 35h16M16 9c0 8 12 8 12 13s-12 5-12 13M28 9c0 8-12 8-12 13s12 5 12 13" fill="none" stroke="#ffe6a8" stroke-width="2" stroke-linecap="round"/>',
+  myth: '<path d="M8 12 16 26 22 14 30 28 36 16" fill="none" stroke="#ffe6a8" stroke-width="1.6"/>' + [[8, 12], [16, 26], [22, 14], [30, 28], [36, 16]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fff6e0"/>`).join(''),
+  rows: '<g fill="none" stroke="#7fe0ff" stroke-width="2.4" stroke-linecap="round"><path d="M9 11h26M9 18h26M9 25h26M9 32h26"/></g>',
+  burn: '<path d="M22 8c5 6 9 10 9 16a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 5 0-5 0-9 2-13z" fill="none" stroke="#ff7f62" stroke-width="2"/><path d="M8 36 36 8" stroke="#a5a0cf" stroke-width="2"/>',
+  big: '<text x="22" y="28" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="800" font-size="15" fill="#ffe6a8">1K</text><circle cx="22" cy="22" r="16" fill="none" stroke="#f6c25b" stroke-width="1.5"/>',
+  shop: '<path d="M10 18h24l-2 16H12zM15 18a7 7 0 0 1 14 0" fill="none" stroke="#a5a0cf" stroke-width="2"/><path d="M9 9 35 35" stroke="#a5a0cf" stroke-width="2"/>',
+};
+const ico = (k) => (IC[k] ? svg(IC[k], 44, 44) : sig(k, 40));
+const reward = (r) => (r.startsWith('omen-') ? sig(r, 36) : ico(r));
+const BOOK = [
+  { id: 'flush2', icon: 'chart-flush', name: 'Два флеша за главу', reward: 'omen-monochrome', rName: 'Знамение «Монохром»', goal: 2, combo: 'Флеш' },
+  { id: 'lastCross', icon: 'cross', name: 'Крест на последнем ходу ночи', reward: 'coin', rName: '+5 золота', goal: 1 },
+  { id: 'myth', icon: 'myth', name: 'Миф до Затмения', reward: 'omen-echoChamber', rName: 'Знамение «Отзвук»' },
+  { id: 'cascade', icon: 'chart-cascade', name: 'Каскад', reward: 'chart-cascade', rName: 'Каскад +2 уровня' },
+  { id: 'noBurn', icon: 'burn', name: 'Три ночи без сжиганий', reward: 'coin', rName: '+6 золота' },
+  { id: 'quartet', icon: 'chart-quartet', name: 'Квартет', reward: 'omen-stardust', rName: 'Знамение «Звёздная пыль»' },
+  { id: 'half', icon: 'hour', name: 'Ночь за половину ходов', reward: 'coin', rName: '+4 золота' },
+  { id: 'straight4', icon: 'chart-straight', name: 'Четыре стрита', reward: 'omen-ladder', rName: 'Знамение «Звёздная лестница»' },
+  { id: 'rows', icon: 'rows', name: 'Все четыре ряда за ночь', reward: 'omen-abacus', rName: '+1 ход каждую ночь главы' },
+  { id: 'cross3', icon: 'cross', name: 'Тройной крест', reward: 'omen-crossroads', rName: 'Знамение «Перекрёсток»' },
+  { id: 'comet', icon: 'chart-flush', name: 'Флеш Кометы', reward: 'omen-cometTrail', rName: 'Знамение «Хвост кометы»' },
+  { id: 'thousand', icon: 'big', name: 'Созвездие на 1 000 очков', reward: 'coin', rName: '+8 золота' },
+  { id: 'noShop', icon: 'shop', name: 'Глава без покупок', reward: 'omen-prismLens', rName: 'Знамение даром' },
+  { id: 'supernova', icon: 'chart-supernova', name: 'Сверхновая', reward: 'omen-supernovaSeed', rName: 'Знамение «Семя сверхновой»' },
+  { id: 'mirror2', icon: 'chart-mirror', name: 'Два Зеркала', reward: 'omen-twinStars', rName: 'Знамение «Двойная звезда»' },
+  { id: 'triple3', icon: 'chart-triple', name: 'Три тройки', reward: 'coin', rName: '+6 золота' },
+];
+const got = new Set(['half', 'quartet', 'triple3']);
+const OFFER = ['flush2', 'lastCross'];
+const by = (id) => BOOK.find((b) => b.id === id);
+/* Ночь по шагам: линии, что вспыхивают на ходах. hit — засчитывается пророчеству. */
+const SCRIPT = {
+  flush2: [
+    { cards: [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet']], nm: 'Пара', pts: 168 },
+    { cards: [[2, 'moon'], [9, 'moon'], [4, 'moon'], [6, 'moon']], nm: 'Флеш', pts: 976, hit: true },
+    { cards: [[5, 'sun'], [3, 'moon'], [6, 'star'], [4, 'comet']], nm: 'Стрит', pts: 672 },
+    { cards: [[1, 'star'], [8, 'star'], [5, 'star'], [7, 'star']], nm: 'Флеш', pts: 1144, hit: true },
+  ],
+  lastCross: [
+    { cards: [[4, 'sun'], [8, 'moon'], [4, 'star'], [8, 'comet']], nm: 'Две пары', pts: 368 },
+    { cards: [[7, 'sun'], [7, 'moon'], [2, 'star'], [7, 'comet']], nm: 'Тройка', pts: 639 },
+    { cards: [[6, 'moon'], [4, 'moon'], [7, 'moon'], [5, 'moon']], nm: 'Последний ход · крест ×2', pts: 4256, hit: true },
+  ],
+};
+let S;
+const stage = sky(q('#stage'), 4);
+const inner = q('#inner');
+
+function start() { S = { phase: 'pick', pick: OFFER[0], step: 0, prog: 0, score: 0 }; draw(); }
+function draw() {
+  if (S.phase === 'pick') return drawPick();
+  drawNight();
+}
+function drawPick() {
+  inner.replaceChildren(
+    h('div', { class: 'stage-head rise' }, h('div', { class: 'plate-title' }, 'Глава 4'), h('div', { class: 'plate-sub' }, 'Небо даёт пророчество на три ночи')),
+    h('div', { class: 'pick-mid' }, h('div', { class: 'scroll rise' }, h('div', { class: 'cap' }, 'Выбери одно'),
+      ...OFFER.map((id) => { const p = by(id); return h('button', { class: 'pro' + (S.pick === id ? ' on' : ''), onclick: () => { S.pick = id; draw(); } },
+        h('span', { class: 'ico' }, ico(p.icon)), h('span', {}, h('b', {}, p.name), h('small', { html: `Награда: <em>${p.rName}</em>` })), reward(p.reward)); })),
+    h('div', { class: 'stage-note' }, 'Второе пророчество сгорит — выбирай под свою сборку')),
+    h('div', { class: 'stage-foot' }, h('button', { class: 'btn btn-primary', onclick: () => { S.phase = 'night'; draw(); } }, 'Принять пророчество')));
+}
+function frameEl() {
+  const p = by(S.pick), goal = p.goal || 1;
+  return h('div', { class: 'nframe' + (S.phase === 'done' ? ' done' : ''), id: 'nframe' },
+    h('div', { class: 'row1' }, h('span', {}, S.phase === 'done' ? 'Пророчество сбылось' : 'Глава 4 · Сумерки'), h('b', { id: 'sc' }, S.score.toLocaleString('ru-RU'))),
+    h('div', { class: 'pline' }, ico(p.icon), h('div', { class: 't', html: `<b>${p.name}</b>` }), h('span', { class: 'n' }, `${S.prog} / ${goal}`),
+      h('div', { class: 'bar' }, h('i', { style: { width: (S.prog / goal) * 100 + '%' } }))));
+}
+function drawNight(last) {
+  const p = by(S.pick), steps = SCRIPT[S.pick];
+  const view = h('div', { class: 'lineview' });
+  if (last) view.append(h('div', { class: 'cards rise' }, ...last.cards.map(([r, s]) => card({ rank: r, suit: s }, 58))),
+    h('div', { class: 'nm' + (last.hit ? ' hit' : '') }, last.nm), h('div', { class: 'pts num' }, `+${last.pts.toLocaleString('ru-RU')} очков`));
+  else view.append(h('div', { class: 'hintline' }, 'Ночь идёт: каждый ход — вспышка линии'));
+  const foot = h('div', { class: 'stage-foot' });
+  if (S.phase === 'done') {
+    foot.append(h('div', { class: 'reward rise' }, reward(p.reward), h('div', {}, h('b', {}, p.rName), h('small', {}, 'Награда уже в забеге'))),
+      h('button', { class: 'btn btn-secondary', onclick: start }, 'Ещё раз'));
+  } else foot.append(h('button', { class: 'btn btn-primary', onclick: nextMove }, S.step === steps.length - 1 && S.pick === 'lastCross' ? 'Последний ход' : 'Следующий ход'));
+  inner.replaceChildren(frameEl(), view, foot);
+}
+async function nextMove() {
+  const steps = SCRIPT[S.pick], st = steps[S.step];
+  S.step++;
+  const before = S.score;
+  S.score += st.pts;
+  if (st.hit) S.prog++;
+  const goal = by(S.pick).goal || 1;
+  const fulfilled = S.prog >= goal;
+  drawNight(st);
+  countUp(q('#sc'), before, S.score, 600);
+  if (fulfilled) {
+    await wait(REDUCED ? 30 : 700);
+    S.phase = 'done';
+    const fresh = !got.has(S.pick);
+    got.add(S.pick);
+    drawNight(st);
+    renderBook(fresh ? S.pick : null);
+    ribbon(stage, 'Сбылось', by(S.pick).rName, 1900);
+  }
+}
+function renderBook(fresh) {
+  q('#book').replaceChildren(...BOOK.map((p) => h('div', { class: 'bk' + (got.has(p.id) ? ' got' : '') + (p.id === fresh ? ' fresh' : '') },
+    h('span', { class: 'ico' }, ico(p.icon)), h('div', {}, h('b', {}, p.name), h('small', {}, got.has(p.id) ? `Сбылось · ${p.rName}` : p.rName)), h('span', { class: 'rw' }, reward(p.reward)))));
+}
+
+facts(q('#aside'), [
+  ['Суть', 'В начале главы — <b>одно из двух</b> пророчеств. Шкала в раме ночи тихо копит прогресс; исполнилось — вспышка рамы и награда сразу в забег.'],
+  ['Глубина', 'Пророчество — маленький план на главу: под «Два флеша» берёшь Линзу и Обращения, под «Крест на последнем ходу» — бережёшь ходы. Выбор из двух — уже решение сборки.'],
+  ['Откуда', 'Карты-квесты Slay the Spire 2 и «Список пророчеств» Hades: цель внутри забега плюс книга, которую хочется заполнить.'],
+  ['Коллекция', '16 пророчеств первой волны в Книге: исполненные — золотом с наградой. Незаполненная строка — готовый повод начать новый забег.'],
+  ['Новичку', 'Появляется на 7-й ступени, когда созвездия и развилки уже знакомы. Текст — одна строка и знак созвездия, прогресс — числом.'],
+], [
+  ['PR.1', 'Ядро: 16 пророчеств, прогресс по событиям ночи, награда при исполнении'],
+  ['PR.2', 'Свиток выбора в начале главы, шкала в раме ночи, вспышка исполнения'],
+  ['PR.3', 'Книга пророчеств в Коллекции'],
+]);
+ladder(q('#ladder'), 7);
+renderBook();
+start();
+</script>
+</body>
+</html>

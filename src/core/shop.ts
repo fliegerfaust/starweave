@@ -5,13 +5,14 @@ import { stakePrice } from './content/stakes';
 import { RuleError } from './errors';
 import { chance, pick, shuffle, weightedPick } from './rng';
 import { buildRules } from './rules';
+import { offer } from './choices';
 import { createOmen } from './omen-instance';
 import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type ShopItem, type ShopState } from './types';
 
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
   for (let i = 0; i < count; i++) {
-    const pool = OMEN_LIST.filter((o) => !exclude.has(o.id));
+    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && !exclude.has(o.id));
     if (!pool.length) break;
     const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
     exclude.add(def.id);
@@ -36,7 +37,7 @@ const SERVICE_RITUALS = new Set(['banish']);
 
 /** Ритуалы, которые могут выпасть в лавке или пакете. */
 function shopRituals(run: RunState) {
-  return RITUAL_LIST.filter((r) => !SERVICE_RITUALS.has(r.id) && (r.available?.(run) ?? true));
+  return RITUAL_LIST.filter((r) => run.unlocks.rituals.includes(r.id) && !SERVICE_RITUALS.has(r.id) && (r.available?.(run) ?? true));
 }
 
 /**
@@ -82,7 +83,6 @@ export function generateShop(run: RunState): ShopState {
     items: rollItems(run, SHOP_ITEM_SLOTS),
     packs: isFirstChapter(run) ? [] : rollPacks(run, SHOP_PACK_SLOTS),
     rerollCost: REROLL_BASE,
-    openPack: null,
   };
 }
 
@@ -104,37 +104,16 @@ function shuffleCopy<T>(run: RunState, items: readonly T[]): T[] {
   return shuffle(run.rng, [...items]);
 }
 
-/** Покупка пакета: деньги списываются, варианты раскрываются, выбор — `choosePack`. */
+/** Покупка пакета: деньги списываются, варианты встают в очередь выборов (`core/choices.ts`). */
 export function buyPack(run: RunState, slot: number): void {
   const shop = requireShop(run);
   const item = shop.packs[slot];
   if (!item || item.kind !== 'pack' || item.sold) throw new RuleError('nothing');
-  if (shop.openPack) throw new RuleError('nothing');
+  if (run.pending.length) throw new RuleError('nothing');
   if (item.pack === 'omen' && run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
   pay(run, item.price);
   item.sold = true;
-  shop.openPack = { pack: item.pack, options: packOptions(run, item.pack) };
-}
-
-/** Выбрать вариант открытого пакета. Ритуал из пакета бесплатен, но требует целей. */
-export function choosePack(run: RunState, index: number, targetIds: number[] = []): void {
-  const shop = requireShop(run);
-  const open = shop.openPack;
-  const choice = open?.options[index];
-  if (!open || !choice) throw new RuleError('nothing');
-  if (open.pack === 'omen') {
-    if (run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
-    run.omens.push(createOmen(run, choice));
-  } else if (open.pack === 'chart') {
-    run.comboLevels[choice as ComboId] += 1;
-  } else {
-    applyRitual(run, choice, targetIds);
-  }
-  shop.openPack = null;
-}
-
-export function skipPack(run: RunState): void {
-  requireShop(run).openPack = null;
+  offer(run, { kind: 'pack', pack: item.pack, options: packOptions(run, item.pack) });
 }
 
 function requireShop(run: RunState): ShopState {
@@ -218,7 +197,7 @@ function validateRitual(run: RunState, ritualId: string, targetIds: number[]): C
   return targets;
 }
 
-function applyRitual(run: RunState, ritualId: string, targetIds: number[]): void {
+export function applyRitual(run: RunState, ritualId: string, targetIds: number[]): void {
   const targets = validateRitual(run, ritualId, targetIds);
   ritualDef(ritualId).apply(run, targets);
 }
@@ -236,7 +215,7 @@ export function banishServicePrice(run: RunState): number | null {
  */
 export function banishCard(run: RunState, cardId: number): void {
   const shop = requireShop(run);
-  if (shop.openPack) throw new RuleError('nothing');
+  if (run.pending.length) throw new RuleError('nothing');
   const price = banishServicePrice(run);
   if (price === null) throw new RuleError('ritualUnavailable');
   if (!run.deck.some((c) => c.id === cardId)) throw new RuleError('badTarget');
@@ -247,7 +226,7 @@ export function banishCard(run: RunState, cardId: number): void {
 
 export function reroll(run: RunState): void {
   const shop = requireShop(run);
-  if (shop.openPack) throw new RuleError('nothing');
+  if (run.pending.length) throw new RuleError('nothing');
   pay(run, shop.rerollCost);
   shop.rerollCost += 1;
   const owned = new Set([...run.omens.map((o) => o.id)]);

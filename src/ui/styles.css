@@ -1990,7 +1990,8 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 @media (min-width: 900px) and (min-height: 561px) {
   .atlas { max-width: 1060px; padding: calc(28px + var(--safe-top)) 40px calc(28px + var(--safe-bottom)); gap: 18px; justify-content: safe center; }
   .atl-body { flex: 0 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; -webkit-mask-image: none; mask-image: none; padding-bottom: 0; }
-  .atl-hero { min-height: 470px; }
+  /* Невысокое окно ПК (планшетное окно CrazyGames 1080×607): обложка ужимается, а не уходит под кнопку */
+  .atl-hero { min-height: clamp(290px, calc(100dvh - 300px), 470px); }
   .atl-stack { --bw: 150px; --fw: 120px; width: 260px; height: 260px; }
   .atl-title { font-size: 40px; }
   .atl-right { gap: 14px; }
@@ -2000,6 +2001,10 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   .atl-cta { justify-items: center; box-shadow: none; padding-top: 4px; }
   .atl-cta .btn, .atl-cta .atl-two { max-width: 440px; }
   .atl-cta .atl-two { width: 100%; }
+}
+@media (min-width: 900px) and (min-height: 561px) and (max-height: 700px) {
+  .atl-stack { --bw: 118px; --fw: 94px; width: 205px; height: 205px; }
+  .atl-title { font-size: 34px; }
 }
 /* Невысокий ландшафт: вкладки в строку шапки, обложка слева закреплена, кнопка справа внизу */
 @media (orientation: landscape) and (max-height: 560px) {

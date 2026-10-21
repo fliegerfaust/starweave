@@ -87,13 +87,13 @@ export async function runDemo(app: App, name: string): Promise<void> {
   // Опытный игрок: созвездия и крест уже в коллекции — без окон «Новое созвездие»
   app.profile.combosFound = [...COLLECTIBLE_COMBOS];
   app.profile.crossFound = true;
-  app.startRun('classic');
+  app.runs.startRun('classic');
   const run = app.run!;
   run.ante = 3;
-  run.nightIndex = 1;
+  run.chapter.at = 1;
   run.gold = 23;
   run.omens = OMENS.map((id) => createOmen(run, id));
-  app.beginNight();
+  app.runs.beginNight();
   const night = run.night!;
   const used = new Set<number>();
   const take = (code: string): Card => {
@@ -118,8 +118,8 @@ export async function runDemo(app: App, name: string): Promise<void> {
   while (!w.__scene) await sleep(50);
   const scene = w.__scene;
   if (sc.noForecast) {
-    scene.forecastOff = true;
-    scene.refreshClosers();
+    scene.forecast.off = true;
+    scene.forecast.refreshClosers();
   }
   // Запись — с уже собранного неба: первый кадр ролика сразу про игру
   await sleep(1200);

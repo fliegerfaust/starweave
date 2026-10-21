@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Трофеи Затмений · Starweave 0.9</title>
+<!--KIT-->
+<style>
+em { font-style: normal; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.pager .btn-light { min-width: 44px; }
+.pager span { min-width: 150px; text-align: center; font: 700 13px/1.2 var(--font-body); color: var(--ink-dim); }
+.pager span b { color: var(--ink); }
+
+.medal-wrap { display: grid; place-items: center; perspective: 700px; height: 176px; }
+.medal { position: relative; width: 132px; height: 132px; transform-style: preserve-3d; transition: transform 0.9s cubic-bezier(.3,1.4,.4,1); }
+.medal.tamed { transform: rotateY(180deg); }
+.medal .face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; }
+.medal .face.back { transform: rotateY(180deg); }
+.medal .face .k-sig { width: 112px !important; height: 112px !important; }
+.medal .crown { position: absolute; inset: -6px; width: 144px; height: 144px; }
+.medal .face.back .k-sig { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); }
+.medal .face.back::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; box-shadow: 0 0 0 2px rgb(255 230 168 / 0.9), 0 0 0 6px rgb(246 194 91 / 0.28), 0 0 34px rgb(246 194 91 / 0.55); }
+
+.turn { display: grid; gap: 4px; text-align: center; min-height: 64px; }
+.turn .was { color: var(--ink-faint); font: 600 13px/1.35 var(--font-body); text-decoration: line-through; text-decoration-color: rgb(165 160 207 / 0.5); }
+.turn .now { color: var(--gold-hi); font: 700 15px/1.35 var(--font-body); text-wrap: balance; }
+.turn .now em { font-style: normal; }
+
+.choice { display: grid; gap: 0; }
+.opt { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; cursor: pointer; text-align: left; border: 0; background: none;
+  transition: box-shadow 0.2s ease, background 0.2s ease; }
+.opt + .opt { margin-top: 4px; }
+.opt.on { background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.08), transparent 70%), rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.opt b { display: block; font: 700 14.5px/1.2 var(--font-body); color: var(--ink); }
+.opt small { display: block; margin-top: 3px; font: 600 12.5px/1.35 var(--font-body); color: var(--ink-dim); }
+.opt .gold-sig { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.85); }
+
+/* Мини-рамка ночи */
+.frame { display: grid; gap: 8px; padding: 12px 14px; border-radius: 18px; background: rgb(10 9 30 / 0.72); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.frame .top-l { display: flex; justify-content: space-between; align-items: baseline; }
+.frame .top-l span { font: 400 12px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.frame .top-l b { font: 800 22px/1 var(--font-body); color: #fff6e0; font-variant-numeric: tabular-nums; }
+.frame .belt { display: flex; align-items: center; gap: 6px; }
+.frame .belt .sep { width: 1px; align-self: stretch; margin: 2px 4px; background: var(--hair); }
+.frame .belt .slot { width: 36px; height: 36px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.22); }
+.frame .belt .trophy-slot { position: relative; }
+.frame .belt .trophy-slot .k-sig { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.9), 0 0 12px rgb(246 194 91 / 0.6); }
+.frame .belt .what { margin-left: auto; text-align: right; font: 600 11.5px/1.3 var(--font-body); color: var(--ink-dim); max-width: 120px; }
+.frame .belt .what b { display: block; color: var(--gold-hi); font-weight: 700; }
+.frame.pop { animation: rise 0.5s cubic-bezier(.16,1,.3,1) both; }
+
+/* Таблица всех 13 */
+.pairs { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 0 22px; }
+.pair { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px 40px minmax(0, 1.15fr); align-items: center; gap: 10px; padding: 10px 0; box-shadow: 0 -1px 0 var(--hair); cursor: pointer; }
+.pair:hover b { color: var(--gold-hi); }
+.pair b { display: block; font: 700 13.5px/1.2 var(--font-body); color: var(--ink); }
+.pair small { display: block; margin-top: 2px; font: 600 11.5px/1.3 var(--font-body); color: var(--ink-faint); }
+.pair .t b { color: var(--gold-hi); }
+.pair .t small { color: var(--ink-dim); }
+.pair .arr { color: var(--gold); }
+.pair .gold-sig { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.85); }
+@media (max-width: 420px) { .pairs { grid-template-columns: 1fr; } .pair { grid-template-columns: 36px minmax(0, 1fr) 12px 36px minmax(0, 1.1fr); gap: 8px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="stage-head">
+            <div class="plate-title" id="title">Затмение пройдено</div>
+            <div class="plate-sub" id="sub">Глава 3 · Тяготение побеждено</div>
+          </div>
+          <div class="medal-wrap"><div class="medal" id="medal"><div class="face front" id="front"></div><div class="face back" id="back"></div></div></div>
+          <div class="turn" id="turn"></div>
+          <div class="choice" id="choice"></div>
+          <div id="frame-slot"></div>
+          <div class="stage-foot">
+            <button class="btn btn-primary" id="go">Приручить</button>
+            <div class="pager"><button class="btn btn-light" id="prev" aria-label="Предыдущее Затмение">‹</button><span id="pg"></span><button class="btn btn-light" id="next" aria-label="Следующее Затмение">›</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">13 Затмений и их трофеи <small>правило босса, вывернутое в пользу игрока</small></div>
+  <div class="pairs" id="pairs"></div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.9 · Трофеи Затмений · 21.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'trophy', lead: 'Затмение не даёт реликвию — оно само становится <b>трофеем</b>. Его правило выворачивается в твою пользу: игрок уже прочувствовал его на себе, объяснять ничего не нужно.' });
+
+/* art: boss-void boss-eclipse-sun boss-eclipse-moon boss-eclipse-star boss-eclipse-comet boss-fog boss-drought boss-shortNight boss-silence boss-gravity boss-judge boss-wane boss-hunger
+   omen-corona omen-collapsar omen-glassCannon omen-sunWorship omen-moonTide omen-starlight omen-cometTrail omen-nightOwl omen-wideSky omen-abacus omen-pyre omen-pillar omen-scatterbrain omen-doubleStar omen-tithe
+   omen-stardust omen-ladder omen-horizon nebula-6 */
+const TROPHIES = [
+  ['gravity', 'Столп притяжения', 'Столбцы: <em class="c-mult">×2</em> множителя', 'pillar'],
+  ['void', 'Звёздная пустота', 'Одна клетка запечатана, соседние карты: <em class="c-mult">+4</em> множ.', 'collapsar'],
+  ['eclipse-sun', 'Солнце в короне', 'Карты Солнца: двойной <em class="c-light">свет</em>', 'sunWorship'],
+  ['eclipse-moon', 'Луна в короне', 'Карты Луны: двойной <em class="c-light">свет</em>', 'moonTide'],
+  ['eclipse-star', 'Звезда в короне', 'Карты Звезды: двойной <em class="c-light">свет</em>', 'starlight'],
+  ['eclipse-comet', 'Комета в короне', 'Карты Кометы: двойной <em class="c-light">свет</em>', 'cometTrail'],
+  ['fog', 'Ясное небо', 'Видны две верхние карты колоды', 'nightOwl'],
+  ['drought', 'Изобилие', 'Первые 5 ходов ночи: <em class="c-gold">+1</em> карта в руке', 'wideSky'],
+  ['shortNight', 'Долгая ночь', '<em class="c-gold">+1</em> ход за каждый крест', 'abacus'],
+  ['silence', 'Тишина', 'Несожжённое: <em class="c-mult">+5</em> множ. к последнему ходу', 'pyre'],
+  ['judge', 'Помилование', 'Россыпь считается Парой', 'scatterbrain'],
+  ['wane', 'Полнолуние', 'Первое созвездие ночи: множ. <em class="c-mult">×2</em>', 'doubleStar'],
+  ['hunger', 'Сытость', 'Каждое третье созвездие: <em class="c-gold">+2</em> золота', 'tithe'],
+];
+let idx = 0, pick = 'trophy', tamed = false;
+const stage = sky(q('#stage'), 6);
+
+function crownSvg() {
+  // Жемчужная корона: кольцо жемчужин вокруг сигила Затмения
+  let d = '';
+  for (let i = 0; i < 24; i++) { const a = (i / 24) * PI * 2, r = i % 2 ? 2.2 : 3.2; d += `<circle cx="${72 + cos(a) * 66}" cy="${72 + sin(a) * 66}" r="${r}" fill="#efeaff" opacity="${i % 2 ? 0.55 : 0.9}"/>`; }
+  const el = svg(d, 144, 144);
+  el.classList.add('crown');
+  return el;
+}
+function render() {
+  const [id, tName, tRule, omenId] = TROPHIES[idx];
+  const [bName, bRule] = BOSS_RU[id];
+  const medal = q('#medal');
+  medal.classList.toggle('tamed', tamed && pick === 'trophy');
+  q('#front').replaceChildren(crownSvg(), boss(id, 112));
+  q('#back').replaceChildren(boss(id, 112));
+  q('#title').textContent = tamed ? (pick === 'trophy' ? 'Затмение приручено' : 'Знамение взято') : 'Затмение пройдено';
+  q('#sub').textContent = `Глава 3 · ${bName} побеждено`;
+  q('#turn').replaceChildren(
+    h('div', { class: 'was' }, bRule),
+    h('div', { class: 'now', html: pick === 'trophy' ? `${tName}: ${tRule}` : `или Знамение «${OMEN_RU[omenId][0]}»` }));
+  q('#choice').style.display = tamed ? 'none' : '';
+  q('#choice').replaceChildren(
+    h('button', { class: 'opt' + (pick === 'trophy' ? ' on' : ''), onclick: () => { pick = 'trophy'; render(); } },
+      h('img', { class: 'k-sig gold-sig', src: ART['boss-' + id], width: 44, height: 44, alt: '' }),
+      h('span', {}, h('b', {}, `Трофей «${tName}»`), h('small', { html: tRule }))),
+    h('button', { class: 'opt' + (pick === 'omen' ? ' on' : ''), onclick: () => { pick = 'omen'; render(); } },
+      omen(omenId, 44), h('span', {}, h('b', {}, `Знамение «${OMEN_RU[omenId][0]}»`), h('small', {}, OMEN_RU[omenId][1]))));
+  q('#go').textContent = tamed ? 'Дальше — глава 4' : pick === 'trophy' ? 'Приручить' : 'Взять Знамение';
+  q('#pg').innerHTML = `<b>${bName}</b> · ${idx + 1} из ${TROPHIES.length}`;
+  if (!tamed) q('#frame-slot').replaceChildren();
+}
+function frame() {
+  const [id, tName] = TROPHIES[idx];
+  const omens = ['stardust', 'ladder', 'horizon'];
+  if (pick === 'omen') omens.push(TROPHIES[idx][3]);
+  const belt = h('div', { class: 'belt' }, ...omens.map((o) => omen(o, 36)), h('div', { class: 'slot' }));
+  if (pick === 'trophy') belt.append(h('div', { class: 'sep' }), h('div', { class: 'trophy-slot' }, boss(id, 36)), h('div', { class: 'what' }, h('b', {}, tName), 'трофей до конца забега'));
+  else belt.append(h('div', { class: 'what' }, h('b', {}, OMEN_RU[TROPHIES[idx][3]][0]), 'новое Знамение'));
+  return h('div', { class: 'frame pop' }, h('div', { class: 'top-l' }, h('span', {}, 'Глава 4 · Сумерки'), h('b', {}, '0 / 4 200')), belt);
+}
+async function go() {
+  if (tamed) { tamed = false; idx = (idx + 1) % TROPHIES.length; pick = 'trophy'; render(); return; }
+  tamed = true;
+  render();
+  q('#frame-slot').replaceChildren(frame());
+  if (pick === 'trophy') ribbon(stage, 'Приручено', TROPHIES[idx][1], 1700);
+}
+q('#go').onclick = go;
+q('#prev').onclick = () => { idx = (idx - 1 + TROPHIES.length) % TROPHIES.length; tamed = false; pick = 'trophy'; render(); };
+q('#next').onclick = () => { idx = (idx + 1) % TROPHIES.length; tamed = false; pick = 'trophy'; render(); };
+
+q('#pairs').replaceChildren(...TROPHIES.map(([id, tName, tRule], i) => h('div', { class: 'pair', onclick: () => { idx = i; tamed = false; pick = 'trophy'; render(); q('#stage').scrollIntoView({ behavior: 'smooth', block: 'center' }); } },
+  boss(id, 40), h('div', {}, h('b', {}, BOSS_RU[id][0]), h('small', {}, BOSS_RU[id][1])),
+  h('span', { class: 'arr' }, '→'),
+  h('img', { class: 'k-sig gold-sig', src: ART['boss-' + id], width: 40, height: 40, alt: '' }),
+  h('div', { class: 't' }, h('b', {}, tName), h('small', { html: tRule })))));
+
+facts(q('#aside'), [
+  ['Суть', 'После Затмения — выбор: <b>приручить</b> его или взять Знамение. Трофей — то же правило, вывернутое наизнанку: «Тяготение» запрещало ряды — трофей усиливает столбцы.'],
+  ['Глубина', 'Трофей тянет сборку: приручил «Солнце в короне» — Солнцепоклонник и Обращения в Солнце становятся дороже. На последнем шаге главы видны два Затмения — выбор пути = выбор будущего трофея.'],
+  ['Почему своё', 'У StS реликвия босса случайна и не связана с боем. Здесь награда — сам побеждённый: объяснение уже прожито на себе, текст не нужен.'],
+  ['Повтор', '13 трофеев в Коллекции: приручённые золотом, «приручено N раз». Слот трофея один, на Сердце неба — два: какие сочетать — повод для нового забега.'],
+  ['Как выглядит', 'Сигил в жемчужной короне переворачивается и становится золотым. В раме ночи трофей стоит за волосяной линией после Знамений.'],
+], [
+  ['TR.1', 'Ядро: <i>trophy</i> у каждого из 13 Затмений, слот трофея; тесты всех 13'],
+  ['TR.2', 'Сцена выбора после Затмения, переворот сигила; трофей в раме ночи'],
+  ['TR.3', 'Два Затмения на последнем шаге главы — выбор пути'],
+  ['TR.4', 'Коллекция: 13 трофеев, «приручено N раз»'],
+]);
+ladder(q('#ladder'), 4);
+render();
+</script>
+</body>
+</html>

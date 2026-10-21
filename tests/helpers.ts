@@ -18,14 +18,16 @@ export const cards = (codes: string) => codes.trim().split(/\s+/).map(c);
 import { newRun } from '../src/core/run';
 import { startNight } from '../src/core/night';
 import { createOmen } from '../src/core/omen-instance';
+import { planChapter } from '../src/core/route';
 import type { RunState } from '../src/core/types';
 
 /** Забег на начале ночи с заданными Знамениями. Рука и небо — по желанию теста. */
 export function nightRun(opts: { omens?: string[]; seed?: number; nightIndex?: number; boss?: string } = {}): RunState {
   const run = newRun({ seed: opts.seed ?? 1 });
   for (const id of opts.omens ?? []) run.omens.push(createOmen(run, id));
-  if (opts.nightIndex !== undefined) run.nightIndex = opts.nightIndex;
   if (opts.boss) run.bosses[0] = opts.boss;
+  // План главы строится из Затмений забега — после подмены его строим заново
+  run.chapter = { ...planChapter(run), at: opts.nightIndex ?? 0 };
   startNight(run);
   return run;
 }

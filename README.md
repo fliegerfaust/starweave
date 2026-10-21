@@ -29,15 +29,16 @@ npm run e2e        # Playwright: вёрстка и снимки на 8 устр�
 npm run legal      # пересобрать public/legal/*.html из legal/*.md
 ```
 
-Выкладка: пуш в `main` или `release/**` публикует сборку на GitHub Pages; сервер игры —
+Выкладка: тег версии `vX.Y.Z` на коммите из `main` публикует сборку на GitHub Pages (ветки проверяет только CI); сервер игры —
 `server/deploy/deploy.sh` ([server/README.md](server/README.md)).
 
 Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`.
 
-План следующего большого релиза 0.8 «Глубина» с витринами-прототипами и ревью архитектуры —
-в ветке `release/0.8.0` (не публикуется).
+Релиз 0.6 «Фундамент» (рефакторинг и техдолг) вышел 22.10.2026 (тег `v0.6.0`), итог в
+[RELEASE-0.6-FOUNDATION](docs/RELEASE-0.6-FOUNDATION.md). План 0.9 «Глубина» с
+витринами-прототипами — [RELEASE-0.9-DEPTH](docs/RELEASE-0.9-DEPTH.md). Все релизы — [ROADMAP](docs/ROADMAP.md).
 
-Документы: задачи — [TASKS.md](TASKS.md); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
+Документы: задачи — в трекере, проект CG ([TASKS.md](TASKS.md) — как открыть); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
 [DESIGN.md](DESIGN.md); правила — [docs/GDD.md](docs/GDD.md); устройство —
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); деньги — [docs/MONETIZATION.md](docs/MONETIZATION.md);
 реклама и где смотреть доход — [docs/ADS.md](docs/ADS.md); план выхода —
@@ -51,7 +52,7 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 ## Как устроено
 
 Подробно — в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), правила и баланс — в
-[docs/GDD.md](docs/GDD.md), план и статус — в [TASKS.md](TASKS.md).
+[docs/GDD.md](docs/GDD.md), план — в [docs/ROADMAP.md](docs/ROADMAP.md), задачи и статус — в трекере CG.
 
 ```
 src/core    чистые правила: детерминированы (сидируемый ГПСЧ в стейте), без DOM

@@ -7,7 +7,10 @@ import { expandOwned, isPermanent } from './catalog';
  */
 export class Entitlements {
   private bought: string[];
+  /** Открытое площадкой даром (CrazyGames): не хранится и не считается покупкой. */
+  private granted: string[] = [];
   private all: Set<string>;
+  private paidAll: Set<string>;
   private listeners: (() => void)[] = [];
 
   constructor() {
@@ -20,6 +23,7 @@ export class Entitlements {
     }
     this.bought = list;
     this.all = expandOwned(list);
+    this.paidAll = this.all;
   }
 
   /** Купленное и всё, что оно открывает (`atlas`, `back:astrolabe`, …). */
@@ -29,6 +33,18 @@ export class Entitlements {
 
   has(id: string): boolean {
     return this.all.has(id);
+  }
+
+  /** Куплено, а не подарено площадкой: только покупка атласа убирает рекламу. */
+  paid(id: string): boolean {
+    return this.paidAll.has(id);
+  }
+
+  /** Товары, которые площадка открывает бесплатно. */
+  grant(ids: readonly string[]): void {
+    this.granted = ids.filter(isPermanent);
+    this.recount();
+    for (const fn of this.listeners) fn();
   }
 
   /** Список от площадки заменяет копию целиком (возвраты тоже учитываются). */
@@ -51,8 +67,13 @@ export class Entitlements {
   private set(list: string[]): void {
     const same = list.length === this.bought.length && list.every((x) => this.bought.includes(x));
     this.bought = [...new Set(list)];
-    this.all = expandOwned(this.bought);
+    this.recount();
     storage.set(KEYS.owned, JSON.stringify(this.bought));
     if (!same) for (const fn of this.listeners) fn();
+  }
+
+  private recount(): void {
+    this.paidAll = expandOwned(this.bought);
+    this.all = expandOwned([...this.bought, ...this.granted]);
   }
 }

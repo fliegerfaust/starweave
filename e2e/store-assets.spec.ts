@@ -23,15 +23,15 @@ async function openGame(page: Page, lang: 'ru' | 'en'): Promise<void> {
 /** Ночь со вспышкой креста — главный «вау» для витрины. */
 async function crossMoment(page: Page): Promise<void> {
   // Сценарная первая ночь обучения даёт гарантированный крест «флеш + тройка»
-  await page.evaluate(() => (window as unknown as { starweave: { startTutorial(): void } }).starweave.startTutorial());
+  await page.evaluate(() => (window as unknown as { starweave: { runs: { startTutorial(): void } } }).starweave.runs.startTutorial());
   await page.waitForSelector('.tut-bubble.on');
   await page.evaluate(async () => {
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const w = window as unknown as {
-      starweave: { tutorial: { stop(): void } | null; run: { night: { hand: { id: number; rank: number; suit: string }[] } } };
+      starweave: { runs: { tutorial: { stop(): void } | null }; run: { night: { hand: { id: number; rank: number; suit: string }[] } } };
       __scene: { setGuide(g: unknown): void; place(h: number, c: number): Promise<void>; select(i: number): void; burnSelected(): Promise<void>; setStepPause(k: number): void };
     };
-    w.starweave.tutorial?.stop();
+    w.starweave.runs.tutorial?.stop();
     document.querySelector('.tut-layer')?.remove();
     const sc = w.__scene;
     sc.setGuide(null);
@@ -112,23 +112,23 @@ for (const lang of ['ru', 'en'] as const) {
         await page.waitForSelector('.modal-panel.reward', { timeout: 30_000 });
         await page.waitForTimeout(900);
         await page.evaluate(() => {
-          const app = (window as unknown as { starweave: { skipTutorial(): void; startRun(s: string): void; run: Record<string, unknown>; collectReward(): void } }).starweave;
-          app.skipTutorial();
-          app.startRun('classic');
+          const app = (window as unknown as { starweave: { runs: { skipTutorial(): void; startRun(s: string): void; collectReward(): void }; run: Record<string, unknown> } }).starweave;
+          app.runs.skipTutorial();
+          app.runs.startRun('classic');
           app.run.gold = 24;
           app.run.phase = 'reward';
           app.run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
           app.run.night = null;
-          app.collectReward();
+          app.runs.collectReward();
         });
         await page.waitForSelector('.shop');
         await page.waitForTimeout(700);
         await snap('3-shop');
-        await page.evaluate(() => (window as unknown as { starweave: { leaveShop(): void } }).starweave.leaveShop());
+        await page.evaluate(() => (window as unknown as { starweave: { runs: { leaveShop(): void } } }).starweave.runs.leaveShop());
         await page.waitForSelector('.map');
         await page.waitForTimeout(600);
         await snap('4-map');
-        await page.evaluate(() => (window as unknown as { starweave: { startTutorial(): void } }).starweave.startTutorial());
+        await page.evaluate(() => (window as unknown as { starweave: { runs: { startTutorial(): void } } }).starweave.runs.startTutorial());
         await page.waitForSelector('.tut-bubble.on');
         await page.waitForTimeout(700);
         await snap('5-tutorial');

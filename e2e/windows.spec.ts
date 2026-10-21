@@ -12,9 +12,8 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
 type App = {
   profile: { tutorialDone: boolean };
   run: Record<string, unknown> & { night: Record<string, unknown> | null; stats: Record<string, unknown> };
-  startRun(s: string): void;
-  beginNight(): void;
-  route(): Promise<void>;
+  runs: { startRun(s: string): void; beginNight(): void };
+  router: { route(): Promise<void> };
 };
 
 async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void> {
@@ -24,9 +23,9 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     document.querySelectorAll('.modal-backdrop, .discovery').forEach((el) => el.remove());
     const app = (window as unknown as { starweave: App }).starweave;
     app.profile.tutorialDone = true;
-    app.startRun('classic');
+    app.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
-    app.beginNight();
+    app.runs.beginNight();
     await new Promise((r) => setTimeout(r, 900));
     const run = app.run;
     Object.assign(run.stats, { nightsWon: 7, linesIgnited: 64, crosses: 5, bestPlacement: 18400, bestCombo: 'supernova', goldEarned: 212 });
@@ -42,7 +41,7 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     } else if (state === 'win') {
       run.phase = 'victory';
     }
-    if (['reward', 'lost', 'daily', 'win'].includes(state)) await app.route();
+    if (['reward', 'lost', 'daily', 'win'].includes(state)) await app.router.route();
     if (state === 'pause') document.querySelector<HTMLElement>('.hud .icon-btn.medal')!.click();
     if (state === 'deck') document.querySelector<HTMLElement>('.actions .btn, .actions button')!.click();
     if (state === 'discovery') {

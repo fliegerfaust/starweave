@@ -10,7 +10,7 @@ test.use({ locale: 'ru-RU' });
 
 type Rect = { x: number; y: number; w: number; h: number };
 type W = {
-  starweave: { startTutorial(): void; run: { night: { hand: { rank: number; suit: string }[] } } };
+  starweave: { runs: { startTutorial(): void }; run: { night: { hand: { rank: number; suit: string }[] } } };
   __scene: { busy: boolean; place(h: number, c: number): Promise<void>; handAreaRect(): Rect };
 };
 const SUIT: Record<string, string> = { s: 'sun', m: 'moon', t: 'star', c: 'comet' };
@@ -56,7 +56,7 @@ test('обучение: нить к цели, подсказка не закры
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as Partial<W>).starweave && !!document.querySelector('.menu-buttons .btn'));
-  await page.evaluate(() => (window as unknown as W).starweave.startTutorial());
+  await page.evaluate(() => (window as unknown as W).starweave.runs.startTutorial());
   await page.waitForSelector('.tut-bubble.on', { timeout: 10_000 });
   const failures: string[] = [];
   await check(page, 'обзор', failures);
@@ -139,7 +139,7 @@ test('обучение до второй ночи: награда без под�
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as Partial<W>).starweave && !!document.querySelector('.menu-buttons .btn'));
-  await page.evaluate(() => (window as unknown as W).starweave.startTutorial());
+  await page.evaluate(() => (window as unknown as W).starweave.runs.startTutorial());
   const failures: string[] = [];
   const dir = `e2e-results/${test.info().project.name}`;
 

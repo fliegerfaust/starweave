@@ -2,7 +2,7 @@ import { describe, it } from 'vitest';
 import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
-import { NIGHT_KINDS } from '../src/core/types';
+import { currentNode } from '../src/core/route';
 
 /**
  * Баланс-симуляция: жадный бот играет забеги, печатаем, где он падает и с каким
@@ -23,7 +23,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
         if (run.phase === 'map') startNight(run);
         if (run.phase === 'night') {
           playNight(run);
-          const key = `${run.ante}-${NIGHT_KINDS[run.nightIndex]}`;
+          const key = `${run.ante}-${currentNode(run).kind}`;
           (ratios[key] ??= []).push(run.night!.score / run.night!.target);
           const n = run.night!;
           (used[key] ??= []).push(Math.min(1, (n.rules.moves - n.movesLeft) / n.rules.moves));

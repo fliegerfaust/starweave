@@ -79,6 +79,6 @@ async function boot(): Promise<void> {
 void boot();
 
 // Офлайн-кэш — только для своего сайта; порталы вроде Яндекс Игр раздают файлы сами
-if (import.meta.env.PROD && import.meta.env.VITE_PLATFORM !== 'yandex' && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && !import.meta.env.VITE_PLATFORM && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => undefined));
 }

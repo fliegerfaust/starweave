@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OMENS } from '../src/core/content/omens';
 import { SKIES } from '../src/core/content/skies';
+import { apply, newLoggedRun } from '../src/core/commands';
+import { allContent } from '../src/core/content/pools';
 import { placeCard } from '../src/core/night';
 import { SAVE_VERSION } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
@@ -44,6 +46,51 @@ describe('сохранение забега (TD.1)', () => {
     const night = deserializeRun(fixture('save-0.5.9-night.json'))!;
     const cell = night.night!.grid.findIndex((c, i) => !c && !night.night!.sealed[i]);
     expect(() => placeCard(night, 0, cell)).not.toThrow();
+  });
+
+  it('номер ночи 0.5.9 становится планом главы (TD.6)', () => {
+    const raw = JSON.parse(fixture('save-0.5.9-night.json'));
+    const run = deserializeRun(JSON.stringify(raw))!;
+    expect(run.chapter.at).toBe(raw.nightIndex);
+    expect(run.chapter.nodes.map((n) => n.kind)).toEqual(['dusk', 'midnight', 'eclipse']);
+    expect(run.chapter.nodes[2]!.bossId).toBe(raw.bosses[raw.ante - 1]);
+    expect('nightIndex' in run).toBe(false);
+    const base = { ...raw, version: SAVE_VERSION, chapter: run.chapter };
+    delete base.nightIndex;
+    for (const chapter of [null, { ...run.chapter, at: 3 }, { nodes: [], at: 0 }, { ...run.chapter, nodes: [{ kind: 'dawn', bossId: null }] }]) {
+      expect(deserializeRun(JSON.stringify({ ...base, chapter })), JSON.stringify(chapter)).toBeNull();
+    }
+  });
+
+  it('журнал команд сохраняется, битый — отбрасывается без потери забега (TD.9)', () => {
+    const run = newLoggedRun({ seed: 5 });
+    apply(run, { c: 'startNight' });
+    expect(deserializeRun(serializeRun(run))!.log).toEqual(run.log);
+    const broken = deserializeRun(JSON.stringify({ ...run, log: { version: 1, cmds: 'nope' } }));
+    expect(broken).not.toBeNull();
+    expect(broken!.log).toBeUndefined();
+  });
+
+  it('открытый пакет 0.5.9 встаёт в очередь выборов (TD.7)', () => {
+    const raw = JSON.parse(fixture('save-0.5.9-shop.json'));
+    raw.shop.openPack = { pack: 'omen', options: ['stardust', 'pyre', 'abacus'] };
+    const run = deserializeRun(JSON.stringify(raw))!;
+    expect(run.pending).toEqual([{ kind: 'pack', pack: 'omen', options: ['stardust', 'pyre', 'abacus'] }]);
+    expect('openPack' in run.shop!).toBe(false);
+    const v2 = { ...JSON.parse(fixture('save-0.5.9-shop.json')), version: 2, log: { version: 1, start: { seed: 1 }, cmds: [{ c: 'choosePack', index: 0 }, { c: 'skipPack' }] } };
+    v2.chapter = run.chapter;
+    delete v2.nightIndex;
+    expect(deserializeRun(JSON.stringify(v2))!.log!.cmds).toEqual([{ c: 'choose', index: 0 }, { c: 'skip' }]);
+    for (const pending of [null, [{ kind: 'pack', pack: 'omen', options: ['futureOmen'] }], [{ kind: 'gift', options: ['x'] }]]) {
+      expect(deserializeRun(JSON.stringify({ ...run, pending })), JSON.stringify(pending)).toBeNull();
+    }
+  });
+
+  it('старый забег получает снимок открытий со всем контентом; незнакомое Знамение в снимке — не открывается (TD.8)', () => {
+    const run = deserializeRun(fixture('save-0.5.9-shop.json'))!;
+    expect(run.unlocks).toEqual(allContent());
+    const broken = { ...run, unlocks: { ...run.unlocks, omens: [...run.unlocks.omens, 'futureOmen'] } };
+    expect(deserializeRun(JSON.stringify(broken))).toBeNull();
   });
 
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {

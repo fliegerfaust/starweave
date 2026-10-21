@@ -12,7 +12,24 @@ function keys(obj: unknown, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) => keys(v, prefix ? `${prefix}.${k}` : k));
 }
 
+/** Все строки словаря с путями, включая массивы и пары «название, описание». */
+function strings(obj: unknown, prefix = ''): [string, string][] {
+  if (typeof obj === 'string') return [[prefix, obj]];
+  if (typeof obj !== 'object' || obj === null) return [];
+  return Object.entries(obj).flatMap(([k, v]) => strings(v, prefix ? `${prefix}.${k}` : k));
+}
+
+const vars = (text: string) => [...new Set(text.match(/\{\w+\}/g) ?? [])].sort();
+
 describe('локализация', () => {
+  it('подстановки {переменных} совпадают в ru и en', () => {
+    const enMap = new Map(strings(en));
+    const diff = strings(ru)
+      .filter(([path, text]) => enMap.has(path) && vars(text).join() !== vars(enMap.get(path)!).join())
+      .map(([path, text]) => `${path}: ru ${vars(text).join(' ') || '—'} / en ${vars(enMap.get(path)!).join(' ') || '—'}`);
+    expect(diff).toEqual([]);
+  });
+
   it('английский словарь повторяет русский', () => {
     expect(keys(en).sort()).toEqual(keys(ru).sort());
   });

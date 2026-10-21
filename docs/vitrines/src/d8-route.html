@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Развилки · Starweave 0.9</title>
+<!--KIT-->
+<style>
+.map { position: relative; height: 372px; margin: 0 -4px; }
+.map svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.edges .e { stroke: rgb(246 194 91 / 0.22); stroke-width: 1.2; stroke-dasharray: 3 5; fill: none; }
+.edges .e.open { stroke: rgb(255 230 168 / 0.55); }
+.edges .e.dead { stroke: rgb(170 160 255 / 0.08); }
+.edges .walk { stroke: #ffe6a8; stroke-width: 2; stroke-linecap: round; fill: none; filter: drop-shadow(0 0 5px rgb(246 194 91 / 0.9)); }
+.edges .walk.draw { animation: draw 0.9s cubic-bezier(.16,1,.3,1) forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.node { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 4px; background: none; border: 0; padding: 0; cursor: default; }
+.node .orb { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: rgb(255 230 168 / 0.55);
+  background: radial-gradient(circle at 50% 35%, rgb(var(--gold-rgb) / 0.08), rgb(10 9 32 / 0.92) 70%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.25); transition: transform 0.25s cubic-bezier(.2,.9,.3,1.3), box-shadow 0.3s, color 0.3s; }
+.node .orb svg { width: 24px; height: 24px; }
+.node small { font: 700 10.5px/1.1 var(--font-body); color: var(--ink-faint); white-space: nowrap; letter-spacing: 0.02em; }
+.node.open { cursor: pointer; }
+.node.open .orb { color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.6); animation: breathe 2.2s ease-in-out infinite; }
+.node.open small { color: var(--ink-dim); }
+.node.sel .orb { transform: scale(1.14); box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 0 18px rgb(var(--gold-rgb) / 0.6); animation: none; }
+.node.sel small { color: var(--gold-hi); }
+.node.done .orb { color: #1a1206; background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 55%, #b9791b); box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.7); animation: none; }
+.node.done small { color: var(--gold-hi); }
+.node.dead { opacity: 0.32; }
+.node.here .orb { color: var(--gold-hi); }
+.node.boss .orb { width: 54px; height: 54px; padding: 0; background: none; box-shadow: 0 0 0 1px rgb(232 228 244 / 0.4), 0 0 0 5px rgb(232 228 244 / 0.06); }
+.node.boss .orb img { width: 50px; height: 50px; border-radius: 50%; }
+.node.boss.open .orb { box-shadow: 0 0 0 1.5px rgb(232 228 244 / 0.8), 0 0 16px rgb(232 228 244 / 0.35); }
+.node.boss.sel .orb { box-shadow: 0 0 0 2px #fff, 0 0 22px rgb(232 228 244 / 0.7); }
+.node.boss.done .orb { box-shadow: 0 0 0 2px #ffe6a8, 0 0 22px rgb(var(--gold-rgb) / 0.8); }
+.node.boss small { color: #d8d2f2; }
+@keyframes breathe { 50% { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35), 0 0 14px rgb(var(--gold-rgb) / 0.35); } }
+.info { min-height: 132px; display: grid; align-content: start; gap: 2px; }
+.info .nm { text-align: center; font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.info .rows .r { padding: 7px 2px; font-size: 13.5px; }
+.info .why { text-align: center; color: var(--ink-faint); font: 600 12px/1.4 var(--font-body); padding-top: 6px; text-wrap: balance; }
+.overlay { position: absolute; inset: 0; z-index: 25; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; padding: 22px 16px 16px; background: radial-gradient(90% 60% at 50% 40%, rgb(5 5 22 / 0.95), rgb(3 3 14 / 0.98)); animation: rise 0.4s ease both; }
+.trade { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.trade svg { width: 34px; height: 20px; color: var(--gold); }
+.trade .side { display: grid; justify-items: center; gap: 8px; text-align: center; font: 700 12.5px/1.25 var(--font-body); color: var(--ink-dim); max-width: 120px; }
+.picks { display: grid; gap: 0; }
+.pick { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 6px; border: 0; background: none; text-align: left; cursor: pointer; border-radius: 12px; box-shadow: 0 -1px 0 var(--hair); }
+.pick:first-child { box-shadow: none; }
+.pick b { display: block; font: 700 14.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.pick small { display: block; margin-top: 3px; font: 500 13px/1.35 var(--font-body); color: var(--ink); }
+.pick.on { background: rgb(var(--gold-rgb) / 0.08); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.run { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; }
+.ch { display: grid; justify-items: center; gap: 6px; }
+.ch svg { width: 100%; max-width: 104px; height: auto; aspect-ratio: 1; }
+.ch .c-e { stroke: rgb(255 230 168 / 0.38); stroke-width: 1.4; fill: none; }
+.ch .c-s { fill: rgb(255 230 168 / 0.5); }
+.ch .c-b { fill: none; stroke: rgb(232 228 244 / 0.45); stroke-width: 1.4; }
+.ch.mine .c-e { stroke: #ffe6a8; stroke-width: 1.8; filter: drop-shadow(0 0 3px rgb(246 194 91 / 0.9)); }
+.ch.mine .c-s { fill: #fff6e0; filter: drop-shadow(0 0 3px rgb(246 194 91 / 1)); }
+.ch.empty svg { opacity: 0.5; }
+.ch small { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; color: var(--ink-faint); text-transform: uppercase; padding-left: 0.2em; }
+.ch.mine small { color: var(--gold-hi); }
+.ch.mine.pop svg { animation: rise 0.7s cubic-bezier(.16,1,.3,1) both; }
+@media (max-width: 640px) { .run { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 22px; }
+.lg { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 0; box-shadow: 0 -1px 0 var(--hair); }
+.lg .orb { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.lg .orb svg { width: 22px; height: 22px; }
+.lg b { display: block; font: 700 14px/1.2 var(--font-body); color: var(--gold-hi); }
+.lg small { display: block; margin-top: 3px; font: 500 13px/1.35 var(--font-body); color: var(--ink); }
+.lg em { font-style: normal; color: var(--ink-faint); }
+.event { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px 26px; padding: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="stage" id="stage">
+        <div class="stage-inner">
+          <div class="stage-head">
+            <div class="plate-title">Глава II · Восхождение</div>
+            <div class="plate-sub" id="sub">Выбери, через что идти к Затмению</div>
+          </div>
+          <div class="map" id="map"><svg class="edges" id="edges"></svg></div>
+          <div class="info" id="info"></div>
+          <div class="stage-foot">
+            <button class="btn btn-primary" id="go" disabled>Идти</button>
+            <div class="btn-row"><button class="btn btn-light" id="reset">Сначала</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+  <div class="label">Мой забег <small>путь каждой главы — своё созвездие · I — твой, остальные — примеры</small></div>
+  <div class="run" id="run"></div>
+  <div class="label">Звёзды развилки <small>Ночь и Яркая ночь — ступень 2 · Комета и Телескоп — ступень 6</small></div>
+  <div class="legend" id="legend"></div>
+  <div class="label">Комета <small>пример события: отдай → получи, на игровых элементах</small></div>
+  <div class="event" id="event"></div>
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.9 · Развилки · 21.10.2026 · прототип, правила и числа — черновик</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'route', lead: 'Сейчас глава — три ночи подряд. С развилками игрок <b>сам выбирает путь</b> к Затмению: тихая ночь, Яркая ночь за Знамение, Комета или Телескоп — и даже какое Затмение встретить. Путь главы рисует созвездие.' });
+const stage = sky(q('#stage'), 4); /* art: nebula-4 boss-gravity boss-fog card-sun-9 card-star-9-radiant ritual-glyph-radiant chart-pair ritual-banish omen-stardust omen-crossroads omen-horizon */
+
+const ICONS = {
+  night: '<path d="M12 3.5c.5 4.2 1.8 6.5 6.5 8.5-4.7 2-6 4.3-6.5 8.5-.5-4.2-1.8-6.5-6.5-8.5 4.7-2 6-4.3 6.5-8.5Z" fill="currentColor"/>',
+  bright: '<circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1" opacity=".6"/><path d="M12 2.5c.6 5.3 2 7.6 7 9.5-5 1.9-6.4 4.2-7 9.5-.6-5.3-2-7.6-7-9.5 5-1.9 6.4-4.2 7-9.5Z" fill="currentColor"/><path d="M5 5l2.2 2.2M19 5l-2.2 2.2M5 19l2.2-2.2M19 19l-2.2-2.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  comet: '<circle cx="16" cy="8" r="3.6" fill="currentColor"/><path d="M13.4 10.6 4 20M14.6 12.4 8 19M11.6 9.4 5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>',
+  telescope: '<path d="m4 14 11-6.5 2 3.4L6 17.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m15.5 6.8 2.6-1.5 2 3.4-2.6 1.5M10.5 15.5 8 21M11.5 15l2.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  start: '<circle cx="12" cy="12" r="3" fill="currentColor"/>',
+};
+const ic = (k) => svg(ICONS[k], 24, 24);
+
+/* Граф главы: 2 шага выбора и два Затмения; x, y — проценты карты (y сверху) */
+const N = {
+  s: { x: 50, y: 95, kind: 'start', name: 'Рассвет главы' },
+  a: { x: 18, y: 70, kind: 'night', name: 'Ночь', step: 1 },
+  b: { x: 50, y: 66, kind: 'bright', name: 'Яркая ночь', step: 1 },
+  c: { x: 82, y: 71, kind: 'comet', name: 'Комета', step: 1 },
+  d: { x: 22, y: 42, kind: 'telescope', name: 'Телескоп', step: 2 },
+  e: { x: 54, y: 39, kind: 'night', name: 'Ночь', step: 2 },
+  f: { x: 84, y: 43, kind: 'bright', name: 'Яркая ночь', step: 2 },
+  x: { x: 30, y: 10, kind: 'boss', boss: 'gravity', name: 'Тяготение', step: 3 },
+  y: { x: 70, y: 10, kind: 'boss', boss: 'fog', name: 'Туман', step: 3 },
+};
+const E = [['s', 'a'], ['s', 'b'], ['s', 'c'], ['a', 'd'], ['a', 'e'], ['b', 'd'], ['b', 'e'], ['b', 'f'], ['c', 'e'], ['c', 'f'], ['d', 'x'], ['e', 'x'], ['e', 'y'], ['f', 'y']];
+const INFO = {
+  night: { rows: [['Цель', '1 000'], ['Награда', '+3 золота'], ['Дальше', 'Обсерватория']], why: 'Спокойный шаг: копить золото и строить колоду' },
+  bright: { rows: [['Цель', '1 350 · ×1.35'], ['Награда', '+3 и Знамение 1 из 3'], ['Дальше', 'Обсерватория']], why: 'Как элита в Slay the Spire: труднее, но Знамение бесплатно' },
+  comet: { rows: [['Ночи', 'нет'], ['Событие', 'обмен на выбор'], ['Золото', '0']], why: 'Без ночи — меньше золота, зато редкий обмен' },
+  telescope: { rows: [['Ночи', 'нет'], ['Улучшение', '1 из 3'], ['Золото', '0']], why: 'Уровень созвездия, глиф или убрать карту' },
+  gravity: { rows: [['Цель', '1 800'], ['Правило', 'ряды не вспыхивают'], ['Трофей', 'столбцы: ×2 множ.']], why: 'Ты выбираешь, какое Затмение встретить — под свою сборку' },
+  fog: { rows: [['Цель', '1 800'], ['Правило', 'ранги в руке скрыты'], ['Трофей', 'видна следующая карта']], why: 'Флеш-сборке Туман не страшен: масти видны' },
+};
+let S;
+function reset() {
+  S = { at: 's', path: ['s'], sel: null, busy: false };
+  q('#go').disabled = true;
+  q('#go').textContent = 'Идти';
+  q('#go').onclick = goStep;
+  q('#sub').textContent = 'Выбери, через что идти к Затмению';
+  render();
+  showInfo(null);
+}
+const next = () => E.filter(([a]) => a === S.at).map(([, b]) => b);
+function render() {
+  const map = q('#map');
+  qa('.node', map).forEach((n) => n.remove());
+  const open = next(), stepNow = N[S.at].step || 0;
+  for (const [id, n] of Object.entries(N)) {
+    const done = S.path.includes(id), isOpen = open.includes(id) && !S.busy;
+    const dead = !done && !open.includes(id) && (n.step || 0) <= stepNow;
+    const el = h('button', { class: `node ${n.kind === 'boss' ? 'boss' : ''} ${done ? 'done' : ''} ${isOpen ? 'open' : ''} ${dead ? 'dead' : ''} ${S.sel === id ? 'sel' : ''} ${id === S.at ? 'here' : ''}`,
+      style: { left: n.x + '%', top: n.y + '%' }, disabled: !isOpen, 'aria-label': n.name, onclick: () => pick(id) },
+      h('span', { class: 'orb' }, n.kind === 'boss' ? boss(n.boss, 50) : ic(n.kind)), id === 's' ? null : h('small', {}, n.name));
+    map.append(el);
+  }
+  drawEdges();
+}
+/** Рёбра в пикселях карты: пунктир и dash-анимация не искажаются масштабом. */
+function px(id) { const m = q('#map'); return [(N[id].x / 100) * m.clientWidth, (N[id].y / 100) * m.clientHeight]; }
+function seg(a, b, cls) {
+  const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const [x1, y1] = px(a), [x2, y2] = px(b);
+  Object.entries({ x1, y1, x2, y2, class: cls }).forEach(([k, v]) => l.setAttribute(k, v));
+  return l;
+}
+function drawEdges() {
+  const m = q('#map'), svgEl = q('#edges');
+  svgEl.setAttribute('viewBox', `0 0 ${m.clientWidth} ${m.clientHeight}`);
+  svgEl.replaceChildren();
+  const stepNow = N[S.at].step || 0;
+  for (const [a, b] of E) {
+    const onPath = S.path.indexOf(b) > 0 && S.path[S.path.indexOf(b) - 1] === a;
+    if (onPath) continue;
+    const cls = a === S.at && !S.busy ? 'open' : S.path.includes(a) || (N[a].step || 0) < stepNow ? 'dead' : '';
+    svgEl.append(seg(a, b, 'e ' + cls));
+  }
+  for (let i = 1; i < S.path.length; i++) svgEl.append(seg(S.path[i - 1], S.path[i], 'walk'));
+}
+function showInfo(id) {
+  const info = q('#info');
+  if (!id) { info.replaceChildren(h('div', { class: 'why', style: { paddingTop: '28px' } }, S.at === 's' ? 'Коснись светящейся звезды — увидишь, что она даст' : 'Следующий шаг — выше')); return; }
+  const n = N[id], d = INFO[n.boss || n.kind];
+  info.replaceChildren(h('div', { class: 'nm' }, n.kind === 'boss' ? `Затмение «${n.name}»` : n.name),
+    h('div', { class: 'rows' }, d.rows.map(([k, v]) => h('div', { class: 'r' }, k, h('b', { html: v.replace(/×[\d.]+/, (m) => `<span class="c-mult">${m}</span>`).replace(/\+\d+ (золота|и)/, (m) => `<span class="c-gold">${m}</span>`) })))),
+    h('div', { class: 'why' }, d.why));
+}
+function pick(id) {
+  if (S.busy) return;
+  S.sel = id;
+  q('#go').disabled = false;
+  q('#go').textContent = N[id].kind === 'boss' ? 'Встретить Затмение' : 'Идти';
+  render();
+  showInfo(id);
+}
+async function goStep() {
+  const id = S.sel;
+  if (!id || S.busy) return;
+  S.busy = true;
+  q('#go').disabled = true;
+  const b = N[id];
+  S.sel = null;
+  render();
+  const l = seg(S.at, id, 'walk draw'), [x1, y1] = px(S.at), [x2, y2] = px(id), len = Math.hypot(x2 - x1, y2 - y1);
+  l.style.strokeDasharray = len;
+  l.style.strokeDashoffset = len;
+  q('#edges').append(l);
+  await wait(REDUCED ? 50 : 850);
+  S.path.push(id);
+  S.at = id;
+  render();
+  if (b.kind === 'night') await ribbon(stage, 'Ночь пройдена', '+3 золота', 1300);
+  if (b.kind === 'bright') await brightReward();
+  if (b.kind === 'comet') await cometEvent();
+  if (b.kind === 'telescope') await telescope();
+  if (b.kind === 'boss') return finish();
+  S.busy = false;
+  render();
+  showInfo(null);
+  q('#sub').textContent = b.step === 2 ? 'Последний шаг — какое Затмение встретить' : 'Дальше — второй шаг';
+}
+function overlay(title, sub, body, acts) {
+  return new Promise((res) => {
+    const ov = h('div', { class: 'overlay' }, h('div', { class: 'stage-head' }, h('div', { class: 'plate-title' }, title), h('div', { class: 'plate-sub' }, sub)), body, h('div', { class: 'stage-foot' }));
+    acts(ov, (v) => { ov.remove(); res(v); });
+    q('.stage-inner', stage).append(ov);
+  });
+}
+function choose3(title, sub, items) {
+  return overlay(title, sub, h('div', { class: 'picks', style: { alignContent: 'center' } }), (ov, done) => {
+    const list = q('.picks', ov), btn = h('button', { class: 'btn btn-primary', disabled: true }, 'Взять');
+    let chosen = null;
+    items.forEach(([art, name, text]) => {
+      const b = h('button', { class: 'pick', onclick: () => { chosen = name; qa('.pick', list).forEach((p) => p.classList.toggle('on', p === b)); btn.disabled = false; } }, sig(art, 48), h('div', {}, h('b', {}, name), h('small', {}, text)));
+      list.append(b);
+    });
+    btn.onclick = () => done(chosen);
+    q('.stage-foot', ov).append(btn);
+  });
+}
+async function brightReward() {
+  await ribbon(stage, 'Яркая ночь пройдена', '1 350 очков · +3 золота', 1200);
+  await choose3('Знамение 1 из 3', 'Награда Яркой ночи — бесплатно', [
+    ['omen-stardust', OMEN_RU.stardust[0], OMEN_RU.stardust[1]],
+    ['omen-crossroads', OMEN_RU.crossroads[0], OMEN_RU.crossroads[1]],
+    ['omen-horizon', OMEN_RU.horizon[0], OMEN_RU.horizon[1]],
+  ]);
+}
+function telescope() {
+  return choose3('Телескоп', 'Одно улучшение без ночи', [
+    ['chart-pair', 'Пара · ур. 2 → 3', '+15 света и +1 к множителю Пары'],
+    ['ritual-glyph-radiant', 'Глиф сияния', 'Карта получает +30 света'],
+    ['ritual-banish', 'Убрать карту', 'Колода тоньше на одну карту'],
+  ]);
+}
+function tradeArt() {
+  const arrow = svg('<path d="M2 10h28m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', 34, 20);
+  return h('div', { class: 'trade' },
+    h('div', { class: 'side' }, card({ suit: 'sun', rank: 9 }, 70), 'Отдай 9 Солнца'), arrow,
+    h('div', { class: 'side' }, card({ suit: 'star', rank: 9, glyph: 'radiant' }, 70), '9 Звезды с Сиянием'));
+}
+function cometEvent() {
+  return overlay('Комета', 'Хвост задевает колоду. Обменять?', h('div', { style: { display: 'grid', alignContent: 'center' } }, tradeArt()), (ov, done) => {
+    q('.stage-foot', ov).append(h('button', { class: 'btn btn-primary', onclick: () => done(true) }, 'Обменять'), h('button', { class: 'btn btn-secondary', onclick: () => done(false) }, 'Пусть летит'));
+  });
+}
+async function finish() {
+  await ribbon(stage, 'Затмение побеждено', 'Глава II пройдена · путь — в созвездие', 1700);
+  S.busy = false;
+  renderRun(S.path.slice());
+  q('#sub').textContent = 'Путь главы стал созвездием — смотри ниже';
+  showInfo(null);
+  q('#info').firstChild.textContent = 'Твой путь встал в ряд «Мой забег». «Сначала» — пройти другим путём';
+  const go = q('#go');
+  go.disabled = false;
+  go.textContent = 'Пройти другим путём';
+  go.onclick = reset;
+  q('#run').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+}
+
+/* ── Мой забег: каждый путь — маленькое созвездие ── */
+const EXAMPLES = [['s', 'a', 'd', 'x'], ['s', 'c', 'f', 'y'], ['s', 'b', 'f', 'y'], ['s', 'a', 'e', 'y'], ['s', 'b', 'd', 'x'], ['s', 'c', 'e', 'x'], ['s', 'b', 'e', 'y']];
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+function chSvg(path) {
+  const P = path.map((id) => [N[id].x, N[id].y]);
+  const e = P.slice(1).map((p, i) => `M${P[i][0]} ${P[i][1]}L${p[0]} ${p[1]}`).join('');
+  const s = P.map(([x, y], i) => (i === P.length - 1 ? `<circle class="c-b" cx="${x}" cy="${y}" r="5.5"/><circle class="c-s" cx="${x}" cy="${y}" r="2.6"/>` : `<circle class="c-s" cx="${x}" cy="${y}" r="${i ? 2.8 : 1.8}"/>`)).join('');
+  return svg(`<path class="c-e" d="${e}"/>${s}`, 100, 100);
+}
+function renderRun(mine) {
+  q('#run').replaceChildren(...ROMAN.map((r, i) => {
+    if (i === 0) return mine ? h('div', { class: 'ch mine pop' }, chSvg(mine), h('small', {}, r)) : h('div', { class: 'ch empty' }, svg('<circle cx="50" cy="50" r="30" fill="none" stroke="rgb(255 230 168 / .35)" stroke-width="1.2" stroke-dasharray="3 5"/>', 100, 100), h('small', {}, r));
+    return h('div', { class: 'ch' }, chSvg(EXAMPLES[i - 1]), h('small', {}, r));
+  }));
+}
+
+/* ── Легенда узлов и пример Кометы ── */
+q('#legend').append(...[
+  ['night', 'Ночь', 'Как сейчас: цель, золото, Обсерватория', 'ступень 2'],
+  ['bright', 'Яркая ночь', 'Цель <span class="c-mult">×1.35</span>, награда — Знамение 1 из 3', 'ступень 2'],
+  ['comet', 'Комета', 'Событие без ночи: обмен картинкой «отдай → получи»', 'ступень 6'],
+  ['telescope', 'Телескоп', 'Без ночи: уровень созвездия, глиф или убрать карту', 'ступень 6'],
+].map(([k, n, t, st]) => h('div', { class: 'lg' }, h('span', { class: 'orb' }, ic(k)), h('div', {}, h('b', {}, n), h('small', { html: `${t} · <em>${st}</em>` })))));
+q('#event').append(tradeArt(), h('div', { class: 'rows', style: { minWidth: '240px' } },
+  h('div', { class: 'r' }, 'Событий в первой волне', h('b', { class: 'num' }, '10')),
+  h('div', { class: 'r' }, 'Текст', h('b', {}, 'одна строка')),
+  h('div', { class: 'r' }, 'Отказ', h('b', {}, 'всегда можно'))));
+
+facts(q('#aside'), [
+  ['Суть', 'Карта Slay the Spire, ужатая до главы из трёх шагов: <b>два выбора и Затмение</b>. Ночей в главе по-прежнему 2–3 — забег не длиннее.'],
+  ['Риск', 'Яркая ночь — элита: цель <span class="c-mult">×1.35</span>, зато Знамение бесплатно. Комета и Телескоп — без ночи и без золота, но меняют колоду.'],
+  ['Затмение', 'На последнем шаге видны <b>два Затмения</b>: путь — это выбор, какое правило встретить. Флеш-сборке не страшен Туман, рядам — страшно Тяготение.'],
+  ['Своё', 'Путь главы рисует <b>созвездие</b>: к концу забега у игрока восемь своих фигур — картинка «мой забег» для шеринга.'],
+  ['Постепенно', 'Ступень 2 — только Ночь и Яркая ночь. Комета и Телескоп — со ступени 6, Хранитель перед главами I, IV, VII — со ступени 9.'],
+], [
+  ['RT.1', 'Ядро: граф главы, узлы, гарантия ночи до Затмения, сохранения'],
+  ['RT.2', '«Восхождение» с развилками: линия дотягивается, звезда зажигается'],
+  ['RT.3', 'Путь главы — созвездие в победе и в итогах забега'],
+  ['RT.4', 'Кометы: 10 событий картинками; Телескоп — 3 улучшения'],
+  ['RT.5', 'Хранитель перед главами I, IV, VII: дар с ценой'],
+  ['RT.6', 'Экономика и сим: забег не длиннее +10 %'],
+  ['RT.7', 'e2e <i>map.spec.ts</i> на 8 устройствах'],
+]);
+ladder(q('#ladder'), 2);
+q('#go').onclick = goStep;
+q('#reset').onclick = () => !S.busy && reset();
+new ResizeObserver(() => S && drawEdges()).observe(q('#map'));
+renderRun(null);
+reset();
+</script>
+</body>
+</html>
