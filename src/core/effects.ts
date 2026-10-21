@@ -72,6 +72,12 @@ export interface CardCtx extends BaseCtx, Contrib, LineInfo {
 
 export interface LineCtx extends BaseCtx, Contrib, LineInfo {}
 
+/** Карта с чертой засчитывается: вклад черты подписывается в подсчёте её глифом. */
+export interface TraitCtx extends Contrib {
+  card: Card;
+  cell: number;
+}
+
 export interface PlacementCtx extends BaseCtx {
   lines: LineScore[];
   /** Ход последний в ночи. */
