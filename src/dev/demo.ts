@@ -118,8 +118,8 @@ export async function runDemo(app: App, name: string): Promise<void> {
   while (!w.__scene) await sleep(50);
   const scene = w.__scene;
   if (sc.noForecast) {
-    scene.forecastOff = true;
-    scene.refreshClosers();
+    scene.forecast.off = true;
+    scene.forecast.refreshClosers();
   }
   // Запись — с уже собранного неба: первый кадр ролика сразу про игру
   await sleep(1200);
