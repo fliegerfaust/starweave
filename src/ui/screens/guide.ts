@@ -1,7 +1,8 @@
 import { bossSigil, chartIcon, comboScheme, omenSigil, ritualIcon } from '@/art/sigil';
 import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
-import { COMBO_IDS, GLYPHS, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
-import { COLLECTIBLE_COMBOS, type Profile } from '@/meta/profile';
+import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
+import { BODY_UNLOCKS } from '@/core/content/pools';
+import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
 import { BOSS_LIST } from '@/core/content/bosses';
 import { OMEN_LIST } from '@/core/content/omens';
 import { SKY_LIST } from '@/core/content/skies';
@@ -49,7 +50,21 @@ const PAIR: [number, Suit][] = [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet
 let fakeId = -9000;
 const CELL = 34;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('calm');
-const thumb = (rank: number, suit: Suit, w = CELL, glyph?: Glyph) => cardThumb({ id: fakeId--, rank, suit, ...(glyph ? { glyph } : {}) } as Card, w);
+const thumb = (rank: number, suit: Suit, w = CELL, glyph?: Glyph, body?: BodyId) => cardThumb({ id: fakeId--, rank, suit, ...(glyph ? { glyph } : {}), ...(body ? { body } : {}) } as Card, w);
+
+/**
+ * Небесные тела на доске (GF.5): линия ряда, карта над ней (сосед Метеора, Пульсар у линии),
+ * роль каждой карты в показе. `t` — тело, `x` — гаснет со вспышкой, `o` — выбита Метеором.
+ */
+type BodyCard = [number, Suit, ('t' | 'x' | 'o')?];
+const BODY_DEMO: Record<BodyId, { line: BodyCard[]; above?: [number, BodyCard] }> = {
+  polaris: { line: [[2, 'moon', 'x'], [3, 'star', 'x'], [4, 'comet', 'x'], [5, 'sun', 't']] },
+  meteor: { line: [[3, 'sun', 'x'], [3, 'moon', 'x'], [9, 'star', 'x'], [6, 'comet', 't']], above: [3, [1, 'star', 'o']] },
+  pulsar: { line: [[2, 'sun', 'x'], [6, 'sun', 'x'], [4, 'sun', 'x'], [8, 'sun', 'x']], above: [1, [4, 'star', 't']] },
+  twin: { line: [[4, 'sun', 'x'], [4, 'moon', 't'], [5, 'star', 'x'], [9, 'comet', 'x']] },
+  nebula: { line: [[7, 'sun', 'x'], [7, 'moon', 'x'], [7, 'comet', 'x'], [7, 'star', 't']] },
+  blackhole: { line: [[6, 'moon', 'x'], [6, 'sun', 'x'], [2, 'star', 'x'], [3, 'comet', 't']] },
+};
 
 /** Четыре масти рисунком — вместо символов ☀ ☾ ✦ ☄ (у них нет нужного вида в шрифтах). */
 function suitMarks(): HTMLCanvasElement {
@@ -94,8 +109,15 @@ export function showGuide(opts: GuideOptions = {}): void {
   let auto = true;
   let shopSel: (typeof SHOP_IDS)[number] = 'omens';
   let glyph: Glyph = 'gilded';
+  // Тела, открытые игроку (ступень 3): тогда вкладка «Глифы» становится «Карты» — глифы и
+  // тела двумя разделами (шестая вкладка не помещается на телефоне); без тел новичок их не видит
+  const openBodies = opts.profile ? BODY_IDS.filter((b) => isUnlocked(BODY_UNLOCKS[b], opts.profile!)) : [];
+  let bodyId: BodyId = openBodies[0] ?? 'polaris';
+  /** На вкладке «Карты» доска показывает тело, а не глиф. */
+  let showBody = false;
   if (focus) {
     if (focus.startsWith('glyph-')) { tab = 'glyphs'; glyph = focus.slice(6) as Glyph; }
+    else if (focus.startsWith('body-') && openBodies.length) { tab = 'glyphs'; bodyId = focus.slice(5) as BodyId; showBody = true; }
     else if ((SHOP_IDS as readonly string[]).includes(focus)) { tab = 'shop'; shopSel = focus as typeof shopSel; }
     else if (focus in STEP_OF) { tab = 'night'; step = STEP_OF[focus]!; auto = false; }
     else if ((COMBO_IDS as readonly string[]).includes(focus)) { tab = 'combos'; combo = focus as ComboId; }
@@ -269,9 +291,45 @@ export function showGuide(opts: GuideOptions = {}): void {
     const list = h('div.gb-list');
     for (const gl of GLYPHS) {
       const [r, su] = GLYPH_CARD[gl];
-      list.append(row(gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, dict().glyphDesc[gl])], null, () => { glyph = gl; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
+      list.append(row(!showBody && gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, dict().glyphDesc[gl])], null, () => { glyph = gl; showBody = false; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
     }
-    return [section(g.tabs.glyphs!, g.glyphSub), list];
+    return [section(g.tabs.glyphs!, g.glyphSub), list, ...(openBodies.length ? bodyList() : [])];
+  };
+
+  // ─── Небесные тела ──────────────────────────────────────────────────────
+  const bodyCardOf = (b: BodyId): BodyCard => [BODY_DEMO[b].above?.[1], ...BODY_DEMO[b].line].find((c) => c?.[2] === 't')!;
+  const bodyBoard = (): [HTMLElement, HTMLElement[]] => {
+    const demo = BODY_DEMO[bodyId];
+    const card = ([r, su, role]: BodyCard) => h(`span.gb-bc${role ? `.${role}` : ''}`, null, thumb(r, su, CELL, undefined, role === 't' ? bodyId : undefined));
+    const top = h('span.gb-row4.gb-above', null, [0, 1, 2, 3].map((i) => (demo.above?.[0] === i ? card(demo.above[1]) : h('span.gb-bc.empty'))));
+    const line = h('span.gb-row4', null, demo.line.map(card));
+    const stage = h(`div.gb-stage.gb-bodies.b-${bodyId}${reduced() ? '.still' : ''}`, null, demo.above ? [top, line] : [line]);
+    const w = g.bodyTally;
+    const tally: Record<BodyId, HTMLElement> = {
+      polaris: chips(chip('t', t('combo.straight')), w.polaris),
+      meteor: chips(w.meteor),
+      pulsar: chips(chip('m', '+2'), w.pulsar),
+      twin: chips(chip('t', t('combo.twoPair')), w.twin),
+      nebula: chips(chip('t', t('combo.quartet')), w.nebula),
+      blackhole: chips(chip('t', t('combo.pair')), chip('m', '×2'), w.blackhole),
+    };
+    return [stage, [h('h3', null, t(`body.${bodyId}`)), h('p', null, dict().bodyDesc[bodyId]), tally[bodyId]]];
+  };
+  const bodyList = () => {
+    const list = h('div.gb-list');
+    for (const b of BODY_IDS) {
+      const open = openBodies.includes(b);
+      const [r, su] = bodyCardOf(b);
+      const unlock = BODY_UNLOCKS[b];
+      const lockText = unlock.kind === 'eclipses' ? t('unlock.eclipses', { n: unlock.count }) : '';
+      const ic = h(`span.gb-card-ic${open ? '' : '.locked'}`, null, thumb(r, su, 22, undefined, b));
+      if (!open) {
+        list.append(h('div.gb-row.miss.with-ic', null, [ic, h('span.gb-text', null, [h('b', null, t(`body.${b}`)), h('small', null, lockText)]), icon('lock')]));
+        continue;
+      }
+      list.append(row(showBody && b === bodyId, false, [h('b', null, t(`body.${b}`)), h('small', null, dict().bodyDesc[b])], null, () => { bodyId = b; showBody = true; render(); }, ic));
+    }
+    return [section(g.bodies, g.bodiesSub), list];
   };
 
   /** Строка списка: касание меняет доску. */
@@ -351,7 +409,7 @@ export function showGuide(opts: GuideOptions = {}): void {
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
-    which === 'combos' ? comboBoard() : which === 'night' ? nightBoard() : which === 'shop' ? shopBoard() : which === 'glyphs' ? glyphBoard() : collectionBoard();
+    which === 'combos' ? comboBoard() : which === 'night' ? nightBoard() : which === 'shop' ? shopBoard() : which === 'glyphs' ? (showBody ? bodyBoard() : glyphBoard()) : collectionBoard();
 
   /**
    * Доска не меняет размер при переключении (замечание Дениса): один раз на вкладку и ширину
@@ -369,12 +427,12 @@ export function showGuide(opts: GuideOptions = {}): void {
     const key = `${tab}:${body.clientWidth}`;
     let max = steadyHeights.get(key);
     if (max === undefined) {
-      const saved = { combo, step, shopSel, glyph, pick };
+      const saved = { combo, step, shopSel, glyph, bodyId, showBody, pick };
       const variants: (() => void)[] =
         tab === 'combos' ? COMBO_IDS.map((id) => () => { combo = id; })
         : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
         : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
-        : tab === 'glyphs' ? GLYPHS.map((id) => () => { glyph = id; })
+        : tab === 'glyphs' ? [...GLYPHS.map((id) => () => { glyph = id; showBody = false; }), ...openBodies.map((id) => () => { bodyId = id; showBody = true; })]
         : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; })];
       const live = [...board.childNodes];
       max = board.offsetHeight;
@@ -384,7 +442,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         board.replaceChildren(vis, h('div.gb-tally', null, tally));
         max = Math.max(max, board.offsetHeight);
       }
-      ({ combo, step, shopSel, glyph, pick } = saved);
+      ({ combo, step, shopSel, glyph, bodyId, showBody, pick } = saved);
       board.replaceChildren(...live);
       steadyHeights.set(key, max);
     }
@@ -415,7 +473,8 @@ export function showGuide(opts: GuideOptions = {}): void {
   }
 
   tabs.forEach((id, i) => {
-    const b = h('button.gb-tab', { type: 'button', dataset: { tab: id }, attrs: { role: 'tab' } }, g.tabs[id]!);
+    const label = id === 'glyphs' && openBodies.length ? g.tabs.cards! : g.tabs[id]!;
+    const b = h('button.gb-tab', { type: 'button', dataset: { tab: id }, attrs: { role: 'tab' } }, label);
     b.addEventListener('click', () => {
       if (tab === id) return;
       tab = id;

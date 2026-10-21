@@ -7,7 +7,7 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
 /**
  * Обсерватория «Прилавок» (RD.4). На каждом устройстве и обоих языках: глава III, первая
  * глава, все места заняты и открытый пакет. Проверяем, что ничего не вылезает; на телефоне
- * товары и свои Знамения — над нижней панелью (если по высоте помещаются), в ландшафте строки
+ * товары и свои Знамения — над нижней панелью; дар ночи — веер и кнопки на экране (если по высоте помещаются), в ландшафте строки
  * не заходят под панель, на ПК лавка — собранный блок без пустого поля (правило Дениса:
  * место на экране используется рационально); касание своего Знамения открывает лист продажи.
  */
@@ -33,8 +33,15 @@ async function open(page: Page, lang: 'ru' | 'en', state: string): Promise<void>
     run.phase = 'reward';
     run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
     run.night = null;
+    // Тело в колоде: в даре и в листе колоды есть ряд тел (GF.5)
+    (run as never as { deck: unknown[] }).deck.push({ id: 900, suit: 'sun', rank: 5, body: 'polaris' });
     app.runs.collectReward();
     await new Promise((r) => setTimeout(r, 300));
+    // Дар ночи (GF.2) открывается поверх лавки — проверяем его отдельным состоянием
+    if (state !== 'gift') {
+      run.pending = [];
+      document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+    }
     if (state === 'pack') {
       run.pending = [{ kind: 'pack', pack: 'omen', options: ['twinStars', 'crossroads', 'abacus'] }];
       await app.router.route();
@@ -50,7 +57,7 @@ test('Обсерватория: строки товаров, бонус стро
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
-    for (const state of ['mid', 'new', 'full', 'pack']) {
+    for (const state of ['mid', 'new', 'full', 'pack', 'gift']) {
       await open(page, lang, state);
       const res = await page.evaluate((state) => {
         const out: string[] = [];
@@ -62,6 +69,18 @@ test('Обсерватория: строки товаров, бонус стро
         const cs = getComputedStyle(shop);
         const avail = shop.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
         if (state === 'pack') return { out, shown: !!document.querySelector('.pack-scene') };
+        if (state === 'gift') {
+          const scene = document.querySelector<HTMLElement>('.gift-scene');
+          if (!scene) return { out, shown: false };
+          // Веер и обе кнопки — на экране, карты веера не налезают на описание
+          for (const el of scene.querySelectorAll<HTMLElement>('.gift-opt, .scene-acts .btn')) {
+            const r = el.getBoundingClientRect();
+            if (r.top < 0 || r.bottom > innerHeight + 1 || r.left < 0 || r.right > innerWidth + 1) out.push(`за экраном: ${el.className}`);
+          }
+          const name = scene.querySelector('.gift-detail > b')!.getBoundingClientRect();
+          for (const up of scene.querySelectorAll('.gift-up')) if (up.getBoundingClientRect().bottom > name.top + 1) out.push('«6 → 7» налезает на имя');
+          return { out, shown: scene.querySelectorAll('.gift-opt').length === 3 };
+        }
         // Обрезанный по высоте или ширине текст в строках товаров
         for (const el of shop.querySelectorAll<HTMLElement>('.ware *')) {
           if (el.childElementCount || !el.textContent?.trim()) continue;
@@ -85,7 +104,7 @@ test('Обсерватория: строки товаров, бонус стро
       }, state);
       const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas') && !p.includes('за экраном') && !p.includes('shop-actions') && !p.includes('div.modal-head'));
       const tag = `${lang} ${state}`;
-      if (!res.shown) failures.push(`${tag}: пакет не открылся`);
+      if (!res.shown) failures.push(`${tag}: ${state === 'gift' ? 'дар' : 'пакет'} не открылся`);
       if (res.out.length) failures.push(`${tag}: ${res.out.slice(0, 3).join('; ')}`);
       if (audit.length) failures.push(`${tag}: ${audit.slice(0, 3).join('; ')}`);
       if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/shop-${state}.png` });
