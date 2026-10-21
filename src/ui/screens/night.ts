@@ -1,3 +1,4 @@
+import { assertNever } from '@/core/errors';
 import { canDoubleReward, canRevive } from '@/core/run';
 import { misorderedOmens } from '@/core/omen-order';
 import type { GameEvent, RunState } from '@/core/types';
@@ -191,8 +192,12 @@ export class NightScreen implements Screen {
         return this.showGameOver();
       case 'victory':
         return this.showVictory();
-      default:
+      case 'map':
+      case 'night':
+      case 'shop':
         return;
+      default:
+        return assertNever(this.run.phase, 'phase');
     }
   }
 
