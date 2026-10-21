@@ -294,6 +294,7 @@ const VITRINES = [
   // Ревью архитектуры вышло отдельным релизом 0.6 «Фундамент»
   { id: 'arch', title: 'Ревью архитектуры', file: 'd8-arch.html', release: '0.6' },
   { id: 'gift', title: 'Дар ночи', file: 'd8-gift.html', step: 1 },
+  { id: 'gift-ui', title: 'Дар ночи · экраны', file: 'd8-gift-ui.html', step: 1 },
   { id: 'route', title: 'Развилки', file: 'd8-route.html', step: 2 },
   { id: 'trophy', title: 'Трофеи Затмений', file: 'd8-trophy.html', step: 4 },
   { id: 'myths', title: 'Мифы неба', file: 'd8-myths.html', step: 5 },
@@ -357,11 +358,11 @@ const BOSS_RU = {
 /* Небесные тела — новые карты релиза (GF.3) */
 const BODIES = {
   polaris: { name: 'Полярная звезда', rule: 'Не гаснет: после вспышки остаётся на небе', col: '#eaf6ff' },
-  meteor: { name: 'Метеор', rule: 'Ложится и выбивает соседнюю карту в сброс', col: '#ff9a62' },
-  pulsar: { name: 'Пульсар', rule: '+2 множ. за каждую вспышку рядом — до конца ночи', col: '#9ff0ff' },
-  twin: { name: 'Двойник', rule: 'Считается двумя рангами: своим и следующим', col: '#c9b2ff' },
+  meteor: { name: 'Метеор', rule: 'Выбивает в сброс самого слабого соседа — кроме карт своей линии', col: '#ff9a62' },
+  pulsar: { name: 'Пульсар', rule: 'Линия вспыхнула рядом — +2 множ. всем линиям до конца ночи', col: '#9ff0ff' },
+  twin: { name: 'Двойник', rule: 'Считается и своим рангом, и следующим', col: '#c9b2ff' },
   nebula: { name: 'Туманность', rule: 'Любой ранг: встаёт так, как выгоднее линии', col: '#ff9fd2' },
-  blackhole: { name: 'Чёрная дыра', rule: 'Линия с ней: множ. ×2, сама уходит из колоды', col: '#ffcf7a' },
+  blackhole: { name: 'Чёрная дыра', rule: 'Линия с ней — множ. ×2, а сама уходит из колоды', col: '#ffcf7a' },
 };
 
 /* ───────── DOM ───────── */
@@ -403,11 +404,12 @@ const icon = (name, size = 16) => svg(ICON[name], 16, 16);
 const CARD_PAD = 0.12;
 /** Карта игры шириной w CSS px (картинка с отступом под свечение). */
 function card(c, w = 64) {
-  const name = `card-${c.suit}-${c.rank}${c.glyph ? '-' + c.glyph : ''}`;
+  const name = `card-${c.suit}-${c.rank}${c.glyph ? '-' + c.glyph : ''}${c.body ? '-' + c.body : ''}`;
   const src = ART[name] || ART[`card-${c.suit}-${c.rank}`];
   const hgt = round(w / 0.7);
   const el = h('div', { class: 'k-card', style: { width: w + 'px', height: hgt + 'px' } });
-  if (c.body) el.append(bodyCard(c, w));
+  // Тело рисуется кодом игры, если его арт вшит в витрину (GF.4); иначе — эскизом кита
+  if (c.body && !ART[name]) el.append(bodyCard(c, w));
   else {
     const pad = w * CARD_PAD;
     el.append(h('img', { src, alt: `${c.rank} ${SUIT_RU[c.suit]}`, style: { left: -pad + 'px', top: -pad + 'px', width: w + pad * 2 + 'px', height: hgt + pad * 2 + 'px' } }));
