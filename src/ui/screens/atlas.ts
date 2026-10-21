@@ -92,7 +92,7 @@ export class AtlasScreen implements Screen {
     focus?: string,
   ) {
     if (focus === 'wardrobe') this.tab = 'look';
-    if (focus === 'support') this.tab = 'support';
+    if (focus === 'support' && !this.storeless) this.tab = 'support';
     this.tryBack = app.canWear('back', app.settings.cardBack) ? app.settings.cardBack : 'classic';
     this.trySky = app.canWear('sky', app.settings.skyTheme) ? app.settings.skyTheme : 'night';
   }
@@ -118,6 +118,18 @@ export class AtlasScreen implements Screen {
     this.capRo?.disconnect();
     for (const s of Object.values(this.stages)) s.destroy();
     this.el.remove();
+  }
+
+  /**
+   * Площадка без магазина (CrazyGames): атлас и внешний вид открыты даром, покупать нечего —
+   * нет вкладки «Поддержать», вещей мецената и обещания «без рекламы».
+   */
+  private get storeless(): boolean {
+    return !!this.app.platform.grants;
+  }
+
+  private get tabList(): Tab[] {
+    return this.storeless ? TABS.filter((id) => id !== 'support') : TABS;
   }
 
   private get owned(): boolean {
@@ -173,7 +185,8 @@ export class AtlasScreen implements Screen {
   /** Вкладки сверху: всё, что есть в магазине, видно сразу — без поиска прокруткой. */
   private tabs(): HTMLElement {
     const bar = h('nav.atl-tabs', { attrs: { role: 'tablist', 'aria-label': t('atlas.title') } });
-    TABS.forEach((id, i) => {
+    const tabs = this.tabList;
+    tabs.forEach((id, i) => {
       const on = id === this.tab;
       const b = h(`button.atl-tab${on ? '.on' : ''}`, {
         type: 'button',
@@ -185,7 +198,7 @@ export class AtlasScreen implements Screen {
         const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
         if (!step) return;
         e.preventDefault();
-        this.openTab(TABS[(i + step + TABS.length) % TABS.length]!);
+        this.openTab(tabs[(i + step + tabs.length) % tabs.length]!);
         this.el.querySelector<HTMLElement>('.atl-tab.on')?.focus();
       });
       bar.append(b);
@@ -239,7 +252,7 @@ export class AtlasScreen implements Screen {
   private atlasTab(): [HTMLElement, HTMLElement] {
     const owned = this.owned;
     const n = archiveDates().length;
-    const parts = h('div.atl-parts', null, PARTS.map((id) => {
+    const parts = h('div.atl-parts', null, PARTS.filter((id) => !(id === 'noads' && this.storeless)).map((id) => {
       const [name, text] = dict().atlas.parts[id]!;
       const desc = id === 'archive' && n ? `${text} ${format(t('atlas.archiveNow'), { n })}` : text;
       return this.part(this.partArt(id), name, desc, owned);
@@ -280,7 +293,7 @@ export class AtlasScreen implements Screen {
     const payments = this.app.platform.payments;
     if (this.owned) {
       foot.append(
-        h('div.atl-owned', null, [icon('check'), t('atlas.owned')]),
+        h('div.atl-owned', null, [icon('check'), t(this.storeless ? 'atlas.ownedGift' : 'atlas.owned')]),
         h('div.atl-two', null, [
           button(h('span.btn-row', null, [icon('archive'), t('atlas.archiveShort')]), () => void this.app.goArchive(), { variant: 'secondary', ariaLabel: t('atlas.openArchive') }),
           button(h('span.btn-row', null, [icon('deck'), t('atlas.astroShort')]), () => this.playAstrolabe(), { variant: 'secondary', ariaLabel: t('atlas.playAstrolabe') }),
@@ -374,8 +387,9 @@ export class AtlasScreen implements Screen {
     ]);
     const strip = (slot: 'back' | 'sky') => {
       const row = h('div.atl-strip', { attrs: { role: 'listbox', 'aria-label': slot === 'back' ? t('atlas.backs') : t('atlas.skies') } });
-      if (slot === 'back') for (const b of BACKS) row.append(this.item('back', b.id, canvasImg(cardBack(50, dpr(), b.id), 50 * 1.24, (50 / 0.7) * 1.24)));
-      else for (const s of SKY_THEMES) row.append(this.item('sky', s.id, this.skySwatch(s, 50, 70)));
+      const sold = (id: string) => !this.storeless || productForCosmetic(slot, id)?.id !== 'supporter';
+      if (slot === 'back') for (const b of BACKS.filter((x) => sold(x.id))) row.append(this.item('back', b.id, canvasImg(cardBack(50, dpr(), b.id), 50 * 1.24, (50 / 0.7) * 1.24)));
+      else for (const s of SKY_THEMES.filter((x) => sold(x.id))) row.append(this.item('sky', s.id, this.skySwatch(s, 50, 70)));
       return row;
     };
     const body = h('div.atl-body.look-body', null, [

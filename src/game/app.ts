@@ -99,6 +99,7 @@ export class App {
     haptics.enabled = this.settings.haptics;
     renderer.adaptive = this.settings.quality !== 'max';
     this.svc = { world, renderer, tweens, audio, input, starfield, haptics };
+    if (platform.grants) this.purchases.grant(platform.grants);
     this.applyCosmetics();
     // Покупка или возврат меняют, что можно носить
     this.purchases.onChange(() => this.applyCosmetics());
@@ -127,15 +128,25 @@ export class App {
         this.flushCloudSave();
       }
       // Требование порталов: без фокуса игра молчит
-      this.svc.audio.setMuted(document.hidden || this.adPlaying);
+      this.syncMute();
     });
     platform.onPauseChange((paused) => {
       this.adPlaying = paused;
-      this.svc.audio.setMuted(paused || document.hidden);
+      this.syncMute();
+    });
+    platform.onMuteChange?.((muted) => {
+      this.platformMuted = muted;
+      this.syncMute();
     });
   }
 
   private adPlaying = false;
+  /** Звук выключил сайт площадки (CrazyGames) — сильнее настроек игры. */
+  private platformMuted = false;
+
+  private syncMute(): void {
+    this.svc.audio.setMuted(document.hidden || this.adPlaying || this.platformMuted);
+  }
   /** Когда в этой сессии была последняя реклама — межстраничная выдерживает паузу после неё. */
   private lastAdAt: number | null = null;
   /** Рекорд хода до записи итогов забега — окно итогов сравнивает с ним честно. */
@@ -186,10 +197,10 @@ export class App {
     }
     track('purchase_start', { product: productId });
     this.adPlaying = true;
-    this.svc.audio.setMuted(true);
+    this.syncMute();
     const result = await payments.buy(productId).catch((): PurchaseResult => 'failed');
     this.adPlaying = false;
-    this.svc.audio.setMuted(document.hidden);
+    this.syncMute();
     track('purchase_result', { product: productId, result });
     if (result === 'paid') this.purchases.add(productId);
     return result;
@@ -208,9 +219,9 @@ export class App {
     this.svc.starfield.setTheme(sky, skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
   }
 
-  /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
+  /** Купленный атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
   get adFree(): boolean {
-    return this.purchases.has('atlas');
+    return this.purchases.paid('atlas');
   }
 
   // ─── Экраны ─────────────────────────────────────────────────────────────
@@ -472,6 +483,7 @@ export class App {
     }
     if (run.phase === 'victory') {
       this.trackRunEnd('victory');
+      this.platform.happytime?.();
       this.bestBefore = this.profile.bestPlacement;
       const fresh = recordRunEnd(this.profile, run, true);
       this.announceUnlocks(fresh);

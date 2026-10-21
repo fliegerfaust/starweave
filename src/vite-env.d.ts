@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** Площадка сборки: `yandex` или пусто (обычный веб). */
+  /** Площадка сборки: `yandex`, `crazygames` или пусто (обычный веб). */
   readonly VITE_PLATFORM?: string;
   /** Номер счётчика Яндекс Метрики; без него аналитика выключена. */
   readonly VITE_METRIKA_ID?: string;
@@ -18,6 +18,8 @@ interface ImportMetaEnv {
   readonly VITE_ADSGRAM_BLOCK_ID?: string;
   /** Блок AdsGram для межстраничной рекламы между главами (`int-…`). */
   readonly VITE_ADSGRAM_INTER_ID?: string;
+  /** `1` — реклама CrazyGames включена (Full Launch); иначе её нет (Basic Launch). */
+  readonly VITE_CG_ADS?: string;
 }
 
 /** Версия из package.json, подставляет Vite. */
