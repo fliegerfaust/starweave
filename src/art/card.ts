@@ -1,5 +1,6 @@
 import type { Card, Glyph } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
+import { SpriteCache } from './sprite-cache';
 import { roundRect, sparklePath, suitPath } from './glyphs';
 import { drawEngravedBack } from './backs';
 import { DEFAULT_BACK, backStyle } from './cosmetics';
@@ -59,7 +60,8 @@ export interface CardArtOptions {
   hideRank?: boolean;
 }
 
-const cache = new Map<string, HTMLCanvasElement>();
+/** Лица и рубашки: на ночь хватает десятков, потолок — с запасом на атлас и смену размера. */
+const cache = new SpriteCache(160);
 
 export function clearCardCache(): void {
   cache.clear();

@@ -95,6 +95,11 @@ export class Starfield {
     return renderNebula(this.w, this.h, 17 + this.paletteIndex, ANTE_NEBULAE[this.paletteIndex], this.dpr);
   }
 
+  /** Небо без событий: туманность сменилась, метеоров нет — осталось только мерцание. */
+  get calm(): boolean {
+    return this.fade >= 1 && this.meteors.length === 0;
+  }
+
   update(dt: number): void {
     this.fade = Math.min(1, this.fade + dt * this.fadeRate);
     this.decor.update(dt);
