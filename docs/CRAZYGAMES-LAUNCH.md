@@ -116,21 +116,32 @@ Strictly no text, no letters, no logo, no UI, no frame, no watermark, no people.
 звезда, комета); на картах нет лишних символов и чужих букв; цифры одинаковые и читаемые; есть
 пустое место под название; в маленьком размере (как в каталоге, ~200 px) видно карты и вспышку.
 
-## 3. Что я сделаю сам (CG-35)
+## 3. Что сделал я (CG-35)
 
-- Адаптер SDK, сборку `npm run build:crazygames` → `release/starweave-crazygames.zip` без рекламы.
-- Обложки 1920×1080, 800×1200, 800×800 из твоего арта + название (отдельная иконка CrazyGames не нужна).
-- Видео **15–20 с, без звука, 1080p, 16:9 и 2:3**, первый кадр — обложка (`npm run clips`).
-- Тексты витрины на английском: `store/crazygames/listing.md` — название, короткое и полное
-  описание, «How to play», управление, теги.
-- Проверку вёрстки на размерах окна CrazyGames и в Safari/iOS.
+| Что | Где |
+|---|---|
+| Адаптер SDK v3: загрузка, игра/пауза, звук от сайта, язык, сохранения, вызов друга | `src/platform/crazygames.ts`, тест `tests/crazygames.test.ts` |
+| Сборка без рекламы для Basic Launch | `npm run build:crazygames` → `release/starweave-crazygames.zip` (39 файлов, ~0,5 МБ) |
+| Атлас и внешний вид бесплатно; «Поддержать», вещи мецената и «без рекламы» скрыты | `grants` площадки, `src/ui/screens/atlas.ts` |
+| Обложки 1920×1080, 800×1200, 800×800 с названием | `store/crazygames/cover-*.png` (`node scripts/crazygames-covers.mjs`) |
+| Видео 16:9 и 2:3, ~15 с, без звука, первый кадр — обложка | `store/crazygames/video-*.mp4` (`scripts/crazygames-video.mjs`) |
+| Тексты витрины (en) и поля формы | `store/crazygames/listing.md` |
+| Вёрстка на окнах CrazyGames при DPR 1 | fit-audit чист на 907×510, 1216×684, 1280×720, 1920×1080, 800×450, 1080×607 |
+
+**Для Full Launch** — собрать с рекламой: `VITE_CG_ADS=1 npm run build:crazygames`. Реклама
+пойдёт через SDK (midgame между главами, rewarded на «второй шанс» и «удвоить»); дар атласа
+рекламу не убирает — её убирает только купленный атлас.
+
+**Своей аналитики в сборке нет** (адрес событий не задан): метрики даёт кабинет CrazyGames,
+окна согласия не нужно. Включить свою — отдельное решение: адрес CrazyGames в
+`ALLOWED_ORIGINS` сервера и ссылка на политику в игре.
 
 ## 4. Выкладка — шаги в кабинете
 
 1. **Аккаунт.** [developer.crazygames.com](https://developer.crazygames.com) → регистрация →
    принять Developer Terms.
 2. **Submit a game.** Название — `Starweave`. Тип — HTML5. Загрузить
-   `release/starweave-crazygames.zip` (сборку дам я). Ориентации: **landscape и portrait**.
+   `release/starweave-crazygames.zip` (`npm run build:crazygames`). Ориентации: **landscape и portrait**.
    Поддержка мобильных: **да**. Включить **Progress Save** (сохранения через SDK).
 3. **Preview.** Сыграть в их окружении: ПК (Chrome), телефон (Android и iPhone), планшет.
    Пройти **QA-инструмент** по шагам — он сам подсказывает, чего не хватает. Если что-то
