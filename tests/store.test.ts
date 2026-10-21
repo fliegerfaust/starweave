@@ -45,3 +45,17 @@ describe('купленное на устройстве', () => {
     expect(changes).toBe(2);
   });
 });
+
+describe('дар площадки', () => {
+  it('открывает товары, но не считается покупкой и не сохраняется', () => {
+    const e = new Entitlements();
+    e.grant(['atlas']);
+    expect(e.has('atlas')).toBe(true);
+    expect(e.has('back:astrolabe')).toBe(true);
+    expect(e.paid('atlas')).toBe(false);
+    e.add('back_comet');
+    expect(e.paid('back:comet')).toBe(true);
+    expect(e.has('atlas')).toBe(true);
+    expect(new Entitlements().has('atlas')).toBe(false);
+  });
+});

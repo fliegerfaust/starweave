@@ -421,7 +421,7 @@ export class NightScreen implements Screen {
     const text = t('challenge.shareText', { score: challengeScore(c.ante, c.best) });
     track('challenge_share', { ante: c.ante, best: c.best, won });
     if (this.app.platform.share?.(text, param)) return;
-    const url = `${location.origin}${location.pathname}?startapp=${param}`;
+    const url = this.app.platform.inviteUrl?.(param) ?? `${location.origin}${location.pathname}?startapp=${param}`;
     if (navigator.share) {
       void navigator.share({ text, url }).catch(() => undefined);
     } else {

@@ -16,13 +16,18 @@ export interface Payments {
  * Игра знает только этот интерфейс; конкретный SDK живёт в адаптере.
  */
 export interface Platform {
-  readonly id: 'web' | 'yandex' | 'telegram';
+  readonly id: 'web' | 'yandex' | 'telegram' | 'crazygames';
   /** Есть ли реклама за награду (кнопки «второй шанс» показываются только тогда). */
   readonly rewardedAvailable: boolean;
   /** Есть ли межстраничная реклама: без неё игра не просит показ и не пишет его в аналитику. */
   readonly interstitialAvailable: boolean;
   /** Покупки; null — площадка их не поддерживает (обычный сайт). */
   readonly payments: Payments | null;
+  /**
+   * Товары, открытые на площадке бесплатно (CrazyGames запрещает свои покупки — атлас там
+   * даром). Магазина на такой площадке нет: вкладка «Поддержать» скрыта. Рекламу дар не убирает.
+   */
+  readonly grants?: readonly string[];
   init(): Promise<void>;
   /** Игра загрузилась и готова к игре. */
   ready(): void;
@@ -44,6 +49,12 @@ export interface Platform {
    * `startParam` — что откроется у получателя по ссылке (вызов с тем же раскладом).
    */
   share?(text: string, startParam?: string): boolean;
+  /** Площадка сама глушит звук (настройка сайта) — сильнее настроек игры. */
+  onMuteChange?(fn: (muted: boolean) => void): void;
+  /** Ссылка на вызов друга, если площадка ведёт на свою страницу игры, а не на наш сайт. */
+  inviteUrl?(startParam: string): string | null;
+  /** «Счастливый момент» (победа в забеге) — порталы учитывают его в рекомендациях. */
+  happytime?(): void;
   /** Параметр запуска из ссылки (`?startapp=` / Telegram `start_param`): вызов друга или метка источника. */
   startParam?(): string | null;
 }
