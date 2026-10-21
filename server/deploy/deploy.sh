@@ -51,9 +51,9 @@ echo "  starweave-api: healthy"
 echo "→ сайт в Caddy"
 CADDY="$(ssh "$HOST" "docker ps -q -f label=com.docker.compose.project=repo -f label=com.docker.compose.service=caddy")"
 [ -n "$CADDY" ] || { echo "Caddy платформы не найден — сайт не подключаю"; exit 1; }
-# Caddy платформы — в нашу сеть (SEC.3). Если платформа пересоздаст свой Caddy, связь
-# пропадёт до следующего запуска этого скрипта; навсегда — сеть starweave_proxy во внешних
-# сетях Caddy в compose платформы (SEC.3b)
+# Caddy платформы — в нашу сеть (SEC.3). С платформы 0.19.2 сеть starweave_proxy записана во
+# внешних сетях Caddy в её compose и переживает пересоздание Caddy (SEC.3b); здесь — страховка
+# для сервера со старой платформой
 ssh "$HOST" "docker inspect -f '{{json .NetworkSettings.Networks}}' $CADDY | grep -q '\"starweave_proxy\"' || docker network connect starweave_proxy $CADDY"
 echo "  Caddy в сети starweave_proxy"
 rsync -a --no-o --no-g server/deploy/starweave.caddy "$HOST:$SITES/starweave.caddy"
