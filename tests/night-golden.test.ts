@@ -34,8 +34,9 @@ function stable(value: unknown): string {
  */
 function canonicalRun(run: RunState): string {
   // Версия сохранения растёт вместе с форматом (TD.6: 1 → 2) — ход ночи от неё не зависит
-  const { chapter, nightIndex, version: _version, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number };
-  return stable({ ...rest, at: chapter?.at ?? nightIndex });
+  const { chapter, nightIndex, version: _version, pending, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number; pending?: unknown[] };
+  // Пустая очередь выборов (TD.7) — то же, что «пакет не открыт» до неё
+  return stable({ ...rest, at: chapter?.at ?? nightIndex, ...(pending?.length ? { pending } : {}) });
 }
 
 function play(seed: number, skyId: string, stake: number, glyphs = false): { hash: string; kinds: Record<string, number> } {

@@ -70,6 +70,21 @@ describe('сохранение забега (TD.1)', () => {
     expect(broken!.log).toBeUndefined();
   });
 
+  it('открытый пакет 0.5.9 встаёт в очередь выборов (TD.7)', () => {
+    const raw = JSON.parse(fixture('save-0.5.9-shop.json'));
+    raw.shop.openPack = { pack: 'omen', options: ['stardust', 'pyre', 'abacus'] };
+    const run = deserializeRun(JSON.stringify(raw))!;
+    expect(run.pending).toEqual([{ kind: 'pack', pack: 'omen', options: ['stardust', 'pyre', 'abacus'] }]);
+    expect('openPack' in run.shop!).toBe(false);
+    const v2 = { ...JSON.parse(fixture('save-0.5.9-shop.json')), version: 2, log: { version: 1, start: { seed: 1 }, cmds: [{ c: 'choosePack', index: 0 }, { c: 'skipPack' }] } };
+    v2.chapter = run.chapter;
+    delete v2.nightIndex;
+    expect(deserializeRun(JSON.stringify(v2))!.log!.cmds).toEqual([{ c: 'choose', index: 0 }, { c: 'skip' }]);
+    for (const pending of [null, [{ kind: 'pack', pack: 'omen', options: ['futureOmen'] }], [{ kind: 'gift', options: ['x'] }]]) {
+      expect(deserializeRun(JSON.stringify({ ...run, pending })), JSON.stringify(pending)).toBeNull();
+    }
+  });
+
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {
     const run = JSON.parse(fixture('save-0.5.9-shop.json'));
     expect(deserializeRun(JSON.stringify({ ...run, version: SAVE_VERSION + 1 }))).toBeNull();

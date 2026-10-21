@@ -3,7 +3,9 @@ import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
-import { banishCard, banishServicePrice, buyItem, buyPack, choosePack, reroll, sellOmen } from '../src/core/shop';
+import { choose, currentChoice, skipChoice } from '../src/core/choices';
+import { RuleError } from '../src/core/errors';
+import { banishCard, banishServicePrice, buyItem, buyPack, reroll, sellOmen } from '../src/core/shop';
 import { createOmen } from '../src/core/omen-instance';
 import { OMEN_LIST } from '../src/core/content/omens';
 import { BOSS_LIST } from '../src/core/content/bosses';
@@ -49,7 +51,7 @@ describe('забег', () => {
     const run = newRun({ seed: 3 });
     run.phase = 'shop';
     run.gold = 10;
-    run.shop = { omens: [], items: [], packs: [], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [], packs: [], rerollCost: 5 };
     const size = run.deck.length;
     const price = banishServicePrice(run)!;
     banishCard(run, run.deck[0]!.id);
@@ -67,7 +69,7 @@ describe('забег', () => {
     run.phase = 'shop';
     run.gold = 100;
     run.omens.push(createOmen(run, 'stardust'));
-    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'ascend', price: 3, sold: false }], packs: [], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'ascend', price: 3, sold: false }], packs: [], rerollCost: 5 };
     const target = run.deck.find((c) => c.rank === 3)!;
     buyItem(run, 0, [target.id]);
     expect(run.deck.find((c) => c.id === target.id)!.rank).toBe(4);
@@ -81,21 +83,36 @@ describe('забег', () => {
     const run = newRun({ seed: 9 });
     run.phase = 'shop';
     run.gold = 50;
-    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5 };
     buyPack(run, 0);
     expect(run.gold).toBe(44);
-    expect(run.shop.openPack!.options).toHaveLength(3);
-    const chosen = run.shop.openPack!.options[1]!;
-    choosePack(run, 1);
+    expect(currentChoice(run)!.options).toHaveLength(3);
+    const chosen = currentChoice(run)!.options[1]!;
+    choose(run, 1);
     expect(run.omens.map((o) => o.id)).toContain(chosen);
-    expect(run.shop.openPack).toBeNull();
+    expect(run.pending).toEqual([]);
 
-    run.shop.packs = [{ kind: 'pack', pack: 'chart', price: 4, sold: false }];
+    run.shop!.packs = [{ kind: 'pack', pack: 'chart', price: 4, sold: false }];
     buyPack(run, 0);
-    const combo = run.shop.openPack!.options[0]! as 'pair';
+    const combo = currentChoice(run)!.options[0]! as 'pair';
     const before = run.comboLevels[combo];
-    choosePack(run, 0);
+    choose(run, 0);
     expect(run.comboLevels[combo]).toBe(before + 1);
+  });
+
+  it('очередь выборов: пока выбор открыт, второй пакет не купить и из Обсерватории не уйти (TD.7)', () => {
+    const run = newRun({ seed: 9 });
+    run.phase = 'shop';
+    run.gold = 50;
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'chart', price: 4, sold: false }, { kind: 'pack', pack: 'chart', price: 4, sold: false }], rerollCost: 5 };
+    buyPack(run, 0);
+    expect(() => buyPack(run, 1)).toThrow(RuleError);
+    expect(() => leaveShop(run)).toThrow(RuleError);
+    skipChoice(run);
+    expect(run.pending).toEqual([]);
+    expect(() => skipChoice(run)).toThrow(RuleError);
+    leaveShop(run);
+    expect(run.phase).toBe('map');
   });
 
   it('у каждого Знамения, Затмения, ритуала и неба уникальный id', () => {

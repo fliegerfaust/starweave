@@ -1,3 +1,4 @@
+import type { Choice } from './choices';
 import type { RunLog } from './commands';
 import type { Chapter } from './route';
 import type { RngState } from './rng';
@@ -186,18 +187,11 @@ export type ShopItem =
   | { kind: 'ritual'; ritualId: string; price: number; sold: boolean }
   | { kind: 'pack'; pack: PackKind; price: number; sold: boolean };
 
-/** Открытый пакет: варианты на выбор (id Знамений, ритуалов или созвездий). */
-export interface OpenPack {
-  pack: PackKind;
-  options: string[];
-}
-
 export interface ShopState {
   omens: ShopItem[];
   items: ShopItem[];
   packs: ShopItem[];
   rerollCost: number;
-  openPack: OpenPack | null;
   /** Услуга «Убрать карту» уже использована в этот визит (нет в старых сохранениях). */
   banishUsed?: boolean;
 }
@@ -236,6 +230,8 @@ export interface RunState {
   night: NightState | null;
   reward: RewardSummary | null;
   shop: ShopState | null;
+  /** Очередь выборов «возьми одно» (`core/choices.ts`): первый — на экране. */
+  pending: Choice[];
   stats: RunStats;
   endless: boolean;
   /** Звёздность (0 — обычная сложность). */

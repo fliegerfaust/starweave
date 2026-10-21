@@ -23,7 +23,7 @@ describe('регрессии ревью', () => {
     run.phase = 'shop';
     run.gold = 50;
     for (const id of ['stardust', 'pyre', 'abacus', 'miser', 'horizon']) run.omens.push(createOmen(run, id));
-    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5 };
     expect(() => buyPack(run, 0)).toThrow(RuleError);
     expect(run.gold).toBe(50);
   });
@@ -33,7 +33,7 @@ describe('регрессии ревью', () => {
     run.deck = run.deck.slice(0, 21);
     run.phase = 'shop';
     run.gold = 10;
-    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'banish', price: 3, sold: false }], packs: [], rerollCost: 5, openPack: null };
+    run.shop = { omens: [], items: [{ kind: 'ritual', ritualId: 'banish', price: 3, sold: false }], packs: [], rerollCost: 5 };
     expect(() => buyItem(run, 0, [run.deck[0]!.id, run.deck[1]!.id])).toThrow(RuleError);
     expect(run.gold).toBe(10);
     buyItem(run, 0, [run.deck[0]!.id]);
