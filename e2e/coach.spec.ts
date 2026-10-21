@@ -9,10 +9,8 @@ test.use({ locale: 'ru-RU' });
 type A = {
   profile: Record<string, unknown>;
   run: Record<string, unknown>;
-  startRun(s: string): void;
-  beginNight(): void;
-  collectReward(): void;
-  route(): Promise<void>;
+  runs: { startRun(s: string): void; beginNight(): void; collectReward(): void };
+  router: { route(): Promise<void> };
 };
 
 async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): Promise<string[]> {
@@ -22,19 +20,19 @@ async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): 
     const { coach, clearCoach } = await import('/src/ui/tutorial.ts');
     clearCoach();
     if (setup === 'night' && !document.querySelector('.hud')) {
-      a.startRun('classic');
+      a.runs.startRun('classic');
       await new Promise((r) => setTimeout(r, 300));
-      a.beginNight();
+      a.runs.beginNight();
       await new Promise((r) => setTimeout(r, 2500));
     }
     if (setup === 'shop') {
       Object.assign(a.run, { phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
-      a.collectReward();
+      a.runs.collectReward();
       await new Promise((r) => setTimeout(r, 600));
     }
     if (setup === 'map') {
       Object.assign(a.run, { nightIndex: 2, phase: 'map' });
-      await a.route();
+      await a.router.route();
       await new Promise((r) => setTimeout(r, 900));
     }
     clearCoach();

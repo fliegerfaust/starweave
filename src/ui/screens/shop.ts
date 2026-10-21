@@ -46,7 +46,7 @@ export class ShopScreen implements Screen {
     this.el = h('div.shop');
     root.append(this.el);
     this.render();
-    this.app.tutorial?.emit({ type: 'shop', root: this.el });
+    this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
     coach(this.app, 'shop');
     if (this.run.shop?.openPack) this.showPack();
   }
@@ -56,13 +56,13 @@ export class ShopScreen implements Screen {
   }
 
   private act(fn: (run: RunState) => void, sound: 'coin' | 'click' = 'coin', onSuccess?: () => void): false {
-    if (this.app.shopAction(fn)) {
+    if (this.app.runs.shopAction(fn)) {
       onSuccess?.();
       if (sound === 'coin') this.app.svc.audio.coin();
       this.render();
       // Экран пересобран — подсказка первых забегов переставляется к своей цели
       requestAnimationFrame(layoutCoach);
-      this.app.tutorial?.emit({ type: 'shopChanged' });
+      this.app.runs.tutorial?.emit({ type: 'shopChanged' });
     }
     return false;
   }
@@ -124,9 +124,9 @@ export class ShopScreen implements Screen {
     const hasRituals = shop.items.some((i) => i.kind === 'ritual');
     const sections: (HTMLElement | null)[] = [
       h('header.shop-top', null, [
-        menuButton(() => showRunMenu(this.app, canPeek ? [button(t('pause.viewMap'), () => this.app.peekMap(), { variant: 'secondary' })] : [])),
+        menuButton(() => showRunMenu(this.app, canPeek ? [button(t('pause.viewMap'), () => this.app.router.peekMap(), { variant: 'secondary' })] : [])),
         h('h1.shop-title', null, t('shop.title')),
-        canPeek ? h('button.icon-btn.shop-map', { type: 'button', ariaLabel: t('pause.viewMap'), title: t('pause.viewMap'), onclick: () => this.app.peekMap() }, icon('daily')) : h('span'),
+        canPeek ? h('button.icon-btn.shop-map', { type: 'button', ariaLabel: t('pause.viewMap'), title: t('pause.viewMap'), onclick: () => this.app.router.peekMap() }, icon('daily')) : h('span'),
         h(`div.gold-pill${prev && prev.gold !== run.gold ? '.pop' : ''}`, null, String(run.gold)),
       ]),
       // Середина прокручивается сама; шапка и кнопки на месте — ничего не прячется под панелью
@@ -156,7 +156,7 @@ export class ShopScreen implements Screen {
         button(h('span.btn-row', null, [icon('again'), h('span.reroll-label', null, t('shop.rerollShort')), withCoin(String(shop.rerollCost))]), () => this.act((r) => reroll(r), 'click', () => track('shop_reroll', { cost: shop.rerollCost - 1, ante: run.ante })), {
           variant: 'secondary', disabled: run.gold < shop.rerollCost, ariaLabel: t('shop.reroll', { n: shop.rerollCost }), className: 'reroll',
         }),
-        tag(button(t('shop.next'), () => this.app.leaveShop(), { className: 'grow' }), 'next'),
+        tag(button(t('shop.next'), () => this.app.runs.leaveShop(), { className: 'grow' }), 'next'),
       ]),
     ];
     this.el.replaceChildren(...sections.filter((x): x is HTMLElement => x !== null));

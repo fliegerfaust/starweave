@@ -218,10 +218,10 @@ export class MenuScreen implements Screen {
   private offerChallenge(c: Challenge): void {
     const app = this.app;
     // Уже играем этот вызов (перезапуск Mini App с той же ссылкой) — не спрашиваем снова
-    if (app.hasSave && app.run?.challenge && app.run.seed === c.seed) return;
+    if (app.runs.hasSave && app.run?.challenge && app.run.seed === c.seed) return;
     track('challenge_open', { ante: c.ante, best: c.best, fresh: app.profile.runs === 0 });
     const sky = SKY_LIST.find((s) => s.id === c.skyId);
-    const locked = sky?.unlock.kind === 'atlas' && !app.purchases.has('atlas');
+    const locked = sky?.unlock.kind === 'atlas' && !app.money.purchases.has('atlas');
     const stake = c.stake ? t('map.stake', { n: c.stake }) : t('menu.stakeNormal');
     const all = c.ante > 8;
     const m = modal(
@@ -238,11 +238,11 @@ export class MenuScreen implements Screen {
           locked
             ? button(t('challenge.openAtlas'), () => {
                 m.close();
-                void app.goAtlas('challenge');
+                void app.router.goAtlas('challenge');
               })
             : button(t('challenge.accept'), () => {
                 m.close();
-                this.guardSave(() => app.startChallenge(c));
+                this.guardSave(() => app.runs.startChallenge(c));
               }),
         ]),
       ],
@@ -270,20 +270,20 @@ export class MenuScreen implements Screen {
     }
     this.nav.setAttribute('aria-label', t('game.title'));
 
-    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.hasSave);
+    const dailyDone = dailyTaken(app.profile) && !(app.run?.daily && !app.run.archive && app.runs.hasSave);
     const newRun = () => this.guardSave(() => this.offerTutorial(() => this.chooseSky()));
-    const daily = () => this.guardSave(() => app.startRun('classic', true));
+    const daily = () => this.guardSave(() => app.runs.startRun('classic', true));
     // Главная кнопка одна: продолжить → обучение для новичка → новый забег
-    const primaryKind = app.hasSave ? 'continue' : !app.profile.tutorialDone ? 'tutorial' : 'newRun';
+    const primaryKind = app.runs.hasSave ? 'continue' : !app.profile.tutorialDone ? 'tutorial' : 'newRun';
     const primary =
-      primaryKind === 'continue' ? button(t('menu.continue'), () => void app.route(), { className: 'menu-primary' })
-      : primaryKind === 'tutorial' ? button(t('tut.menuButton'), () => app.startTutorial(), { sub: t('tut.menuSub'), className: 'menu-primary' })
+      primaryKind === 'continue' ? button(t('menu.continue'), () => void app.router.route(), { className: 'menu-primary' })
+      : primaryKind === 'tutorial' ? button(t('tut.menuButton'), () => app.runs.startTutorial(), { sub: t('tut.menuSub'), className: 'menu-primary' })
       : button(t('menu.newRun'), newRun, { className: 'menu-primary' });
     // Атлас — второй по важности: та же лёгкость, но своё тихое золото и рамка
-    const atlas = button(h('span.menu-atlas-label', null, [icon('astrolabe'), t('atlas.menu')]), () => void app.goAtlas('menu'), {
+    const atlas = button(h('span.menu-atlas-label', null, [icon('astrolabe'), t('atlas.menu')]), () => void app.router.goAtlas('menu'), {
       variant: 'ghost',
       className: 'menu-atlas',
-      ariaLabel: app.purchases.has('atlas') ? `${t('atlas.menu')}, ${t('atlas.menuOwned')}` : `${t('atlas.menu')}, ${t('atlas.menuSub')}`,
+      ariaLabel: app.money.purchases.has('atlas') ? `${t('atlas.menu')}, ${t('atlas.menuOwned')}` : `${t('atlas.menu')}, ${t('atlas.menuSub')}`,
     });
     const lite = (name: IconName, label: string, onClick: () => void, opts: { disabled?: boolean; title?: string } = {}) => {
       const b = h('button.menu-lite', { type: 'button', title: opts.title ?? '' }, [icon(name), label]);
@@ -327,8 +327,8 @@ export class MenuScreen implements Screen {
     // Новичку — меньше выбора: архив и кодекс появятся после первого забега
     const items = [
       item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound, profile: app.profile })),
-      item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.startTutorial())),
-      app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.goArchive()) : null,
+      item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.runs.startTutorial())),
+      app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.router.goArchive()) : null,
       item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
     ];
     const m = modal(
@@ -362,12 +362,12 @@ export class MenuScreen implements Screen {
           button(t('tut.offerSkip'), () => {
             m.close();
             app.profile.tutorialDone = true;
-            app.persistProfile();
+            app.runs.persistProfile();
             next();
           }, { variant: 'ghost' }),
           button(t('tut.menuButton'), () => {
             m.close();
-            app.startTutorial('offer');
+            app.runs.startTutorial('offer');
           }),
         ]),
       ],
@@ -408,10 +408,10 @@ export class MenuScreen implements Screen {
 
   private chooseSky(): void {
     const app = this.app;
-    const owned = app.purchases.owned;
+    const owned = app.money.purchases.owned;
     // Первый забег — сразу классика; колоды атласа видны в списке, когда открыто что-то ещё
     if (app.profile.maxStake === 0 && app.profile.unlockedSkies.length <= 1 && !SKY_LIST.slice(1).some((s) => isUnlocked(s.unlock, app.profile, owned))) {
-      app.startRun('classic');
+      app.runs.startRun('classic');
       return;
     }
     let chosen = 'classic';
@@ -457,7 +457,7 @@ export class MenuScreen implements Screen {
       row.querySelector('button')!.addEventListener('click', () => {
         if (state === 'atlas') {
           m.close();
-          void app.goAtlas('sky', 'astrolabe');
+          void app.router.goAtlas('sky', 'astrolabe');
           return;
         }
         if (state === 'locked') return;
@@ -497,7 +497,7 @@ export class MenuScreen implements Screen {
               button(t('menu.back'), () => m.close(), { variant: 'ghost' }),
               button(t('menu.start'), () => {
                 m.close();
-                app.startRun(chosen, false, stake);
+                app.runs.startRun(chosen, false, stake);
               }),
             ]),
           ]),

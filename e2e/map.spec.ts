@@ -17,9 +17,9 @@ test('карта главы: своя расстановка в каждой г�
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void } } }).starweave;
     app.profile.tutorialDone = true;
-    app.startRun('classic');
+    app.runs.startRun('classic');
   });
   await page.waitForSelector('.map');
 
@@ -39,7 +39,7 @@ test('карта главы: своя расстановка в каждой г�
               const { setLang } = await import('/src/i18n/index.ts');
               setLang(lang as 'ru' | 'en');
               type Run = { ante: number; nightIndex: number; seed: number; omens: unknown[]; phase: string; bosses: string[] };
-              const app = (window as unknown as { starweave: { run: Run; route(): Promise<void> } }).starweave;
+              const app = (window as unknown as { starweave: { run: Run; router: { route(): Promise<void> } } }).starweave;
               const run = app.run;
               Object.assign(run, { ante, nightIndex: night, seed, phase: 'map' });
               run.bosses = Array.from({ length: 8 }, (_, i) => bosses[(i + seed) % bosses.length]!);
@@ -48,7 +48,7 @@ test('карта главы: своя расстановка в каждой г�
               // строки состояния нет, на iPhone SE она низкая.
               const top = innerWidth > innerHeight ? 50 : innerHeight < 700 ? 66 : 105;
               document.documentElement.style.setProperty('--safe-top', tg ? `${top}px` : '');
-              await app.route();
+              await app.router.route();
               await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
               const map = document.querySelector<HTMLElement>('.map')!;
               const rect = (el: Element) => el.getBoundingClientRect();

@@ -54,7 +54,7 @@ test('Библиотека и Настройки: пульт, по центру 
       const { setLang } = await import('/src/i18n/index.ts');
       setLang(lang);
       document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
-      await (window as unknown as { starweave: { goMenu(): Promise<void> } }).starweave.goMenu();
+      await (window as unknown as { starweave: { router: { goMenu(): Promise<void> } } }).starweave.router.goMenu();
     }, lang);
     await page.waitForSelector('.menu-handle');
     await page.click('.menu-handle');

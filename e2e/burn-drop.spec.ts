@@ -15,11 +15,11 @@ async function night(page: Page): Promise<void> {
   await page.goto('/');
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave);
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void; beginNight(): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void; beginNight(): void } } }).starweave;
     app.profile.tutorialDone = true;
     localStorage.removeItem('starweave.run.v1');
-    app.startRun('classic');
-    app.beginNight();
+    app.runs.startRun('classic');
+    app.runs.beginNight();
   });
   await page.waitForFunction(() => {
     const s = (window as unknown as { __scene?: S }).__scene;

@@ -70,9 +70,9 @@ test('Telegram Mini App', async ({ page }) => {
 
   // Прогресс уходит в CloudStorage кусками с оглавлением
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void } } }).starweave;
     app.profile.tutorialDone = true;
-    app.startRun('classic');
+    app.runs.startRun('classic');
   });
   await page.waitForSelector('.map');
   await expect
@@ -100,7 +100,7 @@ test('Telegram: реклама за награду через AdsGram', async ({
         window.Adsgram = { init(p) { window.__ads.inits.push(p.blockId); return { show() {
           const ads = window.__ads;
           ads.shows.push(p.blockId);
-          ads.muted.push(window.starweave.adPlaying);
+          ads.muted.push(window.starweave.money.adPlaying);
           const n = ads.shows.filter((b) => b === p.blockId).length;
           return p.blockId === 'e2e' && n === 1 ? Promise.resolve({ done: true, state: 'destroy', error: false, description: '' })
             : Promise.reject({ done: false, state: 'playing', error: false, description: 'closed' });
@@ -109,7 +109,7 @@ test('Telegram: реклама за награду через AdsGram', async ({
   );
   await page.goto('/#tgWebAppData=x&tgWebAppVersion=8.0&tgWebAppPlatform=ios');
   await page.waitForFunction(() => !!document.querySelector('.menu-buttons .btn'));
-  type P = { platform: { rewardedAvailable: boolean; interstitialAvailable: boolean; showRewarded(): Promise<boolean>; showInterstitial(): Promise<void> }; adPlaying: boolean };
+  type P = { platform: { rewardedAvailable: boolean; interstitialAvailable: boolean; showRewarded(): Promise<boolean>; showInterstitial(): Promise<void> }; money: { adPlaying: boolean } };
   const res = await page.evaluate(async () => {
     const app = (window as unknown as { starweave: P }).starweave;
     const available = [app.platform.rewardedAvailable, app.platform.interstitialAvailable];
@@ -117,7 +117,7 @@ test('Telegram: реклама за награду через AdsGram', async ({
     const second = await app.platform.showRewarded();
     await app.platform.showInterstitial();
     const ads = (window as unknown as { __ads: { inits: string[] } }).__ads;
-    return { available, first, second, after: app.adPlaying, ads: { ...ads, inits: [...ads.inits].sort() } };
+    return { available, first, second, after: app.money.adPlaying, ads: { ...ads, inits: [...ads.inits].sort() } };
   });
   expect(res).toEqual({
     available: [true, true], first: true, second: false, after: false,

@@ -16,7 +16,7 @@ export function showTutorialDone(app: App): void {
     return h('span', null, [star, name]);
   }));
   const gift = app.profile.tutorialGift;
-  const giftRow = gift && !app.hasSave
+  const giftRow = gift && !app.runs.hasSave
     ? h('div.tut-gift', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b', null, `+${gift.gold}`), h('span', null, t('tut.giftCaption'))])
     : null;
   const m = modal(
@@ -28,12 +28,12 @@ export function showTutorialDone(app: App): void {
       h('div.tut-done-acts', null, [
         button(t('over.menu'), () => {
           m.close();
-          void app.goMenu();
+          void app.router.goMenu();
         }, { variant: 'secondary' }),
-        button(app.hasSave ? t('menu.continue') : t('tut.startRun'), () => {
+        button(app.runs.hasSave ? t('menu.continue') : t('tut.startRun'), () => {
           m.close();
-          if (app.hasSave) void app.route();
-          else app.startRun('classic');
+          if (app.runs.hasSave) void app.router.route();
+          else app.runs.startRun('classic');
         }),
       ]),
     ],

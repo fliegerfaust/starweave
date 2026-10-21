@@ -93,15 +93,15 @@ export class AtlasScreen implements Screen {
   ) {
     if (focus === 'wardrobe') this.tab = 'look';
     if (focus === 'support') this.tab = 'support';
-    this.tryBack = app.canWear('back', app.settings.cardBack) ? app.settings.cardBack : 'classic';
-    this.trySky = app.canWear('sky', app.settings.skyTheme) ? app.settings.skyTheme : 'night';
+    this.tryBack = app.money.canWear('back', app.settings.cardBack) ? app.settings.cardBack : 'classic';
+    this.trySky = app.money.canWear('sky', app.settings.skyTheme) ? app.settings.skyTheme : 'night';
   }
 
   mount(root: HTMLElement): void {
     this.el = h('div.atlas');
     root.append(this.el);
     this.render();
-    this.off = this.app.purchases.onChange(() => this.render());
+    this.off = this.app.money.purchases.onChange(() => this.render());
     void this.app.platform.payments
       ?.prices()
       .then((p) => {
@@ -110,7 +110,7 @@ export class AtlasScreen implements Screen {
       })
       .catch(() => undefined);
     // Покупка могла пройти на другом устройстве или вернуться — сверяемся при входе
-    void this.app.refreshPurchases();
+    void this.app.money.refreshPurchases();
   }
 
   unmount(): void {
@@ -121,7 +121,7 @@ export class AtlasScreen implements Screen {
   }
 
   private get owned(): boolean {
-    return this.app.purchases.has('atlas');
+    return this.app.money.purchases.has('atlas');
   }
 
   private stage(tab: Tab): PreviewStage {
@@ -164,7 +164,7 @@ export class AtlasScreen implements Screen {
 
   private top(): HTMLElement {
     return h('header.atl-top', null, [
-      h('button.atl-back', { type: 'button', ariaLabel: t('menu.back'), onclick: () => void this.app.goMenu() }, [icon('back'), h('span.atl-back-lbl', null, t('menu.back'))]),
+      h('button.atl-back', { type: 'button', ariaLabel: t('menu.back'), onclick: () => void this.app.router.goMenu() }, [icon('back'), h('span.atl-back-lbl', null, t('menu.back'))]),
       h('h1.atl-plaque', null, t('atlas.title')),
       this.tabs(),
     ]);
@@ -282,7 +282,7 @@ export class AtlasScreen implements Screen {
       foot.append(
         h('div.atl-owned', null, [icon('check'), t('atlas.owned')]),
         h('div.atl-two', null, [
-          button(h('span.btn-row', null, [icon('archive'), t('atlas.archiveShort')]), () => void this.app.goArchive(), { variant: 'secondary', ariaLabel: t('atlas.openArchive') }),
+          button(h('span.btn-row', null, [icon('archive'), t('atlas.archiveShort')]), () => void this.app.router.goArchive(), { variant: 'secondary', ariaLabel: t('atlas.openArchive') }),
           button(h('span.btn-row', null, [icon('deck'), t('atlas.astroShort')]), () => this.playAstrolabe(), { variant: 'secondary', ariaLabel: t('atlas.playAstrolabe') }),
         ]),
       );
@@ -329,7 +329,7 @@ export class AtlasScreen implements Screen {
     if (this.busy) return;
     this.busy = true;
     this.render();
-    const result = await this.app.purchase(id);
+    const result = await this.app.money.purchase(id);
     this.busy = false;
     if (result === 'paid') {
       // Обложка раскрывается заново — уже купленной
@@ -342,7 +342,7 @@ export class AtlasScreen implements Screen {
   }
 
   private playAstrolabe(): void {
-    const start = () => this.app.startRun('astrolabe');
+    const start = () => this.app.runs.startRun('astrolabe');
     confirmNewRun(this.app, start);
   }
 
@@ -355,7 +355,7 @@ export class AtlasScreen implements Screen {
 
   /** Где взять вид: бесплатно, твоё, в атласе, у мецената или цена. */
   private where(slot: 'back' | 'sky', id: string): Node {
-    if (this.app.canWear(slot, id)) return document.createTextNode(id === 'classic' || id === 'night' ? t('atlas.free') : t('atlas.yours'));
+    if (this.app.money.canWear(slot, id)) return document.createTextNode(id === 'classic' || id === 'night' ? t('atlas.free') : t('atlas.yours'));
     const product = productForCosmetic(slot, id);
     if (product?.id === 'atlas') return document.createTextNode(t('atlas.inAtlas'));
     if (product?.id === 'supporter') return document.createTextNode(t('atlas.atPatron'));
@@ -403,7 +403,7 @@ export class AtlasScreen implements Screen {
     const name = dict().cosmetic[slot][id] ?? id;
     const current = slot === 'back' ? app.settings.cardBack : app.settings.skyTheme;
     const product = productForCosmetic(slot, id);
-    if (app.canWear(slot, id)) {
+    if (app.money.canWear(slot, id)) {
       const worn = current === id;
       return button(worn ? h('span.btn-row', null, [icon('check'), t('atlas.wearing')]) : format(t('atlas.wearIt'), { name }), () => this.wear(slot === 'back' ? { cardBack: id } : { skyTheme: id }), {
         disabled: worn, variant: worn ? 'secondary' : 'primary', className: 'atl-look-btn',
@@ -418,7 +418,7 @@ export class AtlasScreen implements Screen {
   private item(slot: 'back' | 'sky', id: string, art: HTMLElement): HTMLElement {
     const trying = (slot === 'back' ? this.tryBack : this.trySky) === id;
     const where = this.where(slot, id);
-    const inPack = productForCosmetic(slot, id)?.kind === 'unlock' && !this.app.canWear(slot, id);
+    const inPack = productForCosmetic(slot, id)?.kind === 'unlock' && !this.app.money.canWear(slot, id);
     const item = h(`button.atl-item${trying ? '.on' : ''}`, {
       type: 'button',
       attrs: { role: 'option', 'aria-selected': String(trying) },
@@ -443,7 +443,7 @@ export class AtlasScreen implements Screen {
 
   private supportTab(): [HTMLElement, HTMLElement] {
     const app = this.app;
-    const has = app.purchases.has('supporter');
+    const has = app.money.purchases.has('supporter');
     const arts: HTMLElement[] = [
       this.partArt('look'),
       h('span.atl-pv.pv-fan', { attrs: { 'aria-hidden': 'true' } }, canvasImg(cardBack(36, dpr(), 'patron'), 36 * 1.24, (36 / 0.7) * 1.24)),
