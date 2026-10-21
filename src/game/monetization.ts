@@ -15,14 +15,22 @@ export class Monetization {
   readonly purchases = new Entitlements();
   /** Идёт реклама или окно оплаты — звук молчит. */
   adPlaying = false;
+  /** Звук выключил сайт площадки (CrazyGames) — сильнее настроек игры. */
+  private platformMuted = false;
   /** Когда в этой сессии была последняя реклама — межстраничная выдерживает паузу после неё. */
   private lastAdAt: number | null = null;
 
   constructor(private readonly app: App) {
+    // Площадка без магазина (CrazyGames) выдаёт атлас и внешний вид даром
+    if (this.platform.grants) this.purchases.grant(this.platform.grants);
     // Покупка или возврат меняют, что можно носить
     this.purchases.onChange(() => this.applyCosmetics());
     this.platform.onPauseChange((paused) => {
       this.adPlaying = paused;
+      this.syncMute();
+    });
+    this.platform.onMuteChange?.((muted) => {
+      this.platformMuted = muted;
       this.syncMute();
     });
     document.addEventListener('visibilitychange', () => this.syncMute());
@@ -32,9 +40,9 @@ export class Monetization {
     return this.app.platform;
   }
 
-  /** Без фокуса и во время рекламы игра молчит. */
+  /** Без фокуса, во время рекламы и когда звук выключила площадка, игра молчит. */
   syncMute(): void {
-    this.app.svc.audio.setMuted(document.hidden || this.adPlaying);
+    this.app.svc.audio.setMuted(document.hidden || this.adPlaying || this.platformMuted);
   }
 
   /** Сверить купленное с площадкой (возвраты, покупки с другого устройства). */
@@ -75,9 +83,9 @@ export class Monetization {
     this.app.svc.starfield.setTheme(sky, skyTheme(sky).palette, SKY_THEMES.findIndex((t) => t.id === sky));
   }
 
-  /** Атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
+  /** Купленный атлас убирает межстраничную рекламу и рекламу перед «вторым шансом». */
   get adFree(): boolean {
-    return this.purchases.has('atlas');
+    return this.purchases.paid('atlas');
   }
 
   /** Реклама за награду с учётом в аналитике. */

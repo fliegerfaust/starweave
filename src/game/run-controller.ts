@@ -242,6 +242,7 @@ export class RunController {
     }
     if (run.phase === 'victory') {
       this.trackRunEnd('victory');
+      this.app.platform.happytime?.();
       this.bestBefore = profile.bestPlacement;
       this.progress({ e: 'runEnd', won: true });
     } else {
