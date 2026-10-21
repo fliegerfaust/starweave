@@ -52,6 +52,8 @@ export const REROLL_BASE = 5;
 export const CHART_PRICE = 3;
 /** Постоянная услуга Обсерватории: убрать одну карту из колоды, раз за визит. */
 export const BANISH_SERVICE_PRICE = 2;
+/** Дар ночи (GF.1): «чистое небо» — колода не растёт, а это золото идёт в Обсерваторию. */
+export const GIFT_SKIP_GOLD = 2;
 export const RARITY_WEIGHT = { 1: 70, 2: 25, 3: 5 } as const;
 
 export function anteTarget(ante: number): number {

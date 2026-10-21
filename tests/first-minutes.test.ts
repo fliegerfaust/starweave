@@ -20,7 +20,9 @@ describe('щедрая первая ночь', () => {
     leaveShop(run);
     startNight(run);
     expect(run.night!.gentle).toBeUndefined();
-    expect(run.night!.movesLeft).toBe(18);
+    // Ходы — по правилам (Знамение из лавки может их добавить), щедрых 12 больше нет
+    expect(run.night!.movesLeft).toBe(run.night!.rules.moves);
+    expect(run.night!.movesLeft).toBeGreaterThanOrEqual(18);
   });
 
   it('вызов дня не подыгрывает никому', () => {

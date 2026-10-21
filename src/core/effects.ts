@@ -32,8 +32,11 @@ export interface EffectHooks {
   onNightEnd?(ctx: NightEndCtx): void;
 }
 
-/** Судьба карты после вспышки: гаснет в сброс, остаётся на небе, разбивается насовсем. */
-export type CellFate = 'fades' | 'stays' | 'shattered';
+/**
+ * Судьба карты после вспышки: гаснет в сброс, остаётся на небе, разбивается насовсем
+ * (Стекло) или схлопывается и уходит из колоды (Чёрная дыра).
+ */
+export type CellFate = 'fades' | 'stays' | 'shattered' | 'consumed';
 
 /** Карта на небе: только что выложенная или из вспыхнувшей линии. */
 export interface PlacedCtx extends BaseCtx {

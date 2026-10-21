@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GIFT_SKIP_GOLD } from '../src/core/content/balance';
 import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
@@ -41,6 +42,11 @@ describe('забег', () => {
       collectReward(run);
       expect(run.gold).toBe(gold);
       expect(run.shop!.omens).toHaveLength(2);
+      // Дар ночи (GF.1) ждёт решения раньше выхода из Обсерватории
+      expect(run.pending[0]?.kind).toBe('gift');
+      expect(() => leaveShop(run)).toThrow();
+      skipChoice(run);
+      expect(run.gold).toBe(gold + GIFT_SKIP_GOLD);
       leaveShop(run);
       expect(run.phase).toBe('map');
       expect(run.chapter.at).toBe(1);

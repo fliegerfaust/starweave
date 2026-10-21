@@ -1,7 +1,7 @@
 // Арт игры для витрин дизайна (правило 0.5.0: каждый экран — витрина из трёх вариантов).
 //   node scripts/vitrine-art.mjs <папка>        — выгрузить всё в <папка>
 // Рисует тем же кодом, что игра (src/art), в Chrome без окна и кладёт картинки:
-// карты всех мастей и рангов (и с глифами), рубашки, сигилы Знамений и Затмений,
+// карты всех мастей и рангов (с глифами и небесными телами), рубашки, сигилы Знамений и Затмений,
 // значки звёздных карт, ритуалов и пакетов, туманности глав. Если есть cwebp —
 // в WebP (вес витрины ×5 меньше), иначе PNG.
 import { execFileSync } from 'node:child_process';
@@ -33,11 +33,14 @@ try {
     const { OMENS } = await import('/src/core/content/omens.ts');
     const { BOSSES } = await import('/src/core/content/bosses.ts');
     const { RITUALS } = await import('/src/core/content/rituals.ts');
-    const { SUITS, GLYPHS, COMBO_IDS } = await import('/src/core/types.ts');
+    const { SUITS, GLYPHS, COMBO_IDS, BODY_IDS } = await import('/src/core/types.ts');
     const res = {};
     const png = (c) => c.toDataURL('image/png');
     for (const s of SUITS) for (let r = 1; r <= 9; r++) res[`card-${s}-${r}.png`] = png(card.cardFace({ suit: s, rank: r }, 120, 2));
     GLYPHS.forEach((g, i) => (res[`card-${SUITS[i % 4]}-${7 + (i % 3)}-${g}.png`] = png(card.cardFace({ suit: SUITS[i % 4], rank: 7 + (i % 3), glyph: g }, 120, 2))));
+    // Небесные тела (GF.4): каждое — на всех мастях, ранги как в витрине дара
+    const BODY_RANK = { polaris: 5, meteor: 6, pulsar: 4, twin: 4, nebula: 7, blackhole: 3 };
+    for (const b of BODY_IDS) for (const s of SUITS) res[`card-${s}-${BODY_RANK[b]}-${b}.png`] = png(card.cardFace({ suit: s, rank: BODY_RANK[b], body: b }, 120, 2));
     for (const b of BACKS) res[`back-${b.id}.png`] = png(card.cardBack(160, 2, b.id));
     for (const id of Object.keys(OMENS)) res[`omen-${id}.png`] = png(sig.omenSigil(id, 56, 2));
     for (const id of Object.keys(BOSSES)) res[`boss-${id}.png`] = png(sig.bossSigil(id, 56, 2));

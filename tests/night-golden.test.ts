@@ -50,7 +50,8 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
       h.update(JSON.stringify(canonical(e)));
     }
   };
-  const run = newRun({ seed, skyId, stake });
+  // Эталон — ход ночи без дара и тел (GF): с ними меняется колода, а этапы хода — нет
+  const run = newRun({ seed, skyId, stake, unlocks: { ...allContent(), gift: false, bodies: [] } });
   // Каждая третья карта — с глифом: Стекло бьётся, Эхо перезапускает, Позолота даёт золото
   if (glyphs) run.deck.forEach((c, i) => i % 3 === 0 && (c.glyph = GLYPHS[(i / 3) % GLYPHS.length]));
   let guard = 0;
@@ -67,7 +68,7 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
       leaveShop(run);
     }
   }
-  expect(run.unlocks, 'эталон играет со всем контентом').toEqual(allContent());
+  expect(run.unlocks, 'эталон играет со всем контентом, кроме дара').toEqual({ ...allContent(), gift: false, bodies: [] });
   h.update(canonicalRun(run));
   return { hash: h.digest('hex'), kinds };
 }

@@ -45,6 +45,9 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
       return { ...nothing(), changed: true };
     case 'turn': {
       const found: Discovery = { combos: [], cross: false };
+      // Побеждённое Затмение — к ступени «Небесные тела»
+      const eclipse = !!run.night?.bossId && ev.events.some((e) => e.t === 'nightWon');
+      if (eclipse) p.eclipses = (p.eclipses ?? 0) + 1;
       for (const e of ev.events) {
         if (e.t !== 'ignite') continue;
         const d = recordDiscoveries(p, e.score.lines.map((l) => l.combo), e.score.lines.length);
@@ -52,7 +55,7 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
         found.cross ||= d.cross;
       }
       const any = found.combos.length > 0 || found.cross;
-      return { skies: [], discovery: any ? found : null, changed: any };
+      return { skies: [], discovery: any ? found : null, changed: any || eclipse };
     }
     case 'omensShown':
       return { ...nothing(), changed: markOmensSeen(p, [...ev.ids]) };
@@ -71,5 +74,5 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
  * набор, одинаковый у всех, иначе сравнивать итоги нечестно. `owned` — покупки площадки.
  */
 export function unlocksFor(p: Profile, shared: boolean, owned: ReadonlySet<string> = new Set()): Unlocks {
-  return contentPools((unlock) => !shared && isUnlocked(unlock, p, owned));
+  return contentPools((unlock) => !shared && isUnlocked(unlock, p, owned), shared);
 }
