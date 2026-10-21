@@ -71,8 +71,11 @@ export class Presenter {
         return this.onIgnite(ev.score, ev.scoreAfter);
       case 'clear':
         return this.onClear(ev.cells);
-      case 'shatter':
+      case 'cardDestroyed':
         return this.onShatter(ev.cardId);
+      case 'cardStays':
+        // Карта остаётся на небе: её не уносит «clear», вспышка уже показана
+        return;
       case 'gold':
         this.scene.hud.setGold(ev.goldAfter);
         if (ev.amount > 0) this.audio.coin();
