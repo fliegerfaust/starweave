@@ -30,7 +30,7 @@ const NIGHT_NAMES = ['dusk', 'midnight', 'eclipse'] as const;
  * глава и ночь, золото и Знамения забега.
  */
 export function confirmNewRun(app: App, next: () => void): void {
-  if (!app.hasSave || !app.run) return next();
+  if (!app.runs.hasSave || !app.run) return next();
   const run = app.run;
   const where = `${t('night.constellation', { n: ROMAN[run.ante - 1] ?? run.ante })} · ${t(`night.${NIGHT_NAMES[run.nightIndex] ?? 'dusk'}`)}`;
   const line = h('div.run-line', null, [
@@ -245,7 +245,7 @@ export function showSettings(app: App, onChange?: () => void): void {
     link(c.terms, null, () => void import('./legal').then(({ showLegal }) => showLegal('terms'))),
     link(c.reset, c.resetSub, () => confirmDialog(c.resetConfirm, () => {
       m.close();
-      app.resetProgress();
+      app.runs.resetProgress();
     }), true),
   ]);
   const ver = h('p.st-ver', null, `${t('game.title')} · v${__APP_VERSION__}`);
@@ -273,12 +273,12 @@ export function showRunMenu(app: App, extra: HTMLElement[] = []): void {
         button(t('settings.title'), () => showSettings(app), { variant: 'secondary' }),
         button(t('pause.toMenu'), () => {
           m.close();
-          app.save();
-          void app.goMenu();
+          app.runs.save();
+          void app.router.goMenu();
         }, { variant: 'secondary' }),
         button(t('pause.abandon'), () => confirmDialog(t('pause.abandonConfirm'), () => {
           m.close();
-          app.abandonRun();
+          app.runs.abandonRun();
         }, 'danger', { yes: t('pause.abandon'), no: t('pause.keepPlaying') }), { variant: 'ghost' }),
       ]),
     ],

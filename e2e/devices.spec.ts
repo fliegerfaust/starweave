@@ -36,13 +36,13 @@ test('экраны помещаются, не накладываются и ра
 
   // Ночь
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void } } }).starweave;
     app.profile.tutorialDone = true;
-    app.startRun('classic');
+    app.runs.startRun('classic');
   });
   await page.waitForSelector('.map');
   await shot(page, '02-map');
-  await page.evaluate(() => (window as unknown as { starweave: { beginNight(): void } }).starweave.beginNight());
+  await page.evaluate(() => (window as unknown as { starweave: { runs: { beginNight(): void } } }).starweave.runs.beginNight());
   await page.waitForFunction(() => !!(window as unknown as { __scene?: { busy: boolean } }).__scene);
   await page.waitForTimeout(2500);
   await shot(page, '03-night');
@@ -109,11 +109,11 @@ test('экраны помещаются, не накладываются и ра
 
   // Обсерватория
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { run: Record<string, unknown>; collectReward(): void } }).starweave;
+    const app = (window as unknown as { starweave: { run: Record<string, unknown>; runs: { collectReward(): void } } }).starweave;
     app.run.phase = 'reward';
     app.run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
     app.run.night = null;
-    app.collectReward();
+    app.runs.collectReward();
   });
   await page.waitForSelector('.shop');
   await page.waitForTimeout(500);
@@ -122,7 +122,7 @@ test('экраны помещаются, не накладываются и ра
   expect(shopOverflow, 'горизонтальная прокрутка в магазине').toBeLessThanOrEqual(0);
 
   // Обучение — первый шаг
-  await page.evaluate(() => (window as unknown as { starweave: { startTutorial(): void } }).starweave.startTutorial());
+  await page.evaluate(() => (window as unknown as { starweave: { runs: { startTutorial(): void } } }).starweave.runs.startTutorial());
   await page.waitForSelector('.tut-bubble.on', { timeout: 10_000 });
   await page.waitForTimeout(600);
   await shot(page, '06-tutorial');
@@ -141,10 +141,10 @@ test('FPS на замедленном процессоре (×4)', async ({ page
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   await page.evaluate(() => {
-    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; startRun(s: string): void; beginNight(): void } }).starweave;
+    const app = (window as unknown as { starweave: { profile: { tutorialDone: boolean }; runs: { startRun(s: string): void; beginNight(): void } } }).starweave;
     app.profile.tutorialDone = true;
-    app.startRun('classic');
-    app.beginNight();
+    app.runs.startRun('classic');
+    app.runs.beginNight();
   });
   await page.waitForTimeout(3000);
   const fps = await page.evaluate(

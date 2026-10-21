@@ -87,13 +87,13 @@ export async function runDemo(app: App, name: string): Promise<void> {
   // Опытный игрок: созвездия и крест уже в коллекции — без окон «Новое созвездие»
   app.profile.combosFound = [...COLLECTIBLE_COMBOS];
   app.profile.crossFound = true;
-  app.startRun('classic');
+  app.runs.startRun('classic');
   const run = app.run!;
   run.ante = 3;
   run.nightIndex = 1;
   run.gold = 23;
   run.omens = OMENS.map((id) => createOmen(run, id));
-  app.beginNight();
+  app.runs.beginNight();
   const night = run.night!;
   const used = new Set<number>();
   const take = (code: string): Card => {

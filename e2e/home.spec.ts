@@ -50,7 +50,7 @@ test('главная: арка под safe area, без пустот, кнопк
  * обрезано и не за экраном, на ПК и в ландшафте кнопки по своей ширине; тост — под вырезом.
  */
 test('окна главной: небо, вызов, подтверждение, тост', async ({ page }) => {
-  type A = { profile: Record<string, unknown>; pendingChallenge: unknown; goMenu(): Promise<void>; startRun(s: string): void; run: Record<string, unknown> };
+  type A = { profile: Record<string, unknown>; pendingChallenge: unknown; router: { goMenu(): Promise<void> }; runs: { startRun(s: string): void }; run: Record<string, unknown> };
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto('/');
@@ -99,7 +99,7 @@ test('окна главной: небо, вызов, подтверждение,
     const a = (window as unknown as { starweave: A }).starweave;
     document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
     a.pendingChallenge = { seed: 42, skyId: 'classic', stake: 1, ante: 5, best: 1240 };
-    await a.goMenu();
+    await a.router.goMenu();
   });
   await page.waitForSelector('.modal-panel.challenge .win-stats');
   await audit('вызов');
@@ -108,10 +108,10 @@ test('окна главной: небо, вызов, подтверждение,
   await page.evaluate(async () => {
     const a = (window as unknown as { starweave: A }).starweave;
     document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
-    a.startRun('classic');
+    a.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
     Object.assign(a.run, { ante: 3, nightIndex: 1, gold: 12, omens: [{ id: 'stardust', uid: 1 }, { id: 'miser', uid: 2 }] });
-    await a.goMenu();
+    await a.router.goMenu();
   });
   await page.locator('.menu-pair .menu-lite').first().click();
   await page.waitForSelector('.modal-panel.confirm .run-line');
