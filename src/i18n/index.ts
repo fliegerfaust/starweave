@@ -28,8 +28,22 @@ export function dict(): Dict {
   return DICTS[current];
 }
 
+/**
+ * Пути к строкам словаря: `menu.newRun`; у таблиц `Record<string, string>` — `kinds.${string}`.
+ * Массивы и пары «название, описание» сюда не входят: их берут `dict()` и `named()`.
+ */
+type Leaves<T> = {
+  [K in keyof T & (string | number)]: T[K] extends string ? `${K}`
+    : T[K] extends readonly unknown[] ? never
+    : T[K] extends object ? `${K}.${Leaves<T[K]>}`
+    : never;
+}[keyof T & (string | number)];
+
+/** Ключ `t()`: опечатка или удалённая строка — ошибка типов, а не путь на экране. */
+export type TKey = Leaves<Dict>;
+
 /** Строка по пути `a.b.c` с подстановкой `{var}`. Нет ключа — возвращает путь (видно в UI). */
-export function t(path: string, vars: Record<string, string | number> = {}): string {
+export function t(path: TKey, vars: Record<string, string | number> = {}): string {
   let node: unknown = DICTS[current];
   for (const part of path.split('.')) {
     node = (node as Record<string, unknown> | undefined)?.[part];

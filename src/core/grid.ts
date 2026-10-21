@@ -42,6 +42,24 @@ export function ignitedLines(
 }
 
 /**
+ * Линии, которые закроет карта в пустой клетке `cell`, — те же, что `ignitedLines` даст
+ * после выкладки. Вид подсвечивает по ним клетки «закроет линию» и крест, не повторяя правило.
+ */
+export function closingLines(
+  lines: readonly Line[],
+  grid: readonly (Card | null)[],
+  sealed: readonly boolean[],
+  cell: number,
+): Line[] {
+  if (grid[cell] != null || sealed[cell]) return [];
+  return lines.filter((line) => {
+    if (!line.cells.includes(cell)) return false;
+    const active = activeCells(line, sealed);
+    return active.length >= 2 && active.every((c) => c === cell || grid[c] != null);
+  });
+}
+
+/**
  * Выбирает клетки для запечатывания: не больше одной на ряд и столбец, чтобы ни одна
  * линия не осталась короче трёх клеток.
  */

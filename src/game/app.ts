@@ -19,7 +19,7 @@ import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
 import { hideTooltip, setUiSound, toast } from '@/ui/widgets';
 import { clearCoach } from '@/ui/tutorial';
-import { Drawable, Layer, Transform, transform } from './components';
+import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
 import type { Resources, Services } from './context';
 import type { NightAction } from './night/scene';
 import { isLandscape } from './layout';
@@ -157,14 +157,38 @@ export class App {
     for (let t = 0; t < seconds; t += 1 / 60) this.tick(1 / 60);
   }
 
+  /** Когда игрок последний раз касался экрана или клавиш (мс, `performance.now`). */
+  private lastInputAt = performance.now();
+
+  /**
+   * Покой: ничего не летит и не трясётся, игрок не трогает экран пару секунд. Тогда
+   * мерцание неба рисуется через кадр (30 FPS) — телефон меньше греется в меню и на
+   * паузе. Любое касание или анимация возвращает полные 60.
+   */
+  private idle(now: number): boolean {
+    const { world, tweens, starfield } = this.svc;
+    if (now - this.lastInputAt < 2000 || tweens.active > 0 || !starfield.calm) return false;
+    if (world.res.camera.trauma > 0) return false;
+    return world.query(Particle).length === 0 && world.query(Lifetime).length === 0;
+  }
+
   start(): void {
+    const touch = () => (this.lastInputAt = performance.now());
+    for (const type of ['pointerdown', 'pointermove', 'keydown', 'wheel'] as const) window.addEventListener(type, touch, { passive: true, capture: true });
+    let skipped = false;
     const frame = (now: number) => {
+      requestAnimationFrame(frame);
+      // В покое пропускаем каждый второй кадр; dt копится, мерцание идёт с той же скоростью
+      if (!skipped && this.idle(now)) {
+        skipped = true;
+        return;
+      }
+      skipped = false;
       const dt = Math.min(0.05, (now - this.last) / 1000);
       this.last = now;
       const start = performance.now();
       this.tick(dt);
       this.svc.renderer.observeFrame((performance.now() - start) / 1000);
-      requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
     void this.goMenu().then(() => this.platform.ready());
