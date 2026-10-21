@@ -1,3 +1,4 @@
+import { traitOf } from './content/traits';
 import { type Card, type Glyph, type Suit, MAX_RANK, MIN_RANK, SUITS } from './types';
 
 export interface DeckSpec {
@@ -36,7 +37,7 @@ export function withGlyph(card: Card, glyph: Glyph | undefined): Card {
   return copy;
 }
 
-/** Масти, которые карта «носит» для флеша: Призма — все. */
+/** Масти, которые карта «носит» для флеша и Знамений мастей: Призма — все. */
 export function cardSuits(card: Card): readonly Suit[] {
-  return card.glyph === 'prism' ? SUITS : [card.suit];
+  return traitOf(card)?.wildSuit ? SUITS : [card.suit];
 }

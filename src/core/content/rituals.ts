@@ -1,3 +1,4 @@
+import { TRAITS } from './traits';
 import { withGlyph } from '../deck';
 import type { Card, Glyph, RunState, Suit } from '../types';
 import { GLYPHS, MAX_RANK, MIN_RANK, SUITS } from '../types';
@@ -38,7 +39,7 @@ const transmute = (suit: Suit): RitualDef => ({
 
 const inscribe = (glyph: Glyph): RitualDef => ({
   id: `glyph-${glyph}`,
-  price: glyph === 'echo' || glyph === 'prism' ? 5 : 4,
+  price: TRAITS[glyph].inscribePrice,
   minTargets: 1,
   maxTargets: 1,
   apply(run, targets) {
