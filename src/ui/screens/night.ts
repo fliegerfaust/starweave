@@ -64,7 +64,10 @@ export class NightScreen implements Screen {
       const n = this.run.night;
       const fresh = n.placements === 0 && n.burnsLeft === n.rules.burns && n.result === 'playing';
       if (fresh) {
-        void this.scene.dealIn().then(() => {
+        const scene = this.scene;
+        void scene.dealIn().then(() => {
+          // Пока карты летели, экран могли закрыть (забег брошен, фаза сменилась): ночи уже нет
+          if (scene.isDestroyed || !this.run.night) return;
           this.app.runs.tutorial?.emit({ type: 'dealt' });
           if (!this.run.tutorial) this.introHints();
         });
