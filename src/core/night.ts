@@ -2,12 +2,12 @@ import { GENTLE_NIGHT, MOVES_PER_GOLD } from './content/balance';
 import { evaluateCombo } from './combos';
 import { runNightReward, runNightTarget } from './content/stakes';
 import { cloneCard } from './deck';
-import type { BaseCtx } from './effects';
+import type { BaseCtx, CellFate } from './effects';
 import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
 import { shuffle, weightedPick } from './rng';
 import { buildRules } from './rules';
-import { activeEffects, scorePlacement } from './scoring';
-import { COMBO_IDS, NIGHT_KINDS, type Card, type GameEvent, type NightState, type RunState } from './types';
+import { activeEffects, scorePlacement, type ActiveEffect } from './scoring';
+import { COMBO_IDS, NIGHT_KINDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
 
 import { RuleError } from './errors';
 
@@ -124,6 +124,121 @@ export function startNight(run: RunState): GameEvent[] {
   return events;
 }
 
+/**
+ * Ход «выложить карту» по этапам (TD.3). Каждый этап читает и дополняет `Turn`; механики
+ * 0.8 встают в свой этап, не трогая соседей: тела при выкладке — в `onPlaced`, фигуры мифа —
+ * рядом с линиями в `formations`, «карта остаётся» — в политике клеток.
+ */
+interface Turn {
+  run: RunState;
+  night: NightState;
+  handIndex: number;
+  cell: number;
+  card: Card;
+  effects: ActiveEffect[];
+  events: GameEvent[];
+  /** Вспыхнувшие формации хода; пока это линии. */
+  lines: Line[];
+  score: PlacementScore | null;
+}
+
+type Stage = (turn: Turn) => void;
+
+/** Выкладка: карта из руки в клетку, ход потрачен. */
+const layCard: Stage = (turn) => {
+  const { night, handIndex, cell, card, events } = turn;
+  night.hand.splice(handIndex, 1);
+  night.grid[cell] = card;
+  night.movesLeft -= 1;
+  night.placements += 1;
+  events.push({ t: 'place', card, handIndex, cell });
+};
+
+/** Карта легла: эффекты «при выкладке» срабатывают до поиска линий. */
+const placed: Stage = (turn) => {
+  const { run, night, card, cell } = turn;
+  for (const fx of turn.effects) fx.hooks.onPlaced?.({ ...baseCtx(run, night, fx.data), card, cell });
+};
+
+/** Формации: какие линии через клетку заполнены. */
+const formations: Stage = (turn) => {
+  const { night, cell } = turn;
+  turn.lines = ignitedLines(buildLines(night.rules), night.grid, night.sealed, cell);
+};
+
+/** Подсчёт: свет, золото и счётчики Знамений; без вспышки — тихий ход. */
+const scoring: Stage = (turn) => {
+  const { run, night, lines, events, effects } = turn;
+  if (lines.length === 0) {
+    for (const fx of effects) fx.hooks.onQuietPlacement?.(baseCtx(run, night, fx.data));
+    return;
+  }
+  const score = scorePlacement(run, night, lines, run.rng);
+  turn.score = score;
+  night.score += score.total;
+  night.ignitions += 1;
+  night.linesIgnited += lines.length;
+  night.bestPlacement = Math.max(night.bestPlacement, score.total);
+  trackStats(run, score.total, lines.length, score.lines.map((l) => l.combo));
+  events.push({ t: 'ignite', score, scoreAfter: night.score });
+
+  if (score.gold !== 0) {
+    const before = run.gold;
+    run.gold = Math.max(0, run.gold + score.gold);
+    if (score.gold > 0) run.stats.goldEarned += score.gold;
+    if (run.gold !== before) events.push({ t: 'gold', amount: run.gold - before, goldAfter: run.gold });
+  }
+  for (const fx of effects) {
+    fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, total: score.total });
+  }
+  for (const omen of run.omens) events.push({ t: 'omenChanged', uid: omen.uid });
+};
+
+/** Судьба карты вспыхнувшей линии: первый ответивший эффект, иначе — по подсчёту. */
+function cellFate(turn: Turn, card: Card, cell: number): CellFate {
+  const { run, night } = turn;
+  for (const fx of turn.effects) {
+    const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell });
+    if (fate) return fate;
+  }
+  return turn.score!.shattered.includes(card.id) ? 'shattered' : 'fades';
+}
+
+/** Политика клеток: карты вспыхнувших линий гаснут в сброс, остаются или разбиваются. */
+const settleCells: Stage = (turn) => {
+  const { run, night, score, events } = turn;
+  if (!score) return;
+  const cleared: number[] = [];
+  for (const c of new Set(score.lines.flatMap((l) => l.cells))) {
+    const placedCard = night.grid[c]!;
+    const fate = cellFate(turn, placedCard, c);
+    if (fate === 'stays') {
+      events.push({ t: 'cardStays', cardId: placedCard.id, cell: c });
+      continue;
+    }
+    if (fate === 'shattered') {
+      events.push({ t: 'cardDestroyed', cardId: placedCard.id, cell: c, reason: 'shattered' });
+      run.deck = run.deck.filter((d) => d.id !== placedCard.id);
+    } else {
+      night.discard.push(placedCard);
+    }
+    night.grid[c] = null;
+    cleared.push(c);
+  }
+  events.push({ t: 'clear', cells: cleared });
+};
+
+/** Добор и конец ночи: цель набрана — победа без добора; иначе ходы или карты кончились. */
+const drawOrFinish: Stage = (turn) => {
+  const { run, night, events } = turn;
+  if (night.score >= night.target) return finishNight(run, true, events);
+  drawTo(run, night, night.rules.handSize, events);
+  if (night.movesLeft <= 0) finishNight(run, false, events, 'moves');
+  else if (night.hand.length === 0) finishNight(run, false, events, 'cards');
+};
+
+const PLACE_STAGES: readonly Stage[] = [layCard, placed, formations, scoring, settleCells, drawOrFinish];
+
 /** Выкладывает карту из руки в пустую клетку. */
 export function placeCard(run: RunState, handIndex: number, cell: number): GameEvent[] {
   const night = requireNight(run);
@@ -131,60 +246,9 @@ export function placeCard(run: RunState, handIndex: number, cell: number): GameE
   if (cell < 0 || cell >= night.grid.length || night.grid[cell] || night.sealed[cell]) {
     throw new RuleError('cellTaken');
   }
-  const events: GameEvent[] = [];
-  const [card] = night.hand.splice(handIndex, 1);
-  night.grid[cell] = card!;
-  night.movesLeft -= 1;
-  night.placements += 1;
-  events.push({ t: 'place', card: card!, handIndex, cell });
-
-  const lines = ignitedLines(buildLines(night.rules), night.grid, night.sealed, cell);
-  const effects = activeEffects(run, night);
-  if (lines.length > 0) {
-    const score = scorePlacement(run, night, lines, run.rng);
-    night.score += score.total;
-    night.ignitions += 1;
-    night.linesIgnited += lines.length;
-    night.bestPlacement = Math.max(night.bestPlacement, score.total);
-    trackStats(run, score.total, lines.length, score.lines.map((l) => l.combo));
-    events.push({ t: 'ignite', score, scoreAfter: night.score });
-
-    if (score.gold !== 0) {
-      const before = run.gold;
-      run.gold = Math.max(0, run.gold + score.gold);
-      if (score.gold > 0) run.stats.goldEarned += score.gold;
-      if (run.gold !== before) events.push({ t: 'gold', amount: run.gold - before, goldAfter: run.gold });
-    }
-    for (const fx of effects) {
-      fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, total: score.total });
-    }
-    for (const omen of run.omens) events.push({ t: 'omenChanged', uid: omen.uid });
-
-    const cleared = [...new Set(score.lines.flatMap((l) => l.cells))];
-    const shattered = new Set(score.shattered);
-    for (const c of cleared) {
-      const placed = night.grid[c]!;
-      if (shattered.has(placed.id)) {
-        events.push({ t: 'shatter', cardId: placed.id, cell: c });
-        run.deck = run.deck.filter((d) => d.id !== placed.id);
-      } else {
-        night.discard.push(placed);
-      }
-      night.grid[c] = null;
-    }
-    events.push({ t: 'clear', cells: cleared });
-  } else {
-    for (const fx of effects) fx.hooks.onQuietPlacement?.(baseCtx(run, night, fx.data));
-  }
-
-  if (night.score >= night.target) {
-    finishNight(run, true, events);
-    return events;
-  }
-  drawTo(run, night, night.rules.handSize, events);
-  if (night.movesLeft <= 0) finishNight(run, false, events, 'moves');
-  else if (night.hand.length === 0) finishNight(run, false, events, 'cards');
-  return events;
+  const turn: Turn = { run, night, handIndex, cell, card: night.hand[handIndex]!, effects: activeEffects(run, night), events: [], lines: [], score: null };
+  for (const stage of PLACE_STAGES) stage(turn);
+  return turn.events;
 }
 
 /** Сжигает карту из руки и добирает новую. */

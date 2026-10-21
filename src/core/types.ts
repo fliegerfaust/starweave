@@ -254,7 +254,10 @@ export type GameEvent =
   | { t: 'burn'; card: Card; handIndex: number }
   | { t: 'ignite'; score: PlacementScore; scoreAfter: number }
   | { t: 'clear'; cells: number[] }
-  | { t: 'shatter'; cardId: number; cell: number }
+  /** Карта вспыхнувшей линии осталась на небе (политика клеток, этап хода). */
+  | { t: 'cardStays'; cardId: number; cell: number }
+  /** Карта ушла из колоды насовсем: Стекло разбилось. */
+  | { t: 'cardDestroyed'; cardId: number; cell: number; reason: 'shattered' }
   | { t: 'gold'; amount: number; goldAfter: number }
   | { t: 'omenChanged'; uid: number }
   | { t: 'nightWon' }
