@@ -4,6 +4,7 @@
 //   npm run clips -- --lang ru         — один язык
 //   npm run clips -- --raw             — только запись игры, без оформления
 //   npm run clips -- --reuse           — только оформление, запись игры — прошлая
+//   npm run clips -- --raw --view 960x540 --scale 2 — запись в другом кадре (CrazyGames: 16:9 и 360x540 ×3 для 2:3)
 // 1. Игра идёт в Chrome без окна на виртуальном времени (scripts/clips/virtual-time.js):
 //    шаг 1/60 с → снимок → ffmpeg. Звук — тем же кодом в OfflineAudioContext.
 //    Запись → clips/public/raw/<ролик>-<язык>.mp4.
@@ -20,8 +21,8 @@ import { createServer } from 'vite';
 const CLIPS = { cross: 'cross', answer: 'cross', puzzle: 'puzzle', cascade: 'cascade', surge: 'surge' };
 const FPS = 60;
 /** 360×640 CSS-пикселей × 3 = 1080×1920. */
-const VIEW = { width: 360, height: 640 };
-const SCALE = 3;
+let VIEW = { width: 360, height: 640 };
+let SCALE = 3;
 /** Предохранитель: сценарий обязан закончиться за это виртуальное время. */
 const MAX_SECONDS = 60;
 
@@ -36,16 +37,21 @@ function parseArgs(argv) {
   let langs = ['ru', 'en'];
   let raw = false;
   let reuse = false;
+  let view = null;
+  let scale = null;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--lang') langs = [argv[++i]];
     else if (argv[i] === '--raw') raw = true;
     else if (argv[i] === '--reuse') reuse = true;
+    else if (argv[i] === '--view') view = argv[++i];
+    else if (argv[i] === '--scale') scale = Number(argv[++i]);
     else names.push(argv[i]);
   }
   const all = Object.keys(CLIPS);
   const unknown = names.filter((n) => !all.includes(n));
   if (unknown.length) throw new Error(`нет ролика: ${unknown.join(', ')} (есть: ${all.join(', ')})`);
-  return { names: names.length ? names : all, langs, raw, reuse };
+  if (view && !raw) throw new Error('--view — только с --raw: оформление Remotion рассчитано на 1080×1920');
+  return { names: names.length ? names : all, langs, raw, reuse, view, scale };
 }
 
 function run(cmd, args, { input, cwd } = {}) {
@@ -60,7 +66,7 @@ function run(cmd, args, { input, cwd } = {}) {
 const ffmpeg = (args, input) => run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { input });
 
 async function record(browser, base, name, lang, tmp) {
-  const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE, isMobile: true, hasTouch: true, locale: lang });
+  const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE, isMobile: VIEW.height > VIEW.width, hasTouch: VIEW.height > VIEW.width, locale: lang });
   await context.addInitScript({ path: path.join(import.meta.dirname, 'clips/virtual-time.js') });
   const page = await context.newPage();
   page.on('pageerror', (e) => console.error(`  [${name}] ошибка страницы:`, e.message));
@@ -131,7 +137,14 @@ async function render(name, lang, frames, out) {
   );
 }
 
-const { names, langs, raw, reuse } = parseArgs(process.argv.slice(2));
+const { names, langs, raw, reuse, view, scale } = parseArgs(process.argv.slice(2));
+if (view) {
+  const [width, height] = view.split('x').map(Number);
+  VIEW = { width, height };
+}
+if (scale) SCALE = scale;
+/** Запись в другом кадре кладётся рядом с подписью кадра: `cross-en-640x360.mp4`. */
+const suffix = view ? `-${view}` : '';
 await mkdir(outDir, { recursive: true });
 await mkdir(rawDir, { recursive: true });
 const tmp = path.join(tmpdir(), `starweave-clips-${process.pid}`);
@@ -147,7 +160,7 @@ try {
     for (const lang of langs) {
       const started = Date.now();
       const key = `${CLIPS[name]}-${lang}`;
-      const rawOut = path.join(rawDir, `${name}-${lang}.mp4`);
+      const rawOut = path.join(rawDir, `${name}-${lang}${suffix}.mp4`);
       let frames;
       if (reuse) frames = await countFrames(rawOut);
       else {

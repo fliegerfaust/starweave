@@ -1,6 +1,6 @@
 # Продвижение с минимальным бюджетом
 
-Исследование от 14.10.2026, обновлено 21.10.2026. Задачи — GR в [TASKS.md](../TASKS.md).
+Исследование от 14.10.2026, обновлено 21.10.2026. Задачи — эпик GR в трекере CG ([TASKS.md](../TASKS.md) — как открыть).
 Разбор Threads и план Steam Next Fest — в ветке `feature/promotion-research`
 (`docs/THREADS.md`, `docs/STEAM-NEXTFEST.md`).
 
