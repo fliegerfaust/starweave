@@ -36,6 +36,7 @@
 .pcard:hover { box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.5); }
 .lane.done .pcard { background: radial-gradient(120% 100% at 0% 0%, rgb(246 194 91 / 0.1), transparent 60%), rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.45); }
 .lane.next .pcard { opacity: 0.78; }
+.lane-empty { margin: 0; padding: 14px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink-faint); font: 600 13px/1.4 var(--font-body); }
 .pcard .ic { width: 40px; height: 40px; display: grid; place-items: center; }
 .pcard b { display: block; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
 .pcard small { display: block; margin-top: 3px; color: var(--ink-dim); font: 600 12.5px/1.4 var(--font-body); text-wrap: pretty; }
@@ -216,8 +217,8 @@ const STATUS = [
     items: [['Ядро и сцена «Спокойный веер»', 1], ['Бот и симуляция для дара', 1]] },
   { lane: 'done', id: 'gift', name: 'Небесные тела', sub: 'Первая волна: 6 тел со своим правилом места на сетке', ic: () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 26),
     items: [['6 тел, арт и анимации на небе', 1], ['Справочник: тела во вкладке «Карты»', 1]] },
-  { lane: 'work', id: 'route', name: 'Развилки главы', sub: 'Путь главы — решение игрока. 4 из 6 задач на проверке, в epic/sky-route', ic: () => omen('crossroads', 36), part: 4 / 6,
-    items: [['Ядро: граф главы и выбор пути', 1], ['«Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика и длина забега (RT.6)', 0], ['e2e развилок (RT.7)', 0]] },
+  { lane: 'done', id: 'route', name: 'Развилки главы', sub: 'Путь главы решает игрок. Вмёржено в release/0.7.0', ic: () => omen('crossroads', 36),
+    items: [['Ядро: граф главы, «Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика по симу и e2e на 8 устройствах', 1]] },
   { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
   { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Фигуры на всём небе', ic: mythIcon },
   { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Цель внутри главы', ic: () => sig('chart-flush', 36) },
@@ -234,7 +235,7 @@ const STATUS = [
     h('div', { class: 'track' }, h('i', { class: 'd', style: { width: (n('done') / total) * 100 + '%' } }), h('i', { class: 'w', style: { width: (n('work') / total) * 100 + '%' } })),
     h('div', { class: 'nums' }, h('span', {}, h('b', {}, n('done')), 'сделано'), h('span', {}, h('b', {}, n('work')), 'в работе'), h('span', {}, h('b', {}, n('next')), 'впереди'), h('span', {}, 'из ' + total + ' идей релиза')));
   const lane = (key, title) => h('div', { class: 'lane ' + key }, h('h3', {}, h('i'), title + ' · ' + n(key)),
-    h('div', { class: 'lane-list' }, STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
+    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Следующий эпик выбирает Денис'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
       h('div', {}, h('b', {}, x.name), h('small', {}, x.sub),
         x.part ? h('div', { class: 'mini' }, h('i', { style: { width: x.part * 100 + '%' } })) : null,
         x.items ? h('ul', {}, x.items.map(([t, ok]) => h('li', { class: ok ? 'ok' : '' }, t))) : null)))));
