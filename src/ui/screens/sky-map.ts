@@ -9,6 +9,7 @@ import { icon } from '../icons';
 import { layoutMode } from '../map-layout';
 import { button, type ModalHandle } from '../widgets';
 import { showWonder } from '../wonder';
+import { rich } from '../rich';
 import { currentChoice } from '@/core/choices';
 import { showDeck, showHelp, showRunMenu } from './common';
 
@@ -226,7 +227,7 @@ export class SkyMap {
     return [
       h('div.sm-hd', null, [
         boss ? sigil(boss, 30) : routeIcon(p.route),
-        h('div', null, [h('b', null, boss ? named('boss', boss).name : t(`route.${p.route}`)), h('small', null, boss ? named('boss', boss).desc : t(`route.why.${p.route}`))]),
+        h('div', null, [h('b', null, boss ? named('boss', boss).name : t(`route.${p.route}`)), h('small', null, boss ? rich(named('boss', boss).desc) : t(`route.why.${p.route}`))]),
       ]),
       h('div.sm-facts', null, [
         cell('waits', h('b', null, isWonder(p.route) ? t('route.noNight') : [num(p.target), p.route === 'bright' ? h('span.x', null, ' ×1.35') : null])),

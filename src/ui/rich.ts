@@ -1,33 +1,12 @@
-import { h } from './dom';
+import { kwText } from './keywords';
 
 /**
- * Подсвечивает в описаниях эффекты теми же цветами, что и коробки формулы:
- * свет — голубой, множитель — розовый, умножение множителя — розово-золотой,
- * золото — жёлтый. Игрок видит связь «описание Знамения → коробка в формуле».
+ * Описание эффекта (Знамение, Затмение, глиф): слова механики — нажимаемые ключевые слова
+ * в цвет коробок формулы (FX.4): свет голубой, множитель розовый, «множитель ×» розово-золотой,
+ * золото жёлтое. Касание открывает подсказку, слово в ней ведёт дальше (`keywords.ts`).
  */
-const RULES: { re: RegExp; cls: string }[] = [
-  { re: /[+−-]\d+(?:[.,]\d+)?\s(?:к множителю|to multiplier)/, cls: 'mult' },
-  { re: /(?:[Мм]ножитель|[Mm]ultiplier)[^.,:;()]{0,30}?×\d+(?:[.,]\d+)?/, cls: 'xmult' },
-  { re: /[+−-]\d+\s(?:света|light)/, cls: 'light' },
-  { re: /\+свет|\+ light/, cls: 'light' },
-  { re: /[+−-]\d+\s?(?:золот[ао]|gold|◆)/, cls: 'gold' },
-];
-
-const ALL = new RegExp(RULES.map((r) => `(${r.re.source})`).join('|'), 'g');
-
 export function rich(text: string): HTMLElement {
-  const out = h('span.rich');
-  let last = 0;
-  for (const m of text.matchAll(ALL)) {
-    const index = m.index ?? 0;
-    if (index > last) out.append(text.slice(last, index));
-    const group = m.slice(1).findIndex((g) => g !== undefined);
-    // Короткая плашка («+2 к множителю») не рвётся; длинная переносится, но число
-    // не отрывается от своего слова
-    const label = m[0].length <= 18 ? m[0].replace(/\s/g, '\u00a0') : m[0].replace(/([+−-]?\d+(?:[.,]\d+)?)\s/g, '$1\u00a0');
-    out.append(h(`span.fx-pill.fx-${RULES[group]?.cls ?? 'light'}`, null, label));
-    last = index + m[0].length;
-  }
-  if (last < text.length) out.append(text.slice(last));
-  return out;
+  const el = kwText(text, true);
+  el.classList.add('rich');
+  return el;
 }

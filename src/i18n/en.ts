@@ -545,6 +545,7 @@ export const en: Dict = {
       light: ['Light', 'The constellation base plus the ranks of the line’s cards. Score = light × [multiplier|mult|mult].'],
       gold: ['Gold', 'Spent at the Observatory and the Comet. Earned for nights and from the [Gilded|gilded] glyph.'],
       rank: ['Rank', 'The number on a card. Adds to the line’s [light|light|light]: the higher the rank, the more points.'],
+      shatter: ['Shatter', 'A [Glass|glass] card: when its line ignites, after scoring it shatters with a 25% chance. It leaves the sky and the deck for the rest of the run.'],
       level: ['Constellation level', 'Permanently adds [light|light|light] and [multiplier|mult|mult] to a constellation. Grows with star charts.'],
     },
   },
