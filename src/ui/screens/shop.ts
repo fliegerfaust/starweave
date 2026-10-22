@@ -78,6 +78,15 @@ export class ShopScreen implements Screen {
     if (currentChoice(this.run)) this.showPack();
   }
 
+  /**
+   * Выбор решён — следующий из очереди открывается сразу (FX.1): после Яркой ночи за даром
+   * стоит бесплатное Знамение, и без этого «Следующая ночь» молча упиралась в очередь.
+   */
+  private resolve(cmd: Command, sound: 'coin' | 'click', onSuccess?: () => void): void {
+    this.act(cmd, sound, onSuccess);
+    this.afterPackBuy();
+  }
+
   private render(): void {
     const run = this.run;
     const shop = run.shop!;
@@ -368,19 +377,20 @@ export class ShopScreen implements Screen {
     const choice = currentChoice(this.run);
     if (choice?.kind === 'gift') {
       // Экран Обсерватории пересобрали поверх открытого дара — второй дар не открываем
-      if (document.querySelector('.gift-scene')) return;
+      // (закрывающийся дар не в счёт: за ним может стоять следующий выбор)
+      if (document.querySelector('.modal-backdrop:not(.closing) .gift-scene')) return;
       const shown = showGift(this.app, this.run, choice, {
         take: (index) => this.takeGift(choice, index),
-        skip: () => this.act({ c: 'skip' }, 'coin', () => track('gift_skip', { ante: this.run.ante, deck: this.run.deck.length })),
+        skip: () => this.resolve({ c: 'skip' }, 'coin', () => track('gift_skip', { ante: this.run.ante, deck: this.run.deck.length })),
         deck: () => showDeck(this.run),
       });
       // Вариант дара не нарисовать (карту Возвышения убрали) — дар отменяется, чтобы не застрять
-      if (!shown) this.act({ c: 'skip' }, 'click');
+      if (!shown) this.resolve({ c: 'skip' }, 'click');
       return;
     }
     showChoice(this.app, this.run, {
       take: (index, id, close) => this.takeFromPack(index, id, close),
-      skip: () => this.act({ c: 'skip' }, 'click'),
+      skip: () => this.resolve({ c: 'skip' }, 'click'),
     });
   }
 
@@ -388,7 +398,7 @@ export class ShopScreen implements Screen {
     const offer = choice.options[index]!;
     const kind = offer.k === 'ascend' ? 'ascend' : offer.card.body ? 'body' : 'glyph';
     const id = offer.k === 'ascend' ? 'ascend' : (offer.card.body ?? offer.card.glyph ?? '');
-    this.act({ c: 'choose', index }, 'coin', () => track('gift_take', { kind, id, ante: this.run.ante, deck: this.run.deck.length }));
+    this.resolve({ c: 'choose', index }, 'coin', () => track('gift_take', { kind, id, ante: this.run.ante, deck: this.run.deck.length }));
   }
 
   private takeFromPack(index: number, id: string, close: () => void): void {
@@ -407,6 +417,6 @@ export class ShopScreen implements Screen {
       );
       return;
     }
-    this.act({ c: 'choose', index }, 'coin', done);
+    this.resolve({ c: 'choose', index }, 'coin', done);
   }
 }

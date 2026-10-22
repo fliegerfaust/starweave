@@ -171,3 +171,53 @@ test('Обсерватория: после покупки Знамения мо�
   expect(under, 'касание по тексту подсказки уходит экрану').not.toBe('coach');
   expect(errors).toEqual([]);
 });
+
+/**
+ * FX.1: после Яркой ночи в очереди два выбора — дар ночи и бесплатное Знамение. Взял дар
+ * (или пропустил) — сразу открывается выбор Знамения, а после него «Следующая ночь» ведёт
+ * дальше. Раньше окно Знамения появлялось только после выхода в меню и «Продолжить».
+ */
+test('после Яркой ночи: дар, затем бесплатное Знамение, затем дальше', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  for (const way of ['skip', 'take']) {
+    await page.evaluate(async () => {
+      const { planChapter, chooseRoute } = await import('/src/core/route.ts');
+      const app = (window as unknown as { starweave: App }).starweave;
+      document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+      Object.assign(app.profile, { tutorialDone: true, runs: 12 });
+      app.runs.startRun('classic', false, 0, 4242);
+      await new Promise((r) => setTimeout(r, 300));
+      type Run = { unlocks: { routes: boolean; wonders: boolean }; chapter: { nodes: { route: string }[] }; phase: string; reward: unknown; night: unknown };
+      const run = app.run as never as Run;
+      run.unlocks.routes = true;
+      run.unlocks.wonders = false;
+      run.chapter = planChapter(run as never) as never;
+      chooseRoute(run as never, run.chapter.nodes.findIndex((n) => n.route === 'bright'));
+      run.phase = 'reward';
+      run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
+      run.night = null;
+      app.runs.collectReward();
+    });
+    await expect(page.locator('.gift-scene').first()).toBeVisible();
+    // Карты раздаются ~1,7 с, до этого сцена кнопки не принимает
+    await page.waitForTimeout(2500);
+    if (way === 'take') {
+      // Веер дара дышит — Playwright не дождётся «стабильного» элемента, жмём сразу
+      await page.locator('.gift-card').first().dispatchEvent('click');
+      await expect(page.locator('.gift-take')).toBeEnabled();
+      await page.locator('.gift-take').dispatchEvent('click');
+    } else await page.locator('.gift-scene button', { hasText: /Clear sky|Чистое небо/ }).dispatchEvent('click');
+    // Следующий выбор открывается сам — без выхода в меню
+    await expect(page.locator('.pack-scene')).toBeVisible({ timeout: 4000 });
+    await page.locator('.pack-scene .take').first().click();
+    await expect(page.locator('.pack-scene')).toHaveCount(0, { timeout: 3000 });
+    await page.locator('[data-shop="next"]').click();
+    await page.waitForTimeout(600);
+    const phase = await page.evaluate(() => ((window as unknown as { starweave: App }).starweave.run as { phase: string }).phase);
+    expect(phase, way).toBe('map');
+  }
+  expect(errors).toEqual([]);
+});
