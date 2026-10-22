@@ -1231,7 +1231,12 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
   place-items: stretch; background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.9), rgb(3 3 14 / 0.96)); backdrop-filter: none; }
 .modal-panel.scene { width: 100%; height: 100%; max-height: none; overflow: hidden; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; animation: fade-in 0.3s ease; }
 .scene-inner { height: 100%; width: min(420px, 100%); margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; }
-.scene-mid { align-self: center; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; display: grid; justify-items: center; gap: 18px; padding: 4px 0; }
+/*
+ * Середина прокручивается по высоте, а прокрутка обрезает и бока: свечение кнопок и выбранных
+ * строк у края срезалось (FX.6). Запас по бокам — отступом внутрь и таким же отрицательным полем
+ * наружу: содержимое стоит где стояло, а тени есть куда лечь.
+ */
+.scene-mid { align-self: center; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; display: grid; justify-items: center; gap: 18px; padding: 4px 18px; margin-inline: -18px; }
 .scene-acts { display: grid; gap: 8px; }
 .scene-acts > .btn { width: 100%; }
 /* ПК и ландшафт: кнопки итогов по своей ширине, столбиком по центру */
@@ -1294,8 +1299,9 @@ body.landscape .scene-acts > .scene-pair { min-width: 260px; }
 .gift-fan.has-sel .gift-card:not(.sel) .gift-shade { opacity: 0.42; }
 /* Блик-приглашение: полоса света проходит по карте, пока ничего не выбрано */
 .gift-glint { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); overflow: hidden; pointer-events: none; }
-.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.38), transparent); }
-.gift-glint.run::before { animation: gift-glint 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Блик: широкий и мягкий, проходит медленно и ровно (FX.8) */
+.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -70%; width: 55%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.07) 30%, rgb(255 246 220 / 0.26) 50%, rgb(255 246 220 / 0.07) 70%, transparent); }
+.gift-glint.run::before { animation: gift-glint 1.9s cubic-bezier(0.37, 0, 0.63, 1) both; }
 @keyframes gift-glint { to { transform: translateX(400%); } }
 .gift-up { position: absolute; left: 50%; top: -22px; z-index: 2; transform: translateX(-50%); white-space: nowrap; font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; pointer-events: none; }
 /* Описание: высота задаётся замером самого большого варианта (ui/gift.ts) — сцена не прыгает */
@@ -1459,11 +1465,15 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .sm-star.open .sm-orb::before { animation: none; } }
 
 /* Плашка: до выбора — варианты строками, после — детали выбранного */
-.sm-detail { position: relative; overflow: hidden; display: grid; align-content: center; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
+.sm-detail { position: relative; overflow: hidden; display: grid; align-content: stretch; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
 .map.sm.land .sm-detail { padding: 10px 12px; gap: 6px; min-height: 0; }
 .map.sm.wide .sm-detail { padding: 16px 18px; }
-/* Содержимое плашки — один блок: гаснет и проявляется целиком (FX.2, без отпечатков в WebKit) */
-.sm-body { display: grid; align-content: center; gap: inherit; transition: opacity 0.18s ease; }
+/*
+ * Содержимое плашки — один блок на всю её высоту: гаснет и проявляется целиком (FX.2). Блок
+ * всегда одного размера: если он короче плашки и центрируется, iOS Safari не перерисовывает
+ * освободившуюся полосу, и строка «дальше» оставляла отпечаток на прошлом месте.
+ */
+.sm-body { display: grid; align-content: center; gap: inherit; height: 100%; min-height: 0; transition: opacity 0.18s ease; }
 .sm-detail.swap > .sm-body { opacity: 0; }
 .sm-cap { text-align: center; font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
 .sm-opts { display: grid; }

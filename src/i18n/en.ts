@@ -559,7 +559,7 @@ export const en: Dict = {
   },
   gift: {
     title: 'Gift of the night',
-    sub: 'One star for your deck — or a clear sky',
+    sub: 'Pick one star for your deck, or skip it and get gold',
     first: 'Now after every night you win. A thin deck is a strategy too.',
     take: 'Add to deck',
     choose: 'Choose a star',
@@ -615,7 +615,7 @@ export const en: Dict = {
     hoarder: ['Hoarder', '+1 to multiplier per 3 gold'],
     rainbow: ['Rainbow', 'All four suits in the line: multiplier ×2'],
     alchemist: ['Alchemist', 'After a won night a random deck card gains a glyph'],
-    gambler: ['Gambler', 'Each seven: 1 in 2 chance of multiplier ×1.5'],
+    gambler: ['Gambler', 'Each seven: 50% chance of multiplier ×1.5'],
     glassCannon: ['Glass Cannon', 'Multiplier ×3 on every constellation, but one card fewer in hand'],
     supernovaSeed: ['Supernova Seed', 'Any straight: multiplier ×3'],
     collapsar: ['Collapsar', 'Multiplier grows by ×0.05 per constellation this run (now multiplier ×{x})'],

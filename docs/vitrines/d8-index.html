@@ -367,7 +367,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 <body>
 <div class="wrap">
   <div class="goals" id="goals"></div>
-  <div class="label">Где мы сейчас <small>0.7.0 вышла 22.10.2026 · 0.7.1 — фиксы, дальше выпуски 0.7.2–0.7.5 · карточка открывает витрину</small></div>
+  <div class="label">Где мы сейчас <small>0.7.0 вышла 22.10.2026 · фиксы 0.7.1 и 0.7.2 · дальше выпуски 0.7.3–0.7.6 · карточка открывает витрину</small></div>
   <div class="prog" id="prog"></div>
 
   <div class="label">Петля забега <small>одна глава — сейчас и в 0.7 · золотая точка — решение игрока</small></div>
@@ -460,7 +460,7 @@ const OMEN_RU = {
   wideSky: ['Широкое небо', '+1 карта в руке'], tithe: ['Десятина', 'От Стрита и выше: +1 золото'],
   constellationMap: ['Картограф', '+2 множ. за уровень Звёздных карт'], echoChamber: ['Отзвук', 'Первая вспышка — карты дважды'],
   hoarder: ['Скопидом', '+1 множ. за каждые 3 золота'], rainbow: ['Радуга', 'Все четыре масти: множ. ×2'],
-  alchemist: ['Алхимик', 'После ночи карта получает глиф'], gambler: ['Игрок', 'Каждая семёрка: 1/2 на ×1.5'],
+  alchemist: ['Алхимик', 'После ночи карта получает глиф'], gambler: ['Игрок', 'Каждая семёрка: шанс 50% на ×1.5'],
   glassCannon: ['Стеклянная пушка', 'Множ. ×3, в руке на карту меньше'], supernovaSeed: ['Семя сверхновой', 'Любой стрит: множ. ×3'],
   collapsar: ['Коллапсар', '×0.05 множ. за каждое созвездие забега'], corona: ['Корона', 'В Затмение: множ. ×2.5'],
   doubleStar: ['Двойная звезда', 'Крест или больше: ×2 к итогу'],
@@ -775,14 +775,14 @@ const STATUS = [
     items: [['6 тел, арт и анимации на небе', 1], ['Справочник: тела во вкладке «Карты»', 1]] },
   { lane: 'done', id: 'route', name: 'Развилки главы', sub: 'Путь главы решает игрок. Вышло в 0.7.0', ic: () => omen('crossroads', 36),
     items: [['Ядро: граф главы, «Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика по симу и e2e на 8 устройствах', 1]] },
-  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Выпуск 0.7.2 · побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
-  { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Выпуск 0.7.3 · фигуры на всём небе', ic: mythIcon },
-  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Выпуск 0.7.2 · цель внутри главы', ic: () => sig('chart-flush', 36) },
-  { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Выпуск 0.7.3 · пара Знамений как находка', ic: () => omen('sunWorship', 36) },
-  { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'Выпуск 0.7.4 · след проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
-  { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Выпуск 0.7.4 · разное начало забега', ic: () => omen('diagonalSight', 36) },
-  { lane: 'next', id: 'heart', name: 'Сердце неба', sub: 'Выпуск 0.7.5 · тайная глава за ключи', ic: () => boss('void', 36) },
-  { lane: 'next', id: 'skyvault', name: 'Небосвод', sub: 'Выпуск 0.7.5 · прогресс как небо игрока', ic: () => omen('stardust', 36) },
+  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Выпуск 0.7.3 · побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
+  { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Выпуск 0.7.4 · фигуры на всём небе', ic: mythIcon },
+  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Выпуск 0.7.3 · цель внутри главы', ic: () => sig('chart-flush', 36) },
+  { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Выпуск 0.7.4 · пара Знамений как находка', ic: () => omen('sunWorship', 36) },
+  { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'Выпуск 0.7.5 · след проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
+  { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Выпуск 0.7.5 · разное начало забега', ic: () => omen('diagonalSight', 36) },
+  { lane: 'next', id: 'heart', name: 'Сердце неба', sub: 'Выпуск 0.7.6 · тайная глава за ключи', ic: () => boss('void', 36) },
+  { lane: 'next', id: 'skyvault', name: 'Небосвод', sub: 'Выпуск 0.7.6 · прогресс как небо игрока', ic: () => omen('stardust', 36) },
 ];
 {
   const n = (l) => STATUS.filter((x) => x.lane === l).length;
@@ -791,7 +791,7 @@ const STATUS = [
     h('div', { class: 'track' }, h('i', { class: 'd', style: { width: (n('done') / total) * 100 + '%' } }), h('i', { class: 'w', style: { width: (n('work') / total) * 100 + '%' } })),
     h('div', { class: 'nums' }, h('span', {}, h('b', {}, n('done')), 'сделано'), h('span', {}, h('b', {}, n('work')), 'в работе'), h('span', {}, h('b', {}, n('next')), 'впереди'), h('span', {}, 'из ' + total + ' идей релиза')));
   const lane = (key, title) => h('div', { class: 'lane ' + key }, h('h3', {}, h('i'), title + ' · ' + n(key)),
-    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Сейчас 0.7.1: фиксы после проверки на проде. Затем 0.7.2: Трофеи и Пророчества'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
+    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Вышли фиксы 0.7.1 и 0.7.2. Следующий выпуск 0.7.3: Трофеи и Пророчества'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
       h('div', {}, h('b', {}, x.name), h('small', {}, x.sub),
         x.part ? h('div', { class: 'mini' }, h('i', { style: { width: x.part * 100 + '%' } })) : null,
         x.items ? h('ul', {}, x.items.map(([t, ok]) => h('li', { class: ok ? 'ok' : '' }, t))) : null)))));
