@@ -116,8 +116,20 @@ export interface FloatTextOptions {
   punch?: boolean;
 }
 
-/** Всплывающий текст: «+12», «×2», «ПАРА». Поднимается и тает. */
-export function floatText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions = {}): void {
+/**
+ * Точка текста в пределах экрана (FX.5): у края поля на телефоне цифра не уходит за край и не
+ * прячется под вырез; с запасом на ширину текста, подъём и свечение.
+ */
+function inside(world: GameWorld, x: number, y: number, text: string, size: number, rise: number): [number, number] {
+  const { width, height } = world.res.renderer;
+  const half = Math.min(width / 2, size * 0.32 * text.length + size * 0.5);
+  const top = size * 0.9 + rise;
+  return [Math.min(width - half, Math.max(half, x)), Math.min(height - size * 0.9, Math.max(top, y))];
+}
+
+/** Всплывающий текст: «+12», «×2», «ПАРА». Поднимается и тает; рисуется поверх интерфейса. */
+export function floatText(world: GameWorld, px: number, py: number, text: string, opts: FloatTextOptions = {}): void {
+  const [x, y] = inside(world, px, py, text, opts.size ?? (opts.punch ? 30 : 22), opts.rise ?? (opts.punch ? 26 : 36));
   if (opts.punch) return punchText(world, x, y, text, opts);
   const size = opts.size ?? 22;
   const life = (opts.life ?? 0.9) / world.res.speed;
@@ -125,7 +137,7 @@ export function floatText(world: GameWorld, x: number, y: number, text: string, 
   const t = world.add(e, Transform, transform(x, y, { scale: opts.pop === false ? 1 : 0.4 }));
   const font = `${opts.display ? 400 : 800} ${size}px ${opts.display ? DISPLAY_FONT : BODY_FONT}`;
   world.add(e, Drawable, {
-    layer: opts.layer ?? Layer.Popups,
+    layer: opts.layer ?? Layer.Overlay,
     z: 0,
     visible: true,
     draw(ctx, tr) {
@@ -168,7 +180,7 @@ function punchText(world: GameWorld, x: number, y: number, text: string, opts: F
   const state = { heat: 1 };
   const font = `800 ${size}px ${BODY_FONT}`;
   world.add(e, Drawable, {
-    layer: opts.layer ?? Layer.Popups,
+    layer: opts.layer ?? Layer.Overlay,
     z: 1,
     visible: true,
     draw(ctx, tr) {
