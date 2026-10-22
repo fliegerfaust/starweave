@@ -1426,16 +1426,16 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .sm-map.compact .sm-star { --o: 32px; }
 .sm-map.compact .sm-star.boss { --o: 36px; }
 .sm-map.compact .sm-star.here { --o: 20px; }
-.sm-map.compact .sm-lbl { font-size: 11px; top: calc(100% + 3px); }
+.sm-map.compact .sm-lbl { font-size: 11px; top: calc(100% + 8px); }
 .sm-orb { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, rgb(255 255 255 / 0.06), rgb(10 9 32 / 0.95) 70%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.28); }
 .sm-orb::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; box-shadow: 0 0 0 1.5px #ffe6a8, 0 0 16px rgb(var(--gold-rgb) / 0.5); opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .sm-ic { display: grid; place-items: center; width: 52%; height: 52%; color: #ffe6a8; }
 .sm-ic svg { width: 100%; height: 100%; }
 .sm-ic.k-bright { color: #ffd27a; }
 .sm-sigil { width: 92% !important; height: 92% !important; border-radius: 50%; }
-.sm-lbl { position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%); white-space: nowrap; font: 700 12px/1 var(--font-body); color: var(--ink); opacity: 0; transition: opacity 0.3s ease, color 0.3s ease; pointer-events: none; }
-.map.sm.land .sm-lbl { font-size: 11px; top: calc(100% + 4px); }
-.map.sm.wide .sm-lbl { font-size: 13.5px; top: calc(100% + 8px); }
+.sm-lbl { position: absolute; left: 50%; top: calc(100% + 9px); transform: translateX(-50%); white-space: nowrap; font: 700 12px/1 var(--font-body); color: var(--ink); opacity: 0; transition: opacity 0.3s ease, color 0.3s ease; pointer-events: none; }
+.map.sm.land .sm-lbl { font-size: 11px; top: calc(100% + 8px); }
+.map.sm.wide .sm-lbl { font-size: 13.5px; top: calc(100% + 10px); }
 .sm-star.open { cursor: pointer; }
 .sm-star.open .sm-orb { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.7); }
 .sm-star.open .sm-lbl, .sm-star.boss .sm-lbl { opacity: 1; }
