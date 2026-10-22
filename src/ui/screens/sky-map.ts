@@ -79,6 +79,7 @@ export class SkyMap {
   readonly el: HTMLElement;
   private resize?: ResizeObserver;
   private timers: number[] = [];
+  private fillTimer = 0;
   private sel: number | null = null;
   private busy = false;
   private readonly plans: NightPlan[];
@@ -251,21 +252,29 @@ export class SkyMap {
     this.detail.style.height = 'auto';
     let max = 0;
     for (const i of [null, ...this.chapter.nodes.map((_, j) => j)]) {
-      this.detail.replaceChildren(...this.nodes(i));
+      this.detail.replaceChildren(h('div.sm-body', null, this.nodes(i)));
       max = Math.max(max, this.detail.scrollHeight);
     }
     this.detail.replaceChildren(...keep);
     this.detail.style.height = `${max}px`;
   }
 
+  /**
+   * Сменить содержимое плашки. Содержимое — один блок `.sm-body`: гаснет и проявляется целиком,
+   * а прошлая незаконченная смена отменяется (FX.2). Раньше гасла каждая строка отдельно и при
+   * частом переключении узлов WebKit (iPhone, Telegram) оставлял на месте старой строки «дальше →»
+   * её отпечаток — строка двоилась.
+   */
   private fill(i: number | null, instant = false): void {
-    const put = () => this.detail.replaceChildren(...this.nodes(i));
+    window.clearTimeout(this.fillTimer);
+    const put = () => {
+      this.detail.replaceChildren(h('div.sm-body', null, this.nodes(i)));
+      this.detail.classList.remove('swap');
+    };
     if (instant) return put();
     this.detail.classList.add('swap');
-    this.timers.push(window.setTimeout(() => {
-      put();
-      this.detail.classList.remove('swap');
-    }, 170));
+    this.fillTimer = window.setTimeout(put, 170);
+    this.timers.push(this.fillTimer);
   }
 
   private select(i: number): void {
@@ -327,7 +336,9 @@ export class SkyMap {
       holes.push(`<circle cx="${cx}" cy="${cy}" r="${st.offsetWidth / 2 + 3}" fill="#000"/>`);
       const lbl = st.querySelector<HTMLElement>('.sm-lbl');
       const i = Number(st.dataset.i);
-      const shown = lbl && (st.classList.contains('boss') || open.includes(i) || (this.peek && routeOptions(this.chapter).includes(i)));
+      // Дыра под подписью — только пока подпись видна: после «Начать ночь» подписи гаснут, и линия
+      // пути не должна рваться там, где была подпись (FX.3)
+      const shown = lbl && (st.classList.contains('boss') || (!this.busy && (open.includes(i) || (this.peek && routeOptions(this.chapter).includes(i)))));
       if (shown) holes.push(`<rect x="${cx - lbl.offsetWidth / 2 - 5}" y="${cy + lbl.offsetTop - st.offsetHeight / 2 - 3}" width="${lbl.offsetWidth + 10}" height="${lbl.offsetHeight + 6}" rx="4" fill="#000"/>`);
     }
     const id = `sm-mask-${Math.random().toString(36).slice(2)}`;
@@ -399,7 +410,8 @@ export class SkyMap {
     if (this.busy || this.sel === null) return;
     const i = this.sel;
     this.busy = true;
-    this.paint();
+    // Перерисовать рёбра: маска больше не вырезает гаснущие подписи (drawEdges сам вызывает paint)
+    this.drawEdges();
     const calm = this.app.settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!calm && this.group) {
       const d = this.curve(this.from(), i);
