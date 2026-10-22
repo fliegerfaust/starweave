@@ -19,6 +19,7 @@ import { showGift } from '../gift';
 import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
+import { rich } from '../rich';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -76,6 +77,15 @@ export class ShopScreen implements Screen {
 
   private afterPackBuy(): void {
     if (currentChoice(this.run)) this.showPack();
+  }
+
+  /**
+   * Выбор решён — следующий из очереди открывается сразу (FX.1): после Яркой ночи за даром
+   * стоит бесплатное Знамение, и без этого «Следующая ночь» молча упиралась в очередь.
+   */
+  private resolve(cmd: Command, sound: 'coin' | 'click', onSuccess?: () => void): void {
+    this.act(cmd, sound, onSuccess);
+    this.afterPackBuy();
   }
 
   private render(): void {
@@ -282,7 +292,7 @@ export class ShopScreen implements Screen {
             h('div.ritual-card', null, cardThumb(old)),
             h('span.arrow', null, '→'),
             h('div.ritual-card.flip', { style: { animationDelay: delay } }, cardThumb(now)),
-            now.glyph && now.glyph !== old.glyph ? h('span.ritual-note', null, `${t(`glyph.${now.glyph}`)}: ${dict().glyphDesc[now.glyph]}`) : null,
+            now.glyph && now.glyph !== old.glyph ? h('span.ritual-note', null, [`${t(`glyph.${now.glyph}`)}: `, rich(dict().glyphDesc[now.glyph])]) : null,
           ]),
         );
         i++;
@@ -350,7 +360,7 @@ export class ShopScreen implements Screen {
     const info = title ?? named('ritual', ritualId);
     const m = modal(
       [
-        h('p.modal-text', null, info.desc),
+        h('p.modal-text', null, rich(info.desc)),
         h('p.hint', null, max === 1 ? t('shop.pickTarget') : t('shop.pickTargets', { min: def.minTargets, max })),
         ritualId.startsWith('glyph-') ? h('p.hint.order-warn', null, t('shop.glyphReplace')) : null,
         grid,
@@ -368,19 +378,20 @@ export class ShopScreen implements Screen {
     const choice = currentChoice(this.run);
     if (choice?.kind === 'gift') {
       // Экран Обсерватории пересобрали поверх открытого дара — второй дар не открываем
-      if (document.querySelector('.gift-scene')) return;
+      // (закрывающийся дар не в счёт: за ним может стоять следующий выбор)
+      if (document.querySelector('.modal-backdrop:not(.closing) .gift-scene')) return;
       const shown = showGift(this.app, this.run, choice, {
         take: (index) => this.takeGift(choice, index),
-        skip: () => this.act({ c: 'skip' }, 'coin', () => track('gift_skip', { ante: this.run.ante, deck: this.run.deck.length })),
+        skip: () => this.resolve({ c: 'skip' }, 'coin', () => track('gift_skip', { ante: this.run.ante, deck: this.run.deck.length })),
         deck: () => showDeck(this.run),
       });
       // Вариант дара не нарисовать (карту Возвышения убрали) — дар отменяется, чтобы не застрять
-      if (!shown) this.act({ c: 'skip' }, 'click');
+      if (!shown) this.resolve({ c: 'skip' }, 'click');
       return;
     }
     showChoice(this.app, this.run, {
       take: (index, id, close) => this.takeFromPack(index, id, close),
-      skip: () => this.act({ c: 'skip' }, 'click'),
+      skip: () => this.resolve({ c: 'skip' }, 'click'),
     });
   }
 
@@ -388,7 +399,7 @@ export class ShopScreen implements Screen {
     const offer = choice.options[index]!;
     const kind = offer.k === 'ascend' ? 'ascend' : offer.card.body ? 'body' : 'glyph';
     const id = offer.k === 'ascend' ? 'ascend' : (offer.card.body ?? offer.card.glyph ?? '');
-    this.act({ c: 'choose', index }, 'coin', () => track('gift_take', { kind, id, ante: this.run.ante, deck: this.run.deck.length }));
+    this.resolve({ c: 'choose', index }, 'coin', () => track('gift_take', { kind, id, ante: this.run.ante, deck: this.run.deck.length }));
   }
 
   private takeFromPack(index: number, id: string, close: () => void): void {
@@ -407,6 +418,6 @@ export class ShopScreen implements Screen {
       );
       return;
     }
-    this.act({ c: 'choose', index }, 'coin', done);
+    this.resolve({ c: 'choose', index }, 'coin', done);
   }
 }

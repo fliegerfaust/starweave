@@ -1,5 +1,6 @@
 import { t } from '@/i18n';
 import { h, type Child } from './dom';
+import { closeKeyword } from './keywords';
 
 type Sound = 'click' | 'deny' | 'hover';
 let playSound: (s: Sound) => void = () => undefined;
@@ -205,9 +206,13 @@ export function toast(text: string, kind: 'info' | 'warn' = 'info', lead?: Node)
 
 let activeTip: HTMLElement | null = null;
 
+let hideTimer = 0;
+
 export function hideTooltip(): void {
+  window.clearTimeout(hideTimer);
   activeTip?.remove();
   activeTip = null;
+  closeKeyword();
 }
 
 /** Всплывающая подсказка у элемента: по тапу на телефоне, по наведению на десктопе. */
@@ -231,8 +236,13 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
   el.addEventListener('pointerenter', (e) => {
     if (e.pointerType === 'mouse') show();
   });
+  // Мышью — табличка живёт, пока курсор на элементе или на ней самой: в ней нажимаемые слова (FX.4)
   el.addEventListener('pointerleave', (e) => {
-    if (e.pointerType === 'mouse') hideTooltip();
+    if (e.pointerType !== 'mouse') return;
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(() => {
+      if (!activeTip?.matches(':hover') && !document.querySelector('.kw-hint:hover')) hideTooltip();
+    }, 220);
   });
   // Подсказка доступна и с клавиатуры: фокус на элементе, Enter/пробел — показать
   if (el.tagName !== 'BUTTON') {
@@ -259,7 +269,8 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
 }
 
 document.addEventListener('pointerdown', (e) => {
-  if (activeTip && !(e.target as HTMLElement).closest?.('.tooltip')) hideTooltip();
+  const el = e.target as HTMLElement;
+  if (activeTip && !el.closest?.('.tooltip') && !el.closest?.('.kw-hint')) hideTooltip();
 });
 
 /** Плавный счётчик числа в элементе. */
