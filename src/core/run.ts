@@ -6,13 +6,13 @@ import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
 import { allContent, type Unlocks } from './content/pools';
-import { isLastNight, planChapter } from './route';
-import { generateShop } from './shop';
+import { currentNode, isLastNight, passNode, planChapter } from './route';
+import { generateShop, omenOptions } from './shop';
 import { offer } from './choices';
 import { rollGift } from './gift';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface NewRunOptions {
   seed: number;
@@ -49,6 +49,7 @@ export function rollBoss(rng: RngState, ante: number, previous: readonly string[
 export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, archive, stake = 0, gentle = false, gift, unlocks }: NewRunOptions): RunState {
   const sky = skyDef(skyId);
   const rng = createRng(seed);
+  const open = unlocks ? normalizeUnlocks(unlocks) : allContent();
   const { cards, nextId } = buildDeck(sky.deck, 1);
   const bosses: string[] = [];
   for (let ante = 1; ante <= FINAL_ANTE; ante++) bosses.push(rollBoss(rng, ante, bosses));
@@ -61,7 +62,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     skyId,
     daily,
     ante: 1,
-    chapter: planChapter({ ante: 1, bosses }),
+    chapter: planChapter({ ante: 1, bosses, seed, unlocks: open }),
     phase: 'map',
     gold: sky.startGold,
     deck: cards,
@@ -74,7 +75,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
     reward: null,
     shop: null,
     pending: [],
-    unlocks: unlocks ? normalizeUnlocks(unlocks) : allContent(),
+    unlocks: open,
     stats: { linesIgnited: 0, bestPlacement: 0, bestCombo: 'scatter', crosses: 0, nightsWon: 0, goldEarned: 0 },
     endless: false,
     stake,
@@ -92,7 +93,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
 
 /** Снимок открытий из журнала до 0.7 — без дара и тел, как и игрался. */
 function normalizeUnlocks(u: Unlocks): Unlocks {
-  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])] };
+  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false };
 }
 
 /**
@@ -107,6 +108,11 @@ export function collectReward(run: RunState): void {
   run.night = null;
   run.phase = 'shop';
   if (run.unlocks.gift && !run.tutorial) offer(run, { kind: 'gift', options: rollGift(run) });
+  // Яркая ночь (RT.1): Знамение 1 из 3 — бесплатно, после дара
+  if (currentNode(run).route === 'bright') {
+    const options = omenOptions(run);
+    if (options.length) offer(run, { kind: 'pack', pack: 'omen', options });
+  }
   run.shop = generateShop(run);
 }
 
@@ -117,7 +123,7 @@ export function leaveShop(run: RunState): void {
   if (run.pending.length) throw new RuleError('nothing');
   run.shop = null;
   if (!isLastNight(run)) {
-    run.chapter.at += 1;
+    passNode(run.chapter);
     run.phase = 'map';
     return;
   }

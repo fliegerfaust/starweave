@@ -1,3 +1,4 @@
+import { LINEAR } from './helpers';
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OMENS } from '../src/core/content/omens';
@@ -63,7 +64,7 @@ describe('сохранение забега (TD.1)', () => {
   });
 
   it('журнал команд сохраняется, битый — отбрасывается без потери забега (TD.9)', () => {
-    const run = newLoggedRun({ seed: 5 });
+    const run = newLoggedRun({ seed: 5, unlocks: LINEAR });
     apply(run, { c: 'startNight' });
     expect(deserializeRun(serializeRun(run))!.log).toEqual(run.log);
     const broken = deserializeRun(JSON.stringify({ ...run, log: { version: 1, cmds: 'nope' } }));
@@ -89,7 +90,7 @@ describe('сохранение забега (TD.1)', () => {
   it('старый забег получает снимок открытий со всем контентом; незнакомое Знамение в снимке — не открывается (TD.8)', () => {
     const run = deserializeRun(fixture('save-0.5.9-shop.json'))!;
     // Начатый до 0.7 забег доигрывается без дара ночи и тел (GF.1)
-    expect(run.unlocks).toEqual({ ...allContent(), gift: false, bodies: [] });
+    expect(run.unlocks).toEqual({ ...allContent(), gift: false, bodies: [], routes: false });
     const broken = { ...run, unlocks: { ...run.unlocks, omens: [...run.unlocks.omens, 'futureOmen'] } };
     expect(deserializeRun(JSON.stringify(broken))).toBeNull();
   });

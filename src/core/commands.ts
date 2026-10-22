@@ -2,6 +2,7 @@ import { assertNever } from './errors';
 import { burnCard, placeCard, startNight } from './night';
 import { collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight, type NewRunOptions } from './run';
 import { choose, skipChoice } from './choices';
+import { chooseRoute } from './route';
 import { banishCard, buyItem, buyOmen, buyPack, moveOmen, reroll, sellOmen } from './shop';
 import type { GameEvent, RunState } from './types';
 
@@ -12,6 +13,8 @@ import type { GameEvent, RunState } from './types';
  */
 export type Command =
   | { c: 'startNight' }
+  /** Выбрать узел пути на развилке главы (RT.1). */
+  | { c: 'route'; node: number }
   | { c: 'place'; hand: number; cell: number }
   | { c: 'burn'; hand: number }
   | { c: 'collectReward' }
@@ -36,7 +39,7 @@ export type Command =
  * Версия правил, под которую записан журнал. Поднимать, когда меняется исход тех же
  * команд (баланс, порядок бросков ГПСЧ): старые журналы тогда не переигрываются как есть.
  */
-export const RULES_VERSION = 2;
+export const RULES_VERSION = 3;
 
 /** Запись забега: с чего начали и что делал игрок. `replay` восстанавливает забег из неё. */
 export interface RunLog {
@@ -67,6 +70,9 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
   switch (cmd.c) {
     case 'startNight':
       return startNight(run);
+    case 'route':
+      chooseRoute(run, cmd.node);
+      return [];
     case 'place':
       return placeCard(run, cmd.hand, cmd.cell);
     case 'burn':

@@ -85,7 +85,9 @@ function drawGentle(run: RunState, night: NightState): Card {
 /** Начинает текущую ночь плана главы. */
 export function startNight(run: RunState): GameEvent[] {
   if (run.phase !== 'map') throw new RuleError('notMap');
-  const plan = planNight(run, currentNode(run), run.chapter.at);
+  // Развилка: путь сначала выбирают (команда `route`)
+  if (run.chapter.at < 0) throw new RuleError('noRoute');
+  const plan = planNight(run, currentNode(run));
   const { kind, bossId, rules } = plan;
   const cellCount = rules.gridSize * rules.gridSize;
   const sealedCells = pickSealedCells(run.rng, rules.gridSize, rules.sealedCells);
