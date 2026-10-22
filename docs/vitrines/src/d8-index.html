@@ -158,7 +158,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 
   <div class="label">Риски</div>
   <div class="risks" id="risks"></div>
-  <p class="src">Подробно — <a href="../RELEASE-0.7-DEPTH.md">docs/RELEASE-0.7-DEPTH.md</a>. Источники: <a href="https://www.pcgamesn.com/slay-the-spire-2/ancients">StS 2: Ancients</a> · <a href="https://mobalytics.gg/slay-the-spire-2/guides/alternate-acts">StS 2: альтернативные акты</a> · <a href="https://slaythespire2.gg/">StS 2 Wiki</a> · <a href="https://www.gamespot.com/reviews/slay-the-spire-review-trend-setter/1900-6417497/">GameSpot</a> · <a href="https://www.lesswrong.com/posts/MEimkSwwuRgiPaZaY/review-slay-the-spire">LessWrong</a></p>
+  <p class="src">Подробно — <a href="../RELEASE-0.7-DEPTH.md">docs/RELEASE-0.7-DEPTH.md</a>. </p>
   <p class="foot">Релиз 0.7 «Глубина» · экспериментальный, ветка release/0.7.0 · 21.10.2026</p>
 </div>
 <!--KITJS-->
@@ -262,16 +262,16 @@ drawClimb();
 
 /* Матрица: идея × цели (0–3) и цена для новичка */
 const IDEAS = [
-  ['gift', 'Дар ночи', 'StS: награда после боя', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 24), [2, 3, 1, 1], 1, false],
-  ['route', 'Развилки', 'StS: карта с путями', () => omen('crossroads', 34), [3, 1, 2, 1], 1, false],
+  ['gift', 'Дар ночи', 'выбор после победной ночи', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 24), [2, 3, 1, 1], 1, false],
+  ['route', 'Развилки', 'путь главы — решение игрока', () => omen('crossroads', 34), [3, 1, 2, 1], 1, false],
   ['gift', 'Небесные тела', 'своё: правило места на сетке', () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 24), [2, 3, 2, 2], 2, true],
-  ['trophy', 'Трофеи Затмений', 'StS: реликвии босса', () => boss('gravity', 34), [2, 2, 2, 3], 1, true],
+  ['trophy', 'Трофеи Затмений', 'побеждённое правило — в твою пользу', () => boss('gravity', 34), [2, 2, 2, 3], 1, true],
   ['myths', 'Мифы неба', 'своё: фигуры на всём небе', mythIcon, [3, 2, 3, 3], 2, true],
-  ['prophecy', 'Пророчества', 'StS 2: карты-квесты', () => sig('chart-flush', 34), [2, 1, 2, 2], 1, false],
-  ['resonance', 'Резонанс', 'Vampire Survivors: эволюции', () => omen('sunWorship', 34), [1, 3, 2, 3], 2, false],
-  ['legacy', 'Звезда памяти', 'Inscryption: карта смерти', () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 24), [1, 1, 3, 2], 1, false],
-  ['patrons', 'Покровители', 'StS, Monster Train: персонажи', () => omen('diagonalSight', 34), [1, 3, 3, 2], 2, false],
-  ['heart', 'Сердце неба', 'StS: акт 4 за ключи', () => boss('void', 34), [2, 1, 3, 2], 3, false],
+  ['prophecy', 'Пророчества', 'цель внутри главы', () => sig('chart-flush', 34), [2, 1, 2, 2], 1, false],
+  ['resonance', 'Резонанс', 'пара Знамений — находка', () => omen('sunWorship', 34), [1, 3, 2, 3], 2, false],
+  ['legacy', 'Звезда памяти', 'след проигранного забега', () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 24), [1, 1, 3, 2], 1, false],
+  ['patrons', 'Покровители', 'разное начало забега', () => omen('diagonalSight', 34), [1, 3, 3, 2], 2, false],
+  ['heart', 'Сердце неба', 'тайная глава за ключи', () => boss('void', 34), [2, 1, 3, 2], 3, false],
   ['skyvault', 'Небосвод', 'своё: прогресс — небо игрока', () => omen('stardust', 34), [0, 1, 3, 3], 0, true],
 ];
 const dots = (n, cost) => h('span', { class: 'dots' + (cost ? ' cost' : '') }, [1, 2, 3].map((k) => h('i', { class: k <= n ? 'on' : '' })));

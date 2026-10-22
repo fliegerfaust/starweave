@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Развилки · экран главы · Starweave 0.7</title>
+<!--KIT-->
+<style>
+:root { --ease: cubic-bezier(0.16, 1, 0.3, 1); --k: 1; --bright: #ffd27a; --comet: #ff9a62; --scope: #9ff0ff; }
+
+.split > div { min-width: 0; }
+.seg { display: flex; justify-content: center; width: max-content; max-width: 100%; margin: 0 auto 10px; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 12px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.toggles { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; }
+.chk { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; color: var(--ink-dim); font: 600 13px/1 var(--font-body); cursor: pointer; }
+.chk input { appearance: none; width: 34px; height: 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.9); position: relative; cursor: pointer; transition: background 0.2s; }
+.chk input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink-faint); transition: transform 0.25s var(--ease), background 0.2s; }
+.chk input:checked { background: rgb(var(--gold-rgb) / 0.22); }
+.chk input:checked::after { transform: translateX(14px); background: var(--gold); }
+
+.stage, .stage-inner { min-height: 700px; }
+.stage-inner { gap: 10px; }
+/* Шапка экрана, как в «Восхождении»: меню, табличка главы с делениями, золото */
+.mtop { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: -6px -4px 0; }
+.medal { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--brass); color: var(--gold); }
+.medal i { width: 16px; height: 1.6px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; border-radius: 1px; }
+.plaque { display: grid; justify-items: center; gap: 6px; }
+.plaque b { font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.plaque b span { color: var(--ink-faint); }
+.ticks { display: flex; gap: 4px; }
+.ticks i { width: 14px; height: 2px; border-radius: 1px; background: rgb(var(--gold-rgb) / 0.2); }
+.ticks i.done { background: var(--gold); }
+.ticks i.now { background: var(--gold-hi); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.9); }
+.gold { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); font: 800 15px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.coin { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.55); vertical-align: -2px; }
+.coin.lg { width: 16px; height: 16px; }
+.steps { display: flex; justify-content: center; align-items: center; gap: 8px; font: 700 11px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.steps span.on { color: var(--gold-hi); }
+.steps i { width: 18px; height: 1px; background: var(--hair); }
+
+/* Значки видов пути — одна линия и вес, цвет вида */
+.ic { display: grid; place-items: center; color: var(--c, var(--gold-hi)); }
+.ic svg { width: 100%; height: 100%; }
+.k-night { --c: #ffe6a8; }
+.k-bright { --c: var(--bright); }
+.k-comet { --c: var(--comet); }
+.k-scope { --c: var(--scope); }
+.k-boss { --c: #e8e4f4; }
+
+/* Строки «что ждёт · что даст» — одинаковые во всех вариантах */
+.meta { display: grid; gap: 2px; font: 600 11.5px/1.25 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.meta .t b { color: var(--ink); font-weight: 800; }
+.meta .t.no { color: var(--ink-faint); }
+.meta .g { color: var(--gold-hi); font-weight: 700; }
+.meta .g .x { color: var(--mult); font-weight: 800; }
+
+/* Детали выбранного пути: высота постоянная — экран не прыгает */
+.detail { position: relative; overflow: hidden; display: grid; align-content: start; gap: 8px; padding: 12px 14px; border-radius: 16px; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.78); box-shadow: inset 0 0 0 1px var(--hair); }
+.detail > * { transition: opacity calc(0.18s * var(--k)); }
+.detail.swap > * { opacity: 0; }
+.detail .hd { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.detail .hd .ic { width: 30px; height: 30px; }
+.detail .hd b { font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.detail .hd small { display: block; margin-top: 2px; font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+.detail .hd .boss-sig img { width: 34px; height: 34px; border-radius: 50%; }
+.facts3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+.facts3 > div { display: grid; gap: 4px; padding: 6px 4px; text-align: center; min-width: 0; }
+.facts3 > div + div { box-shadow: -1px 0 0 var(--hair); }
+.facts3 small { font: 800 10px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.facts3 b { font: 800 clamp(12px, 3.6vw, 14px)/1.2 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.facts3 b.g { color: var(--gold-hi); }
+.facts3 b .x { color: var(--mult); }
+.next { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+.next .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 5px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink); }
+.next .chip .ic { width: 14px; height: 14px; }
+.next .chip img { width: 16px; height: 16px; border-radius: 50%; }
+.next svg.arr { width: 14px; height: 10px; color: var(--ink-faint); }
+.prompt { align-self: center; text-align: center; font: 600 13px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+
+.foot2 { display: grid; gap: 6px; margin-top: auto; }
+.lights { display: flex; justify-content: center; }
+.lights .btn-light + .btn-light { box-shadow: -1px 0 0 var(--hair); border-radius: 0; }
+.btn-primary .sub { font: 600 12.5px/1 var(--font-body); opacity: 0.7; margin-left: 2px; }
+.btn-primary:disabled { filter: none; opacity: 0.42; }
+
+/* ── A · Карта неба ── */
+.skymap { position: relative; height: 318px; margin: 0 -6px; }
+.skymap svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.edges .e { fill: none; stroke: rgb(246 194 91 / 0.2); stroke-width: 1.2; stroke-dasharray: 2 5; transition: stroke calc(0.4s * var(--k)), opacity calc(0.4s * var(--k)); }
+.edges .e.open { stroke: rgb(255 230 168 / 0.5); }
+.edges .e.dead { opacity: 0.25; }
+.edges .e.ahead { stroke: rgb(255 230 168 / 0.85); stroke-dasharray: none; stroke-width: 1.5; }
+.edges .walk { fill: none; stroke: #ffe6a8; stroke-width: 2.2; stroke-linecap: round; }
+.edges .walk-glow { fill: none; stroke: rgb(var(--gold-rgb) / 0.35); stroke-width: 7; stroke-linecap: round; }
+.star { position: absolute; transform: translate(-50%, -50%); display: grid; grid-template-columns: auto; justify-items: center; gap: 4px; border: 0; padding: 0; background: none; color: inherit; cursor: default; transition: opacity calc(0.4s * var(--k)) var(--ease); }
+.star .orb { position: relative; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, rgb(255 255 255 / 0.06), rgb(10 9 32 / 0.95) 70%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); }
+.star .orb .ic { width: 22px; height: 22px; }
+.star .orb::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; box-shadow: 0 0 0 1.5px #ffe6a8, 0 0 18px rgb(var(--gold-rgb) / 0.55); opacity: 0; transition: opacity calc(0.3s * var(--k)) var(--ease); }
+.star .lbl { display: grid; justify-items: center; gap: 1px; text-align: center; white-space: nowrap; }
+.star .lbl b { font: 700 11.5px/1.15 var(--font-body); color: var(--ink); }
+.star .lbl .meta { justify-items: center; font-size: 10.5px; }
+.star.open { cursor: pointer; }
+.star.open .orb { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.7); }
+.star.open .orb::before { content: ''; position: absolute; inset: -3px; border-radius: 50%; box-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.45); opacity: 0.4; animation: breathe calc(2.6s * var(--k)) ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: 1; } }
+.star.sel .orb::after { opacity: 1; }
+.star.sel .lbl b { color: var(--gold-hi); }
+.star.done .orb { background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 55%, #b9791b); box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.7); }
+.star.done .orb .ic { --c: #1a1206; }
+.star.dead { opacity: 0.28; }
+.star.later .orb { opacity: 0.75; }
+.star.boss .orb { width: 50px; height: 50px; background: none; box-shadow: 0 0 0 1px rgb(232 228 244 / 0.45), 0 0 0 5px rgb(232 228 244 / 0.05); }
+.star.boss .orb img { width: 46px; height: 46px; border-radius: 50%; }
+.star.boss .lbl b { color: #e8e4f4; }
+.star.here .orb { box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.4); background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.25), transparent 70%); width: 22px; height: 22px; }
+.star.here .orb::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff3c4; box-shadow: 0 0 10px #ffe6a8; }
+
+/* ── B · Три шага ── */
+.cols { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; min-height: 318px; }
+.cols svg.links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.links path { fill: none; stroke: rgb(246 194 91 / 0.18); stroke-width: 1.2; transition: stroke calc(0.35s * var(--k)), opacity calc(0.35s * var(--k)); }
+.links path.hot { stroke: rgb(255 230 168 / 0.85); stroke-width: 1.6; }
+.links path.dim { opacity: 0.15; }
+.col { position: relative; display: grid; align-content: center; gap: 10px; }
+.col h4 { margin: 0 0 2px; text-align: center; font: 400 11px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+.col h4.on { color: var(--gold-hi); }
+.plate { position: relative; display: grid; justify-items: center; gap: 5px; padding: 10px 4px 9px; border: 0; border-radius: 14px; text-align: center; color: inherit; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.06), transparent 70%), rgb(12 10 32 / 0.82); box-shadow: inset 0 0 0 1px var(--hair); transition: opacity calc(0.35s * var(--k)) var(--ease), box-shadow calc(0.3s * var(--k)), transform calc(0.34s * var(--k)) var(--ease); }
+.plate .ic { width: 24px; height: 24px; }
+.plate b { font: 700 12.5px/1.15 var(--font-body); color: var(--ink); }
+.plate .meta { justify-items: center; font-size: 10.5px; }
+.plate.open { cursor: pointer; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
+.plate.sel { box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 0 18px rgb(var(--gold-rgb) / 0.3); transform: translateY(-3px); }
+.plate.sel b { color: var(--gold-hi); }
+.plate.dim { opacity: 0.32; }
+.plate.done { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.8); background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.2), transparent 70%), rgb(12 10 32 / 0.82); }
+.plate.done::after { content: ''; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.plate.boss img { width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 0 1px rgb(232 228 244 / 0.45); }
+
+/* ── C · Развилка крупно ── */
+.forks { display: grid; gap: 10px; align-content: center; min-height: 318px; }
+.forks.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.forks.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fork { position: relative; display: grid; justify-items: center; align-content: start; gap: 8px; min-height: 250px; padding: 16px 6px 12px; border: 0; border-radius: 18px 18px 14px 14px; text-align: center; color: inherit; cursor: pointer; overflow: hidden;
+  background: radial-gradient(110% 70% at 50% 0%, color-mix(in srgb, var(--c) 18%, transparent), transparent 70%), rgb(12 10 32 / 0.86); box-shadow: inset 0 0 0 1px var(--hair); transition: transform calc(0.34s * var(--k)) var(--ease), box-shadow calc(0.3s * var(--k)), opacity calc(0.3s * var(--k)); }
+.fork .arch { position: absolute; left: 10%; right: 10%; top: 0; height: 2px; background: radial-gradient(50% 100% at 50% 0%, var(--c), transparent); opacity: 0.6; }
+.fork .ic { width: 40px; height: 40px; margin-top: 4px; }
+.fork b { font: 400 14px/1.15 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-hi); text-wrap: balance; min-height: 32px; display: grid; align-items: center; }
+.fork .meta { justify-items: center; font-size: 12px; gap: 4px; }
+.fork .lead { margin-top: auto; display: grid; justify-items: center; gap: 4px; padding-top: 8px; width: 100%; box-shadow: 0 -1px 0 var(--hair); }
+.fork .lead small { font: 800 9.5px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.fork .lead .row { display: flex; justify-content: center; align-items: center; gap: 4px; flex-wrap: wrap; }
+.fork .lead .ic { width: 16px; height: 16px; margin: 0; }
+.fork .lead img { width: 18px; height: 18px; border-radius: 50%; }
+.fork .lead svg.arr { width: 10px; height: 8px; color: var(--ink-faint); }
+.fork.sel { transform: translateY(-6px); box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 10px 26px -12px rgb(var(--gold-rgb) / 0.6); }
+.forks.has-sel .fork:not(.sel) { opacity: 0.5; }
+.minimap { display: flex; justify-content: center; align-items: center; gap: 6px; }
+.minimap i { width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.minimap i.done { background: var(--gold); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.7); }
+.minimap i.now { box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 0 8px rgb(var(--gold-rgb) / 0.7); }
+.minimap em { width: 22px; height: 1px; background: var(--hair); }
+.minimap img { width: 20px; height: 20px; border-radius: 50%; opacity: 0.8; }
+.portal { position: absolute; z-index: 30; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgb(255 246 220 / 0.95), rgb(var(--gold-rgb) / 0.55) 35%, rgb(12 10 32 / 0) 70%); }
+
+/* Ночь началась — заглушка экрана ночи */
+.go-note { position: absolute; inset: 0; z-index: 35; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; background: radial-gradient(80% 60% at 50% 45%, rgb(8 8 30 / 0.92), rgb(4 4 18 / 0.98)); }
+.go-note .plate-sub { max-width: 260px; }
+
+.cmp { display: grid; gap: 0; }
+.cmp .r { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.5; }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+@media (max-width: 560px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="seg" id="seg"></div>
+      <div class="toggles">
+        <label class="chk"><input type="checkbox" id="tEarly"> ступень 2 — только ночи</label>
+        <label class="chk"><input type="checkbox" id="tSlow"> замедлить ×4</label>
+      </div>
+      <div class="stage" id="stage"><div class="stage-inner" id="view"></div></div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+
+  <div class="label">С одного взгляда <small>что видно о каждом пути без касаний — во всех трёх вариантах</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.7 · Развилки · экран главы · 22.10.2026 · числа — глава II, черновик баланса</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: nebula-3 boss-gravity boss-fog */
+shell({ id: 'route-screen', lead: 'Главный экран эпика «Развилки» — глава, где игрок <b>сам выбирает путь к Затмению</b>. Три варианта; в каждом о любом пути видно сразу: что это, насколько трудно, что даст и куда ведёт дальше.' });
+
+/* ── Виды пути: значок, имя, что ждёт, что даёт ── */
+const RICON = {
+  night: '<path d="M12 3.5c.5 4.2 1.8 6.5 6.5 8.5-4.7 2-6 4.3-6.5 8.5-.5-4.2-1.8-6.5-6.5-8.5 4.7-2 6-4.3 6.5-8.5Z" fill="currentColor"/>',
+  bright: '<circle cx="12" cy="12" r="9.3" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/><path d="M12 2.8c.6 5 2 7.2 6.8 9.2-4.8 2-6.2 4.2-6.8 9.2-.6-5-2-7.2-6.8-9.2 4.8-2 6.2-4.2 6.8-9.2Z" fill="currentColor"/><path d="M4.6 4.6l2 2M19.4 4.6l-2 2M4.6 19.4l2-2M19.4 19.4l-2-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  comet: '<circle cx="16" cy="8" r="3.6" fill="currentColor"/><path d="M13.4 10.6 4 20M14.6 12.4 8 19M11.6 9.4 5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>',
+  scope: '<path d="m4 14 11-6.5 2 3.4L6 17.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m15.5 6.8 2.6-1.5 2 3.4-2.6 1.5M10.5 15.5 8 21M11.5 15l2.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+const ARR = () => svg('<path d="M1 5h11m-3-3 3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>', 14, 10);
+const KINDS = {
+  night: { name: 'Ночь', short: 'Ночь', what: 'Обычная ночь', why: 'Спокойный шаг: золото и Обсерватория' },
+  bright: { name: 'Яркая ночь', short: 'Яркая', what: 'Цель выше на треть', why: 'Труднее, зато Знамение — бесплатно' },
+  comet: { name: 'Комета', short: 'Комета', what: 'Без ночи · обмен', why: 'Отдай одно — получи другое; золота нет' },
+  scope: { name: 'Телескоп', short: 'Телескоп', what: 'Без ночи · улучшение', why: 'Уровень созвездия, глиф или убрать карту' },
+};
+const BOSSES = {
+  gravity: { name: 'Тяготение', rule: 'Ряды не вспыхивают — только столбцы', target: 1800, gold: 5 },
+  fog: { name: 'Туман', rule: 'Ранги в руке скрыты', target: 1800, gold: 5 },
+};
+const kicon = (k, cls = '') => h('span', { class: `ic k-${k} ${cls}` }, svg(RICON[k], 24, 24));
+const bsig = (b, s) => h('img', { src: ART['boss-' + b], alt: '', width: s, height: s });
+
+/* ── Глава II: два шага выбора и Затмение (ступень 6 — с Кометой, Телескопом и двумя Затмениями) ── */
+function chapter(early) {
+  if (early) {
+    return {
+      nodes: {
+        a: { kind: 'night', step: 1, target: 1000, gold: 3, x: 26, y: 74 },
+        b: { kind: 'bright', step: 1, target: 1350, gold: 3, omen: true, x: 74, y: 74 },
+        c: { kind: 'night', step: 2, target: 1400, gold: 4, x: 26, y: 46 },
+        d: { kind: 'bright', step: 2, target: 1890, gold: 4, omen: true, x: 74, y: 46 },
+        x: { kind: 'boss', boss: 'gravity', step: 3, x: 50, y: 14 },
+      },
+      edges: [['s', 'a'], ['s', 'b'], ['a', 'c'], ['a', 'd'], ['b', 'c'], ['b', 'd'], ['c', 'x'], ['d', 'x']],
+    };
+  }
+  return {
+    nodes: {
+      a: { kind: 'night', step: 1, target: 1000, gold: 3, x: 16, y: 76 },
+      b: { kind: 'bright', step: 1, target: 1350, gold: 3, omen: true, x: 50, y: 72 },
+      c: { kind: 'comet', step: 1, x: 84, y: 76 },
+      d: { kind: 'scope', step: 2, x: 16, y: 46 },
+      e: { kind: 'night', step: 2, target: 1400, gold: 4, x: 50, y: 43 },
+      f: { kind: 'bright', step: 2, target: 1890, gold: 4, omen: true, x: 84, y: 46 },
+      x: { kind: 'boss', boss: 'gravity', step: 3, x: 28, y: 12 },
+      y: { kind: 'boss', boss: 'fog', step: 3, x: 72, y: 12 },
+    },
+    edges: [['s', 'a'], ['s', 'b'], ['s', 'c'], ['a', 'd'], ['a', 'e'], ['b', 'd'], ['b', 'e'], ['b', 'f'], ['c', 'e'], ['c', 'f'], ['d', 'x'], ['e', 'x'], ['e', 'y'], ['f', 'y']],
+  };
+}
+const num = (n) => n.toLocaleString('ru-RU');
+const nameOf = (n) => (n.kind === 'boss' ? `Затмение «${BOSSES[n.boss].name}»` : KINDS[n.kind].name);
+const shortOf = (n) => (n.kind === 'boss' ? BOSSES[n.boss].name : KINDS[n.kind].short);
+/** «Что ждёт»: цель ночи (у Яркой — с ×1.35) или «без ночи». */
+function waits(n) {
+  if (n.kind === 'boss') return h('span', { class: 't' }, 'цель ', h('b', {}, num(BOSSES[n.boss].target)));
+  if (!n.target) return h('span', { class: 't no' }, 'без ночи');
+  return h('span', { class: 't' }, 'цель ', h('b', {}, num(n.target)));
+}
+/** «Что даст»: золото, Знамение, обмен или улучшение. */
+function gives(n) {
+  if (n.kind === 'boss') return h('span', { class: 'g' }, '+' + BOSSES[n.boss].gold, ' ', h('span', { class: 'coin' }), ' · трофей');
+  if (n.kind === 'comet') return h('span', { class: 'g' }, 'обмен 1 из 3');
+  if (n.kind === 'scope') return h('span', { class: 'g' }, 'улучшение 1 из 3');
+  return h('span', { class: 'g' }, '+' + n.gold, ' ', h('span', { class: 'coin' }), n.omen ? ' · Знамение' : '');
+}
+const metaOf = (n) => h('span', { class: 'meta' }, waits(n), gives(n));
+
+/* ── Состояние ── */
+let variant = 'A', early = false, k = 1, G, S;
+const stage = sky(q('#stage'), 3);
+const view = q('#view');
+const ms = (n) => (REDUCED ? 0 : n * k);
+const VARIANTS = [['A', 'Карта неба'], ['B', 'Три шага'], ['C', 'Развилка крупно']];
+const seg = q('#seg');
+VARIANTS.forEach(([id, name]) => seg.append(h('button', { 'aria-pressed': String(id === variant), title: name, onclick: () => { variant = id; [...seg.children].forEach((b, i) => b.setAttribute('aria-pressed', String(VARIANTS[i][0] === id))); start(); } }, stage.clientWidth < 400 ? `${id} · ${name.split(' ')[0]}` : `${id} · ${name}`)));
+q('#tEarly').onchange = (e) => { early = e.target.checked; start(); };
+q('#tSlow').onchange = (e) => { k = e.target.checked ? 4 : 1; document.documentElement.style.setProperty('--k', k); };
+
+const next = (id) => G.edges.filter(([a]) => a === id).map(([, b]) => b);
+/** Всё, что достижимо из узла (для «куда ведёт»). */
+function reach(id) { const out = new Set(); const go = (x) => next(x).forEach((y) => { if (!out.has(y)) { out.add(y); go(y); } }); go(id); return out; }
+const stepNow = () => (S.at === 's' ? 0 : G.nodes[S.at].step);
+
+function start() {
+  G = chapter(early);
+  S = { at: 's', path: ['s'], sel: null, busy: false, gold: 14 };
+  render(true);
+}
+
+/* ── Общий каркас экрана: шапка, середина варианта, детали, кнопки ── */
+function render(first = false) {
+  const step = stepNow();
+  const top = h('div', { class: 'mtop' }, h('span', { class: 'medal' }, h('i')),
+    h('div', { class: 'plaque' }, h('b', {}, 'Глава II ', h('span', {}, 'из VIII')), h('div', { class: 'ticks' }, Array.from({ length: 8 }, (_, i) => h('i', { class: i === 0 ? 'done' : i === 1 ? 'now' : '' })))),
+    h('span', { class: 'gold' }, h('span', { class: 'coin lg' }), h('span', { id: 'goldn' }, S.gold)));
+  const steps = h('div', { class: 'steps' }, ['Шаг 1', 'Шаг 2', 'Затмение'].map((t, i) => [i ? h('i') : null, h('span', { class: i === step ? 'on' : '' }, t)]).flat());
+  const mid = variant === 'A' ? mapView() : variant === 'B' ? colsView() : forkView();
+  const detail = h('div', { class: 'detail', id: 'detail' });
+  const go = h('button', { class: 'btn btn-primary', id: 'go', disabled: true, onclick: () => advance() }, 'Выбери путь');
+  view.replaceChildren(...[top, variant === 'C' ? steps : null, mid, detail,
+    h('div', { class: 'foot2' }, go, h('div', { class: 'lights' }, h('button', { class: 'btn btn-light' }, icon('grid'), 'Справочник'), h('button', { class: 'btn btn-light' }, 'Колода · 38')))].filter(Boolean));
+  steadyDetail();
+  showDetail(null, true);
+  if (variant === 'A') drawEdges(first);
+  if (variant === 'B') requestAnimationFrame(() => drawLinks(first));
+  if (first) entrance(mid);
+}
+
+/** Детали выбранного: что ждёт, что даст, куда дальше. Коробка держит высоту самой большой. */
+function detailNodes(id) {
+  if (!id) return [h('div', { class: 'prompt' }, S.at === 's' ? 'Коснись пути — увидишь, что он даст и куда ведёт' : 'Следующий шаг — выше')];
+  const n = G.nodes[id];
+  const isBoss = n.kind === 'boss';
+  const b = isBoss ? BOSSES[n.boss] : null;
+  const hd = h('div', { class: 'hd' }, isBoss ? h('span', { class: 'boss-sig' }, bsig(n.boss, 34)) : kicon(n.kind), h('div', {}, h('b', {}, nameOf(n)), h('small', {}, isBoss ? b.rule : KINDS[n.kind].why)), h('span'));
+  const cell = (k2, v) => h('div', {}, h('small', {}, k2), v);
+  const facts = h('div', { class: 'facts3' },
+    cell('ждёт', isBoss ? h('b', {}, num(b.target)) : n.target ? h('b', {}, num(n.target), n.kind === 'bright' ? h('span', { class: 'x' }, ' ×1.35') : null) : h('b', {}, 'без ночи')),
+    cell('даст', h('b', { class: 'g' }, isBoss ? ['+' + b.gold, ' ', h('span', { class: 'coin' })] : n.kind === 'comet' ? 'обмен' : n.kind === 'scope' ? 'улучшение' : ['+' + n.gold, ' ', h('span', { class: 'coin' }), n.omen ? ' + Знамение' : ''])),
+    cell('потом', h('b', {}, isBoss ? 'глава III' : n.target ? 'Обсерватория' : 'сразу дальше')));
+  const ahead = [...next(id)];
+  const lead = isBoss ? null : h('div', { class: 'next' }, 'дальше', ARR(), ...ahead.flatMap((x, i) => [i ? h('span', {}, 'или') : null, h('span', { class: 'chip' }, G.nodes[x].kind === 'boss' ? bsig(G.nodes[x].boss, 16) : kicon(G.nodes[x].kind), shortOf(G.nodes[x]))]));
+  return [hd, facts, lead];
+}
+function steadyDetail() {
+  const d = q('#detail');
+  d.style.height = 'auto';
+  let max = 0;
+  for (const id of [null, ...Object.keys(G.nodes)]) { d.replaceChildren(...detailNodes(id).filter(Boolean)); max = Math.max(max, d.scrollHeight); }
+  d.style.height = max + 'px';
+}
+function showDetail(id, instant = false) {
+  const d = q('#detail');
+  const fill = () => d.replaceChildren(...detailNodes(id).filter(Boolean));
+  if (instant) return fill();
+  d.classList.add('swap');
+  setTimeout(() => { fill(); d.classList.remove('swap'); }, ms(170));
+}
+
+function select(id) {
+  if (S.busy || !next(S.at).includes(id) || S.sel === id) return;
+  S.sel = id;
+  const n = G.nodes[id];
+  const go = q('#go');
+  go.disabled = false;
+  go.replaceChildren(n.kind === 'boss' ? 'Встретить Затмение' : n.target ? 'Начать ночь' : 'Идти', n.kind === 'boss' ? null : h('span', { class: 'sub' }, '· ' + KINDS[n.kind].name));
+  showDetail(id);
+  paintSelection();
+}
+
+/** Перейти к выбранному: авторский момент варианта, затем следующий шаг или «ночь началась». */
+async function advance() {
+  if (S.busy || !S.sel) return;
+  S.busy = true;
+  const id = S.sel, n = G.nodes[id];
+  if (variant === 'A') await walkA(id);
+  else if (variant === 'B') await walkB(id);
+  else await walkC(id);
+  S.path.push(id); S.at = id; S.sel = null;
+  if (n.target || n.kind === 'boss') {
+    await nightCurtain(n);
+    if (n.kind !== 'boss') S.gold += n.gold;
+  }
+  S.busy = false;
+  if (n.kind === 'boss') return start();
+  render();
+}
+async function nightCurtain(n) {
+  const note = h('div', { class: 'go-note' }, h('div', { class: 'plate-title' }, nameOf(n)), h('div', { class: 'sill', style: { width: '200px', margin: '0' } }), h('div', { class: 'plate-sub' }, n.kind === 'boss' ? 'Ночь Затмения… победа — глава III' : 'Ночь сыграна — награда в кармане, дальше Обсерватория и следующий шаг'));
+  stage.append(note);
+  note.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms(380), easing: 'ease-out', fill: 'both' });
+  await wait(ms(1300) || 300);
+  await note.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(320), fill: 'forwards' }).finished;
+  note.remove();
+}
+
+/* ════ A · Карта неба ════ */
+function mapView() {
+  const map = h('div', { class: 'skymap', id: 'skymap' }, svgEl('svg', { class: 'edges', id: 'edges' }));
+  const all = { s: { kind: 'here', x: 50, y: 96 }, ...G.nodes };
+  for (const [id, n] of Object.entries(all)) {
+    const isBoss = n.kind === 'boss';
+    const el = h('button', { class: 'star' + (isBoss ? ' boss' : '') + (id === 's' ? ' here' : ''), 'data-id': id, style: { left: n.x + '%', top: n.y + '%' }, onclick: () => select(id) },
+      h('span', { class: 'orb' }, id === 's' ? null : isBoss ? bsig(n.boss, 46) : kicon(n.kind)),
+      id === 's' ? null : h('span', { class: 'lbl' }, h('b', {}, shortOf(n)), metaOf(n)));
+    map.append(el);
+  }
+  return map;
+}
+function svgEl(tag, attrs) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [a, v] of Object.entries(attrs)) e.setAttribute(a, v); return e; }
+function pxA(id) { const m = q('#skymap'); const n = id === 's' ? { x: 50, y: 96 } : G.nodes[id]; return [(n.x / 100) * m.clientWidth, (n.y / 100) * m.clientHeight]; }
+/** Ребро — плавная кривая между звёздами. */
+function curve(a, b) { const [x1, y1] = pxA(a), [x2, y2] = pxA(b); const my = (y1 + y2) / 2; return `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`; }
+function drawEdges(first) {
+  const m = q('#skymap'), e = q('#edges');
+  e.setAttribute('viewBox', `0 0 ${m.clientWidth} ${m.clientHeight}`);
+  e.replaceChildren();
+  for (const [a, b] of G.edges) {
+    const walked = S.path.indexOf(b) > 0 && S.path[S.path.indexOf(b) - 1] === a;
+    if (walked) continue;
+    e.append(svgEl('path', { d: curve(a, b), class: 'e', 'data-a': a, 'data-b': b }));
+  }
+  for (let i = 1; i < S.path.length; i++) {
+    e.append(svgEl('path', { d: curve(S.path[i - 1], S.path[i]), class: 'walk-glow' }), svgEl('path', { d: curve(S.path[i - 1], S.path[i]), class: 'walk' }));
+  }
+  paintSelection();
+}
+function paintSelection() {
+  const open = next(S.at), step = stepNow();
+  const ahead = S.sel ? reach(S.sel) : new Set();
+  if (variant === 'A') {
+    qa('#skymap .star').forEach((el) => {
+      const id = el.dataset.id; if (id === 's') return;
+      const n = G.nodes[id];
+      const done = S.path.includes(id), isOpen = open.includes(id) && !S.busy;
+      const dead = !done && !isOpen && n.step <= step;
+      const off = S.sel && !done && !isOpen && n.step > step && !ahead.has(id);
+      el.className = `star${n.kind === 'boss' ? ' boss' : ''}${done ? ' done' : ''}${isOpen ? ' open' : ''}${S.sel === id ? ' sel' : ''}${dead || off ? ' dead' : ''}${!isOpen && !done && !dead && !off ? ' later' : ''}`;
+    });
+    qa('#edges .e').forEach((p) => {
+      const a = p.dataset.a, b = p.dataset.b;
+      const live = a === S.at && !S.busy;
+      const lit = S.sel && ((a === S.at && b === S.sel) || (ahead.has(a) || a === S.sel) && ahead.has(b));
+      const dead = (S.path.includes(a) && a !== S.at) || (G.nodes[a]?.step ?? 0) < step || (S.sel && !lit && !(a === S.at));
+      p.setAttribute('class', `e${lit ? ' ahead' : live ? ' open' : ''}${dead && !lit ? ' dead' : ''}`);
+    });
+  } else if (variant === 'B') {
+    qa('.plate').forEach((el) => {
+      const id = el.dataset.id; const n = G.nodes[id];
+      const done = S.path.includes(id), isOpen = open.includes(id) && !S.busy;
+      const dim = (!done && !isOpen && n.step <= step) || (S.sel && !done && !isOpen && !ahead.has(id));
+      el.className = `plate${n.kind === 'boss' ? ' boss' : ''}${done ? ' done' : ''}${isOpen ? ' open' : ''}${S.sel === id ? ' sel' : ''}${dim ? ' dim' : ''}`;
+    });
+    qa('.links path').forEach((p) => {
+      const a = p.dataset.a, b = p.dataset.b;
+      const hot = (S.path.includes(a) && S.path.includes(b)) || (S.sel && ((a === S.at && b === S.sel) || ((a === S.sel || ahead.has(a)) && ahead.has(b))));
+      p.setAttribute('class', hot ? 'hot' : S.sel || (G.nodes[a]?.step ?? 0) < step ? 'dim' : '');
+    });
+    qa('.col h4').forEach((el, i) => el.classList.toggle('on', i === step));
+  } else {
+    qa('.fork').forEach((el) => el.classList.toggle('sel', el.dataset.id === S.sel));
+    q('.forks')?.classList.toggle('has-sel', !!S.sel);
+  }
+}
+/** Золотая линия дотягивается до выбранной звезды, звезда зажигается. */
+async function walkA(id) {
+  const e = q('#edges');
+  const glow = svgEl('path', { d: curve(S.at, id), class: 'walk-glow' }), line = svgEl('path', { d: curve(S.at, id), class: 'walk' });
+  e.append(glow, line);
+  const len = line.getTotalLength();
+  for (const p of [glow, line]) { p.style.strokeDasharray = len; p.style.strokeDashoffset = len; }
+  const anim = { duration: ms(700), easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' };
+  await Promise.all([glow, line].map((p) => p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], anim).finished));
+  const star = q(`#skymap .star[data-id="${id}"] .orb`);
+  star.parentElement.classList.add('done');
+  await star.animate([{ boxShadow: '0 0 0 0 rgb(255 230 168 / 0.9)' }, { boxShadow: '0 0 0 18px rgb(255 230 168 / 0)' }], { duration: ms(600), easing: 'ease-out' }).finished;
+}
+
+/* ════ B · Три шага ════ */
+function colsView() {
+  const wrap = h('div', { class: 'cols', id: 'cols' }, svgEl('svg', { class: 'links', id: 'links' }));
+  for (let step = 1; step <= 3; step++) {
+    const col = h('div', { class: 'col' }, h('h4', {}, step === 3 ? 'Затмение' : 'Шаг ' + step));
+    for (const [id, n] of Object.entries(G.nodes).filter(([, n]) => n.step === step)) {
+      const isBoss = n.kind === 'boss';
+      col.append(h('button', { class: 'plate' + (isBoss ? ' boss' : ''), 'data-id': id, onclick: () => select(id) }, isBoss ? bsig(n.boss, 34) : kicon(n.kind), h('b', {}, shortOf(n)), metaOf(n)));
+    }
+    wrap.append(col);
+  }
+  return wrap;
+}
+function drawLinks(first) {
+  const box = q('#cols'), l = q('#links');
+  if (!box) return;
+  const r0 = box.getBoundingClientRect();
+  l.setAttribute('viewBox', `0 0 ${r0.width} ${r0.height}`);
+  l.replaceChildren();
+  const at = (id, side) => { const r = q(`.plate[data-id="${id}"]`).getBoundingClientRect(); return [side ? r.right - r0.left : r.left - r0.left, r.top - r0.top + r.height / 2]; };
+  for (const [a, b] of G.edges) {
+    if (a === 's') continue;
+    const [x1, y1] = at(a, 1), [x2, y2] = at(b, 0);
+    const mx = (x1 + x2) / 2;
+    l.append(svgEl('path', { d: `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`, 'data-a': a, 'data-b': b }));
+  }
+  paintSelection();
+  if (first && !REDUCED) qa('.links path').forEach((p, i) => { const len = p.getTotalLength(); p.animate([{ strokeDasharray: len, strokeDashoffset: len }, { strokeDasharray: len, strokeDashoffset: 0 }], { duration: ms(600), delay: ms(300 + i * 40), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }); });
+}
+/** Табличка отмечается пройденной, свет переходит в следующую колонку. */
+async function walkB(id) {
+  const el = q(`.plate[data-id="${id}"]`);
+  el.classList.add('done');
+  await el.animate([{ boxShadow: 'inset 0 0 0 1.5px #ffe6a8, 0 0 0 0 rgb(255 230 168 / 0.7)' }, { boxShadow: 'inset 0 0 0 1.5px #ffe6a8, 0 0 0 14px rgb(255 230 168 / 0)' }], { duration: ms(560), easing: 'ease-out' }).finished;
+}
+
+/* ════ C · Развилка крупно ════ */
+function forkView() {
+  const open = next(S.at);
+  const step = stepNow();
+  const minimap = h('div', { class: 'minimap' }, [1, 2].flatMap((i) => [h('i', { class: i <= step ? 'done' : i === step + 1 ? 'now' : '' }), h('em')]), ...Object.values(G.nodes).filter((n) => n.kind === 'boss').map((n) => bsig(n.boss, 20)));
+  const forks = h('div', { class: `forks n${open.length}` }, open.map((id) => {
+    const n = G.nodes[id];
+    const isBoss = n.kind === 'boss';
+    const c = isBoss ? '#e8e4f4' : getComputedStyle(document.documentElement).getPropertyValue('--' + (n.kind === 'night' ? 'gold-hi' : n.kind === 'scope' ? 'scope' : n.kind));
+    const ahead = next(id);
+    return h('button', { class: `fork k-${isBoss ? 'boss' : n.kind}`, 'data-id': id, style: { '--c': c || '#ffe6a8' }, onclick: () => select(id) },
+      h('span', { class: 'arch' }),
+      isBoss ? h('span', { style: { marginTop: '4px' } }, bsig(n.boss, 44)) : kicon(n.kind),
+      h('b', {}, isBoss ? BOSSES[n.boss].name : KINDS[n.kind].name),
+      h('span', { class: 'meta' }, waits(n), gives(n), isBoss ? h('span', {}, BOSSES[n.boss].rule) : n.target ? h('span', {}, n.kind === 'bright' ? 'цель выше на треть' : 'обычная ночь') : null),
+      isBoss ? null : h('span', { class: 'lead' }, h('small', {}, 'ведёт к'), h('span', { class: 'row' }, ahead.map((x) => G.nodes[x].kind === 'boss' ? bsig(G.nodes[x].boss, 18) : kicon(G.nodes[x].kind)))));
+  }));
+  return h('div', {}, minimap, h('div', { style: { height: '10px' } }), forks);
+}
+/** Табличка раскрывается светом — как дверь в ночь. */
+async function walkC(id) {
+  const el = q(`.fork[data-id="${id}"]`);
+  const sr = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const size = Math.hypot(sr.width, sr.height) * 2;
+  const p = h('div', { class: 'portal', style: { left: r.left - sr.left + r.width / 2 - size / 2 + 'px', top: r.top - sr.top + r.height / 2 - size / 2 + 'px', width: size + 'px', height: size + 'px' } });
+  stage.append(p);
+  qa('.fork').forEach((f) => f !== el && f.animate([{ opacity: 0.5 }, { opacity: 0 }], { duration: ms(260), fill: 'forwards' }));
+  await p.animate([{ transform: 'scale(0.02)', opacity: 0.9 }, { transform: 'scale(1)', opacity: 0 }], { duration: ms(820), easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }).finished;
+  p.remove();
+}
+
+/* ── Вход экрана: один авторский момент на вариант ── */
+function entrance(mid) {
+  if (REDUCED) return;
+  if (variant === 'A') {
+    qa('#skymap .star').forEach((el) => {
+      const n = el.dataset.id === 's' ? { step: 0 } : G.nodes[el.dataset.id];
+      el.animate([{ opacity: 0, transform: 'translate(-50%, -38%)' }, { opacity: 1, transform: 'translate(-50%, -50%)' }], { duration: ms(520), delay: ms(120 + n.step * 140), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+    });
+    qa('#edges .e').forEach((p) => { const len = p.getTotalLength(); p.animate([{ strokeDashoffset: len, opacity: 0 }, { strokeDashoffset: 0, opacity: 1 }], { duration: ms(700), delay: ms(260), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }); });
+  } else if (variant === 'B') {
+    qa('.col').forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateX(-10px)' }, { opacity: 1, transform: 'none' }], { duration: ms(480), delay: ms(80 + i * 120), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  } else {
+    qa('.fork').forEach((f, i) => f.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }], { duration: ms(520), delay: ms(100 + i * 90), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  }
+}
+new ResizeObserver(() => { if (!G) return; if (variant === 'A' && q('#skymap')) drawEdges(); if (variant === 'B') drawLinks(); }).observe(stage);
+
+facts(q('#aside'), [
+  ['A · Карта неба', 'Вся глава одним созвездием: снизу ты, наверху Затмения. У каждой звезды подписаны вид, цель и награда. Касание — светится путь, который откроется дальше, остальное гаснет. «Идти» — золотая линия дотягивается до звезды, и она загорается. <b>Самый атмосферный</b>, продолжает нынешнее «Восхождение».'],
+  ['B · Три шага', 'Глава как маршрут слева направо: Шаг 1 → Шаг 2 → Затмение колонками, связи — линиями. Касание таблички подсвечивает, куда из неё можно прийти. <b>Самый информативный</b>: вся глава читается как расписание.'],
+  ['C · Развилка крупно', 'Только ближайший выбор — 2–3 большие таблички цвета вида. На каждой: что ждёт, что даст и «ведёт к» значками следующего шага. Сверху точки шагов и сигилы Затмений. <b>Проще всего новичку</b>, но всю главу не видно.'],
+  ['С одного взгляда', 'Во всех трёх без касаний видно: вид пути, цель (или «без ночи»), награду, а у выбранного — «ждёт · даст · потом» и «дальше → …». Коробка деталей не меняет высоту.'],
+  ['Анимации', 'Один авторский момент на вариант: звёзды и линии всходят снизу вверх (A), колонки проявляются слева направо и рисуются связи (B), таблички встают из-за горизонта, выбранная раскрывается светом (C). Остальное — тихо: свет и прозрачность.'],
+], [
+  ['RT.1', 'Ядро: граф главы, выбор узла — команда журнала'],
+  ['RT.2', 'Экран главы с развилками — после твоего выбора варианта'],
+]);
+
+q('#cmp').append(...[
+  ['Вид пути', 'значок и имя: Ночь, Яркая ночь, Комета, Телескоп, Затмение с сигилом'],
+  ['Что ждёт', 'цель ночи числом (у Яркой — выше на треть) или «без ночи»'],
+  ['Что даст', 'золото монетой, «+ Знамение», «обмен 1 из 3», «улучшение 1 из 3», у Затмения — трофей'],
+  ['Куда ведёт', 'A — подсвеченный путь до Затмения, B — связи между колонками, C — значки «ведёт к»; у выбранного — «дальше → …»'],
+  ['Где ты', 'A — точка «ты здесь» и пройденная золотая линия; B и C — «Шаг 1 · Шаг 2 · Затмение»'],
+].map(([k2, v]) => h('div', { class: 'r' }, h('span', {}, k2), h('div', {}, v))));
+
+ladder(q('#ladder'), 2);
+start();
+</script>
+</body>
+</html>

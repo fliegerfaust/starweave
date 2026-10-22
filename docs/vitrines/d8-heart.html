@@ -286,6 +286,7 @@ const VITRINES = [
   { id: 'gift-ui', title: 'Дар ночи · экраны', file: 'd8-gift-ui.html', step: 1 },
   { id: 'gift-scene', title: 'Дар ночи · сцена', file: 'd8-gift-scene.html', step: 1 },
   { id: 'route', title: 'Развилки', file: 'd8-route.html', step: 2 },
+  { id: 'route-screen', title: 'Развилки · экран', file: 'd8-route-screen.html', step: 2 },
   { id: 'trophy', title: 'Трофеи Затмений', file: 'd8-trophy.html', step: 4 },
   { id: 'myths', title: 'Мифы неба', file: 'd8-myths.html', step: 5 },
   { id: 'prophecy', title: 'Пророчества', file: 'd8-prophecy.html', step: 7 },
@@ -625,7 +626,7 @@ const shuffle = (a, r = random) => { for (let i = a.length - 1; i > 0; i--) { co
 
 </script>
 <script>
-shell({ id: 'heart', lead: 'Как акт 4 в Slay the Spire: <b>три ключа</b> за опасные пути открывают тайную 9-ю главу. А звёздность после пятой ступени добавляет не проценты, а новые правила.' });
+shell({ id: 'heart', lead: 'Тайная глава для знатоков: <b>три ключа</b> за опасные пути открывают тайную 9-ю главу. А звёздность после пятой ступени добавляет не проценты, а новые правила.' });
 const stage = sky(q('#stage'), 8); /* art: nebula-8 */
 
 /* Звёздность: 1–5 — как сейчас (цифры), 6–12 — правила */
