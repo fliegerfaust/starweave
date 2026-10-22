@@ -1299,8 +1299,9 @@ body.landscape .scene-acts > .scene-pair { min-width: 260px; }
 .gift-fan.has-sel .gift-card:not(.sel) .gift-shade { opacity: 0.42; }
 /* Блик-приглашение: полоса света проходит по карте, пока ничего не выбрано */
 .gift-glint { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); overflow: hidden; pointer-events: none; }
-.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.38), transparent); }
-.gift-glint.run::before { animation: gift-glint 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* Блик: широкий и мягкий, проходит медленно и ровно (FX.8) */
+.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -70%; width: 55%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.07) 30%, rgb(255 246 220 / 0.26) 50%, rgb(255 246 220 / 0.07) 70%, transparent); }
+.gift-glint.run::before { animation: gift-glint 1.9s cubic-bezier(0.37, 0, 0.63, 1) both; }
 @keyframes gift-glint { to { transform: translateX(400%); } }
 .gift-up { position: absolute; left: 50%; top: -22px; z-index: 2; transform: translateX(-50%); white-space: nowrap; font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; pointer-events: none; }
 /* Описание: высота задаётся замером самого большого варианта (ui/gift.ts) — сцена не прыгает */
