@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { giftGreedy, playNight, shopGreedy } from '../src/core/ai/bot';
+import { giftGreedy, pickRoute, playNight, shopGreedy } from '../src/core/ai/bot';
 import { allContent } from '../src/core/content/pools';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
@@ -8,7 +8,7 @@ import { currentNode } from '../src/core/route';
 /**
  * Баланс-симуляция: жадный бот играет забеги, печатаем, где он падает и с каким
  * запасом проходит цели. Запуск: `npm run sim` (SIM=1, иначе пропускается).
- * `SIM_DEPTH=off` — без дара ночи (как до 0.7), `gift` — дар без тел, по умолчанию — всё.
+ * `SIM_DEPTH=off` — как до 0.7, `gift` — дар без тел и развилок, `routes` — дар и развилки без тел, по умолчанию — всё.
  */
 describe.skipIf(!process.env.SIM)('баланс', () => {
   it('кривая целей', () => {
@@ -19,14 +19,17 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
     // это и есть сложность. ~0.5 — «прошёл не думая», ~0.85+ — на грани.
     const used: Record<string, number[]> = {};
     const depth = process.env.SIM_DEPTH ?? 'all';
-    const unlocks = { ...allContent(), ...(depth === 'off' ? { gift: false, bodies: [] } : depth === 'gift' ? { bodies: [] } : {}) };
+    const unlocks = { ...allContent(), ...(depth === 'off' ? { gift: false, bodies: [], routes: false } : depth === 'gift' ? { bodies: [], routes: false } : depth === 'routes' ? { bodies: [] } : {}) };
     // Дар ночи (GF.6): сколько раз бот взял, сколько пропустил, какой стала колода к концу
     const gifts = { take: 0, skip: 0, deck: [] as number[] };
     for (let seed = 1; seed <= runs; seed++) {
       const run = newRun({ seed: seed * 7919, skyId: process.env.SIM_SKY ?? 'classic', gentle: !!process.env.SIM_GENTLE, gift: process.env.SIM_GIFT ? { gold: Number(process.env.SIM_GIFT) } : undefined, unlocks });
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 60) {
-        if (run.phase === 'map') startNight(run);
+        if (run.phase === 'map') {
+          pickRoute(run);
+          startNight(run);
+        }
         if (run.phase === 'night') {
           playNight(run);
           const key = `${run.ante}-${currentNode(run).kind}`;

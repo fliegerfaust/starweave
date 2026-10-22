@@ -14,7 +14,9 @@ export type RuleErrorCode =
   | 'noSlot'
   | 'badTargets'
   | 'badTarget'
-  | 'ritualUnavailable';
+  | 'ritualUnavailable'
+  /** Развилка главы: путь ещё не выбран. */
+  | 'noRoute';
 
 /** Недопустимое действие игрока. UI переводит код в подсказку, а не падает. */
 export class RuleError extends Error {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { routeOptions } from '../src/core/route';
 import { bestMove } from '../src/core/ai/bot';
 import { RULES_VERSION, apply, newLoggedRun, replay, type Command } from '../src/core/commands';
 import { omenDef } from '../src/core/content/omens';
@@ -18,7 +19,11 @@ function playLogged(seed: number, skyId: string, stake: number): RunState {
   };
   let guard = 0;
   while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 400) {
-    if (run.phase === 'map') apply(run, { c: 'startNight' });
+    if (run.phase === 'map') {
+      // Развилка (RT.1): путь — тоже команда журнала; чередуем Ночь и Яркую ночь
+      if (run.chapter.at < 0) apply(run, { c: 'route', node: routeOptions(run.chapter)[(run.ante + run.chapter.path.length) % 2]! });
+      apply(run, { c: 'startNight' });
+    }
     while (run.phase === 'night' && run.night?.result === 'playing') {
       const m = bestMove(run, 0);
       if (!m) break;
@@ -29,6 +34,9 @@ function playLogged(seed: number, skyId: string, stake: number): RunState {
       const shop = run.shop!;
       // Дар ночи: по очереди берём первый вариант и пропускаем
       if (run.pending[0]?.kind === 'gift') tryCmd(run.stats.nightsWon % 2 ? { c: 'choose', index: run.stats.nightsWon % 3 } : { c: 'skip' });
+      // Знамение Яркой ночи — первое, если есть место
+      if (run.pending[0]?.kind === 'pack') tryCmd({ c: 'choose', index: 0 });
+      if (run.pending[0]?.kind === 'pack') tryCmd({ c: 'skip' });
       shop.omens
         .map((item, slot) => ({ item, slot }))
         .filter(({ item }) => item.kind === 'omen' && !item.sold)
@@ -56,9 +64,12 @@ describe('журнал команд (TD.9)', () => {
   it('отклонённая команда в журнал не попадает', () => {
     const run = newLoggedRun({ seed: 1 });
     expect(() => apply(run, { c: 'leaveShop' })).toThrow(RuleError);
+    // На развилке ночь не начинается, пока путь не выбран
+    expect(() => apply(run, { c: 'startNight' })).toThrow(RuleError);
     expect(run.log!.cmds).toEqual([]);
+    apply(run, { c: 'route', node: routeOptions(run.chapter)[0]! });
     apply(run, { c: 'startNight' });
-    expect(run.log!.cmds).toEqual([{ c: 'startNight' }]);
+    expect(run.log!.cmds).toEqual([{ c: 'route', node: routeOptions(run.chapter)[0]! }, { c: 'startNight' }]);
   });
 
   it('журнал чужой версии правил не переигрывается', () => {

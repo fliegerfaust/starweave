@@ -4,6 +4,7 @@ import { burnCard, placeCard } from '../night';
 import { buyItem, buyOmen, omenSlots } from '../shop';
 import { omenDef } from '../content/omens';
 import { choose, currentChoice, skipChoice } from '../choices';
+import { chooseRoute, routeOptions } from '../route';
 import type { GiftOffer } from '../gift';
 import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
@@ -125,6 +126,19 @@ export function playNight(run: RunState, lookahead = LOOKAHEAD): void {
   }
 }
 
+/**
+ * Развилка главы (RT.1): Яркая ночь, пока есть место для Знамения и глава не поздняя, —
+ * иначе спокойная ночь. Без развилки ничего не делает.
+ */
+export function pickRoute(run: RunState): void {
+  const options = routeOptions(run.chapter);
+  if (run.phase !== 'map' || run.chapter.at >= 0 || !options.length) return;
+  const bright = options.find((i) => run.chapter.nodes[i]!.route === 'bright');
+  const night = options.find((i) => run.chapter.nodes[i]!.route === 'night');
+  const wantBright = run.omens.length < omenSlots(run) && run.ante <= 5;
+  chooseRoute(run, (wantBright ? bright : night) ?? options[0]!);
+}
+
 /** Ценность черт в даре для бота: подобрано симом (GF.6), пропуск — «чистое небо». */
 const GIFT_VALUE: Record<Glyph | BodyId, number> = {
   gilded: 2, blazing: 3, radiant: 3, echo: 3, glass: 3, prism: 2,
@@ -155,9 +169,19 @@ export function giftGreedy(run: RunState): void {
   else skipChoice(run);
 }
 
-/** Простая политика Обсерватории: дар ночи, Знамения по редкости, затем Звёздные карты. */
+/** Знамение 1 из 3 (Яркая ночь, пакет): самое редкое, если есть место, иначе пропуск. */
+export function omenPickGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'pack' || choice.pack !== 'omen') return;
+  if (run.omens.length >= omenSlots(run)) return skipChoice(run);
+  const best = choice.options.reduce((b, id, i) => (omenDef(id).rarity > omenDef(choice.options[b]!).rarity ? i : b), 0);
+  choose(run, best);
+}
+
+/** Простая политика Обсерватории: дар ночи, Знамение Яркой ночи, Знамения по редкости, затем Звёздные карты. */
 export function shopGreedy(run: RunState): void {
   giftGreedy(run);
+  omenPickGreedy(run);
   const shop = run.shop;
   if (!shop) return;
   const omens = shop.omens

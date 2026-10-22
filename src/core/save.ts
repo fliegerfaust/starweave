@@ -3,7 +3,7 @@ import { OMENS } from './content/omens';
 import { RITUALS } from './content/rituals';
 import { SKIES } from './content/skies';
 import { allContent } from './content/pools';
-import { planChapter } from './route';
+import { planChapter, ROUTE_KINDS } from './route';
 import { SAVE_VERSION } from './run';
 import { BODY_IDS, COMBO_IDS, GLYPHS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
 
@@ -21,7 +21,8 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
   // 2 (TD.6): место в главе — план главы `chapter` вместо номера ночи 0..2
   1(run) {
     if (!isInt(run.ante) || !Array.isArray(run.bosses) || !isInt(run.nightIndex)) return;
-    run.chapter = { ...planChapter({ ante: run.ante, bosses: run.bosses as string[] }), at: run.nightIndex };
+    // Тогда глава была цепочкой: узлы без пути и шагов — их допишет шаг 5
+    run.chapter = { nodes: planChapter({ ante: run.ante, bosses: run.bosses as string[] }).nodes.map(({ kind, bossId }) => ({ kind, bossId })), at: run.nightIndex };
     delete run.nightIndex;
   },
   // 3 (TD.7): открытый пакет Обсерватории — выбор в очереди `pending`; команды пакета в журнале — общие
@@ -46,6 +47,14 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
       run.unlocks.gift = false;
       run.unlocks.bodies = [];
     }
+  },
+  // 6 (RT.1): глава — граф с путём; старая цепочка из трёх ночей — тот же граф, без развилок
+  5(run) {
+    if (isObj(run.unlocks)) run.unlocks.routes = false;
+    const c = run.chapter;
+    if (!isObj(c) || !Array.isArray(c.nodes) || !isInt(c.at)) return;
+    c.nodes = (c.nodes as Raw[]).map((n, i, all) => ({ ...n, route: n.kind === 'eclipse' ? 'eclipse' : 'night', step: i + 1, next: i < all.length - 1 ? [i + 1] : [] }));
+    c.path = Array.from({ length: c.at }, (_, i) => i);
   },
 };
 
@@ -82,7 +91,7 @@ function isLog(log: unknown): boolean {
 function isUnlocks(u: unknown): boolean {
   return isObj(u) && Array.isArray(u.omens) && u.omens.every((id) => has(OMENS, id))
     && Array.isArray(u.rituals) && u.rituals.every((id) => has(RITUALS, id))
-    && typeof u.gift === 'boolean' && Array.isArray(u.bodies) && u.bodies.every(isBody);
+    && typeof u.gift === 'boolean' && Array.isArray(u.bodies) && u.bodies.every(isBody) && typeof u.routes === 'boolean';
 }
 
 const PACK_SET: Record<PackKind, true> = { omen: true, ritual: true, chart: true };
@@ -100,9 +109,14 @@ function isChoice(c: unknown): boolean {
   return c.options.every((id) => has(reg, id));
 }
 
+/** План главы: узлы с видами этой сборки, рёбра и путь — по индексам узлов. */
 function isChapter(c: unknown): boolean {
-  if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < 0 || c.at >= c.nodes.length) return false;
-  return c.nodes.every((n) => isObj(n) && (NIGHT_KINDS as readonly unknown[]).includes(n.kind) && (n.bossId === null || has(BOSSES, n.bossId)));
+  if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < -1 || c.at >= c.nodes.length) return false;
+  const n = c.nodes.length;
+  const index = (i: unknown) => isInt(i) && i >= 0 && i < n;
+  if (!Array.isArray(c.path) || !c.path.every(index)) return false;
+  return c.nodes.every((node) => isObj(node) && (NIGHT_KINDS as readonly unknown[]).includes(node.kind) && (node.bossId === null || has(BOSSES, node.bossId))
+    && (ROUTE_KINDS as readonly unknown[]).includes(node.route) && isInt(node.step) && Array.isArray(node.next) && node.next.every(index));
 }
 
 /**
