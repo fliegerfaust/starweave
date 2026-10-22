@@ -71,6 +71,8 @@ body {
   touch-action: none;
 }
 #stage canvas { display: block; }
+/* Цифры подсчёта поверх интерфейса, ниже окон (FX.5) */
+.fx-overlay { position: fixed; left: 0; top: 0; z-index: 15; pointer-events: none; }
 
 #ui {
   position: fixed;

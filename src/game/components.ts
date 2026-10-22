@@ -25,6 +25,8 @@ export enum Layer {
   Hand = 40,
   Dragged = 50,
   Popups = 60,
+  /** Цифры подсчёта: свой холст поверх интерфейса (FX.5) — шапка и рука их не закрывают. */
+  Overlay = 70,
 }
 
 export interface Drawable {

@@ -9,6 +9,13 @@
 export class Renderer {
   canvas!: HTMLCanvasElement;
   ctx!: CanvasRenderingContext2D;
+  /**
+   * Прозрачный холст поверх интерфейса (FX.5): на нём цифры подсчёта. Основной холст лежит
+   * под слоем DOM (шапка, формула, рука), и на телефоне цифры у краёв поля уходили под него.
+   * Выше интерфейса, но ниже окон (z-index 15 < 20 у окон), касания пропускает.
+   */
+  overlay!: HTMLCanvasElement;
+  overlayCtx!: CanvasRenderingContext2D;
   width = 0;
   height = 0;
   dpr = 1;
@@ -59,6 +66,19 @@ export class Renderer {
     else this.host.append(canvas);
     this.canvas = canvas;
     this.ctx = ctx;
+    const overlay = document.createElement('canvas');
+    overlay.className = 'fx-overlay';
+    overlay.width = canvas.width;
+    overlay.height = canvas.height;
+    overlay.style.width = `${w}px`;
+    overlay.style.height = `${h}px`;
+    overlay.setAttribute('aria-hidden', 'true');
+    const octx = overlay.getContext('2d');
+    if (!octx) throw new Error('Canvas2D недоступен');
+    if (this.overlay) this.overlay.replaceWith(overlay);
+    else document.body.append(overlay);
+    this.overlay = overlay;
+    this.overlayCtx = octx;
     for (const fn of this.resizeListeners) fn();
   }
 
@@ -86,6 +106,17 @@ export class Renderer {
     this.slowFrames = 0;
     this.sampled = 0;
     this.resize();
+  }
+
+  /** Холст поверх интерфейса: очистить и подготовить к кадру (с тем же смещением камеры). */
+  beginOverlay(offsetX = 0, offsetY = 0): CanvasRenderingContext2D {
+    const { overlayCtx: ctx, dpr } = this;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+    ctx.setTransform(dpr, 0, 0, dpr, offsetX * dpr, offsetY * dpr);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    return ctx;
   }
 
   /** Начало кадра: сброс трансформации с учётом DPR и смещения камеры. */
