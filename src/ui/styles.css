@@ -1459,11 +1459,15 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .sm-star.open .sm-orb::before { animation: none; } }
 
 /* Плашка: до выбора — варианты строками, после — детали выбранного */
-.sm-detail { position: relative; overflow: hidden; display: grid; align-content: center; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
+.sm-detail { position: relative; overflow: hidden; display: grid; align-content: stretch; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
 .map.sm.land .sm-detail { padding: 10px 12px; gap: 6px; min-height: 0; }
 .map.sm.wide .sm-detail { padding: 16px 18px; }
-/* Содержимое плашки — один блок: гаснет и проявляется целиком (FX.2, без отпечатков в WebKit) */
-.sm-body { display: grid; align-content: center; gap: inherit; transition: opacity 0.18s ease; }
+/*
+ * Содержимое плашки — один блок на всю её высоту: гаснет и проявляется целиком (FX.2). Блок
+ * всегда одного размера: если он короче плашки и центрируется, iOS Safari не перерисовывает
+ * освободившуюся полосу, и строка «дальше» оставляла отпечаток на прошлом месте.
+ */
+.sm-body { display: grid; align-content: center; gap: inherit; height: 100%; min-height: 0; transition: opacity 0.18s ease; }
 .sm-detail.swap > .sm-body { opacity: 0; }
 .sm-cap { text-align: center; font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
 .sm-opts { display: grid; }
