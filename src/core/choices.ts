@@ -1,17 +1,23 @@
 import { RuleError } from './errors';
 import { skipGift, takeGift, type GiftOffer } from './gift';
+import { walk } from './route';
+import { takeComet, takeScope, type CometTrade, type ScopeUpgrade } from './wonders';
 import { createOmen } from './omen-instance';
 import { applyRitual, omenSlots } from './shop';
 import type { ComboId, PackKind, RunState } from './types';
 
 /**
  * Выбор «возьми одно из нескольких» в очереди `run.pending` (TD.7): пакет Обсерватории и
- * дар ночи (GF.1). 0.7 «Глубина» добавит трофей Затмения, Знамение Яркой ночи, Комету и
+ * дар ночи (GF.1), Комета и Телескоп (RT.4). 0.7 «Глубина» добавит трофей Затмения и
  * пророчество — новым вариантом здесь и строкой в `CHOICE_KINDS`.
  */
 export type Choice =
   | { kind: 'pack'; pack: PackKind; options: string[] }
-  | { kind: 'gift'; options: GiftOffer[] };
+  | { kind: 'gift'; options: GiftOffer[] }
+  /** Комета на пути главы (RT.4): обмен 1 из 3 или мимо. */
+  | { kind: 'comet'; options: CometTrade[] }
+  /** Телескоп на пути главы (RT.4): улучшение 1 из 3 или мимо. */
+  | { kind: 'telescope'; options: ScopeUpgrade[] };
 
 /** Как взять вариант выбора каждого вида. `targets` — карты колоды для ритуала. */
 interface ChoiceKindDef<C extends Choice> {
@@ -20,6 +26,8 @@ interface ChoiceKindDef<C extends Choice> {
   take(run: RunState, choice: C, index: number, targets: number[]): void;
   /** Что даёт отказ: у дара — золото «чистого неба». */
   skip?(run: RunState, choice: C): void;
+  /** После выбора или отказа: Комета и Телескоп — шаг пути пройден. */
+  done?(run: RunState): void;
 }
 
 /** `Record` по видам: новый вид выбора без правил взятия — ошибка типов. */
@@ -38,6 +46,16 @@ const CHOICE_KINDS: { [K in Choice['kind']]: ChoiceKindDef<Extract<Choice, { kin
     canTake: () => true,
     take: (run, choice, index) => takeGift(run, choice.options[index]!),
     skip: (run) => skipGift(run),
+  },
+  comet: {
+    canTake: () => true,
+    take: (run, choice, index) => takeComet(run, choice.options[index]!),
+    done: walk,
+  },
+  telescope: {
+    canTake: () => true,
+    take: (run, choice, index) => takeScope(run, choice.options[index]!),
+    done: walk,
   },
 };
 
@@ -68,12 +86,15 @@ export function choose(run: RunState, index: number, targets: number[] = []): vo
   if (!def.canTake(run, choice)) throw new RuleError('noSlots');
   def.take(run, choice, index, targets);
   run.pending.shift();
+  def.done?.(run);
 }
 
 /** Отказаться от текущего выбора. */
 export function skipChoice(run: RunState): void {
   const choice = currentChoice(run);
   if (!choice) throw new RuleError('nothing');
-  kindOf(choice).skip?.(run, choice);
+  const def = kindOf(choice);
+  def.skip?.(run, choice);
   run.pending.shift();
+  def.done?.(run);
 }

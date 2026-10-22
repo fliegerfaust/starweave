@@ -1,6 +1,6 @@
 import { LINEAR } from './helpers';
 import { describe, expect, it } from 'vitest';
-import { bestMove, pickRoute, shopGreedy } from '../src/core/ai/bot';
+import { bestMove, enterNight, shopGreedy } from '../src/core/ai/bot';
 import { placeCard, previewTurn, startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import type { RunState } from '../src/core/types';
@@ -19,10 +19,7 @@ describe('прогноз на песочнице (TD.16)', () => {
     for (const seed of [11, 202, 3003]) {
       const run = newRun({ seed, skyId: seed === 202 ? 'astrolabe' : 'classic', unlocks: LINEAR });
       for (let guard = 0; guard < 200 && run.phase !== 'gameOver' && run.phase !== 'victory'; guard++) {
-        if (run.phase === 'map') {
-          pickRoute(run);
-          startNight(run);
-        }
+        if (run.phase === 'map') enterNight(run);
         if (run.phase === 'night' && run.night) {
           const before = JSON.stringify(run);
           const n = run.night;

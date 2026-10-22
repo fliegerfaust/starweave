@@ -2,7 +2,7 @@ import { assertNever } from './errors';
 import { burnCard, placeCard, startNight } from './night';
 import { collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight, type NewRunOptions } from './run';
 import { choose, skipChoice } from './choices';
-import { chooseRoute } from './route';
+import { chooseRoute, visitWonder } from './route';
 import { banishCard, buyItem, buyOmen, buyPack, moveOmen, reroll, sellOmen } from './shop';
 import type { GameEvent, RunState } from './types';
 
@@ -15,6 +15,8 @@ export type Command =
   | { c: 'startNight' }
   /** Выбрать узел пути на развилке главы (RT.1). */
   | { c: 'route'; node: number }
+  /** Войти в Комету или Телескоп — шаг пути без ночи (RT.4). */
+  | { c: 'visit' }
   | { c: 'place'; hand: number; cell: number }
   | { c: 'burn'; hand: number }
   | { c: 'collectReward' }
@@ -72,6 +74,9 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
       return startNight(run);
     case 'route':
       chooseRoute(run, cmd.node);
+      return [];
+    case 'visit':
+      visitWonder(run);
       return [];
     case 'place':
       return placeCard(run, cmd.hand, cmd.cell);

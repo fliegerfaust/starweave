@@ -6,7 +6,7 @@ import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
 import { allContent, type Unlocks } from './content/pools';
-import { currentNode, isLastNight, passNode, planChapter } from './route';
+import { currentNode, isLastNight, planChapter, walk } from './route';
 import { generateShop, omenOptions } from './shop';
 import { offer } from './choices';
 import { rollGift } from './gift';
@@ -93,7 +93,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
 
 /** Снимок открытий из журнала до 0.7 — без дара и тел, как и игрался. */
 function normalizeUnlocks(u: Unlocks): Unlocks {
-  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false };
+  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false };
 }
 
 /**
@@ -123,10 +123,11 @@ export function leaveShop(run: RunState): void {
   if (run.pending.length) throw new RuleError('nothing');
   run.shop = null;
   if (!isLastNight(run)) {
-    passNode(run.chapter);
+    walk(run);
     run.phase = 'map';
     return;
   }
+  walk(run);
   run.ante += 1;
   if (run.ante > FINAL_ANTE && !run.endless) {
     run.phase = 'victory';

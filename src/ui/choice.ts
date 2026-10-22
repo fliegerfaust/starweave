@@ -24,8 +24,8 @@ interface OptionView {
   bonus: string;
 }
 
-/** Выборы строками; дар ночи — своя сцена веером (`ui/gift.ts`). */
-type RowChoice = Exclude<Choice, { kind: 'gift' }>;
+/** Выборы строками — пакет; дар ночи, Комета и Телескоп — свои сцены. */
+type RowChoice = Extract<Choice, { kind: 'pack' }>;
 
 /** Как показать вариант выбора каждого вида: новый вид без вида — ошибка типов. */
 const OPTION_VIEWS: { [K in RowChoice['kind']]: (run: RunState, choice: Extract<RowChoice, { kind: K }>, id: string) => OptionView } = {
@@ -66,7 +66,7 @@ function ribbon(choice: RowChoice): [string, string] {
  */
 export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): ModalHandle | null {
   const choice = currentChoice(run);
-  if (!choice || choice.kind === 'gift') return null;
+  if (!choice || choice.kind !== 'pack') return null;
   app.svc.audio.ignite(1);
   let handle: ModalHandle | null = null;
   const blocked = !canTakeChoice(run);

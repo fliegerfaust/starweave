@@ -1,7 +1,7 @@
 import { LINEAR } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { GIFT_SKIP_GOLD } from '../src/core/content/balance';
-import { pickRoute, playNight, shopGreedy } from '../src/core/ai/bot';
+import { enterNight, playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
@@ -140,10 +140,7 @@ describe('фаззинг: бот проходит много забегов бе
       run.omens = run.omens.slice(0, 5);
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 40) {
-        if (run.phase === 'map') {
-          pickRoute(run);
-          startNight(run);
-        }
+        if (run.phase === 'map') enterNight(run);
         if (run.phase === 'night') playNight(run, 0);
         if (run.phase === 'reward') collectReward(run);
         if (run.phase === 'shop') {

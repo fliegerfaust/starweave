@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { pickRoute } from '../src/core/ai/bot';
 import { BRIGHT_TARGET_SCALE } from '../src/core/content/balance';
-import { allContent } from '../src/core/content/pools';
+import { allContent, baseContent } from '../src/core/content/pools';
+import { skipChoice } from '../src/core/choices';
+import { COMET_EVENTS, rollComet, rollScope, takeComet, takeScope } from '../src/core/wonders';
 import { runNightTarget } from '../src/core/content/stakes';
 import { RuleError } from '../src/core/errors';
 import { startNight } from '../src/core/night';
-import { chooseRoute, currentNode, nextStop, planChapter, routeOptions } from '../src/core/route';
+import { chooseRoute, currentNode, isWonder, nextStop, planChapter, routeOptions, visitWonder } from '../src/core/route';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
 import type { RunState } from '../src/core/types';
 import { LINEAR } from './helpers';
 
-const forked = (seed = 7) => newRun({ seed, unlocks: allContent() });
+/** Развилки ступени 2: Ночь и Яркая ночь, без Кометы и Телескопа. */
+const forked = (seed = 7) => newRun({ seed, unlocks: { ...allContent(), wonders: false } });
+const wondrous = (seed = 7) => newRun({ seed, unlocks: allContent() });
 /** Ночь будто выиграна: забег на экране награды. */
 function win(run: RunState): void {
   run.phase = 'reward';
@@ -112,5 +116,78 @@ describe('развилки главы (RT.1)', () => {
     const run = forked();
     pickRoute(run);
     expect(currentNode(run).route).toBe('bright');
+  });
+
+  it('ступень 6: на каждом шаге ещё Комета или Телескоп, и в любом пути есть ночь', () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const run = wondrous(seed);
+      const { nodes } = run.chapter;
+      const wonders = nodes.filter((n) => isWonder(n.route)).map((n) => n.route).sort();
+      expect(wonders).toEqual(['comet', 'telescope']);
+      // Из шага без ночи — только в ночь
+      for (const n of nodes) if (isWonder(n.route)) expect(n.next.every((j) => !isWonder(nodes[j]!.route))).toBe(true);
+    }
+  });
+
+  it('Комета: обмен 1 из 3, шаг без ночи пройден, путь записан', () => {
+    const run = wondrous(3);
+    run.gold = 20;
+    const comet = routeOptions(run.chapter).find((i) => run.chapter.nodes[i]!.route === 'comet') ?? routeOptions(run.chapter).find((i) => run.chapter.nodes[i]!.route === 'telescope')!;
+    chooseRoute(run, comet);
+    expect(() => startNight(run)).toThrow(RuleError);
+    visitWonder(run);
+    const choice = run.pending[0]!;
+    expect(['comet', 'telescope']).toContain(choice.kind);
+    expect(choice.options.length).toBeGreaterThan(0);
+    expect(choice.options.length).toBeLessThanOrEqual(3);
+    skipChoice(run);
+    expect(run.chapter.path).toEqual([comet]);
+    expect(run.journey![0]).toEqual([{ route: run.chapter.nodes[comet]!.route, col: expect.any(Number), of: 3 }]);
+    expect(run.phase).toBe('map');
+  });
+
+  it('все 10 обменов Кометы и 3 улучшения Телескопа применяются', () => {
+    const base = newRun({ seed: 5, unlocks: allContent() });
+    base.gold = 40;
+    base.omens.push({ uid: 900, id: 'stardust', data: {} });
+    base.comboLevels.pair = 3;
+    const seen = new Set<string>();
+    for (let seed = 1; seed < 200 && seen.size < COMET_EVENTS.length; seed++) {
+      const run = structuredClone(base);
+      run.rng = { s: seed };
+      for (const t of rollComet(run)) {
+        const copy = structuredClone(run);
+        const before = JSON.stringify([copy.deck, copy.omens, copy.gold, copy.comboLevels]);
+        takeComet(copy, t);
+        expect(JSON.stringify([copy.deck, copy.omens, copy.gold, copy.comboLevels]), t.e).not.toBe(before);
+        seen.add(t.e);
+      }
+    }
+    expect([...seen].sort()).toEqual([...COMET_EVENTS].sort());
+    const run = structuredClone(base);
+    const ups = rollScope(run);
+    expect(ups.map((u) => u.u)).toEqual(['chart', 'glyph', 'banish']);
+    for (const u of ups) {
+      const copy = structuredClone(run);
+      takeScope(copy, u);
+      expect(JSON.stringify([copy.deck, copy.comboLevels])).not.toBe(JSON.stringify([run.deck, run.comboLevels]));
+    }
+  });
+
+  it('путь каждой главы записан для созвездия итогов (RT.3), переживает сохранение', () => {
+    const run = forked();
+    chooseRoute(run, routeOptions(run.chapter)[1]!);
+    pass(run);
+    chooseRoute(run, routeOptions(run.chapter)[0]!);
+    pass(run);
+    pass(run);
+    expect(run.journey![0]!.map((s) => s.route)).toEqual([...run.journey![0]!.slice(0, 2).map((s) => s.route), 'eclipse']);
+    expect(run.journey![0]![0]).toMatchObject({ col: 1, of: 2 });
+    expect(run.journey![0]![2]).toMatchObject({ route: 'eclipse', col: 0, of: 1 });
+    expect(deserializeRun(serializeRun(run))!.journey).toEqual(run.journey);
+  });
+
+  it('вызов дня: развилки есть, Кометы и Телескопа нет', () => {
+    expect(baseContent()).toMatchObject({ routes: true, wonders: false });
   });
 });

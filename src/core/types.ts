@@ -1,7 +1,7 @@
 import type { Unlocks } from './content/pools';
 import type { Choice } from './choices';
 import type { RunLog } from './commands';
-import type { Chapter } from './route';
+import type { Chapter, JourneyStep } from './route';
 import type { RngState } from './rng';
 
 // ─── Карты ─────────────────────────────────────────────────────────────────
@@ -262,6 +262,8 @@ export interface RunState {
   doubledAnte?: number;
   /** Сколько линий уже записано в профиль (забег после победы продолжается). */
   recordedLines?: number;
+  /** Путь каждой главы (RT.3): индекс — глава − 1; рисуется созвездием в итогах забега. */
+  journey?: JourneyStep[][];
 }
 
 // ─── События для презентера ───────────────────────────────────────────────

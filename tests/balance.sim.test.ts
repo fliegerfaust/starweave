@@ -1,7 +1,6 @@
 import { describe, it } from 'vitest';
-import { giftGreedy, pickRoute, playNight, shopGreedy } from '../src/core/ai/bot';
+import { giftGreedy, enterNight, playNight, shopGreedy } from '../src/core/ai/bot';
 import { allContent } from '../src/core/content/pools';
-import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { currentNode } from '../src/core/route';
 
@@ -26,10 +25,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
       const run = newRun({ seed: seed * 7919, skyId: process.env.SIM_SKY ?? 'classic', gentle: !!process.env.SIM_GENTLE, gift: process.env.SIM_GIFT ? { gold: Number(process.env.SIM_GIFT) } : undefined, unlocks });
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 60) {
-        if (run.phase === 'map') {
-          pickRoute(run);
-          startNight(run);
-        }
+        if (run.phase === 'map') enterNight(run);
         if (run.phase === 'night') {
           playNight(run);
           const key = `${run.ante}-${currentNode(run).kind}`;

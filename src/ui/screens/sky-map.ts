@@ -1,6 +1,6 @@
 import { bossSigil } from '@/art/sigil';
 import { FINAL_ANTE } from '@/core/content/balance';
-import { nextStop, planNight, routeOptions, type Chapter, type ChapterNode, type NightPlan, type RouteKind } from '@/core/route';
+import { isWonder, nextStop, planNight, routeOptions, type Chapter, type ChapterNode, type NightPlan, type RouteKind } from '@/core/route';
 import type { RunState } from '@/core/types';
 import type { App } from '@/game/app';
 import { named, num, t } from '@/i18n';
@@ -18,6 +18,8 @@ const SVG = 'http://www.w3.org/2000/svg';
 const ROUTE_ICON: Record<Exclude<RouteKind, 'eclipse'>, string> = {
   night: '<path d="M12 3.5c.5 4.2 1.8 6.5 6.5 8.5-4.7 2-6 4.3-6.5 8.5-.5-4.2-1.8-6.5-6.5-8.5 4.7-2 6-4.3 6.5-8.5Z" fill="currentColor"/>',
   bright: '<circle cx="12" cy="12" r="9.3" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/><path d="M12 2.8c.6 5 2 7.2 6.8 9.2-4.8 2-6.2 4.2-6.8 9.2-.6-5-2-7.2-6.8-9.2 4.8-2 6.2-4.2 6.8-9.2Z" fill="currentColor"/><path d="M4.6 4.6l2 2M19.4 4.6l-2 2M4.6 19.4l2-2M19.4 19.4l-2-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+  comet: '<circle cx="16" cy="8" r="3.6" fill="currentColor"/><path d="M13.4 10.6 4 20M14.6 12.4 8 19M11.6 9.4 5 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".75"/>',
+  telescope: '<path d="m4 14 11-6.5 2 3.4L6 17.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m15.5 6.8 2.6-1.5 2 3.4-2.6 1.5M10.5 15.5 8 21M11.5 15l2.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
 function routeIcon(kind: RouteKind): HTMLElement {
@@ -197,8 +199,8 @@ export class SkyMap {
           return h('div.sm-o', null, [
             p.bossId ? sigil(p.bossId, 18) : routeIcon(p.route),
             h('b', null, p.bossId ? named('boss', p.bossId).name : t(`route.${p.route}`)),
-            h('span.t', null, num(p.target)),
-            h('span.g', null, [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
+            isWonder(p.route) ? h('span.t.no', null, t('route.noNight')) : h('span.t', null, num(p.target)),
+            h('span.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
           ]);
         })),
       ];
@@ -214,9 +216,9 @@ export class SkyMap {
         h('div', null, [h('b', null, boss ? named('boss', boss).name : t(`route.${p.route}`)), h('small', null, boss ? named('boss', boss).desc : t(`route.why.${p.route}`))]),
       ]),
       h('div.sm-facts', null, [
-        cell('waits', h('b', null, [num(p.target), p.route === 'bright' ? h('span.x', null, ' ×1.35') : null])),
-        cell('gives', h('b.g', null, [`+${p.reward} `, coin(), p.route === 'bright' ? ` + ${t('route.omen')}` : ''])),
-        cell('then', h('b', null, boss ? (last ? t('route.victory') : t('map.chapter', { n: roman(this.ante + 1) })) : t('route.shop'))),
+        cell('waits', h('b', null, isWonder(p.route) ? t('route.noNight') : [num(p.target), p.route === 'bright' ? h('span.x', null, ' ×1.35') : null])),
+        cell('gives', h('b.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` + ${t('route.omen')}` : ''])),
+        cell('then', h('b', null, boss ? (last ? t('route.victory') : t('map.chapter', { n: roman(this.ante + 1) })) : isWonder(p.route) ? t('route.straightOn') : t('route.shop'))),
       ]),
       ahead.length
         ? h('div.sm-next', null, [t('route.further'), arrow(), ...ahead.flatMap((j, k) => {
@@ -259,7 +261,7 @@ export class SkyMap {
     this.sel = i;
     const p = this.plans[i]!;
     (this.go as HTMLButtonElement).disabled = false;
-    this.goLabel.replaceChildren(p.bossId ? t('route.meetEclipse') : t('night.begin'), p.bossId ? '' : h('small', null, t(`route.${p.route}`)));
+    this.goLabel.replaceChildren(p.bossId ? t('route.meetEclipse') : isWonder(p.route) ? t('route.go') : t('night.begin'), p.bossId ? '' : h('small', null, t(`route.${p.route}`)));
     this.fill(i);
     this.paint();
   }
