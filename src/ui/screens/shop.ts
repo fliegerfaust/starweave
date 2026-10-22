@@ -19,6 +19,7 @@ import { showGift } from '../gift';
 import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
+import { rich } from '../rich';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -291,7 +292,7 @@ export class ShopScreen implements Screen {
             h('div.ritual-card', null, cardThumb(old)),
             h('span.arrow', null, '→'),
             h('div.ritual-card.flip', { style: { animationDelay: delay } }, cardThumb(now)),
-            now.glyph && now.glyph !== old.glyph ? h('span.ritual-note', null, `${t(`glyph.${now.glyph}`)}: ${dict().glyphDesc[now.glyph]}`) : null,
+            now.glyph && now.glyph !== old.glyph ? h('span.ritual-note', null, [`${t(`glyph.${now.glyph}`)}: `, rich(dict().glyphDesc[now.glyph])]) : null,
           ]),
         );
         i++;
@@ -359,7 +360,7 @@ export class ShopScreen implements Screen {
     const info = title ?? named('ritual', ritualId);
     const m = modal(
       [
-        h('p.modal-text', null, info.desc),
+        h('p.modal-text', null, rich(info.desc)),
         h('p.hint', null, max === 1 ? t('shop.pickTarget') : t('shop.pickTargets', { min: def.minTargets, max })),
         ritualId.startsWith('glyph-') ? h('p.hint.order-warn', null, t('shop.glyphReplace')) : null,
         grid,
