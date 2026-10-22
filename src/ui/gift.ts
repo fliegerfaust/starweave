@@ -101,12 +101,13 @@ export function showGift(app: App, run: RunState, choice: Extract<Choice, { kind
    * Переворот до ребра и обратно: на ребре лицо меняется на рубашку. Без backface-visibility —
    * Safari не прячет обратную сторону, если на ней canvas.
    */
+  // Плавно (FX.8): мягкий разгон до ребра и мягкое торможение после (синусоида), без рывка
   const flipTo = async (s: (typeof slots)[number], face: boolean, duration: number, delay: number): Promise<void> => {
-    const half = { duration: duration / 2, easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' as const };
-    await s.flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { ...half, delay }).finished.catch(() => undefined);
+    const half = { duration: duration / 2, easing: 'cubic-bezier(0.37, 0, 0.63, 1)', fill: 'forwards' as const };
+    await s.flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { ...half, easing: 'cubic-bezier(0.12, 0, 0.39, 0)', delay }).finished.catch(() => undefined);
     s.face.style.visibility = face ? '' : 'hidden';
     s.back.style.visibility = face ? 'hidden' : '';
-    await s.flip.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { ...half, easing: EASE }).finished.catch(() => undefined);
+    await s.flip.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { ...half, easing: 'cubic-bezier(0.61, 1, 0.88, 1)' }).finished.catch(() => undefined);
   };
   const showSide = (s: (typeof slots)[number], face: boolean): void => {
     s.face.style.visibility = face ? '' : 'hidden';
@@ -178,9 +179,9 @@ export function showGift(app: App, run: RunState, choice: Extract<Choice, { kind
       const dx = deck.x - (r.left + r.width / 2);
       const dy = deck.y - (r.top + r.height / 2);
       const rest = fanRest(i, w);
-      return s.slot.animate([{ transform: `translate(${dx}px, ${dy}px) ${rest} scale(0.3)`, opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: rest, opacity: 1 }], { duration: 560, delay: 180 + i * 90, easing: EASE, fill: 'backwards' }).finished.catch(() => undefined);
+      return s.slot.animate([{ transform: `translate(${dx}px, ${dy}px) ${rest} scale(0.3)`, opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: rest, opacity: 1 }], { duration: 720, delay: 180 + i * 120, easing: EASE, fill: 'backwards' }).finished.catch(() => undefined);
     }));
-    await Promise.all(slots.map((s, i) => flipTo(s, true, 440, i * 130).then(() => app.svc.audio.tick())));
+    await Promise.all(slots.map((s, i) => flipTo(s, true, 760, i * 200).then(() => app.svc.audio.tick())));
     busy = false;
     glints();
   }
@@ -194,11 +195,11 @@ export function showGift(app: App, run: RunState, choice: Extract<Choice, { kind
         g.classList.remove('run');
         void g.offsetWidth;
         g.classList.add('run');
-        await wait(160);
+        await wait(420);
       }
     };
     void sweep();
-    glintTimer = window.setInterval(() => void sweep(), 3600);
+    glintTimer = window.setInterval(() => void sweep(), 4800);
   }
 
   /** Взять: копия карты по дуге уходит в «Колоду», соседи гаснут, число колоды подпрыгивает. */
@@ -242,7 +243,7 @@ export function showGift(app: App, run: RunState, choice: Extract<Choice, { kind
     busy = true;
     window.clearInterval(glintTimer);
     if (!calm) {
-      await Promise.all(slots.map((s, i) => flipTo(s, false, 380, i * 70)));
+      await Promise.all(slots.map((s, i) => flipTo(s, false, 600, i * 110)));
       const deck = deckPoint();
       app.svc.audio.coin();
       await Promise.all(slots.map((s, i) => {
