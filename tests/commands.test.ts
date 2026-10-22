@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { routeOptions } from '../src/core/route';
+import { currentNode, isWonder, routeOptions } from '../src/core/route';
 import { bestMove } from '../src/core/ai/bot';
 import { RULES_VERSION, apply, newLoggedRun, replay, type Command } from '../src/core/commands';
 import { omenDef } from '../src/core/content/omens';
@@ -21,7 +21,15 @@ function playLogged(seed: number, skyId: string, stake: number): RunState {
   while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 400) {
     if (run.phase === 'map') {
       // Развилка (RT.1): путь — тоже команда журнала; чередуем Ночь и Яркую ночь
-      if (run.chapter.at < 0) apply(run, { c: 'route', node: routeOptions(run.chapter)[(run.ante + run.chapter.path.length) % 2]! });
+      if (run.chapter.at < 0) apply(run, { c: 'route', node: routeOptions(run.chapter)[(run.ante + run.chapter.path.length) % routeOptions(run.chapter).length]! });
+      // Комета и Телескоп (RT.4): войти, взять первый вариант, который можно, — шаг пройден
+      if (isWonder(currentNode(run).route)) {
+        apply(run, { c: 'visit' });
+        const n = run.pending[0]!.options.length;
+        for (let i = 0; i < n && run.pending.length; i++) tryCmd({ c: 'choose', index: i });
+        if (run.pending.length) apply(run, { c: 'skip' });
+        continue;
+      }
       apply(run, { c: 'startNight' });
     }
     while (run.phase === 'night' && run.night?.result === 'playing') {
@@ -55,7 +63,7 @@ describe('журнал команд (TD.9)', () => {
   it('переигранный журнал даёт тот же забег', () => {
     for (const [seed, sky, stake] of [[7919, 'classic', 0], [15838, 'twins', 2], [23757, 'abyss', 1], [31676, 'astrolabe', 3]] as const) {
       const run = playLogged(seed, sky, stake);
-      expect(run.log!.cmds.length, `${sky}: в журнале есть ходы`).toBeGreaterThan(30);
+      expect(run.log!.cmds.length, `${sky}: в журнале есть ходы`).toBeGreaterThan(20);
       const again = replay(JSON.parse(JSON.stringify(run.log)))!;
       expect(again, sky).toEqual(run);
     }
@@ -67,9 +75,10 @@ describe('журнал команд (TD.9)', () => {
     // На развилке ночь не начинается, пока путь не выбран
     expect(() => apply(run, { c: 'startNight' })).toThrow(RuleError);
     expect(run.log!.cmds).toEqual([]);
-    apply(run, { c: 'route', node: routeOptions(run.chapter)[0]! });
+    const night = routeOptions(run.chapter).find((i) => run.chapter.nodes[i]!.route === 'night')!;
+    apply(run, { c: 'route', node: night });
     apply(run, { c: 'startNight' });
-    expect(run.log!.cmds).toEqual([{ c: 'route', node: routeOptions(run.chapter)[0]! }, { c: 'startNight' }]);
+    expect(run.log!.cmds).toEqual([{ c: 'route', node: night }, { c: 'startNight' }]);
   });
 
   it('журнал чужой версии правил не переигрывается', () => {

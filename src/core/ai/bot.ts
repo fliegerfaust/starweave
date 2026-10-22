@@ -1,10 +1,11 @@
 import { comboFeatures } from '../combos';
 import { activeCells, buildLines } from '../grid';
-import { burnCard, placeCard } from '../night';
+import { burnCard, placeCard, startNight } from '../night';
 import { buyItem, buyOmen, omenSlots } from '../shop';
 import { omenDef } from '../content/omens';
 import { choose, currentChoice, skipChoice } from '../choices';
-import { chooseRoute, routeOptions } from '../route';
+import { chooseRoute, currentNode, isWonder, routeOptions, visitWonder } from '../route';
+import { RuleError } from '../errors';
 import type { GiftOffer } from '../gift';
 import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
@@ -133,10 +134,38 @@ export function playNight(run: RunState, lookahead = LOOKAHEAD): void {
 export function pickRoute(run: RunState): void {
   const options = routeOptions(run.chapter);
   if (run.phase !== 'map' || run.chapter.at >= 0 || !options.length) return;
-  const bright = options.find((i) => run.chapter.nodes[i]!.route === 'bright');
-  const night = options.find((i) => run.chapter.nodes[i]!.route === 'night');
+  const find = (route: string) => options.find((i) => run.chapter.nodes[i]!.route === route);
   const wantBright = run.omens.length < omenSlots(run) && run.ante <= 5;
-  chooseRoute(run, (wantBright ? bright : night) ?? options[0]!);
+  // Телескоп — когда Знамения уже собраны: улучшить колоду без риска ночи
+  chooseRoute(run, (wantBright ? find('bright') : (find('telescope') ?? find('night'))) ?? find('night') ?? options[0]!);
+}
+
+/** Комета или Телескоп: первый вариант, который можно взять, иначе мимо. */
+export function wonderGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'comet' && choice?.kind !== 'telescope') return;
+  for (let i = 0; i < choice.options.length; i++) {
+    try {
+      return choose(run, i);
+    } catch (e) {
+      if (!(e instanceof RuleError)) throw e;
+    }
+  }
+  skipChoice(run);
+}
+
+/** С карты главы — до начала ночи: выбрать путь, пройти шаги без ночи, начать ночь. */
+export function enterNight(run: RunState): void {
+  while (run.phase === 'map') {
+    pickRoute(run);
+    if (isWonder(currentNode(run).route)) {
+      visitWonder(run);
+      wonderGreedy(run);
+      continue;
+    }
+    startNight(run);
+    return;
+  }
 }
 
 /** Ценность черт в даре для бота: подобрано симом (GF.6), пропуск — «чистое небо». */

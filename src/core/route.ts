@@ -1,16 +1,28 @@
 import { BRIGHT_TARGET_SCALE, FINAL_ANTE, GENTLE_NIGHT } from './content/balance';
 import { runNightReward, runNightTarget } from './content/stakes';
 import { RuleError } from './errors';
+import { offer } from './choices';
 import { createRng, hashSeed, shuffle } from './rng';
+import { rollComet, rollScope } from './wonders';
 import { buildRules } from './rules';
 import type { NightKind, Rules, RunState } from './types';
 
 /**
- * Вид шага пути (RT.1): обычная ночь, Яркая ночь (цель выше, Знамение 1 из 3), Затмение
- * главы. Комета и Телескоп (RT.4) встанут сюда же — шаги без ночи.
+ * Вид шага пути: обычная ночь, Яркая ночь (цель выше, Знамение 1 из 3), Затмение главы (RT.1),
+ * Комета (обмен) и Телескоп (улучшение) — шаги без ночи (RT.4).
  */
-export type RouteKind = 'night' | 'bright' | 'eclipse';
-export const ROUTE_KINDS: readonly RouteKind[] = ['night', 'bright', 'eclipse'];
+export type RouteKind = 'night' | 'bright' | 'eclipse' | 'comet' | 'telescope';
+export const ROUTE_KINDS: readonly RouteKind[] = ['night', 'bright', 'eclipse', 'comet', 'telescope'];
+
+/** Шаг без ночи: Комета и Телескоп. */
+export const isWonder = (route: RouteKind): route is 'comet' | 'telescope' => route === 'comet' || route === 'telescope';
+
+/** Шаг пути в журнале главы (RT.3): что выбрано и где оно стояло в ряду шага — для созвездия пути. */
+export interface JourneyStep {
+  route: RouteKind;
+  col: number;
+  of: number;
+}
 
 /**
  * Узел главы: какая ночь, чьё Затмение и куда из него можно пойти. `kind` — ступень главы
@@ -68,13 +80,16 @@ export function planChapter(run: PlanInput): Chapter {
   }
   const rng = createRng(hashSeed(`route:${run.seed ?? 0}:${run.ante}`));
   const nodes: ChapterNode[] = [];
+  // Ступень 6: на каждом шаге ещё Комета или Телескоп — шаг без ночи
+  const wonders = run.unlocks?.wonders ? shuffle(rng, ['comet', 'telescope'] as RouteKind[]) : [];
   for (const step of [1, 2]) {
-    const kinds = shuffle(rng, ['night', 'bright'] as RouteKind[]);
+    const kinds = shuffle(rng, ['night', 'bright', ...wonders.slice(step - 1, step)] as RouteKind[]);
     for (const route of kinds) nodes.push({ kind: STEP_KINDS[step - 1]!, bossId: null, route, step, next: [] });
   }
   nodes.push({ kind: 'eclipse', bossId, route: 'eclipse', step: 3, next: [] });
-  // Из каждого узла — в любой узел следующего шага
-  nodes.forEach((n) => (n.next = nodes.flatMap((m, j) => (m.step === n.step + 1 ? [j] : []))));
+  // Из каждого узла — в любой узел следующего шага; из шага без ночи — только в ночь:
+  // до Затмения в любом пути хотя бы одна ночь
+  nodes.forEach((n) => (n.next = nodes.flatMap((m, j) => (m.step === n.step + 1 && !(isWonder(n.route) && isWonder(m.route)) ? [j] : []))));
   return { nodes, at: -1, path: [] };
 }
 
@@ -101,6 +116,17 @@ function arrive(chapter: Chapter): void {
   chapter.at = options.length === 1 ? options[0]! : -1;
 }
 
+/**
+ * Войти в шаг без ночи (команда `visit`): Комета или Телескоп кладут свой выбор в очередь;
+ * когда его возьмут или пропустят, шаг пройден (`choices.ts`).
+ */
+export function visitWonder(run: RunState): void {
+  const node = run.phase === 'map' && run.chapter.at >= 0 ? run.chapter.nodes[run.chapter.at]! : null;
+  if (!node || !isWonder(node.route) || run.pending.length) throw new RuleError('nothing');
+  if (node.route === 'comet') offer(run, { kind: 'comet', options: rollComet(run) });
+  else offer(run, { kind: 'telescope', options: rollScope(run) });
+}
+
 /** Выбрать узел пути на развилке (команда `route`). */
 export function chooseRoute(run: RunState, node: number): void {
   if (run.phase !== 'map') throw new RuleError('notMap');
@@ -112,6 +138,15 @@ export function chooseRoute(run: RunState, node: number): void {
 export function passNode(chapter: Chapter): void {
   chapter.path.push(chapter.at);
   arrive(chapter);
+}
+
+/** Узел пройден в забеге: шаг — в журнал пути главы (RT.3), глава — дальше. */
+export function walk(run: RunState): void {
+  const node = run.chapter.nodes[run.chapter.at]!;
+  const row = run.chapter.nodes.flatMap((m, j) => (m.step === node.step ? [j] : []));
+  const journey = (run.journey ??= []);
+  (journey[run.ante - 1] ??= []).push({ route: node.route, col: row.indexOf(run.chapter.at), of: row.length });
+  passNode(run.chapter);
 }
 
 /**

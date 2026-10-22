@@ -464,6 +464,12 @@ export const en: Dict = {
     blackhole: 'Its line gets multiplier ×2, and it leaves the deck',
   },
   route: {
+    comet: 'Comet',
+    telescope: 'Telescope',
+    go: 'Go',
+    noNight: 'no night',
+    straightOn: 'straight on',
+    yields: { comet: 'trade 1 of 3', telescope: 'upgrade 1 of 3' },
     night: 'Night',
     bright: 'Bright night',
     eclipse: 'Eclipse',
@@ -483,6 +489,8 @@ export const en: Dict = {
       night: 'A calm step: gold and the Observatory',
       bright: 'Target a third higher, but a free Omen',
       eclipse: '',
+      comet: 'No night: give one thing, get another',
+      telescope: 'No night: a constellation level, a glyph or a card removed',
     },
   },
   gift: {

@@ -6,7 +6,7 @@ import { neighbours, traitOf } from './content/traits';
 import type { BaseCtx, CellFate } from './effects';
 import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
 import { shuffle, weightedPick } from './rng';
-import { currentNode, planNight } from './route';
+import { currentNode, isWonder, planNight } from './route';
 import { activeEffects, type ActiveEffect } from './effect-sources';
 import { scorePlacement } from './scoring';
 import { COMBO_IDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
@@ -87,6 +87,8 @@ export function startNight(run: RunState): GameEvent[] {
   if (run.phase !== 'map') throw new RuleError('notMap');
   // Развилка: путь сначала выбирают (команда `route`)
   if (run.chapter.at < 0) throw new RuleError('noRoute');
+  // Комета и Телескоп — без ночи: в них входят командой `visit`
+  if (isWonder(currentNode(run).route) || run.pending.length) throw new RuleError('nothing');
   const plan = planNight(run, currentNode(run));
   const { kind, bossId, rules } = plan;
   const cellCount = rules.gridSize * rules.gridSize;
