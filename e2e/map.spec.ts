@@ -156,3 +156,82 @@ test('карта неба: развилки без наложений, выбо�
   expect(failures, failures.slice(0, 10).join('\n')).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * Комета и Телескоп (RT.4, RT.7): на каждом устройстве и обоих языках — три строки одной
+ * высоты, всё на экране и ничего не вылезает (fit-audit), выбор строки ничего не сдвигает
+ * (правило Дениса), подсказка ключевого слова и следующая в цепочке — целиком в экране,
+ * «Обменять»/«Взять» проходит шаг: снова карта главы, путь записан.
+ */
+test('Комета и Телескоп: строки одной высоты, подсказки в экране, шаг пройден', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  const failures: string[] = [];
+  for (const lang of ['ru', 'en'])
+  for (const kind of ['comet', 'telescope']) {
+    const res = await page.evaluate(async ({ lang, kind }) => {
+      const { setLang } = await import('/src/i18n/index.ts');
+      const { planChapter } = await import('/src/core/route.ts');
+      setLang(lang as 'ru' | 'en');
+      type Node = { route: string; step: number };
+      type App = { profile: Record<string, unknown>; run: { gold: number; phase: string; chapter: { nodes: Node[]; path: number[] } }; runs: { startRun(s: string, d: boolean, st: number, seed: number): void; visitWonder(i: number): void } };
+      const app = (window as unknown as { starweave: App }).starweave;
+      document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
+      Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, bestAnte: 6, eclipses: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+      let seed = 4242;
+      for (; seed < 4600; seed++) if ((planChapter({ ante: 1, bosses: ['void'], seed, unlocks: { routes: true, wonders: true } } as never) as { nodes: Node[] }).nodes.some((n) => n.step === 1 && n.route === kind)) break;
+      app.runs.startRun('classic', false, 0, seed);
+      await new Promise((r) => setTimeout(r, 300));
+      app.run.gold = 20;
+      app.runs.visitWonder(app.run.chapter.nodes.findIndex((n) => n.route === kind && n.step === 1));
+      await new Promise((r) => setTimeout(r, 500));
+      const out: string[] = [];
+      const rows = [...document.querySelectorAll<HTMLElement>('.wd-row')];
+      if (rows.length !== 3) out.push(`строк ${rows.length}`);
+      if (new Set(rows.map((r) => Math.round(r.getBoundingClientRect().height))).size > 1) out.push('строки разной высоты');
+      const inView = (r: DOMRect) => r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+      for (const el of [...rows, ...document.querySelectorAll<HTMLElement>('.scene-acts .btn')]) if (!inView(el.getBoundingClientRect())) out.push(`за экраном: ${el.className}`);
+      const box = () => ['.wd-rows', '.wd-take', '.scene-ribbon'].map((s) => { const r = document.querySelector(s)!.getBoundingClientRect(); return `${Math.round(r.top)},${Math.round(r.height)},${Math.round(r.width)}`; }).join(' ');
+      const boxes = [box()];
+      for (const r of rows) {
+        r.click();
+        await new Promise((res) => setTimeout(res, 120));
+        boxes.push(box());
+      }
+      if (new Set(boxes).size > 1) out.push(`выбор сдвигает экран ${[...new Set(boxes)].join(' | ')}`);
+      // Подсказка ключевого слова и следующая в цепочке — целиком в экране
+      const kw = document.querySelector<HTMLElement>('.wd-row .kw');
+      if (!kw) out.push('нет ключевых слов');
+      else {
+        kw.click();
+        await new Promise((res) => setTimeout(res, 120));
+        const tip = () => document.querySelector<HTMLElement>('.kw-hint');
+        if (!tip() || !inView(tip()!.getBoundingClientRect())) out.push('подсказка не в экране');
+        const inner = tip()?.querySelector<HTMLElement>('.kw');
+        if (inner) {
+          inner.click();
+          await new Promise((res) => setTimeout(res, 120));
+          if (!tip()?.querySelector('.kw-back')) out.push('в цепочке нет «назад»');
+          if (!tip() || !inView(tip()!.getBoundingClientRect())) out.push('подсказка в цепочке не в экране');
+        }
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        if (tip()) out.push('Escape не закрыл подсказку');
+      }
+      return out;
+    }, { lang, kind });
+    const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas'));
+    const tag = `${lang} ${kind}`;
+    if (res.length) failures.push(`${tag}: ${res.slice(0, 3).join('; ')}`);
+    if (audit.length) failures.push(`${tag}: ${audit.slice(0, 2).join('; ')}`);
+    if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/${kind}.png` });
+    await page.locator('.wd-take').click();
+    await page.waitForTimeout(700);
+    const after = await page.evaluate(() => { const r = (window as unknown as { starweave: { run: { phase: string; chapter: { path: number[] } } } }).starweave.run; return `${r.phase} ${r.chapter.path.length}`; });
+    if (after !== 'map 1') failures.push(`${tag}: после выбора ${after}`);
+  }
+  expect(failures, failures.slice(0, 10).join('\n')).toEqual([]);
+  expect(errors).toEqual([]);
+});
