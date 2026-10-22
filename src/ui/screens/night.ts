@@ -15,6 +15,7 @@ import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
 import { showCombos, showDeck, showHelp, showSettings } from './common';
 import { icon } from '../icons';
+import { hasJourney, journeyCard } from '../journey';
 import { chapterChain, lightButton, sceneRibbon, sceneRows, sceneTally, sceneWindow, statsTable } from '../scene-window';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
@@ -326,11 +327,13 @@ export class NightScreen implements Screen {
       ? this.adButton(t('ads.revive'), () => this.app.runs.revive(), 'primary')
       : button(h('span.btn-row', null, [icon('again'), t('over.again')]), again);
     const pair = [revive ? button(h('span.btn-row', null, [icon('again'), t('over.again')]), again, { variant: 'secondary' }) : null, same ?? share].filter(Boolean) as HTMLElement[];
+    const path = hasJourney(run) ? journeyCard(run, run.daily ? null : () => this.sendChallenge(false)) : null;
     this.overlay = sceneWindow({
-      className: 'over',
+      className: `over${path ? ' with-path' : ''}`,
       label: t('over.lostTitle'),
       mid: [
         sceneRibbon(t('over.lostTitle'), run.daily ? `${t('menu.daily')} · ${reached}` : reached, true),
+        path,
         night ? sceneTally(night.score, night.target) : null,
         isRecord ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
         this.challengeVersus(false),
@@ -346,17 +349,26 @@ export class NightScreen implements Screen {
         ]),
       ],
     });
+    this.placePath(path);
+  }
+
+  /** На ПК открытка «Мой путь» — отдельной колонкой слева от итогов (крупно и читаемо). */
+  private placePath(path: HTMLElement | null): void {
+    if (!path || !this.overlay || !matchMedia('(min-width: 900px) and (min-height: 561px)').matches) return;
+    this.overlay.el.querySelector('.scene-inner')?.prepend(path);
   }
 
   private showVictory(): void {
     const run = this.run;
     const stake = run.stake ?? 0;
+    const path = hasJourney(run) ? journeyCard(run, run.daily ? null : () => this.sendChallenge(true)) : null;
     this.overlay = sceneWindow({
-      className: 'over victory',
+      className: `over victory${path ? ' with-path' : ''}`,
       label: t('over.winTitle'),
       mid: [
-        chapterChain(),
+        path ? null : chapterChain(),
         sceneRibbon(t('over.winTitle'), t('over.winSub', { sky: named('sky', run.skyId).name, stake: stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal') })),
+        path,
         run.stats.bestPlacement > this.app.runs.bestBefore ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
         this.challengeVersus(true),
         statsTable(run),
@@ -378,6 +390,7 @@ export class NightScreen implements Screen {
         ]),
       ],
     });
+    this.placePath(path);
   }
 
   /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */

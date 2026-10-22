@@ -1,4 +1,5 @@
 import { cloneCard } from './deck';
+import { allContent } from './content/pools';
 import { newRun } from './run';
 import { shuffle } from './rng';
 import type { Card, RunState, ShopState, Suit } from './types';
@@ -52,7 +53,8 @@ export const TUTORIAL_CELLS = {
 } as const;
 
 export function newTutorialRun(): RunState {
-  const run = newRun({ seed: 20261012 });
+  // Обучение — цепочка из трёх ночей, без развилок
+  const run = newRun({ seed: 20261012, unlocks: { ...allContent(), routes: false } });
   run.tutorial = true;
   run.gold = 4;
   return run;

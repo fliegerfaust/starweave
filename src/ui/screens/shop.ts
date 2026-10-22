@@ -4,7 +4,7 @@ import { COMBOS } from '@/core/content/combos';
 import { omenDef } from '@/core/content/omens';
 import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
-import { currentChoice } from '@/core/choices';
+import { currentChoice, type Choice } from '@/core/choices';
 import type { Command } from '@/core/commands';
 import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/core/shop';
 import type { Card, RunState, ShopItem } from '@/core/types';
@@ -15,6 +15,7 @@ import { canvasImg, dpr, h } from '../dom';
 import { bonusLine } from '../bonus';
 import { icon } from '../icons';
 import { showChoice } from '../choice';
+import { showGift } from '../gift';
 import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
@@ -82,7 +83,7 @@ export class ShopScreen implements Screen {
     const shop = run.shop!;
     const seen = [...shop.omens.flatMap((i) => (i.kind === 'omen' ? [i.omenId] : [])), ...run.omens.map((o) => o.id)];
     const open = currentChoice(run);
-    if (open?.pack === 'omen') seen.push(...open.options);
+    if (open?.kind === 'pack' && open.pack === 'omen') seen.push(...open.options);
     this.app.runs.progress({ e: 'omensShown', ids: seen }, run);
     const slots = omenSlots(run);
     // Прокрутка середины переживает пересборку экрана после покупки
@@ -359,17 +360,40 @@ export class ShopScreen implements Screen {
     );
   }
 
-  /** Выбор в очереди (купленный пакет) — общая сцена «Выбери одно» (`ui/choice.ts`). */
+  /**
+   * Выбор в очереди: дар ночи — веером (`ui/gift.ts`), купленный пакет — общая сцена
+   * «Выбери одно» (`ui/choice.ts`).
+   */
   private showPack(): void {
+    const choice = currentChoice(this.run);
+    if (choice?.kind === 'gift') {
+      // Экран Обсерватории пересобрали поверх открытого дара — второй дар не открываем
+      if (document.querySelector('.gift-scene')) return;
+      const shown = showGift(this.app, this.run, choice, {
+        take: (index) => this.takeGift(choice, index),
+        skip: () => this.act({ c: 'skip' }, 'coin', () => track('gift_skip', { ante: this.run.ante, deck: this.run.deck.length })),
+        deck: () => showDeck(this.run),
+      });
+      // Вариант дара не нарисовать (карту Возвышения убрали) — дар отменяется, чтобы не застрять
+      if (!shown) this.act({ c: 'skip' }, 'click');
+      return;
+    }
     showChoice(this.app, this.run, {
       take: (index, id, close) => this.takeFromPack(index, id, close),
       skip: () => this.act({ c: 'skip' }, 'click'),
     });
   }
 
+  private takeGift(choice: Extract<Choice, { kind: 'gift' }>, index: number): void {
+    const offer = choice.options[index]!;
+    const kind = offer.k === 'ascend' ? 'ascend' : offer.card.body ? 'body' : 'glyph';
+    const id = offer.k === 'ascend' ? 'ascend' : (offer.card.body ?? offer.card.glyph ?? '');
+    this.act({ c: 'choose', index }, 'coin', () => track('gift_take', { kind, id, ante: this.run.ante, deck: this.run.deck.length }));
+  }
+
   private takeFromPack(index: number, id: string, close: () => void): void {
     const choice = currentChoice(this.run);
-    if (!choice) return;
+    if (choice?.kind !== 'pack') return;
     close();
     const done = () => track('pack_choose', { pack: choice.pack, id });
     if (choice.pack === 'ritual') {

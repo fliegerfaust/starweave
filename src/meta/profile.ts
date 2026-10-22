@@ -43,6 +43,8 @@ export interface Profile {
   combosFound?: ComboId[];
   /** Первый крест уже был. */
   crossFound?: boolean;
+  /** Сколько Затмений побеждено за всё время — ступень «Небесные тела» (GF.3). */
+  eclipses?: number;
   /** Золото и Знамения пройденного обучения — ждут первого забега. */
   tutorialGift?: TutorialGift;
   /** Когда игрок впервые открыл игру (мс): первые сутки без межстраничной рекламы. */
@@ -124,6 +126,7 @@ export function sanitizeProfile(p: Raw): Profile {
   const combos = strs(p.combosFound).filter((id): id is ComboId => (COMBO_IDS as readonly string[]).includes(id));
   if (combos.length) out.combosFound = combos;
   if (p.crossFound === true) out.crossFound = true;
+  if (num(p.eclipses, 0) > 0) out.eclipses = num(p.eclipses, 0);
   if (isObj(p.tutorialGift)) out.tutorialGift = { gold: num(p.tutorialGift.gold, 0) };
   return out;
 }
@@ -180,6 +183,10 @@ export function isUnlocked(unlock: Unlock, p: Profile, owned: ReadonlySet<string
       return p.wins > 0;
     case 'linesTotal':
       return p.totalLines >= unlock.lines;
+    case 'runsDone':
+      return p.runs >= unlock.runs;
+    case 'eclipses':
+      return (p.eclipses ?? 0) >= unlock.count;
   }
 }
 

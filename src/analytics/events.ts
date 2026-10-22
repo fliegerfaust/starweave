@@ -48,6 +48,11 @@ export interface EventMap {
   shop_banish: { ante: number };
   shop_reroll: { cost: number; ante: number };
   pack_choose: { pack: string; id: string };
+  /** Дар ночи (GF.2): что взято и какой была колода до него. */
+  gift_take: { kind: string; id: string; ante: number; deck: number };
+  gift_skip: { ante: number; deck: number };
+  /** Комета или Телескоп (RT.4): взял вариант или прошёл мимо. */
+  wonder: { kind: string; ante: number };
 
   // ── Монетизация ────────────────────────────────────────────────────────
   ad_request: { kind: 'rewarded' | 'interstitial'; placement: string };

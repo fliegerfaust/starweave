@@ -27,6 +27,7 @@ export function buildDeck(spec: DeckSpec, firstId: number): { cards: Card[]; nex
 export function cloneCard(card: Card): Card {
   const copy: Card = { id: card.id, suit: card.suit, rank: card.rank };
   if (card.glyph) copy.glyph = card.glyph;
+  if (card.body) copy.body = card.body;
   return copy;
 }
 

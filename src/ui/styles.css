@@ -1270,6 +1270,51 @@ body.landscape .scene-acts > .scene-pair { min-width: 260px; }
 .scene-pair .btn { width: 100%; min-width: 0; padding-inline: 10px; }
 .scene-pair .btn .icon { display: none; }
 .scene-pair.one .btn .icon { display: inline-block; }
+/* ─── Дар ночи (GF.2, вариант C «Спокойный веер», выбор Дениса) ─────────── */
+/* Движутся только transform и opacity, торможение без отскока; растр карты не масштабируется вверх.
+   Слот держит место и наклон, карта при выборе только приподнимается; свет и кромка — слои прозрачности. */
+.gift-first { margin: -6px 0 0; max-width: 300px; text-align: center; font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.gift-fan { --w: 96px; position: relative; width: 100%; height: calc(var(--w) / 0.7 + 54px); }
+.gift-slot { position: absolute; left: 50%; top: 50%; width: var(--w); height: calc(var(--w) / 0.7); margin: calc(var(--w) / -1.4) 0 0 calc(var(--w) / -2); }
+.gift-card { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; perspective: 700px; transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1); }
+.gift-card.sel { transform: translateY(-14px); }
+.gift-card:focus-visible { outline: none; }
+.gift-card:focus-visible .gift-ring { opacity: 1; }
+.gift-flip { position: absolute; inset: 0; }
+/* Переворот — до ребра и обратно (ui/gift.ts): видна одна сторона, другая скрыта */
+.gift-face, .gift-back { position: absolute; inset: 0; }
+.gift-face .card-thumb, .gift-back canvas { pointer-events: none; }
+.gift-halo { position: absolute; inset: -22% -30%; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.42), rgb(var(--gold-rgb) / 0.12) 55%, transparent 100%); opacity: 0; transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-ring { position: absolute; inset: -4px; z-index: 1; border-radius: calc(var(--w) * 0.12); box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.95); opacity: 0; transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-shade { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); background: #05061a; opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-card.sel .gift-halo, .gift-card.sel .gift-ring { opacity: 1; }
+.gift-fan.has-sel .gift-card:not(.sel) .gift-shade { opacity: 0.42; }
+/* Блик-приглашение: полоса света проходит по карте, пока ничего не выбрано */
+.gift-glint { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); overflow: hidden; pointer-events: none; }
+.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.38), transparent); }
+.gift-glint.run::before { animation: gift-glint 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes gift-glint { to { transform: translateX(400%); } }
+.gift-up { position: absolute; left: 50%; top: -22px; z-index: 2; transform: translateX(-50%); white-space: nowrap; font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; pointer-events: none; }
+/* Описание: высота задаётся замером самого большого варианта (ui/gift.ts) — сцена не прыгает */
+.gift-detail { display: grid; justify-items: center; align-content: start; gap: 5px; width: 100%; overflow: hidden; text-align: center; }
+.gift-detail > * { transition: opacity 0.18s ease; }
+.gift-detail.swap > * { opacity: 0; }
+.gift-detail > b { font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.gift-detail > span { max-width: 300px; font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: balance; }
+.gift-prompt { margin: 0; align-self: center; font: 600 13px/1.35 var(--font-body); color: var(--ink-dim); }
+.gift-asc { display: flex; align-items: center; gap: 10px; color: var(--gold); }
+.gift-asc .icon { width: 18px; height: 18px; }
+/* До выбора главная кнопка — «Выбери звезду»: приглушённое золото, а не серая «сломанная» */
+.gift-take:disabled { filter: none; opacity: 0.42; }
+.gift-flyer { position: fixed; z-index: 1000; pointer-events: none; }
+.gift-deck span { display: inline-block; font-variant-numeric: tabular-nums; }
+.gift-deck.bump span { animation: gift-bump 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes gift-bump { 35% { transform: scale(1.3); color: #fff6e0; } }
+/* Дар открывается поверх лавки — фон плотнее, чтобы строки товаров не просвечивали */
+.modal-backdrop.scene:has(.gift-scene) { background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.97), rgb(3 3 14 / 0.99)); }
+@media (max-height: 600px) { .gift-first { display: none; } .gift-scene .scene-mid { gap: 12px; } }
+@media (max-height: 460px) { .gift-scene .scene-ribbon { padding-block: 8px 9px; } .gift-scene .scene-ribbon b { font-size: 24px; } }
+
 /* Короткое свечение главной кнопки (DESIGN.md, The Short Glow Rule): длинное Safari обрезает прямоугольником */
 .scene-acts .btn-primary, .pause-acts .btn-primary, .map-primary.btn-primary { box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(var(--gold-rgb) / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }
 .btn-row { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -1338,6 +1383,298 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .modal-panel.deck .deck-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
 .modal-panel.deck .deck-card { width: 100%; height: auto; aspect-ratio: 0.7; }
 .modal-panel.deck .deck-card .card-thumb { width: 124% !important; height: auto !important; margin: -12% !important; }
+/* Небесные тела (GF.5) — отдельным рядом под звёздами и крупнее: у тела своё правило */
+.deck-label { display: flex; align-items: center; gap: 10px; margin-top: 6px; font: 400 12px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.deck-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.modal-panel.deck .deck-row.bodies { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+
+/* ─── Карта неба: глава с развилками (RT.2, выбор Дениса, витрина d8-route-screen) ─────────── */
+/* Тихая карта: значки, имя — у звёзд выбора и у Затмения; числа — в одной плашке постоянной высоты.
+   Портрет — шапка, карта, плашка, кнопка; ландшафт — карта слева, справа колонка; ПК — шапка,
+   под ней карта и панель решения рядом. Движутся только transform, opacity и линия пути. */
+.map.sm { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "top" "map" "side"; }
+.map.sm > .map-top { grid-area: top; }
+.map.sm.land { grid-template-columns: minmax(0, 1fr) 320px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "map top" "map side"; column-gap: 18px; }
+.map.sm.wide { grid-template-columns: minmax(0, 620px) 380px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "top top" "map side"; justify-content: center; column-gap: 40px; }
+.sm-map { grid-area: map; position: relative; min-height: 0; }
+.sm-side { grid-area: side; display: grid; gap: 10px; align-content: end; min-height: 0; }
+.map.sm.land .sm-side { grid-template-rows: minmax(0, 1fr) auto; gap: 8px; }
+.map.sm.wide .sm-side { align-content: center; gap: 14px; }
+.sm-dock { display: grid; gap: 4px; }
+.map.sm .map-primary { width: 100%; }
+.map.sm.land .map-primary { min-height: 46px; }
+.sm-go small { margin-left: 6px; font: 600 12.5px/1 var(--font-body); opacity: 0.7; }
+.sm-go:disabled { filter: none; opacity: 0.42; }
+
+.sm-edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.sm-edges .e { fill: none; stroke: rgb(var(--gold-rgb) / 0.38); stroke-width: 1.3; stroke-dasharray: 2 5; transition: opacity 0.4s ease; }
+.sm-edges .e.open { stroke: rgb(255 230 168 / 0.6); }
+.sm-edges .e.faint { opacity: 0.5; }
+.sm-edges .pick { fill: none; stroke: rgb(255 230 168 / 0.9); stroke-width: 1.6; stroke-linecap: round; }
+.sm-edges .walk { fill: none; stroke: #ffe6a8; stroke-width: 2.2; stroke-linecap: round; }
+.sm-edges .walk-glow { fill: none; stroke: rgb(var(--gold-rgb) / 0.3); stroke-width: 7; stroke-linecap: round; }
+
+.sm-star { --o: 40px; position: absolute; width: var(--o); height: var(--o); transform: translate(-50%, -50%); padding: 0; border: 0; background: none; color: inherit; cursor: default; transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.map.sm.land .sm-star { --o: 32px; }
+.map.sm.wide .sm-star { --o: 48px; }
+.sm-star.boss { --o: 46px; }
+.map.sm.land .sm-star.boss { --o: 38px; }
+.map.sm.wide .sm-star.boss { --o: 58px; }
+.sm-star.here { --o: 22px; }
+/* Невысокая карта (iPhone SE, Telegram): пройденное свёрнуто, звёзды компактнее */
+.sm-star.gone { visibility: hidden; pointer-events: none; }
+.sm-map.compact .sm-star { --o: 32px; }
+.sm-map.compact .sm-star.boss { --o: 36px; }
+.sm-map.compact .sm-star.here { --o: 20px; }
+.sm-map.compact .sm-lbl { font-size: 11px; top: calc(100% + 8px); }
+.sm-orb { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 50% 35%, rgb(255 255 255 / 0.06), rgb(10 9 32 / 0.95) 70%); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.28); }
+.sm-orb::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; box-shadow: 0 0 0 1.5px #ffe6a8, 0 0 16px rgb(var(--gold-rgb) / 0.5); opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.sm-ic { display: grid; place-items: center; width: 52%; height: 52%; color: #ffe6a8; }
+.sm-ic svg { width: 100%; height: 100%; }
+.sm-ic.k-bright { color: #ffd27a; }
+.sm-sigil { width: 92% !important; height: 92% !important; border-radius: 50%; }
+.sm-lbl { position: absolute; left: 50%; top: calc(100% + 9px); transform: translateX(-50%); white-space: nowrap; font: 700 12px/1 var(--font-body); color: var(--ink); opacity: 0; transition: opacity 0.3s ease, color 0.3s ease; pointer-events: none; }
+.map.sm.land .sm-lbl { font-size: 11px; top: calc(100% + 8px); }
+.map.sm.wide .sm-lbl { font-size: 13.5px; top: calc(100% + 10px); }
+.sm-star.open { cursor: pointer; }
+.sm-star.open .sm-orb { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.7); }
+.sm-star.open .sm-lbl, .sm-star.boss .sm-lbl { opacity: 1; }
+.sm-star.open .sm-orb::before { content: ''; position: absolute; inset: -3px; border-radius: 50%; box-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.4); opacity: 0.35; animation: sm-breathe 2.8s ease-in-out infinite; }
+@keyframes sm-breathe { 50% { opacity: 0.9; } }
+.sm-star.sel .sm-orb::after { opacity: 1; }
+.sm-star.sel .sm-orb::before { animation: none; opacity: 0; }
+.sm-star.sel .sm-lbl { color: var(--gold-hi); }
+.sm-star.after .sm-orb { box-shadow: inset 0 0 0 1px rgb(255 230 168 / 0.6); }
+.sm-star.done .sm-orb { background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 55%, #b9791b); box-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.6); }
+.sm-star.done .sm-ic { color: #1a1206; }
+.sm-star.away { opacity: 0.4; }
+.sm-star.boss .sm-orb { background: none; box-shadow: 0 0 0 1px rgb(232 228 244 / 0.4), 0 0 0 5px rgb(232 228 244 / 0.04); }
+.sm-star.boss .sm-lbl { color: #e8e4f4; }
+.sm-star.boss.after .sm-orb { box-shadow: 0 0 0 1.5px rgb(232 228 244 / 0.85), 0 0 14px rgb(232 228 244 / 0.3); }
+.sm-star.here .sm-orb { background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.22), transparent 70%); box-shadow: none; }
+.sm-star.here .sm-orb::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #fff3c4; box-shadow: 0 0 10px #ffe6a8; }
+@media (prefers-reduced-motion: reduce) { .sm-star.open .sm-orb::before { animation: none; } }
+
+/* Плашка: до выбора — варианты строками, после — детали выбранного */
+.sm-detail { position: relative; overflow: hidden; display: grid; align-content: center; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
+.map.sm.land .sm-detail { padding: 10px 12px; gap: 6px; min-height: 0; }
+.map.sm.wide .sm-detail { padding: 16px 18px; }
+.sm-detail > * { transition: opacity 0.18s ease; }
+.sm-detail.swap > * { opacity: 0; }
+.sm-cap { text-align: center; font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.sm-opts { display: grid; }
+.sm-o { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 6px 2px; font: 600 12.5px/1.2 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.sm-o + .sm-o { box-shadow: 0 -1px 0 var(--hair); }
+.sm-o .sm-ic, .sm-o .sm-sigil { width: 18px !important; height: 18px !important; }
+.sm-o b { color: var(--ink); font-weight: 700; }
+.sm-o .t { text-align: right; min-width: 52px; }
+.sm-o .g { text-align: right; min-width: 92px; color: var(--gold-hi); font-weight: 700; }
+.sm-hd { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: center; }
+.sm-hd .sm-ic { width: 28px; height: 28px; }
+.sm-hd .sm-sigil { width: 30px !important; height: 30px !important; }
+.sm-hd b { display: block; font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.map.sm.wide .sm-hd b { font-size: 17px; }
+.sm-hd small { display: block; margin-top: 2px; font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+/* Ландшафт телефона: высоты мало — пояснение под именем прячем, суть — в «ждёт · даст · потом» */
+.map.sm.land .sm-hd small { display: none; }
+.map.sm.land .sm-o { padding: 4px 2px; }
+.sm-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sm-facts > div { display: grid; gap: 4px; padding: 4px; text-align: center; min-width: 0; }
+.sm-facts > div + div { box-shadow: -1px 0 0 var(--hair); }
+.sm-facts small { font: 800 10px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.sm-facts b { font: 800 clamp(12px, 3.6vw, 13.5px)/1.2 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.map.sm.wide .sm-facts b { font-size: 15px; }
+.sm-facts b.g { color: var(--gold-hi); }
+.sm-facts b .x { color: var(--mult); }
+.sm-next { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+.sm-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px 3px 5px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); color: var(--ink); }
+.sm-chip .sm-ic, .sm-chip .sm-sigil { width: 14px !important; height: 14px !important; }
+.sm-arr { display: inline-grid; width: 14px; height: 10px; color: var(--ink-faint); }
+.sm-arr svg { width: 100%; height: 100%; }
+.sm-detail .coin { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* ─── Шаг без ночи: Комета и Телескоп (RT.4, вариант A «Строки обмена», выбор Дениса) ─────── */
+/* Три строки «отдай → получи» на игровых элементах; ничего не выбрано заранее; «Мимо» — вторая
+   кнопка. Вход — след Кометы по небу или наводящаяся линза Телескопа. */
+/* Вход Кометы: летит вдоль своей оси, хвост клином позади головы, рядом ионный хвост */
+.wd-comet { position: fixed; z-index: 5; left: -42vw; top: 18vh; width: 42vw; height: 14px; pointer-events: none; transform-origin: 100% 50%; animation: wd-fly 1.25s cubic-bezier(0.35, 0, 0.25, 1) both; }
+.wd-comet .tail { position: absolute; right: 4px; top: 4px; width: 100%; height: 6px; clip-path: polygon(0 50%, 100% 0, 100% 100%); background: linear-gradient(90deg, transparent, rgb(255 154 98 / 0.35) 45%, rgb(255 210 160 / 0.95)); }
+.wd-comet .ion { position: absolute; right: 6px; top: 6px; width: 70%; height: 2px; transform: rotate(-2.5deg); transform-origin: 100% 50%; clip-path: polygon(0 50%, 100% 0, 100% 100%); background: linear-gradient(90deg, transparent, rgb(159 240 255 / 0.55)); }
+.wd-comet .head { position: absolute; right: 0; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #fffaf0 30%, #ffd0a0 60%, transparent 72%); box-shadow: 0 0 14px 4px rgb(255 179 122 / 0.7); }
+@keyframes wd-fly { 0% { transform: rotate(14deg) translateX(0); opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { transform: rotate(14deg) translateX(175vw); opacity: 0; } }
+/* Вход Телескопа: окуляр. Тёмное поле с кругом обзора; сетка наводится, круг раскрывается на сцену */
+.wd-eye { position: fixed; z-index: 5; left: 50%; top: 46%; width: 240px; height: 240px; margin: -120px 0 0 -120px; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 3000px rgb(3 3 12 / 0.94), inset 0 0 40px 10px rgb(3 3 12 / 0.9), inset 0 0 0 1.5px rgb(159 240 255 / 0.55); animation: wd-eye 1.3s cubic-bezier(0.55, 0, 0.3, 1) both; }
+.wd-reticle { position: fixed; z-index: 6; left: 50%; top: 46%; width: 240px; height: 240px; margin: -120px 0 0 -120px; pointer-events: none; color: rgb(159 240 255 / 0.85); animation: wd-focus 1.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes wd-eye { 0%, 55% { transform: scale(1); opacity: 1; } 99% { transform: scale(9); opacity: 1; } 100% { transform: scale(9); opacity: 0; } }
+@keyframes wd-focus { 0% { transform: rotate(-35deg) scale(1.18); opacity: 0; } 45%, 62% { transform: none; opacity: 1; } 100% { transform: scale(3.2); opacity: 0; } }
+.wd-emblem, .wd-lead { display: none; }
+.wd-rows { display: grid; gap: 8px; width: 100%; }
+/* Строка обмена — одной высоты при любом обмене: знак слева, две строки текста справа */
+.wd-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 14px; height: 78px; padding: 0 14px 0 8px; border: 0; border-radius: 16px; color: inherit; text-align: left; cursor: pointer; background: radial-gradient(90% 120% at 0% 50%, rgb(var(--gold-rgb) / 0.06), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.wd-row.sel { box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 0 22px rgb(var(--gold-rgb) / 0.2); }
+.wd-rows.has-sel .wd-row:not(.sel) { opacity: 0.55; }
+.wd-flow { display: grid; grid-template-columns: 62px 16px 62px; align-items: center; }
+.wd-items { height: 58px; display: flex; align-items: center; justify-content: center; }
+.wd-items > .wd-it + .wd-it { margin-left: -14px; }
+.wd-to { width: 16px; height: 12px; justify-self: center; background: var(--gold); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 14'%3E%3Cpath d='M1 7h17m-5-5 5 5-5 5' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.wd-it { position: relative; display: grid; place-items: center; }
+.wd-it.gone .card-thumb { opacity: 0.55; }
+.wd-it.gone::after { content: ''; position: absolute; inset: 8% 12%; background: linear-gradient(45deg, transparent 46%, rgb(255 83 112 / 0.9) 47%, rgb(255 83 112 / 0.9) 53%, transparent 54%); pointer-events: none; }
+.wd-badge { position: absolute; right: -8px; bottom: -5px; min-width: 20px; padding: 2px 5px; border-radius: 9px; font: 800 10.5px/1 var(--font-body); text-align: center; color: var(--gold-hi); background: #0c0b26; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.55); font-variant-numeric: tabular-nums; }
+.wd-badge.minus { color: #ffb3c0; box-shadow: inset 0 0 0 1px rgb(255 120 150 / 0.5); }
+.wd-coins { display: inline-flex; align-items: center; gap: 4px; font: 800 17px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wd-coins .coin { width: 16px; height: 16px; }
+.wd-coins.minus { color: #ffb3c0; }
+.wd-text { display: grid; gap: 3px; min-width: 0; }
+.wd-gain, .wd-cost { text-wrap: pretty; }
+.wd-gain { font: 700 14px/1.25 var(--font-body); color: var(--ink); }
+.wd-cost { font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+/* Высокий телефон и планшет: строки крупнее и занимают экран */
+@media (min-height: 740px) and (max-width: 899px) {
+  .wd-rows { gap: 10px; }
+  .wd-row { height: 124px; column-gap: 16px; padding: 0 16px 0 10px; border-radius: 18px; }
+  .wd-flow { grid-template-columns: 74px 18px 74px; }
+  .wd-items { height: 76px; }
+  .wd-items > .wd-it + .wd-it { margin-left: -18px; }
+  .wd-coins { font-size: 19px; }
+  .wd-coins .coin { width: 18px; height: 18px; }
+  .wd-gain { font-size: 15.5px; }
+  .wd-cost { font-size: 13px; }
+}
+.wd-take:disabled { filter: none; opacity: 0.42; }
+.wd-note { margin: 0; text-align: center; font: 600 12px/1.35 var(--font-body); color: var(--ink-faint); }
+/* Невысокий экран (ландшафт телефона, iPhone SE): строки ниже, текст мельче */
+@media (max-height: 640px) {
+  .wd-row { height: 66px; }
+  .wd-items { height: 50px; }
+  .wd-gain { font-size: 13px; }
+  .wd-cost { font-size: 11.5px; }
+  .wd-rows { gap: 6px; }
+  .wonder-scene .scene-mid { gap: 10px; }
+}
+/* Узкий телефон (iPhone SE): знак обмена уже — больше места тексту */
+@media (max-width: 360px) {
+  .wd-row { height: 74px; column-gap: 10px; padding: 0 10px 0 4px; }
+  .wd-flow { grid-template-columns: 52px 12px 52px; }
+  .wd-items > .wd-it + .wd-it { margin-left: -20px; }
+  .wd-coins { font-size: 15px; }
+}
+/* Комета и Телескоп открываются поверх карты — фон плотнее, чтобы она не просвечивала */
+.modal-backdrop.scene:has(.wonder-scene) { background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.97), rgb(3 3 14 / 0.99)); }
+/* Невысокий ландшафт: строки слева во всю высоту, заголовок и кнопки — колонкой справа */
+@media (orientation: landscape) and (max-height: 560px) {
+  .wonder-scene .scene-inner { grid-template-columns: minmax(0, 1fr) 270px; grid-template-rows: auto auto; align-content: center; row-gap: 14px; }
+  .wonder-scene .scene-mid { display: contents; }
+  .wonder-scene .wd-rows { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  .wonder-scene .scene-ribbon { grid-column: 2; grid-row: 1; align-self: end; }
+  .wonder-scene .scene-ribbon b { font-size: 24px; }
+  .wonder-scene .scene-acts { grid-column: 2; grid-row: 2; align-self: start; }
+}
+/* ПК: полноценная сцена в две колонки — слева эмблема, название, пояснение и кнопки, справа крупные строки */
+@media (min-width: 900px) and (min-height: 561px) {
+  .wonder-scene .scene-inner { width: min(1224px, 100%); grid-template-columns: 380px minmax(0, 780px); grid-template-rows: auto auto auto auto; grid-template-areas: "emb list" "rib list" "lead list" "acts list"; justify-content: center; align-content: center; column-gap: 64px; row-gap: 18px; }
+  .wonder-scene .scene-mid { display: contents; }
+  .wonder-scene .wd-emblem { display: block; grid-area: emb; justify-self: center; width: 168px; height: 168px; color: var(--gold); filter: drop-shadow(0 0 18px rgb(var(--gold-rgb) / 0.25)); }
+  .wonder-scene .scene-ribbon { grid-area: rib; }
+  .wonder-scene .scene-ribbon b { font-size: 32px; }
+  .wonder-scene .wd-lead { display: block; grid-area: lead; justify-self: center; max-width: 340px; margin: 0; text-align: center; font: 600 15.5px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: pretty; }
+  .wonder-scene .wd-rows { grid-area: list; align-self: center; }
+  .wonder-scene .scene-acts { grid-area: acts; }
+  .wonder-scene .scene-acts > .btn { width: 100%; min-height: 58px; font-size: 17px; }
+  .wd-rows { gap: 12px; }
+  .wd-row { height: 138px; column-gap: 28px; padding: 0 32px 0 16px; border-radius: 22px; }
+  .wd-flow { grid-template-columns: 104px 26px 104px; }
+  .wd-to { width: 24px; height: 17px; }
+  .wd-items { height: 104px; }
+  .wd-items > .wd-it + .wd-it { margin-left: -24px; }
+  .wd-coins { font-size: 26px; }
+  .wd-coins .coin { width: 24px; height: 24px; }
+  .wd-badge { font-size: 13px; padding: 4px 7px; border-radius: 10px; }
+  .wd-gain { font-size: 20px; }
+  .wd-cost { font-size: 15.5px; }
+  .kw-hint { width: 320px; }
+  .kw-hint p { font-size: 14px; }
+}
+/* Ключевое слово: золотая пунктирная черта и мягкий фон — хочется нажать */
+.kw { display: inline; padding: 0 3px; margin: 0 -1px; border-radius: 5px; color: var(--gold-hi); background: rgb(var(--gold-rgb) / 0.1); border-bottom: 1.5px dotted rgb(var(--gold-rgb) / 0.75); cursor: help; transition: background 0.2s, color 0.2s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.kw:hover, .kw.on { background: rgb(var(--gold-rgb) / 0.22); color: #fff3c4; }
+.kw.light { color: #b9f0ff; background: rgb(var(--light-rgb) / 0.14); border-bottom-color: rgb(var(--light-rgb) / 0.8); }
+.kw.mult { color: #ffb3c4; background: rgb(var(--mult-rgb) / 0.14); border-bottom-color: rgb(var(--mult-rgb) / 0.8); }
+.kw.xmult { color: #ffd0a8; background: linear-gradient(90deg, rgb(var(--mult-rgb) / 0.2), rgba(255, 179, 71, 0.2)); border-bottom-color: rgba(255, 179, 71, 0.85); font-weight: 800; }
+.kw.gold { color: #ffe6a8; }
+.kw:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+/* Глагол цены: платишь и отдаёшь розовым, получаешь золотым */
+.kw-verb { font-weight: 800; color: #ffb3c0; }
+.kw-verb.plus { color: var(--gold-hi); }
+/* Подсказка ключевого слова — латунная табличка с носиком; цепочка внутри одной таблички */
+.kw-hint { position: fixed; z-index: 70; pointer-events: auto; width: 270px; padding: 12px 14px 13px; border-radius: 14px; background: linear-gradient(180deg, #1d1950, #100e2c); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.55), 0 18px 40px -12px rgb(0 0 0 / 0.85); text-align: left; animation: kw-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.kw-hint::before { content: ''; position: absolute; left: var(--nose, 50%); width: 10px; height: 10px; margin-left: -5px; transform: rotate(45deg); }
+.kw-hint.below::before { top: -5px; background: #1d1950; box-shadow: inset 1px 1px 0 rgb(var(--gold-rgb) / 0.55); }
+.kw-hint.above::before { bottom: -5px; background: #100e2c; box-shadow: inset -1px -1px 0 rgb(var(--gold-rgb) / 0.55); }
+.kw-hint small { display: block; font: 800 9.5px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+.kw-hint b { display: block; margin: 5px 0 6px; font: 400 17px/1.1 var(--font-display); letter-spacing: 0.06em; color: var(--gold-hi); }
+.kw-hint p { margin: 0; font: 600 13px/1.45 var(--font-body); color: var(--ink); }
+.kw-back { appearance: none; display: inline-flex; align-items: center; min-height: 28px; margin: -4px 0 6px -6px; padding: 0 8px; border: 0; border-radius: 8px; background: rgb(var(--gold-rgb) / 0.1); color: var(--gold); font: 700 11.5px/1 var(--font-body); cursor: pointer; }
+.kw-back:hover { background: rgb(var(--gold-rgb) / 0.2); color: var(--gold-hi); }
+.kw-body { animation: kw-swap 0.24s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes kw-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kw-swap { from { opacity: 0; transform: translateX(var(--dx, 8px)); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .kw-hint, .kw-body { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .wd-comet, .wd-eye, .wd-reticle { display: none; } .wd-row { animation: none; } }
+
+/* ─── Открытка «Мой путь» (RT.3, вариант C, выбор Дениса) ─────────────────────────────────── */
+.jr-card { width: 100%; max-width: 340px; padding: 16px 14px 14px; border-radius: 18px; display: grid; gap: 10px; justify-items: center; text-align: center; background: radial-gradient(120% 70% at 50% 0%, rgb(var(--gold-rgb) / 0.1), transparent 70%), linear-gradient(180deg, #1a1648, #0c0b26); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4), 0 20px 40px -18px rgb(0 0 0 / 0.8); }
+.jr-title { font: 400 15px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.jr-sub { font: 600 11.5px/1.3 var(--font-body); color: var(--ink-dim); }
+.jr-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.jr-ch { display: grid; justify-items: center; gap: 2px; animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.jr-ch svg { width: 100%; height: auto; max-height: 62px; aspect-ratio: 70 / 76; overflow: visible; }
+.over.with-path .scene-mid { gap: 14px; }
+.jr-ch small { display: none; font: 400 11px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; color: var(--ink-faint); }
+.jr-ch.empty { opacity: 0.45; }
+.jr-dot { fill: rgb(255 255 255 / 0.2); }
+.jr-walk { fill: none; stroke: #ffe6a8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2px rgb(var(--gold-rgb) / 0.9)); }
+.jr-nums { display: flex; justify-content: center; gap: 16px; font: 700 12px/1.2 var(--font-body); color: var(--ink-dim); }
+.jr-nums b { display: block; font: 800 17px/1.1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.jr-share { width: 100%; min-height: 40px; }
+/* Невысокий экран (iPhone SE, ландшафт): открытка полосой — восемь глав в строку, числа и
+   «Поделиться» рядом; таблица итогов уходит — её главное уже на открытке */
+@media (max-height: 640px) {
+  .jr-card { max-width: 460px; padding: 10px 12px; gap: 8px 12px; grid-template-columns: auto auto; justify-content: center; align-items: center; }
+  .jr-title, .jr-grid { grid-column: 1 / -1; }
+  .jr-sub { display: none; }
+  .jr-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+  .jr-ch svg { max-height: 44px; }
+  .jr-nums { gap: 12px; font-size: 11px; }
+  .jr-nums b { font-size: 15px; }
+  .jr-share { width: auto; min-height: 36px; padding-inline: 16px; font-size: 13px; }
+  .over.with-path .stats-grid { display: none; }
+  .jr-nums > div, .jr-share { white-space: nowrap; }
+}
+@media (max-height: 640px) and (max-width: 360px) {
+  .jr-card { grid-template-columns: 1fr; gap: 6px; }
+  .jr-ch svg { max-height: 34px; }
+  .jr-share { width: 100%; min-height: 32px; }
+  .over.with-path .scene-ribbon b { font-size: 24px; }
+}
+/* ПК: открытка крупно и читаемо — 560 px слева, итоги и кнопки справа */
+@media (min-width: 900px) and (min-height: 561px) {
+  .over.with-path .scene-inner { width: min(1040px, 100%); grid-template-columns: 560px 400px; grid-template-rows: minmax(0, 1fr) auto; justify-content: center; column-gap: 56px; }
+  .over.with-path .scene-mid { grid-column: 2; grid-row: 1; align-self: end; }
+  .over.with-path .scene-acts { grid-column: 2; grid-row: 2; }
+  .over.with-path .scene-inner > .jr-card { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  .over.with-path .jr-card { max-width: none; width: 560px; padding: 30px 30px 26px; gap: 16px; border-radius: 24px; }
+  .over.with-path .jr-title { font-size: 26px; }
+  .over.with-path .jr-sub { font-size: 15px; }
+  .over.with-path .jr-grid { gap: 14px 18px; }
+  .over.with-path .jr-ch small { display: block; font-size: 13px; }
+  .over.with-path .jr-ch svg { max-height: none; }
+  .over.with-path .jr-walk { stroke-width: 2.2; }
+  .over.with-path .jr-nums { gap: 36px; font-size: 14px; }
+  .over.with-path .jr-nums b { font-size: 28px; }
+  .over.with-path .jr-share { min-height: 52px; font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .jr-ch { animation: none; } }
 
 /* ─── Итоги ───────────────────────────────────────────────────────────── */
 
@@ -2198,6 +2535,23 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .gb-row4 { display: flex; gap: 4px; }
 .gb-row4 > * { flex: none; }
 .gb-row4 .hot { display: grid; border-radius: 5px; box-shadow: 0 0 0 1.5px #ffe6a8, 0 0 14px rgb(var(--gold-rgb) / 0.7); }
+/* Небесные тела (GF.5): линия вспыхивает и гаснет, тело делает своё — по кругу */
+.gb-bodies { gap: 6px; }
+.gb-bodies .gb-bc { display: grid; border-radius: 5px; animation: none 3.6s ease-in-out infinite; }
+.gb-bodies .gb-bc.empty { width: var(--cw); aspect-ratio: 0.7; }
+.gb-bodies .gb-bc.t { box-shadow: 0 0 0 1.5px #ffe6a8, 0 0 14px rgb(var(--gold-rgb) / 0.6); }
+.gb-bodies .x, .b-meteor .t, .b-twin .t, .b-nebula .t { animation-name: gb-fade; }
+.b-polaris .t { animation-name: gb-stay; }
+.b-meteor .o { animation-name: gb-knock; }
+.b-blackhole .t { animation-name: gb-sink; }
+.b-pulsar .t { position: relative; }
+.b-pulsar .t::after { content: '+2'; position: absolute; left: 50%; top: -14px; transform: translateX(-50%); font: 800 14px/1 var(--font-body); color: var(--mult); text-shadow: 0 0 3px #000, 0 0 8px #000; opacity: 0; animation: gb-charge 3.6s ease-out infinite; }
+.gb-bodies.still .gb-bc, .gb-bodies.still .t::after { animation: none; }
+@keyframes gb-fade { 0%, 38% { opacity: 1; transform: none; filter: none; } 46% { filter: brightness(1.8) drop-shadow(0 0 8px rgb(255 230 168 / 0.9)); } 60%, 92% { opacity: 0; transform: scale(0.85); } 100% { opacity: 1; transform: none; } }
+@keyframes gb-knock { 0%, 16% { opacity: 1; transform: none; } 32%, 92% { opacity: 0; transform: translate(26px, -30px) rotate(25deg) scale(0.7); } 100% { opacity: 1; transform: none; } }
+@keyframes gb-sink { 0%, 44% { opacity: 1; transform: none; } 66%, 92% { opacity: 0; transform: scale(0.1) rotate(200deg); } 100% { opacity: 1; transform: none; } }
+@keyframes gb-stay { 0%, 40% { box-shadow: 0 0 0 1.5px #ffe6a8; } 52%, 90% { box-shadow: 0 0 0 1.5px #eaf6ff, 0 0 18px rgb(234 246 255 / 0.85); } 100% { box-shadow: 0 0 0 1.5px #ffe6a8; } }
+@keyframes gb-charge { 0%, 44% { opacity: 0; transform: translate(-50%, 6px); } 54%, 86% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
 .gb-slots { display: flex; gap: 6px; }
 .gb-slots span { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.25); }
 .gb-slots span.fire { animation: gb-fire 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d); }
@@ -2245,6 +2599,7 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .gb-text b { font: 700 14.5px/1.2 var(--font-body); color: var(--ink); }
 .gb-text small { font: 500 12px/1.3 var(--font-body); color: var(--ink-faint); }
 .gb-row.miss .gb-text b { color: var(--ink-dim); font-weight: 600; }
+.gb-card-ic.locked { filter: grayscale(1) brightness(0.45); }
 .gb-ok { margin-left: 4px; color: var(--ok); display: inline-grid; vertical-align: -2px; }
 .gb-ok .icon { width: 14px; height: 14px; stroke-width: 2.2; }
 .gb-lock { width: 14px; height: 14px; margin-right: 6px; vertical-align: -2px; color: var(--gold); }

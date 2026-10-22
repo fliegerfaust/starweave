@@ -24,8 +24,11 @@ interface OptionView {
   bonus: string;
 }
 
+/** Выборы строками — пакет; дар ночи, Комета и Телескоп — свои сцены. */
+type RowChoice = Extract<Choice, { kind: 'pack' }>;
+
 /** Как показать вариант выбора каждого вида: новый вид без вида — ошибка типов. */
-const OPTION_VIEWS: { [K in Choice['kind']]: (run: RunState, choice: Extract<Choice, { kind: K }>, id: string) => OptionView } = {
+const OPTION_VIEWS: { [K in RowChoice['kind']]: (run: RunState, choice: Extract<RowChoice, { kind: K }>, id: string) => OptionView } = {
   pack(run, choice, id) {
     if (choice.pack === 'omen') {
       const def = omenDef(id);
@@ -49,7 +52,7 @@ const OPTION_VIEWS: { [K in Choice['kind']]: (run: RunState, choice: Extract<Cho
 };
 
 /** Заголовок сцены: что за выбор и «одно из N». */
-function ribbon(choice: Choice): [string, string] {
+function ribbon(choice: RowChoice): [string, string] {
   switch (choice.kind) {
     case 'pack':
       return [t('shop.packTitle'), `${named('pack', choice.pack).name} · ${t('shop.oneOfThree')}`];
@@ -58,16 +61,16 @@ function ribbon(choice: Choice): [string, string] {
 
 /**
  * Сцена «Выбери одно» (TD.7): текущий выбор из очереди `run.pending` — варианты строками,
- * взять один или пропустить. Одна сцена для пакета, а в 0.9 — для дара ночи, трофея,
- * Кометы и пророчества. `null` — выбирать нечего.
+ * взять один или пропустить. Одна сцена для пакета, а в 0.7 — для трофея, Кометы и
+ * пророчества; дар ночи — веером в `ui/gift.ts`. `null` — выбирать нечего.
  */
 export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): ModalHandle | null {
   const choice = currentChoice(run);
-  if (!choice) return null;
+  if (!choice || choice.kind !== 'pack') return null;
   app.svc.audio.ignite(1);
   let handle: ModalHandle | null = null;
   const blocked = !canTakeChoice(run);
-  const view = OPTION_VIEWS[choice.kind] as (run: RunState, choice: Choice, id: string) => OptionView;
+  const view = OPTION_VIEWS[choice.kind] as (run: RunState, choice: RowChoice, id: string) => OptionView;
   const rows = choice.options.map((id, i) => {
     const v = view(run, choice, id);
     return h('article.ware', { style: { animationDelay: `${i * 0.08}s` } }, [

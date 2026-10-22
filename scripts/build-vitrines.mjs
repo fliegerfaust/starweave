@@ -1,4 +1,4 @@
-// Сборка витрин релиза 0.8 «Глубина» (docs/vitrines/src → docs/vitrines/d8-*.html).
+// Сборка витрин релиза 0.7 «Глубина» (docs/vitrines/src → docs/vitrines/d8-*.html).
 //   node scripts/build-vitrines.mjs            — собрать все
 //   node scripts/build-vitrines.mjs d8-myths   — одну
 // Каждая витрина — один самодостаточный HTML, как прежние: кит (kit.css, kit.js) и арт игры

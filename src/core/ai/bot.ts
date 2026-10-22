@@ -1,9 +1,14 @@
 import { comboFeatures } from '../combos';
 import { activeCells, buildLines } from '../grid';
-import { burnCard, placeCard } from '../night';
+import { burnCard, placeCard, startNight } from '../night';
 import { buyItem, buyOmen, omenSlots } from '../shop';
 import { omenDef } from '../content/omens';
-import type { Card, NightState, RunState } from '../types';
+import { choose, currentChoice, skipChoice } from '../choices';
+import { chooseRoute, currentNode, isWonder, routeOptions, visitWonder } from '../route';
+import { RuleError } from '../errors';
+import type { GiftOffer } from '../gift';
+import type { CometEvent, ScopeUpgrade } from '../wonders';
+import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
 /** Вес точки креста в оценке позиции (подобран симуляцией). */
 export const CROSS_WEIGHT = Number(globalThis.process?.env?.CROSS_WEIGHT ?? 60);
@@ -123,8 +128,102 @@ export function playNight(run: RunState, lookahead = LOOKAHEAD): void {
   }
 }
 
-/** Простая политика Обсерватории: Знамения по редкости, затем Звёздные карты. */
+/**
+ * Развилка главы (RT.1): Яркая ночь, пока есть место для Знамения и глава не поздняя, —
+ * иначе спокойная ночь. Без развилки ничего не делает.
+ */
+export function pickRoute(run: RunState): void {
+  const options = routeOptions(run.chapter);
+  if (run.phase !== 'map' || run.chapter.at >= 0 || !options.length) return;
+  const find = (route: string) => options.find((i) => run.chapter.nodes[i]!.route === route);
+  const wantBright = run.omens.length < omenSlots(run) && run.ante <= 5;
+  // Телескоп — когда Знамения уже собраны: улучшить колоду без риска ночи
+  chooseRoute(run, (wantBright ? find('bright') : (find('telescope') ?? find('night'))) ?? find('night') ?? options[0]!);
+}
+
+/** Ценность обмена Кометы и улучшения Телескопа для бота (RT.6, подобрано симом). */
+const COMET_VALUE: Record<CometEvent, number> = {
+  goldForOmen: 4, goldForChart: 3, goldForCopy: 3, cardForGlyph: 3, omenForOmen: 3,
+  chartSwap: 2, goldForBanish: 2, rankShift: 1, suitShift: 1, omenForGold: 0.5,
+};
+const SCOPE_VALUE: Record<ScopeUpgrade['u'], number> = { chart: 3, glyph: 3, banish: 2 };
+
+/** Комета или Телескоп: самый ценный вариант, который можно взять, иначе мимо. */
+export function wonderGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'comet' && choice?.kind !== 'telescope') return;
+  const value = (i: number): number => {
+    const o = choice.options[i]!;
+    return 'e' in o ? COMET_VALUE[o.e] : SCOPE_VALUE[o.u];
+  };
+  const order = choice.options.map((_, i) => i).sort((a, b) => value(b) - value(a));
+  for (const i of order) {
+    try {
+      return choose(run, i);
+    } catch (e) {
+      if (!(e instanceof RuleError)) throw e;
+    }
+  }
+  skipChoice(run);
+}
+
+/** С карты главы — до начала ночи: выбрать путь, пройти шаги без ночи, начать ночь. */
+export function enterNight(run: RunState): void {
+  while (run.phase === 'map') {
+    pickRoute(run);
+    if (isWonder(currentNode(run).route)) {
+      visitWonder(run);
+      wonderGreedy(run);
+      continue;
+    }
+    startNight(run);
+    return;
+  }
+}
+
+/** Ценность черт в даре для бота: подобрано симом (GF.6), пропуск — «чистое небо». */
+const GIFT_VALUE: Record<Glyph | BodyId, number> = {
+  gilded: 2, blazing: 3, radiant: 3, echo: 3, glass: 3, prism: 2,
+  polaris: 3, meteor: 2, pulsar: 3, twin: 2, nebula: 4, blackhole: 3,
+};
+const ASCEND_VALUE = 2;
+/** Чистое небо дороже, когда колода уже толстая: нужные карты приходят реже. */
+function skipValue(run: RunState): number {
+  return 1.5 + Math.max(0, run.deck.length - 36) * 0.25;
+}
+
+/** Ценность варианта дара: черта, масть, которую колода собирает, и ранг. */
+export function giftValue(run: RunState, offer: GiftOffer): number {
+  if (offer.k === 'ascend') return ASCEND_VALUE;
+  const { card } = offer;
+  const trait = card.body ?? card.glyph;
+  const suitShare = run.deck.filter((c) => c.suit === card.suit).length / Math.max(1, run.deck.length);
+  return (trait ? GIFT_VALUE[trait] : 1) + suitShare * 2 + card.rank * 0.05;
+}
+
+/** Дар ночи: лучший вариант или «чистое небо», если ничего не дотягивает. */
+export function giftGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'gift') return;
+  const values = choice.options.map((o) => giftValue(run, o));
+  const best = values.indexOf(Math.max(...values));
+  if (values[best]! > skipValue(run)) choose(run, best);
+  else skipChoice(run);
+}
+
+/** Знамение 1 из 3 (Яркая ночь, пакет): самое редкое, если есть место, иначе пропуск. */
+export function omenPickGreedy(run: RunState): void {
+  const choice = currentChoice(run);
+  if (choice?.kind !== 'pack' || choice.pack !== 'omen') return;
+  if (run.omens.length >= omenSlots(run)) return skipChoice(run);
+  const best = choice.options.reduce((b, id, i) => (omenDef(id).rarity > omenDef(choice.options[b]!).rarity ? i : b), 0);
+  choose(run, best);
+}
+
+/** Простая политика Обсерватории: дар ночи, Знамение Яркой ночи, Знамения по редкости, затем Звёздные карты. */
 export function shopGreedy(run: RunState): void {
+  giftGreedy(run);
+  omenPickGreedy(run);
   const shop = run.shop;
   if (!shop) return;
   const omens = shop.omens

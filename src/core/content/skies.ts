@@ -9,6 +9,10 @@ export type Unlock =
   | { kind: 'reachAnte'; ante: number }
   | { kind: 'winRun' }
   | { kind: 'linesTotal'; lines: number }
+  /** Закончено забегов (выигранных или нет) — ступени «Глубины». */
+  | { kind: 'runsDone'; runs: number }
+  /** Побеждено Затмений за всё время. */
+  | { kind: 'eclipses'; count: number }
   /** Входит в «Звёздный атлас» — открывается покупкой, а не достижением. */
   | { kind: 'atlas' };
 

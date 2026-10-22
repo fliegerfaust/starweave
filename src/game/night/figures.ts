@@ -18,7 +18,7 @@ export interface FigureFx {
 
 /**
  * Слой фигур (TD.13): светящаяся ломаная через центры карт, прорисовывается по `progress`.
- * Сейчас это линия созвездия; фигуры мифов 0.9 рисуются тем же слоем по своим точкам.
+ * Сейчас это линия созвездия; фигуры мифов 0.7 рисуются тем же слоем по своим точкам.
  */
 export function drawFigure(world: GameWorld, pts: readonly Pt[], color: string): FigureFx {
   const state: FigureState = { progress: 0, alpha: 1, breathe: false };

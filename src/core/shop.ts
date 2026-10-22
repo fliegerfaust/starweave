@@ -86,12 +86,15 @@ export function generateShop(run: RunState): ShopState {
   };
 }
 
+/** Знамение 1 из 3 без уже имеющихся — пакет Знамений и награда Яркой ночи (RT.1). */
+export function omenOptions(run: RunState): string[] {
+  const exclude = new Set(run.omens.map((o) => o.id));
+  return rollOmens(run, PACK_OPTIONS, exclude).map((i) => (i.kind === 'omen' ? i.omenId : ''));
+}
+
 /** Варианты пакета — без повторов и без уже имеющихся Знамений. */
 function packOptions(run: RunState, pack: PackKind): string[] {
-  if (pack === 'omen') {
-    const exclude = new Set(run.omens.map((o) => o.id));
-    return rollOmens(run, PACK_OPTIONS, exclude).map((i) => (i.kind === 'omen' ? i.omenId : ''));
-  }
+  if (pack === 'omen') return omenOptions(run);
   if (pack === 'chart') {
     const pool = COMBO_IDS.filter((c) => c !== 'scatter');
     return shuffleCopy(run, pool).slice(0, PACK_OPTIONS);

@@ -1,4 +1,5 @@
 import type { Card, Glyph } from '@/core/types';
+import { BODY_COLORS, drawBodyWindow } from './bodies';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
 import { roundRect, sparklePath, suitPath } from './glyphs';
@@ -68,9 +69,9 @@ export function clearCardCache(): void {
 }
 
 /** Лицо карты, нарисованное в `w`×`h` CSS-пикселей с масштабом `scale` (DPR). */
-export function cardFace(card: Pick<Card, 'suit' | 'rank' | 'glyph'>, w: number, scale: number, opts: CardArtOptions = {}): HTMLCanvasElement {
+export function cardFace(card: Pick<Card, 'suit' | 'rank' | 'glyph' | 'body'>, w: number, scale: number, opts: CardArtOptions = {}): HTMLCanvasElement {
   const h = Math.round(w / CARD_ASPECT);
-  const key = `f:${card.suit}:${card.rank}:${card.glyph ?? ''}:${opts.hideRank ? 1 : 0}:${w}:${scale}`;
+  const key = `f:${card.suit}:${card.rank}:${card.glyph ?? ''}:${card.body ?? ''}:${opts.hideRank ? 1 : 0}:${w}:${scale}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const pad = Math.ceil(w * 0.12);
@@ -92,8 +93,11 @@ export const CARD_PAD = 0.12;
  * маленькой гравировкой в свободном углу, кромка — золочёная. На мелких картах (< 62 px)
  * пыль, внутренняя линия и созвездие не рисуются — остаются цифра и эмблема.
  */
-function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank' | 'glyph'>, w: number, h: number, opts: CardArtOptions): void {
+function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank' | 'glyph' | 'body'>, w: number, h: number, opts: CardArtOptions): void {
   const col = SUIT_COLORS[card.suit];
+  // Небесное тело (GF.4): поле масти, окно с телом вместо эмблемы, кромка цвета тела
+  const bodyRgb = card.body ? BODY_COLORS[card.body] : null;
+  const glow = bodyRgb ?? (card.glyph ? GLYPH_COLORS[card.glyph] : null);
   const field = SUIT_FIELDS[card.suit];
   const r = w * 0.09;
   const small = w < 62;
@@ -101,9 +105,9 @@ function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank
 
   // Тень под картой — карта лежит на небе, а не светится
   ctx.save();
-  ctx.shadowColor = card.glyph ? rgba(GLYPH_COLORS[card.glyph], 0.6) : 'rgba(0,0,0,0.45)';
-  ctx.shadowBlur = w * (card.glyph ? 0.14 : 0.08);
-  ctx.shadowOffsetY = card.glyph ? 0 : w * 0.025;
+  ctx.shadowColor = glow ? rgba(glow, 0.6) : 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = w * (glow ? 0.14 : 0.08);
+  ctx.shadowOffsetY = glow ? 0 : w * 0.025;
   roundRect(ctx, 0, 0, w, h, r);
   ctx.fillStyle = field[1];
   ctx.fill();
@@ -146,33 +150,39 @@ function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank
     ctx.globalAlpha = 1;
   }
 
-  // Эмблема масти
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.35)';
-  ctx.shadowBlur = w * 0.06;
-  ctx.shadowOffsetY = w * 0.02;
-  suitPath(ctx, card.suit, ex, ey, er);
-  const eg = ctx.createLinearGradient(0, ey - er, 0, ey + er);
-  eg.addColorStop(0, col.light);
-  eg.addColorStop(1, col.main);
-  ctx.fillStyle = eg;
-  ctx.fill('evenodd');
-  ctx.restore();
+  if (card.body) {
+    drawBodyWindow(ctx, card.body, w * 0.56, ey, er * 1.12);
+    // Масть — маленьким знаком в углу, где у простой карты созвездие ранга
+    drawSuitMark(ctx, card.suit, w * 0.78, w * 0.24, w * 0.12);
+  } else {
+    // Эмблема масти
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = w * 0.06;
+    ctx.shadowOffsetY = w * 0.02;
+    suitPath(ctx, card.suit, ex, ey, er);
+    const eg = ctx.createLinearGradient(0, ey - er, 0, ey + er);
+    eg.addColorStop(0, col.light);
+    eg.addColorStop(1, col.main);
+    ctx.fillStyle = eg;
+    ctx.fill('evenodd');
+    ctx.restore();
+  }
 
-  // Созвездие ранга — гравировкой в свободном углу (глиф занимает тот же угол)
-  if (!small && !card.glyph && !opts.hideRank) drawConstellation(ctx, card.rank, w * 0.74, w * 0.3, w * 0.15);
+  // Созвездие ранга — гравировкой в свободном углу (глиф и масть тела занимают тот же угол)
+  if (!small && !card.glyph && !card.body && !opts.hideRank) drawConstellation(ctx, card.rank, w * 0.74, w * 0.3, w * 0.15);
   ctx.restore();
 
   // Золочёная кромка; у карт с глифом — цветом глифа
   ctx.save();
   roundRect(ctx, 0.75, 0.75, w - 1.5, h - 1.5, r);
   ctx.lineWidth = Math.max(1.2, w * 0.022);
-  ctx.strokeStyle = card.glyph === 'prism' ? prismStroke(ctx, w, h) : card.glyph ? rgba(GLYPH_COLORS[card.glyph], 0.9) : gildedStroke(ctx, w, h);
+  ctx.strokeStyle = card.glyph === 'prism' ? prismStroke(ctx, w, h) : glow ? rgba(glow, 0.9) : gildedStroke(ctx, w, h);
   ctx.stroke();
   if (!small) {
     roundRect(ctx, w * 0.055, w * 0.055, w * 0.89, h - w * 0.11, r * 0.55);
-    ctx.lineWidth = Math.max(0.6, w * 0.007);
-    ctx.strokeStyle = card.glyph === 'echo' ? rgba(GLYPH_COLORS.echo, 0.6) : 'rgba(255,240,210,0.2)';
+    ctx.lineWidth = Math.max(0.6, w * (bodyRgb ? 0.012 : 0.007));
+    ctx.strokeStyle = bodyRgb ? rgba(bodyRgb, 0.45) : card.glyph === 'echo' ? rgba(GLYPH_COLORS.echo, 0.6) : 'rgba(255,240,210,0.2)';
     ctx.stroke();
   }
   ctx.restore();
@@ -185,13 +195,40 @@ function drawFace(ctx: CanvasRenderingContext2D, card: Pick<Card, 'suit' | 'rank
   ctx.shadowBlur = w * 0.05;
   ctx.shadowOffsetY = w * 0.012;
   const rankText = opts.hideRank ? '?' : String(card.rank);
-  centeredText(ctx, rankText, w * 0.255, w * 0.33);
-  // Чёткий слой поверх тени: Safari растягивает shadowBlur вместе с масштабом холста
-  ctx.shadowColor = 'transparent';
-  centeredText(ctx, rankText, w * 0.255, w * 0.33);
-  ctx.restore();
+  if (card.body === 'nebula' && !opts.hideRank) {
+    // Туманность встаёт любым рангом — вместо цифры «1–9»
+    ctx.font = `800 ${w * 0.25}px ${BODY_FONT}`;
+    centeredText(ctx, '1–9', w * 0.3, w * 0.3);
+    ctx.shadowColor = 'transparent';
+    centeredText(ctx, '1–9', w * 0.3, w * 0.3);
+    ctx.restore();
+  } else {
+    centeredText(ctx, rankText, w * 0.255, w * 0.33);
+    // Чёткий слой поверх тени: Safari растягивает shadowBlur вместе с масштабом холста
+    ctx.shadowColor = 'transparent';
+    centeredText(ctx, rankText, w * 0.255, w * 0.33);
+    // Двойник: второй ранг маленькой цифрой цвета тела под своим
+    if (card.body === 'twin' && !opts.hideRank && card.rank < 9) {
+      ctx.font = `800 ${w * 0.2}px ${BODY_FONT}`;
+      ctx.fillStyle = rgba(BODY_COLORS.twin, 1);
+      centeredText(ctx, `+${card.rank + 1}`, w * 0.235, w * 0.64);
+    }
+    ctx.restore();
+  }
 
   if (card.glyph) drawGlyphBadge(ctx, card.glyph, w * 0.79, w * 0.2, w * 0.105);
+}
+
+/** Маленький знак масти цветом масти — у тела, чья эмблема занята окном. */
+function drawSuitMark(ctx: CanvasRenderingContext2D, suit: Card['suit'], x: number, y: number, r: number): void {
+  const col = SUIT_COLORS[suit];
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.4)';
+  ctx.shadowBlur = r * 0.4;
+  suitPath(ctx, suit, x, y, r);
+  ctx.fillStyle = col.light;
+  ctx.fill('evenodd');
+  ctx.restore();
 }
 
 /** Где на лице карты эмблема масти — туда же Затмение ставит свой диск. */
