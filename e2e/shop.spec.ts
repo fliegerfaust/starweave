@@ -7,7 +7,7 @@ const FIT_AUDIT = readFileSync(new URL('./fit-audit.js', import.meta.url), 'utf8
 /**
  * Обсерватория «Прилавок» (RD.4). На каждом устройстве и обоих языках: глава III, первая
  * глава, все места заняты и открытый пакет. Проверяем, что ничего не вылезает; на телефоне
- * товары и свои Знамения — над нижней панелью; дар ночи — веер и кнопки на экране (если по высоте помещаются), в ландшафте строки
+ * товары и свои Знамения — над нижней панелью; дар ночи — веер и кнопки на экране, выбор карты ничего не сдвигает (если по высоте помещаются), в ландшафте строки
  * не заходят под панель, на ПК лавка — собранный блок без пустого поля (правило Дениса:
  * место на экране используется рационально); касание своего Знамения открывает лист продажи.
  */
@@ -72,14 +72,12 @@ test('Обсерватория: строки товаров, бонус стро
         if (state === 'gift') {
           const scene = document.querySelector<HTMLElement>('.gift-scene');
           if (!scene) return { out, shown: false };
-          // Веер и обе кнопки — на экране, карты веера не налезают на описание
-          for (const el of scene.querySelectorAll<HTMLElement>('.gift-opt, .scene-acts .btn')) {
+          // Веер и кнопки — на экране
+          for (const el of scene.querySelectorAll<HTMLElement>('.gift-card, .scene-acts .btn')) {
             const r = el.getBoundingClientRect();
             if (r.top < 0 || r.bottom > innerHeight + 1 || r.left < 0 || r.right > innerWidth + 1) out.push(`за экраном: ${el.className}`);
           }
-          const name = scene.querySelector('.gift-detail > b')!.getBoundingClientRect();
-          for (const up of scene.querySelectorAll('.gift-up')) if (up.getBoundingClientRect().bottom > name.top + 1) out.push('«6 → 7» налезает на имя');
-          return { out, shown: scene.querySelectorAll('.gift-opt').length === 3 };
+          return { out, shown: scene.querySelectorAll('.gift-card').length === 3 };
         }
         // Обрезанный по высоте или ширине текст в строках товаров
         for (const el of shop.querySelectorAll<HTMLElement>('.ware *')) {
@@ -107,6 +105,18 @@ test('Обсерватория: строки товаров, бонус стро
       if (!res.shown) failures.push(`${tag}: ${state === 'gift' ? 'дар' : 'пакет'} не открылся`);
       if (res.out.length) failures.push(`${tag}: ${res.out.slice(0, 3).join('; ')}`);
       if (audit.length) failures.push(`${tag}: ${audit.slice(0, 3).join('; ')}`);
+      if (state === 'gift') {
+        // Правило Дениса: при выборе карты ничего на экране не меняет размер и место
+        await page.waitForTimeout(1600);
+        const boxes = () => page.evaluate(() => ['.gift-fan', '.gift-detail', '.scene-acts', '.scene-ribbon'].map((s) => { const r = document.querySelector(s)!.getBoundingClientRect(); return [s, Math.round(r.top), Math.round(r.height), Math.round(r.width)].join(':'); }).join(' '));
+        const seen = new Set([await boxes()]);
+        for (const i of [0, 1, 2, 0]) {
+          await page.locator('.gift-card').nth(i).click();
+          await page.waitForTimeout(450);
+          seen.add(await boxes());
+        }
+        if (seen.size > 1) failures.push(`${lang} gift: сцена меняет размер при выборе: ${[...seen].join(' | ')}`);
+      }
       if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/shop-${state}.png` });
     }
   }
