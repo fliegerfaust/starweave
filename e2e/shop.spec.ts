@@ -202,8 +202,8 @@ test('после Яркой ночи: дар, затем бесплатное З
       app.runs.collectReward();
     });
     await expect(page.locator('.gift-scene').first()).toBeVisible();
-    // Карты раздаются ~1,7 с, до этого сцена кнопки не принимает
-    await page.waitForTimeout(2500);
+    // Карты раздаются ~2,3 с, до этого сцена кнопки не принимает
+    await page.waitForTimeout(3200);
     if (way === 'take') {
       // Веер дара дышит — Playwright не дождётся «стабильного» элемента, жмём сразу
       await page.locator('.gift-card').first().dispatchEvent('click');

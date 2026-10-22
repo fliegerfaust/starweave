@@ -74,6 +74,15 @@ async function boot(): Promise<void> {
     void import('./dev/demo').then(({ runDemo }) => runDemo(app, params.get('demo') ?? ''));
   }
   if (params.has('debug')) void import('./dev/diag').then(({ showDiagnostics }) => showDiagnostics(app));
+  // Карта неба с развилками сразу — проверить её в iOS-симуляторе без консоли (только в разработке)
+  if (dev && params.has('skymap')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, bestAnte: 4, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const { planChapter } = await import('./core/route');
+    app.run!.unlocks.routes = true;
+    app.run!.chapter = planChapter(app.run!);
+    await app.router.route();
+  }
 }
 
 void boot();

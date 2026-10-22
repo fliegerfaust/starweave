@@ -176,7 +176,7 @@ const GLYPH = {
   radiant: ['9 Звезды с Сиянием', 'Когда вспыхивает: <span class="c-light">+30</span> света'],
   echo: ['7 Кометы с Эхом', 'Засчитывается <b>дважды</b>'],
   gilded: ['7 Солнца с Позолотой', 'Когда вспыхивает: <span class="c-gold">+2</span> золота'],
-  glass: ['8 Солнца со Стеклом', 'Множитель <span class="c-mult">×2</span>, но с шансом 1/4 разобьётся'],
+  glass: ['8 Солнца со Стеклом', 'Множитель <span class="c-mult">×2</span>, но с шансом 25% разобьётся'],
 };
 const GLYPH_CARD = { blazing: ['moon', 8], radiant: ['star', 9], echo: ['comet', 7], gilded: ['sun', 7], glass: ['sun', 8] };
 const glyphOpt = (g) => ({ kind: 'glyph', card: { suit: GLYPH_CARD[g][0], rank: GLYPH_CARD[g][1], glyph: g }, name: GLYPH[g][0], rule: GLYPH[g][1], short: GLYPH[g][1] });
