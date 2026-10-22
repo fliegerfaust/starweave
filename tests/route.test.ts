@@ -187,6 +187,47 @@ describe('развилки главы (RT.1)', () => {
     expect(deserializeRun(serializeRun(run))!.journey).toEqual(run.journey);
   });
 
+  it('экономика и длина (RT.6): любой путь главы — 3 шага, не больше 3 ночей, лавка после каждой ночи', () => {
+    for (let seed = 1; seed < 12; seed++) {
+      const probe = wondrous(seed);
+      for (const first of routeOptions(probe.chapter)) {
+        const secondOptions = probe.chapter.nodes[first]!.next;
+        for (const second of secondOptions) {
+          const run = wondrous(seed);
+          let nights = 0;
+          let shops = 0;
+          for (const node of [first, second]) {
+            chooseRoute(run, node);
+            if (isWonder(currentNode(run).route)) {
+              visitWonder(run);
+              skipChoice(run);
+              // После шага без ночи — сразу карта главы, без лавки
+              expect(run.phase).toBe('map');
+              continue;
+            }
+            startNight(run);
+            nights += 1;
+            win(run);
+            collectReward(run);
+            expect(run.phase).toBe('shop');
+            shops += 1;
+            run.pending = [];
+            leaveShop(run);
+          }
+          // Затмение — третий шаг, выбирается само
+          expect(currentNode(run).route).toBe('eclipse');
+          pass(run);
+          nights += 1;
+          shops += 1;
+          expect(run.ante).toBe(2);
+          expect(nights).toBeGreaterThanOrEqual(2);
+          expect(nights).toBeLessThanOrEqual(3);
+          expect(shops).toBe(nights);
+        }
+      }
+    }
+  });
+
   it('вызов дня: развилки есть, Кометы и Телескопа нет', () => {
     expect(baseContent()).toMatchObject({ routes: true, wonders: false });
   });

@@ -7,6 +7,7 @@ import { choose, currentChoice, skipChoice } from '../choices';
 import { chooseRoute, currentNode, isWonder, routeOptions, visitWonder } from '../route';
 import { RuleError } from '../errors';
 import type { GiftOffer } from '../gift';
+import type { CometEvent, ScopeUpgrade } from '../wonders';
 import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
 /** Вес точки креста в оценке позиции (подобран симуляцией). */
@@ -140,11 +141,23 @@ export function pickRoute(run: RunState): void {
   chooseRoute(run, (wantBright ? find('bright') : (find('telescope') ?? find('night'))) ?? find('night') ?? options[0]!);
 }
 
-/** Комета или Телескоп: первый вариант, который можно взять, иначе мимо. */
+/** Ценность обмена Кометы и улучшения Телескопа для бота (RT.6, подобрано симом). */
+const COMET_VALUE: Record<CometEvent, number> = {
+  goldForOmen: 4, goldForChart: 3, goldForCopy: 3, cardForGlyph: 3, omenForOmen: 3,
+  chartSwap: 2, goldForBanish: 2, rankShift: 1, suitShift: 1, omenForGold: 0.5,
+};
+const SCOPE_VALUE: Record<ScopeUpgrade['u'], number> = { chart: 3, glyph: 3, banish: 2 };
+
+/** Комета или Телескоп: самый ценный вариант, который можно взять, иначе мимо. */
 export function wonderGreedy(run: RunState): void {
   const choice = currentChoice(run);
   if (choice?.kind !== 'comet' && choice?.kind !== 'telescope') return;
-  for (let i = 0; i < choice.options.length; i++) {
+  const value = (i: number): number => {
+    const o = choice.options[i]!;
+    return 'e' in o ? COMET_VALUE[o.e] : SCOPE_VALUE[o.u];
+  };
+  const order = choice.options.map((_, i) => i).sort((a, b) => value(b) - value(a));
+  for (const i of order) {
     try {
       return choose(run, i);
     } catch (e) {
