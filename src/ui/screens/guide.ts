@@ -278,15 +278,13 @@ export function showGuide(opts: GuideOptions = {}): void {
     const [r, su] = GLYPH_CARD[glyph];
     const line = h('span.gb-row4', null, [thumb(3, 'sun'), h('span.hot', null, thumb(r, su, CELL, glyph)), thumb(5, 'star'), thumb(6, 'comet')]);
     const w = g.glyphTally;
-    const tally: Record<Glyph, HTMLElement> = {
-      gilded: chips(h('b.gb-chip.g', null, ['+2 ', coin()]), w.atFlare),
-      blazing: chips(chip('m', '+4'), w.toMult),
-      radiant: chips(chip('l', '+30'), w.light),
+    // Эффект один раз — строкой с ключевыми словами (FX.9); плашки остаются только примером
+    // там, где строка его не показывает: Эхо считает ранг дважды, Призма — любая масть
+    const example: Partial<Record<Glyph, HTMLElement>> = {
       echo: chips(chip('l', `+${r}`), chip('l', `+${r}`), w.twice),
-      glass: chips(chip('m', '×2'), w.mult, chip('w', '25%'), w.breaks),
       prism: chips(h('b.gb-chip.l.gb-suits', null, suitMarks()), w.anySuit),
     };
-    return [h('div.gb-stage', null, line), [h('h3', null, t(`glyph.${glyph}`)), h('p', null, rich(dict().glyphDesc[glyph])), tally[glyph]]];
+    return [h('div.gb-stage', null, line), [h('h3', null, t(`glyph.${glyph}`)), h('p', null, rich(dict().glyphDesc[glyph])), ...[example[glyph]].filter((x): x is HTMLElement => !!x)]];
   };
   const glyphList = () => {
     const list = h('div.gb-list');

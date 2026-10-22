@@ -26,8 +26,8 @@ const R = '(?![А-Яа-яЁёA-Za-z])';
 const AUTO: { re: string; key: string; cls?: string }[] = [
   { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:к множителю|to multiplier)', key: 'mult', cls: 'mult' },
   { re: '(?:[Мм]ножитель|[Mm]ultiplier)[^.,:;()]{0,30}?×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
-  // «крест даёт ×3» — в описаниях × всегда про множитель
-  { re: '×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
+  // «крест даёт ×3» — в описаниях × про множитель; «4×4» (размер неба) — нет
+  { re: '(?<!\\d\\s?)×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
   { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:света|light)', key: 'light', cls: 'light' },
   { re: '[+−-]\\d+\\s?(?:золота|золото|gold)', key: 'gold', cls: 'gold' },
   { re: `${L}(?:разбиться|разобьётся|разбивается|разбилась|shatters?|shattered)${R}`, key: 'shatter' },
@@ -133,6 +133,8 @@ function paint(dir: number): void {
 
 /** Сторона выбирается при открытии и не меняется в цепочке: табличка растёт от слова, не прыгает. */
 function place(st: Open): void {
+  // Слово убрали со страницы (экран перерисовался) — подсказку не к чему привязать
+  if (!st.anchor.isConnected) return closeKeyword();
   const r = st.anchor.getBoundingClientRect();
   const tw = st.tip.offsetWidth;
   const th = st.tip.offsetHeight;
@@ -146,11 +148,16 @@ function place(st: Open): void {
 }
 
 // Одно делегирование на весь интерфейс: касание слова, слово в подсказке, касание мимо
+// Ловим на погружении, до обработчиков строк: касание слова только открывает подсказку и не
+// выбирает строку. Иначе строка справочника перерисовывалась, слово пропадало со страницы,
+// и подсказка улетала в угол экрана (FX.10)
 document.addEventListener('click', (e) => {
   const kw = (e.target as HTMLElement).closest?.<HTMLElement>('.kw');
-  if (kw?.closest('.kw-hint')) step(kw.dataset.kw!);
-  else if (kw) openKeyword(kw);
-});
+  if (!kw) return;
+  e.stopPropagation();
+  if (kw.closest('.kw-hint')) step(kw.dataset.kw!);
+  else openKeyword(kw);
+}, true);
 document.addEventListener('pointerdown', (e) => {
   const el = e.target as HTMLElement;
   if (open && !el.closest?.('.kw-hint') && !el.closest?.('.kw')) closeKeyword();
