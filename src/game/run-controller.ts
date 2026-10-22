@@ -129,14 +129,18 @@ export class RunController {
     }
   }
 
-  beginNight(): void {
-    this.guarded(() => this.doBeginNight());
+  /** Начать ночь; `node` — узел пути, выбранный на развилке главы (RT.1). */
+  beginNight(node?: number): void {
+    this.guarded(() => {
+      if (node !== undefined) apply(this.run!, { c: 'route', node });
+      this.doBeginNight();
+    });
   }
 
   private doBeginNight(): void {
     const run = this.run!;
     apply(run, { c: 'startNight' });
-    if (run.tutorial) applyTutorialNight(run, run.chapter.at);
+    if (run.tutorial) applyTutorialNight(run, run.chapter.path.length);
     else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
     this.progress({ e: 'nightStart' });
     this.save();
@@ -250,7 +254,7 @@ export class RunController {
     }
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
-    const ad = run.phase === 'map' && run.chapter.at === 0 ? this.app.money.interstitialBetweenAntes() : null;
+    const ad = run.phase === 'map' && run.chapter.path.length === 0 ? this.app.money.interstitialBetweenAntes() : null;
     if (ad) {
       void ad.then(() => this.route());
       return;
