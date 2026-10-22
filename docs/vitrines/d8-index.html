@@ -367,7 +367,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 <body>
 <div class="wrap">
   <div class="goals" id="goals"></div>
-  <div class="label">Где мы сейчас <small>сделано, в работе и впереди · на 22.10.2026 · карточка открывает витрину</small></div>
+  <div class="label">Где мы сейчас <small>0.7.0 вышла 22.10.2026 · 0.7.1 — фиксы, дальше выпуски 0.7.2–0.7.5 · карточка открывает витрину</small></div>
   <div class="prog" id="prog"></div>
 
   <div class="label">Петля забега <small>одна глава — сейчас и в 0.7 · золотая точка — решение игрока</small></div>
@@ -413,6 +413,7 @@ const VITRINES = [
   { id: 'route', title: 'Развилки', file: 'd8-route.html', step: 2 },
   { id: 'route-screen', title: 'Развилки · экран', file: 'd8-route-screen.html', step: 2 },
   { id: 'route-wonders', title: 'Комета, Телескоп, путь', file: 'd8-route-wonders.html', step: 6 },
+  { id: 'keywords', title: 'Ключевые слова', file: 'd8-keywords.html', step: 6 },
   { id: 'trophy', title: 'Трофеи Затмений', file: 'd8-trophy.html', step: 4 },
   { id: 'myths', title: 'Мифы неба', file: 'd8-myths.html', step: 5 },
   { id: 'prophecy', title: 'Пророчества', file: 'd8-prophecy.html', step: 7 },
@@ -768,20 +769,20 @@ q('#goals').replaceChildren(...GOALS.map(([ic, b, s]) => h('div', { class: 'goal
 
 /* Где мы сейчас: каждая идея релиза — сделана, в работе или впереди. Карточка открывает витрину */
 const STATUS = [
-  { lane: 'done', id: 'gift', name: 'Дар ночи', sub: 'После победной ночи 1 из 3 звёзд или чистое небо. Вмёржено в release/0.7.0', ic: () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 26),
+  { lane: 'done', id: 'gift', name: 'Дар ночи', sub: 'После победной ночи 1 из 3 звёзд или чистое небо. Вышло в 0.7.0', ic: () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 26),
     items: [['Ядро и сцена «Спокойный веер»', 1], ['Бот и симуляция для дара', 1]] },
-  { lane: 'done', id: 'gift', name: 'Небесные тела', sub: 'Первая волна: 6 тел со своим правилом места на сетке', ic: () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 26),
+  { lane: 'done', id: 'gift', name: 'Небесные тела', sub: 'Первая волна: 6 тел со своим правилом места на сетке. Вышло в 0.7.0', ic: () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 26),
     items: [['6 тел, арт и анимации на небе', 1], ['Справочник: тела во вкладке «Карты»', 1]] },
-  { lane: 'done', id: 'route', name: 'Развилки главы', sub: 'Путь главы решает игрок. Вмёржено в release/0.7.0', ic: () => omen('crossroads', 36),
+  { lane: 'done', id: 'route', name: 'Развилки главы', sub: 'Путь главы решает игрок. Вышло в 0.7.0', ic: () => omen('crossroads', 36),
     items: [['Ядро: граф главы, «Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика по симу и e2e на 8 устройствах', 1]] },
-  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
-  { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Фигуры на всём небе', ic: mythIcon },
-  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Цель внутри главы', ic: () => sig('chart-flush', 36) },
-  { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Пара Знамений как находка', ic: () => omen('sunWorship', 36) },
-  { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'След проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
-  { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Разное начало забега', ic: () => omen('diagonalSight', 36) },
-  { lane: 'next', id: 'heart', name: 'Сердце неба', sub: 'Тайная глава за ключи', ic: () => boss('void', 36) },
-  { lane: 'next', id: 'skyvault', name: 'Небосвод', sub: 'Прогресс как небо игрока', ic: () => omen('stardust', 36) },
+  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Выпуск 0.7.2 · побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
+  { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Выпуск 0.7.3 · фигуры на всём небе', ic: mythIcon },
+  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Выпуск 0.7.2 · цель внутри главы', ic: () => sig('chart-flush', 36) },
+  { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Выпуск 0.7.3 · пара Знамений как находка', ic: () => omen('sunWorship', 36) },
+  { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'Выпуск 0.7.4 · след проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
+  { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Выпуск 0.7.4 · разное начало забега', ic: () => omen('diagonalSight', 36) },
+  { lane: 'next', id: 'heart', name: 'Сердце неба', sub: 'Выпуск 0.7.5 · тайная глава за ключи', ic: () => boss('void', 36) },
+  { lane: 'next', id: 'skyvault', name: 'Небосвод', sub: 'Выпуск 0.7.5 · прогресс как небо игрока', ic: () => omen('stardust', 36) },
 ];
 {
   const n = (l) => STATUS.filter((x) => x.lane === l).length;
@@ -790,7 +791,7 @@ const STATUS = [
     h('div', { class: 'track' }, h('i', { class: 'd', style: { width: (n('done') / total) * 100 + '%' } }), h('i', { class: 'w', style: { width: (n('work') / total) * 100 + '%' } })),
     h('div', { class: 'nums' }, h('span', {}, h('b', {}, n('done')), 'сделано'), h('span', {}, h('b', {}, n('work')), 'в работе'), h('span', {}, h('b', {}, n('next')), 'впереди'), h('span', {}, 'из ' + total + ' идей релиза')));
   const lane = (key, title) => h('div', { class: 'lane ' + key }, h('h3', {}, h('i'), title + ' · ' + n(key)),
-    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Следующий эпик выбирает Денис'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
+    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Сейчас 0.7.1: фиксы после проверки на проде. Затем 0.7.2: Трофеи и Пророчества'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
       h('div', {}, h('b', {}, x.name), h('small', {}, x.sub),
         x.part ? h('div', { class: 'mini' }, h('i', { style: { width: x.part * 100 + '%' } })) : null,
         x.items ? h('ul', {}, x.items.map(([t, ok]) => h('li', { class: ok ? 'ok' : '' }, t))) : null)))));
@@ -940,6 +941,7 @@ const VDESC = {
   'gift-ui': ['Экран дара: выбор звезды, выбрано «Спокойный веер»', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 30)],
   'gift-scene': ['Сцена дара после ночи в трёх формах', () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 30)],
   'route-screen': ['«Карта неба»: глава с развилками в трёх формах', () => omen('crossroads', 40)],
+  keywords: ['Подсказки к словам механики на всех экранах (0.7.1)', () => omen('stardust', 40)],
   'route-wonders': ['Комета и Телескоп с ключевыми словами, открытка «Мой путь»', () => omen('corona', 40)],
   trophy: ['Побеждённое Затмение работает на тебя', () => boss('gravity', 40)],
   myths: ['Кассиопея, Лебедь, Плеяды — фигуры на небе 4×4', mythIcon],

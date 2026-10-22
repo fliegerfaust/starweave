@@ -71,6 +71,8 @@ body {
   touch-action: none;
 }
 #stage canvas { display: block; }
+/* Цифры подсчёта поверх интерфейса, ниже окон (FX.5) */
+.fx-overlay { position: fixed; left: 0; top: 0; z-index: 15; pointer-events: none; }
 
 #ui {
   position: fixed;
@@ -245,7 +247,8 @@ body {
   border-radius: 16px;
   background: rgb(14 12 40 / 0.97);
   box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 14px 40px rgb(0 0 0 / 0.5);
-  pointer-events: none;
+  /* В табличке нажимаемые ключевые слова (FX.4) */
+  pointer-events: auto;
   animation: fade-in 0.12s ease;
 }
 /* Носик таблички смотрит на элемент (RD.10) */
@@ -1459,8 +1462,9 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .sm-detail { position: relative; overflow: hidden; display: grid; align-content: center; gap: 8px; padding: 12px 14px; border-radius: 16px; text-align: left; background: radial-gradient(120% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.07), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); }
 .map.sm.land .sm-detail { padding: 10px 12px; gap: 6px; min-height: 0; }
 .map.sm.wide .sm-detail { padding: 16px 18px; }
-.sm-detail > * { transition: opacity 0.18s ease; }
-.sm-detail.swap > * { opacity: 0; }
+/* Содержимое плашки — один блок: гаснет и проявляется целиком (FX.2, без отпечатков в WebKit) */
+.sm-body { display: grid; align-content: center; gap: inherit; transition: opacity 0.18s ease; }
+.sm-detail.swap > .sm-body { opacity: 0; }
 .sm-cap { text-align: center; font: 800 10px/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
 .sm-opts { display: grid; }
 .sm-o { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 6px 2px; font: 600 12.5px/1.2 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }

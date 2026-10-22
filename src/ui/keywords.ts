@@ -1,6 +1,5 @@
 import { dict, named } from '@/i18n';
 import { h } from './dom';
-import { rich } from './rich';
 
 /**
  * Ключевые слова механики (RT.4, витрина d8-route-wonders, выбор Дениса 22.10.2026).
@@ -16,17 +15,57 @@ const MARK = /\[([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]|\{([+-])([^}]+)\}/g;
 /** Число не отрывается ни от своего слова, ни от короткого предлога перед ним. */
 const glue = (s: string) => s.replace(/(^|\s)(\S{1,3}) (\d)/g, '$1$2 $3').replace(/(\d) (\S)/g, '$1 $2');
 
-export function kwText(raw: string): HTMLElement {
+/**
+ * Слова механики в описаниях Знамений, Затмений, глифов и ритуалов находятся сами (FX.4): числа
+ * эффектов («+6 к множителю», «множитель ×3», «+30 света», «+2 золота»), «ранг», «разбиться».
+ * Цвет — как у коробок формулы ночи. Названия (Знамения, глифа) рядом со своим описанием не
+ * выделяются — их объясняет описание (правило Дениса).
+ */
+const L = '(?<![А-Яа-яЁёA-Za-z])';
+const R = '(?![А-Яа-яЁёA-Za-z])';
+const AUTO: { re: string; key: string; cls?: string }[] = [
+  { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:к множителю|to multiplier)', key: 'mult', cls: 'mult' },
+  { re: '(?:[Мм]ножитель|[Mm]ultiplier)[^.,:;()]{0,30}?×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
+  // «крест даёт ×3» — в описаниях × всегда про множитель
+  { re: '×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
+  { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:света|light)', key: 'light', cls: 'light' },
+  { re: '[+−-]\\d+\\s?(?:золота|золото|gold)', key: 'gold', cls: 'gold' },
+  { re: `${L}(?:разбиться|разобьётся|разбивается|разбилась|shatters?|shattered)${R}`, key: 'shatter' },
+  { re: `${L}(?:ранг|ранга|рангу|рангом|ранги|рангов|рангам|rank|ranks)${R}`, key: 'rank' },
+];
+const AUTO_RE = new RegExp(AUTO.map((a) => `(${a.re})`).join('|'), 'g');
+
+function word(text: string, key: string, cls?: string): HTMLElement {
+  return h(`span.kw${cls ? `.${cls}` : ''}`, { attrs: { 'data-kw': key, role: 'button', tabindex: '0' } }, text);
+}
+
+function autoNodes(text: string): (Node | string)[] {
+  const out: (Node | string)[] = [];
+  let last = 0;
+  for (const m of text.matchAll(AUTO_RE)) {
+    const i = m.index ?? 0;
+    if (i > last) out.push(text.slice(last, i));
+    const a = AUTO[m.slice(1).findIndex((g) => g !== undefined)]!;
+    out.push(word(m[0], a.key, a.cls));
+    last = i + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+/** Текст с ключевыми словами: ручная разметка из словаря, а с `auto` — ещё и найденные слова. */
+export function kwText(raw: string, auto = false): HTMLElement {
   const src = glue(raw);
   const out = h('span.kw-text');
+  const plain = (s: string) => out.append(...(auto ? autoNodes(s) : [s]));
   let last = 0;
   for (const m of src.matchAll(MARK)) {
-    out.append(src.slice(last, m.index));
+    plain(src.slice(last, m.index));
     if (m[4]) out.append(h(`span.kw-verb${m[4] === '+' ? '.plus' : ''}`, null, m[5]!));
-    else out.append(h(`span.kw${m[3] ? `.${m[3]}` : ''}`, { attrs: { 'data-kw': m[2]!, role: 'button', tabindex: '0' } }, m[1]!));
+    else out.append(word(m[1]!, m[2]!, m[3]));
     last = (m.index ?? 0) + m[0].length;
   }
-  out.append(src.slice(last));
+  plain(src.slice(last));
   return out;
 }
 
@@ -40,7 +79,7 @@ function define(key: string): Def | null {
   const d = dict();
   if (key.startsWith('omen.')) {
     const { name, desc } = named('omen', key.slice(5));
-    return desc ? { kind: d.kw.kinds.omen, name, body: rich(desc) } : null;
+    return desc ? { kind: d.kw.kinds.omen, name, body: kwText(desc, true) } : null;
   }
   const glyph = (d.kw.glyph as Record<string, string | undefined>)[key];
   if (glyph) return { kind: d.kw.kinds.glyph, name: (d.glyph as Record<string, string | undefined>)[key] ?? key, body: kwText(glyph) };

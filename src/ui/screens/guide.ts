@@ -13,6 +13,7 @@ import { SUIT_COLORS } from '@/art/palette';
 import { canvasImg, dpr, h, type Child } from '../dom';
 import { icon } from '../icons';
 import { modal } from '../widgets';
+import { rich } from '../rich';
 import { cardThumb } from './common';
 
 /*
@@ -158,7 +159,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     } else grid.classList.add('glow');
     return [grid, [
       h('h3', null, [t(`combo.${combo}`), lvl > 1 ? h('span.gb-lv', null, t('combos.level', { n: lvl })) : null]),
-      h('p', null, dict().comboDesc[combo]),
+      h('p', null, rich(dict().comboDesc[combo])),
       h('span.gb-adds', null, format(g.fromRanks, { list: ranks.map((r) => `+${r}`).join(' ') })),
       sum,
     ]];
@@ -173,7 +174,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       const miss = !!found && id !== 'scatter' && !got;
       list.append(row(id === combo, miss, [
         h('b', null, [t(`combo.${id}`), got ? h('span.gb-ok', { attrs: { 'aria-label': t('combos.found') } }, icon('check')) : null, lvl > 1 ? h('span.gb-lv', null, t('combos.level', { n: lvl })) : null]),
-        h('small', null, dict().comboDesc[id]),
+        h('small', null, rich(dict().comboDesc[id])),
       ], h('span.gb-base', null, [h('span.light-text', null, String(b.light)), h('span.gb-x', null, '×'), h('span.mult-text', null, String(b.mult))]), () => { combo = id; render(); },
       // Схема созвездия: высота звезды — ранг, цвет — масть, дуги — что совпало
       h('span.gb-scheme', null, canvasImg(comboScheme(id, 52, dpr()), 52, Math.round((52 * 68) / 116)))));
@@ -195,11 +196,11 @@ export function showGuide(opts: GuideOptions = {}): void {
     const [title, text] = g.steps[step]!;
     const extra = id === 'score' ? chips(chip('l', '10'), '+18 =', chip('l', '28'), '×', chip('m', '2'), '=', chip('t', '56'))
       : id === 'eclipse' ? canvasImg(bossSigil('eclipse-moon', 48, dpr()), 48) : null;
-    return [grid, [h('h3', null, `${step + 1}. ${title}`), h('p', null, text), extra].filter((x): x is HTMLElement => !!x)];
+    return [grid, [h('h3', null, `${step + 1}. ${title}`), h('p', null, rich(text)), extra].filter((x): x is HTMLElement => !!x)];
   };
   const nightList = () => {
     const list = h('div.gb-list');
-    g.steps.forEach(([title, text], i) => list.append(row(i === step, false, [h('b', null, `${i + 1}. ${title}`), h('small', null, text)], null, () => { step = i; auto = false; render(); })));
+    g.steps.forEach(([title, text], i) => list.append(row(i === step, false, [h('b', null, `${i + 1}. ${title}`), h('small', null, rich(text))], null, () => { step = i; auto = false; render(); })));
     const goal = h('p.gb-goal');
     goal.innerHTML = g.goal;
     return [section(g.nightHead, auto ? g.auto : format(g.stepOf, { n: step + 1, total: g.steps.length })), list, goal];
@@ -282,16 +283,16 @@ export function showGuide(opts: GuideOptions = {}): void {
       blazing: chips(chip('m', '+4'), w.toMult),
       radiant: chips(chip('l', '+30'), w.light),
       echo: chips(chip('l', `+${r}`), chip('l', `+${r}`), w.twice),
-      glass: chips(chip('m', '×2'), w.mult, chip('w', '1/4'), w.breaks),
+      glass: chips(chip('m', '×2'), w.mult, chip('w', '25%'), w.breaks),
       prism: chips(h('b.gb-chip.l.gb-suits', null, suitMarks()), w.anySuit),
     };
-    return [h('div.gb-stage', null, line), [h('h3', null, t(`glyph.${glyph}`)), h('p', null, dict().glyphDesc[glyph]), tally[glyph]]];
+    return [h('div.gb-stage', null, line), [h('h3', null, t(`glyph.${glyph}`)), h('p', null, rich(dict().glyphDesc[glyph])), tally[glyph]]];
   };
   const glyphList = () => {
     const list = h('div.gb-list');
     for (const gl of GLYPHS) {
       const [r, su] = GLYPH_CARD[gl];
-      list.append(row(!showBody && gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, dict().glyphDesc[gl])], null, () => { glyph = gl; showBody = false; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
+      list.append(row(!showBody && gl === glyph, false, [h('b', null, t(`glyph.${gl}`)), h('small', null, rich(dict().glyphDesc[gl]))], null, () => { glyph = gl; showBody = false; render(); }, h('span.gb-card-ic', null, thumb(r, su, 22, gl))));
     }
     return [section(g.tabs.glyphs!, g.glyphSub), list, ...(openBodies.length ? bodyList() : [])];
   };
@@ -313,7 +314,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       nebula: chips(chip('t', t('combo.quartet')), w.nebula),
       blackhole: chips(chip('t', t('combo.pair')), chip('m', '×2'), w.blackhole),
     };
-    return [stage, [h('h3', null, t(`body.${bodyId}`)), h('p', null, dict().bodyDesc[bodyId]), tally[bodyId]]];
+    return [stage, [h('h3', null, t(`body.${bodyId}`)), h('p', null, rich(dict().bodyDesc[bodyId])), tally[bodyId]]];
   };
   const bodyList = () => {
     const list = h('div.gb-list');
@@ -327,7 +328,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         list.append(h('div.gb-row.miss.with-ic', null, [ic, h('span.gb-text', null, [h('b', null, t(`body.${b}`)), h('small', null, lockText)]), icon('lock')]));
         continue;
       }
-      list.append(row(showBody && b === bodyId, false, [h('b', null, t(`body.${b}`)), h('small', null, dict().bodyDesc[b])], null, () => { bodyId = b; showBody = true; render(); }, ic));
+      list.append(row(showBody && b === bodyId, false, [h('b', null, t(`body.${b}`)), h('small', null, rich(dict().bodyDesc[b]))], null, () => { bodyId = b; showBody = true; render(); }, ic));
     }
     return [section(g.bodies, g.bodiesSub), list];
   };
@@ -365,7 +366,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     const info = named(pick.kind, pick.id);
     const kind = pick.kind === 'omen' ? OMEN_LIST.find((x) => x.id === pick!.id)?.kind ?? null : null;
     const tally = known
-      ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, effect(info.desc))]
+      ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
       : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
     return [h('div.gb-stage', null, big), tally];
   };
