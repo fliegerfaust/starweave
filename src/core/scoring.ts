@@ -1,5 +1,5 @@
 import { comboBase } from './content/combos';
-import { evaluateCombo } from './combos';
+import { resolveLine } from './combos';
 import { activeEffects, type ActiveEffect } from './effect-sources';
 import type { BaseCtx, CardCtx, Contrib, LineInfo, PlacementCtx } from './effects';
 import { activeCells } from './grid';
@@ -46,12 +46,17 @@ function scoreLine(
   rolled: Set<number>,
 ): LineScore & { gold: number } {
   const cells = activeCells(line, night.sealed);
-  const cards = cells.map((cell) => night.grid[cell] as Card);
-  const combo = evaluateCombo(cards, { flushSlack: night.rules.flushSlack, straightGaps: night.rules.straightGaps });
+  const placed = cells.map((cell) => night.grid[cell] as Card);
+  const resolved = resolveLine(placed, { flushSlack: night.rules.flushSlack, straightGaps: night.rules.straightGaps });
+  const combo = resolved.combo;
+  // Туманность и Двойник засчитываются тем рангом, которым встали в линию
+  const cards = placed.map((c, i) => (resolved.ranks[i] === c.rank ? c : { ...c, rank: resolved.ranks[i]! }));
   const info: LineInfo = { line, combo, cells, cards };
   const tally = new Tally();
   const base = comboBase(combo, run.comboLevels[combo]);
   tally.push({ kind: 'combo', combo }, base);
+  // Заряд Пульсаров этой ночи — к каждой линии
+  if (night.pulse) tally.push({ kind: 'body', body: 'pulsar' }, { mult: night.pulse });
 
   const baseCtx = (fx: ActiveEffect): BaseCtx => ({ run, night, rules: night.rules, rng, data: fx.data });
 
@@ -59,7 +64,8 @@ function scoreLine(
     const card = cards[i] as Card;
     if (isDebuffed(card, night)) return;
     const cardSource: StepSource = { kind: 'card', cell, cardId: card.id };
-    const glyphSource = (): StepSource => ({ kind: 'glyph', cell, cardId: card.id, glyph: card.glyph! });
+    const traitSource = (): StepSource =>
+      card.body ? { kind: 'body', cell, cardId: card.id, body: card.body } : { kind: 'glyph', cell, cardId: card.id, glyph: card.glyph! };
     const cardCtx = (fx: ActiveEffect): CardCtx => ({
       ...baseCtx(fx),
       ...info,
@@ -74,7 +80,7 @@ function scoreLine(
 
     for (let t = 0; t < times; t++) {
       tally.push(cardSource, { light: card.rank });
-      if (trait?.onScored) trait.onScored({ ...tally.contrib(glyphSource()), card, cell });
+      if (trait?.onScored) trait.onScored({ ...tally.contrib(traitSource()), card, cell });
       for (const fx of effects) fx.hooks.onCardScored?.(cardCtx(fx));
     }
     // Один бросок на карту за ход, даже если она в двух линиях креста

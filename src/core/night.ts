@@ -2,6 +2,7 @@ import { GENTLE_NIGHT, MOVES_PER_GOLD } from './content/balance';
 import { evaluateCombo } from './combos';
 import { runNightReward } from './content/stakes';
 import { cloneCard } from './deck';
+import { neighbours, traitOf } from './content/traits';
 import type { BaseCtx, CellFate } from './effects';
 import { activeCells, buildLines, ignitedLines, pickSealedCells } from './grid';
 import { shuffle, weightedPick } from './rng';
@@ -149,9 +150,27 @@ const layCard: Stage = (turn) => {
   events.push({ t: 'place', card, handIndex, cell });
 };
 
-/** Карта легла: эффекты «при выкладке» срабатывают до поиска линий. */
+/** Карта легла: её черта (Метеор) и эффекты «при выкладке» срабатывают до поиска линий. */
 const placed: Stage = (turn) => {
-  const { run, night, card, cell } = turn;
+  const { run, night, card, cell, events } = turn;
+  const trait = traitOf(card);
+  if (trait?.onPlaced) {
+    const closing = new Set(ignitedLines(buildLines(night.rules), night.grid, night.sealed, cell).flatMap((l) => l.cells));
+    trait.onPlaced({
+      night,
+      rules: night.rules,
+      card,
+      cell,
+      closing,
+      knock(target) {
+        const out = night.grid[target];
+        if (!out) return;
+        night.grid[target] = null;
+        night.discard.push(out);
+        events.push({ t: 'knocked', cardId: out.id, cell: target, by: cell });
+      },
+    });
+  }
   for (const fx of turn.effects) fx.hooks.onPlaced?.({ ...baseCtx(run, night, fx.data), card, cell });
 };
 
@@ -186,12 +205,32 @@ const scoring: Stage = (turn) => {
   for (const fx of effects) {
     fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, total: score.total });
   }
+  chargePulsars(night, lines, events);
   for (const omen of run.omens) events.push({ t: 'omenChanged', uid: omen.uid });
 };
+
+/**
+ * Пульсар на небе копит множитель за каждую линию, вспыхнувшую рядом с ним (в соседних
+ * клетках, и по диагонали). Линия через сам Пульсар не в счёт: он гаснет вместе с ней.
+ * Заряд — до конца ночи и ко всем линиям, начиная со следующего хода.
+ */
+function chargePulsars(night: NightState, lines: Line[], events: GameEvent[]): void {
+  night.grid.forEach((card, cell) => {
+    const pulse = card ? traitOf(card)?.pulse : undefined;
+    if (!pulse) return;
+    const near = new Set(neighbours(cell, night.rules.gridSize, true));
+    const count = lines.filter((l) => !l.cells.includes(cell) && l.cells.some((c) => near.has(c))).length;
+    if (!count) return;
+    night.pulse = (night.pulse ?? 0) + pulse * count;
+    events.push({ t: 'pulse', cell, amount: pulse * count, total: night.pulse });
+  });
+}
 
 /** Судьба карты вспыхнувшей линии: первый ответивший эффект, иначе — по подсчёту. */
 function cellFate(turn: Turn, card: Card, cell: number): CellFate {
   const { run, night } = turn;
+  const own = traitOf(card)?.fate;
+  if (own) return own;
   for (const fx of turn.effects) {
     const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell });
     if (fate) return fate;
@@ -211,8 +250,8 @@ const settleCells: Stage = (turn) => {
       events.push({ t: 'cardStays', cardId: placedCard.id, cell: c });
       continue;
     }
-    if (fate === 'shattered') {
-      events.push({ t: 'cardDestroyed', cardId: placedCard.id, cell: c, reason: 'shattered' });
+    if (fate === 'shattered' || fate === 'consumed') {
+      events.push({ t: 'cardDestroyed', cardId: placedCard.id, cell: c, reason: fate });
       run.deck = run.deck.filter((d) => d.id !== placedCard.id);
     } else {
       night.discard.push(placedCard);

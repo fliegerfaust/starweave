@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дар ночи · сцена · Starweave 0.7</title>
+<!--KIT-->
+<style>
+/* Язык движения сцены: только transform и opacity, торможение без отскока, растр не масштабируется вверх */
+:root { --ease: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.55, 0, 0.75, 0.2); --k: 1; }
+
+.seg { display: flex; justify-content: center; width: max-content; max-width: 100%; margin: 0 auto 10px; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.split > div { min-width: 0; }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 12px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.toggles { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; }
+.chk { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 10px; color: var(--ink-dim); font: 600 13px/1 var(--font-body); cursor: pointer; }
+.chk input { appearance: none; width: 34px; height: 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.9); position: relative; cursor: pointer; transition: background 0.2s; }
+.chk input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink-faint); transition: transform 0.25s var(--ease), background 0.2s; }
+.chk input:checked { background: rgb(var(--gold-rgb) / 0.22); }
+.chk input:checked::after { transform: translateX(14px); background: var(--gold); }
+
+/* Шапка сцены: колода — куда улетит взятая карта, золото — куда придёт «чистое небо» */
+.scene-top { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: -6px -4px 0; }
+.deckpill { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; color: var(--gold); font: 700 13.5px/1 var(--font-body); }
+.deckpill .stack { position: relative; width: 18px; height: 24px; }
+.deckpill .stack i { position: absolute; inset: 0; border-radius: 3px; box-shadow: inset 0 0 0 1.4px currentColor; background: #120f36; }
+.deckpill .stack i:nth-child(1) { transform: translate(-3px, 2px) rotate(-8deg); opacity: 0.55; }
+.deckpill .stack i:nth-child(2) { transform: translate(2px, 1px) rotate(6deg); opacity: 0.75; }
+.deckpill b, .goldpill b { display: inline-block; font-variant-numeric: tabular-nums; color: var(--gold-hi); }
+.goldpill { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 0 10px; font: 800 16px/1 var(--font-body); }
+.coin { flex: none; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.6); }
+
+.gift-body { position: relative; flex: 1; display: grid; align-content: center; gap: 16px; }
+.prompt { text-align: center; font: 600 13px/1.35 var(--font-body); color: var(--ink-dim); min-height: 18px; transition: opacity calc(0.2s * var(--k)); }
+
+/* Карта дара: слот (место и наклон варианта) → карта (подъём при выборе) → переворот → лицо и рубашка */
+.cards { position: relative; height: 210px; }
+.slot { position: absolute; left: 50%; top: 50%; width: var(--w); height: calc(var(--w) / 0.7); margin: calc(var(--w) / -1.4) 0 0 calc(var(--w) / -2); transform-origin: 50% 50%; }
+.gc { position: relative; width: 100%; height: 100%; perspective: 700px; cursor: pointer; transition: transform calc(0.34s * var(--k)) var(--ease); }
+.gc:focus-visible { outline: none; }
+.gc:focus-visible .ring { opacity: 1; }
+.flip { position: absolute; inset: 0; }
+/* Переворот — до ребра и обратно: на ребре лицо меняется на рубашку (Safari не прячет обратную сторону с canvas) */
+.face, .back { position: absolute; inset: 0; }
+.back img { position: absolute; pointer-events: none; }
+.face .k-card { width: 100% !important; height: 100% !important; }
+/* Свет вокруг выбранной и латунная кромка — отдельные слои, проявляются прозрачностью */
+.halo { position: absolute; inset: -22% -30%; z-index: -1; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.42), rgb(var(--gold-rgb) / 0.12) 55%, transparent 100%); opacity: 0; transition: opacity calc(0.34s * var(--k)) var(--ease); pointer-events: none; }
+.ring { position: absolute; inset: -4px; border-radius: calc(var(--w) * 0.12); box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.95); opacity: 0; transition: opacity calc(0.26s * var(--k)) var(--ease); pointer-events: none; }
+.shade { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); background: #05061a; opacity: 0; transition: opacity calc(0.3s * var(--k)) var(--ease); pointer-events: none; }
+.gc.sel { transform: translateY(-14px); }
+.gc.sel .halo, .gc.sel .ring { opacity: 1; }
+.cards.has-sel .gc:not(.sel) .shade { opacity: 0.42; }
+/* Блик-приглашение: тонкая полоса света проходит по карте, пока игрок ничего не выбрал */
+.glint { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); overflow: hidden; pointer-events: none; }
+.glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.38), transparent); transform: translateX(0); }
+.glint.run::before { animation: glint calc(0.9s * var(--k)) var(--ease) both; }
+@keyframes glint { to { transform: translateX(400%); } }
+.cap { position: absolute; left: 50%; top: calc(100% + 10px); width: 112px; transform: translateX(-50%); text-align: center; font: 700 12.5px/1.25 var(--font-body); color: var(--ink-dim); text-wrap: balance; transition: color calc(0.26s * var(--k)); pointer-events: none; }
+.gc.sel ~ .cap { color: var(--gold-hi); }
+.up { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
+
+/* Описание выбранной: высота постоянная, смена — растворением */
+.detail { overflow: hidden; display: grid; justify-items: center; align-content: start; gap: 5px; text-align: center; }
+.detail > * { transition: opacity calc(0.18s * var(--k)); }
+.detail.swap > * { opacity: 0; }
+.detail .prompt { align-self: center; }
+.detail b { font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
+.detail span { max-width: 300px; color: var(--ink); font-size: 14px; line-height: 1.45; text-wrap: balance; }
+.detail .asc { display: flex; align-items: center; gap: 10px; color: var(--gold); }
+
+/* Карусель: точки и стрелки */
+.dots { display: flex; justify-content: center; gap: 8px; margin-top: -4px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.25); transition: background calc(0.3s * var(--k)), transform calc(0.3s * var(--k)) var(--ease); }
+.dots i.on { background: var(--gold-hi); transform: scale(1.35); }
+.arrow { position: absolute; top: 50%; z-index: 5; width: 44px; height: 44px; margin-top: -22px; display: grid; place-items: center; border: 0; background: none; color: var(--gold); cursor: pointer; }
+.arrow svg { width: 18px; height: 18px; }
+.arrow.l { left: -6px; } .arrow.r { right: -6px; }
+.arrow:disabled { opacity: 0.25; cursor: default; }
+
+.btn-primary:disabled { filter: none; opacity: 0.42; }
+.btn .lbl { transition: opacity calc(0.15s * var(--k)); }
+.flyer { position: absolute; z-index: 40; pointer-events: none; }
+.plus2 { position: absolute; z-index: 40; pointer-events: none; display: inline-flex; align-items: center; gap: 6px; font: 800 18px/1 var(--font-body); color: var(--gold-hi); text-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.6); }
+.bump { animation: bump calc(0.45s * var(--k)) var(--ease); }
+@keyframes bump { 35% { transform: scale(1.35); } }
+
+.after { flex: 1; display: grid; align-content: center; justify-items: center; gap: 12px; text-align: center; }
+.after .plate-sub { max-width: 280px; }
+
+.cmp { display: grid; gap: 0; }
+.cmp .r { display: grid; grid-template-columns: 112px minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .r .was { color: var(--ink-dim); }
+.cmp .r .now { color: var(--ink); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 560px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="split">
+    <div>
+      <div class="seg" id="seg"></div>
+      <div class="toggles">
+        <label class="chk"><input type="checkbox" id="tSlow"> замедлить ×4</label>
+        <label class="chk"><input type="checkbox" id="tStep1"> без тел</label>
+      </div>
+      <div class="stage" id="stage"><div class="stage-inner" id="view"></div></div>
+    </div>
+    <div class="aside" id="aside"></div>
+  </div>
+
+  <div class="label">Что было не так <small>и что сделано во всех трёх вариантах</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.7 · Дар ночи · сцена, второй заход · 22.10.2026 · карты — арт игры</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: nebula-4 back-classic card-moon-8-blazing card-star-9-radiant card-comet-7-echo card-sun-7-gilded card-sun-8-glass
+   card-sun-5-polaris card-star-4-pulsar card-comet-6-meteor card-star-6 card-star-7 card-moon-4 card-moon-5 card-sun-8 card-sun-9 card-comet-2 card-comet-3 */
+shell({ id: 'gift-scene', lead: 'Второй заход по сцене дара. Карты больше не скачут и не мылятся: <b>одно авторское движение</b> — три звезды вылетают из колоды и переворачиваются, — а выбор тихий и ясный. Три раскладки на одном языке движения, выбери одну.' });
+
+/* ── Данные дара ── */
+const SUIT_GEN = { sun: 'Солнца', moon: 'Луны', star: 'Звезды', comet: 'Кометы' };
+const G = (suit, rank, glyph, name, rule) => ({ kind: 'glyph', card: { suit, rank, glyph }, name, short: name, rule });
+const B = (suit, rank, body) => ({ kind: 'body', card: { suit, rank, body }, name: BODIES[body].name, short: BODIES[body].name, rule: BODIES[body].rule });
+const A = (suit, rank) => ({ kind: 'ascend', from: { suit, rank }, card: { suit, rank: rank + 1 }, name: 'Возвышение', short: `${rank} → ${rank + 1}`, rule: `${rank} ${SUIT_GEN[suit]} в колоде станет <b>${rank + 1}</b>` });
+const SETS = [
+  [G('moon', 8, 'blazing', 'Пламя', 'Карта 8 Луны: когда вспыхивает, <span class="c-mult">+4</span> к множителю'), B('sun', 5, 'polaris'), A('star', 6)],
+  [G('star', 9, 'radiant', 'Сияние', 'Карта 9 Звезды: когда вспыхивает, <span class="c-light">+30</span> света'), B('star', 4, 'pulsar'), A('moon', 4)],
+  [G('comet', 7, 'echo', 'Эхо', 'Карта 7 Кометы засчитывается <b>дважды</b>'), B('comet', 6, 'meteor'), A('sun', 8)],
+];
+const SETS_STEP1 = [G('sun', 7, 'gilded', 'Позолота', 'Карта 7 Солнца: когда вспыхивает, <span class="c-gold">+2</span> золота'), G('sun', 8, 'glass', 'Стекло', 'Карта 8 Солнца: множитель <span class="c-mult">×2</span>, с шансом 1/4 разобьётся'), A('comet', 2)];
+
+const VARIANTS = [
+  ['A', 'Три звезды'],
+  ['B', 'Карусель'],
+  ['C', 'Спокойный веер'],
+];
+let variant = 'A', setIdx = 0, deckN = 38, gold = 14, step1 = false, k = 1;
+const stage = sky(q('#stage'), 4);
+const view = q('#view');
+const ms = (n) => (REDUCED ? 0 : n * k);
+
+const seg = q('#seg');
+VARIANTS.forEach(([id, name]) => seg.append(h('button', { 'aria-pressed': String(id === variant), title: name, onclick: () => { variant = id; [...seg.children].forEach((b, i) => b.setAttribute('aria-pressed', String(VARIANTS[i][0] === id))); showGift(); } }, stage.clientWidth < 400 ? `${id} · ${name.split(' ').pop()}` : `${id} · ${name}`)));
+q('#tSlow').onchange = (e) => { k = e.target.checked ? 4 : 1; document.documentElement.style.setProperty('--k', k); };
+q('#tStep1').onchange = (e) => { step1 = e.target.checked; showGift(); };
+
+/* ── Раскладки: где стоит каждая карта и какой ширины ── */
+const W = () => (stage.clientWidth < 300 ? 78 : stage.clientWidth < 360 ? 86 : 96);
+const LAYOUT = {
+  A: { w: W, rest: (i, sel, w) => `translate(${(i - 1) * (w + (w < 90 ? 10 : 14))}px, -14px)` },
+  B: { w: () => 118, rest: (i, sel) => { const d = i - sel; return d === 0 ? 'translate(0, -8px)' : `translate(${d * 112}px, 2px) scale(0.68)`; } },
+  C: { w: W, rest: (i) => `translate(${(i - 1) * 74}px, ${Math.abs(i - 1) * 12 - 8}px) rotate(${(i - 1) * 9}deg)` },
+};
+
+function deckPill() {
+  return h('span', { class: 'deckpill', id: 'deckpill' }, h('span', { class: 'stack' }, h('i'), h('i'), h('i')), 'Колода', h('b', { id: 'deckn' }, String(deckN)));
+}
+const sceneTop = () => h('div', { class: 'scene-top' }, deckPill(), h('span', { class: 'goldpill' }, h('span', { class: 'coin', id: 'goldcoin' }), h('b', { id: 'goldn' }, String(gold))));
+
+/** Карта дара: слот → карта → переворот (лицо и рубашка). */
+function giftCard(o, w) {
+  const face = h('div', { class: 'face' }, card(o.card, w), h('div', { class: 'glint' }), h('div', { class: 'shade' }));
+  const pad = w * 0.12, hh = round(w / 0.7);
+  const back = h('div', { class: 'back' }, h('img', { src: ART['back-classic'], alt: '', style: { left: -pad + 'px', top: -pad + 'px', width: w + pad * 2 + 'px', height: hh + pad * 2 + 'px' } }));
+  const flip = h('div', { class: 'flip' }, face, back);
+  const gc = h('div', { class: 'gc', tabindex: '0', role: 'button', 'aria-label': o.name }, h('div', { class: 'halo' }), h('div', { class: 'ring' }), flip);
+  const slot = h('div', { class: 'slot', style: { '--w': w + 'px' } }, gc);
+  slot.style.setProperty('--w', w + 'px');
+  back.style.visibility = 'hidden';
+  return { slot, gc, flip, face, back };
+}
+const side = (it, face) => { it.face.style.visibility = face ? '' : 'hidden'; it.back.style.visibility = face ? 'hidden' : ''; };
+async function flipTo(it, face, dur, delay) {
+  await it.flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(dur / 2), delay: ms(delay), easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' }).finished;
+  side(it, face);
+  await it.flip.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(dur / 2), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }).finished;
+}
+
+/* ── Сцена дара ── */
+let S = null;
+function showGift() {
+  clearInterval(S?.glintTimer);
+  const opts = step1 ? SETS_STEP1 : SETS[setIdx % SETS.length];
+  const L = LAYOUT[variant];
+  const w = L.w();
+  const cards = h('div', { class: 'cards' });
+  const detail = h('div', { class: 'detail' });
+  const prompt = h('div', { class: 'prompt' }, variant === 'B' ? 'Листай — и возьми одну' : 'Коснись звезды, чтобы рассмотреть');
+  const takeLbl = h('span', { class: 'lbl' }, variant === 'B' ? 'Взять в колоду' : 'Выбери звезду');
+  const take = h('button', { class: 'btn btn-primary', disabled: variant !== 'B', onclick: () => doTake() }, takeLbl);
+  const skip = h('button', { class: 'btn btn-secondary', id: 'skipbtn', onclick: () => doSkip() }, 'Чистое небо', h('span', { class: 'num' }, '+2'), h('span', { class: 'coin' }));
+  const items = opts.map((o, i) => {
+    const it = giftCard(o, w);
+    if (variant === 'A') it.slot.append(h('div', { class: 'cap' }, o.short));
+    if (o.kind === 'ascend' && variant !== 'A') it.gc.append(h('span', { class: 'up num' }, `${o.from.rank} → ${o.card.rank}`));
+    it.gc.addEventListener('click', () => select(i));
+    it.gc.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), select(i)));
+    if (variant === 'C') it.slot.style.zIndex = i === 1 ? 2 : 1;
+    cards.append(it.slot);
+    return it;
+  });
+  S = { opts, items, sel: variant === 'B' ? 1 : -1, busy: true, cards, detail, prompt, take, takeLbl, w };
+  const extra = [];
+  if (variant === 'B') {
+    const dots = h('div', { class: 'dots' }, opts.map(() => h('i')));
+    const left = h('button', { class: 'arrow l', 'aria-label': 'Предыдущая', onclick: () => select(S.sel - 1) }, svg('<path d="m10 3-5 5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', 16, 16));
+    const right = h('button', { class: 'arrow r', 'aria-label': 'Следующая', onclick: () => select(S.sel + 1) }, svg('<path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>', 16, 16));
+    cards.append(left, right);
+    S.dots = dots; S.arrows = [left, right];
+    extra.push(dots);
+    swipe(cards);
+  }
+  view.replaceChildren(sceneTop(),
+    h('div', { class: 'stage-head' }, h('div', { class: 'ribbon pop' }, h('b', {}, 'Дар ночи'), h('small', {}, 'Одна звезда в колоду — или чистое небо'))),
+    h('div', { class: 'gift-body' }, cards, ...extra, detail),
+    h('div', { class: 'stage-foot' }, take, skip, h('div', { class: 'btn-row' }, h('button', { class: 'btn btn-light', onclick: () => { setIdx++; showGift(); } }, icon('replay'), 'Другой дар'))));
+  layout(true);
+  steadyDetail();
+  if (variant === 'B') select(1, true);
+  else detail.replaceChildren(prompt);
+  void deal();
+}
+
+/** Поставить карты по местам раскладки (без анимации — переходы делает CSS/WAAPI). */
+function layout(instant = false) {
+  const L = LAYOUT[variant];
+  S.items.forEach((it, i) => {
+    const t = L.rest(i, S.sel, S.w);
+    const from = getComputedStyle(it.slot).transform;
+    it.slot.style.transform = t;
+    if (!instant) it.slot.animate([{ transform: from }, { transform: t }], { duration: ms(400), easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+    if (variant === 'B') {
+      it.slot.style.zIndex = i === S.sel ? 3 : 1;
+      const dim = it.gc.querySelector('.shade');
+      dim.style.opacity = i === S.sel ? '0' : '0.42';
+    }
+  });
+}
+
+/** Раскрытие (авторский момент): рубашкой вверх из колоды на места, потом переворот по очереди. */
+async function deal() {
+  const deck = q('#deckpill .stack').getBoundingClientRect();
+  const L = LAYOUT[variant];
+  S.items.forEach((it) => side(it, false));
+  const flights = S.items.map((it, i) => {
+    const r = it.slot.getBoundingClientRect();
+    const dx = deck.left + deck.width / 2 - (r.left + r.width / 2), dy = deck.top + deck.height / 2 - (r.top + r.height / 2);
+    const rest = L.rest(i, S.sel, S.w);
+    return it.slot.animate([{ transform: `translate(${dx}px, ${dy}px) ${rest} scale(0.3)`, opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: rest, opacity: 1 }], { duration: ms(560), delay: ms(i * 90), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }).finished;
+  });
+  await Promise.all(flights);
+  await Promise.all(S.items.map((it, i) => flipTo(it, true, 440, i * 130)));
+  S.busy = false;
+  if (variant === 'B') return;
+  glintLoop();
+}
+
+/** Пока ничего не выбрано — блик проходит по картам по очереди: «коснись меня». */
+function glintLoop() {
+  const s = S;
+  const once = async () => {
+    for (const it of s.items) {
+      if (S !== s || s.sel >= 0) return;
+      const g = it.gc.querySelector('.glint');
+      g.classList.remove('run'); void g.offsetWidth; g.classList.add('run');
+      await wait(ms(160));
+    }
+  };
+  once();
+  s.glintTimer = setInterval(once, 3600);
+}
+
+function select(i, quiet = false) {
+  if (!S || S.busy && !quiet) return;
+  const n = S.opts.length;
+  if (variant === 'B') i = Math.max(0, Math.min(n - 1, i));
+  if (i === S.sel && !quiet) return;
+  S.sel = i;
+  clearInterval(S.glintTimer);
+  if (variant === 'B') {
+    layout(quiet);
+    [...S.dots.children].forEach((d, j) => d.classList.toggle('on', j === i));
+    S.arrows[0].disabled = i === 0; S.arrows[1].disabled = i === n - 1;
+  } else {
+    S.cards.classList.add('has-sel');
+    S.items.forEach((it, j) => {
+      it.gc.classList.toggle('sel', j === i);
+      // В веере выбранная — поверх соседей; слой меняется мгновенно, без движения
+      if (variant === 'C') it.slot.style.zIndex = j === i ? 3 : j === 1 ? 2 : 1;
+    });
+    if (S.take.disabled) {
+      S.take.disabled = false;
+      S.takeLbl.style.opacity = '0';
+      setTimeout(() => { S.takeLbl.textContent = 'Взять в колоду'; S.takeLbl.style.opacity = '1'; }, ms(150));
+    }
+  }
+  showDetail(S.opts[i]);
+}
+/** Содержимое описания варианта. */
+function detailNodes(o) {
+  const nodes = [h('b', {}, o.kind === 'body' ? o.name : o.kind === 'glyph' ? `${o.card.rank} ${SUIT_GEN[o.card.suit]} · ${o.name}` : o.name), h('span', { html: o.rule })];
+  if (o.kind === 'ascend') nodes.push(h('div', { class: 'asc' }, card(o.from, 30), svg('<path d="M2 8h20m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', 26, 16), card(o.card, 30)));
+  return nodes;
+}
+/**
+ * Коробка описания не меняет высоту при смене карты: примеряем все варианты (и подсказку)
+ * и держим высоту самого большого — сцена над и под ней не сдвигается ни на пиксель.
+ */
+function steadyDetail() {
+  const d = S.detail;
+  const keep = [...d.childNodes];
+  d.style.height = 'auto';
+  let max = 0;
+  for (const nodes of [[S.prompt], ...S.opts.map(detailNodes)]) {
+    d.replaceChildren(...nodes);
+    max = Math.max(max, d.scrollHeight);
+  }
+  d.replaceChildren(...keep);
+  d.style.height = max + 'px';
+}
+// Шрифты догрузились — переносы строк могли измениться, меряем заново
+document.fonts?.ready.then(() => S && steadyDetail());
+function showDetail(o) {
+  const d = S.detail;
+  const fill = () => d.replaceChildren(...detailNodes(o));
+  if (!d.childElementCount) return fill();
+  d.classList.add('swap');
+  setTimeout(() => { fill(); d.classList.remove('swap'); }, ms(170));
+}
+
+/** Карусель листается свайпом. */
+function swipe(el) {
+  let x0 = null;
+  el.addEventListener('pointerdown', (e) => (x0 = e.clientX));
+  el.addEventListener('pointerup', (e) => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 30) select(S.sel + (dx < 0 ? 1 : -1)); });
+}
+
+/* ── Взять: карта по дуге уходит в колоду, остальные переворачиваются и гаснут ── */
+async function doTake() {
+  if (!S || S.busy || S.sel < 0) return;
+  S.busy = true;
+  clearInterval(S.glintTimer);
+  const it = S.items[S.sel], o = S.opts[S.sel];
+  const sr = stage.getBoundingClientRect(), a = it.gc.getBoundingClientRect(), b = q('#deckpill .stack').getBoundingClientRect();
+  // Летит копия карты в слое сцены: ни наклон слота, ни подъём не мешают траектории
+  const fly = card(o.card, S.w);
+  fly.classList.add('flyer');
+  Object.assign(fly.style, { left: a.left - sr.left + (a.width - S.w) / 2 + 'px', top: a.top - sr.top + (a.height - S.w / 0.7) / 2 + 'px' });
+  stage.append(fly);
+  it.slot.style.visibility = 'hidden';
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const others = S.items.filter((x) => x !== it).map((x) => x.slot.animate([{ opacity: 1 }, { opacity: 0, transform: x.slot.style.transform + ' translateY(16px)' }], { duration: ms(320), easing: 'ease-in', fill: 'forwards' }).finished);
+  await fly.animate([
+    { transform: 'none' },
+    { transform: `translate(${dx * 0.35}px, ${dy * 0.35 - 70}px) rotate(-6deg)`, offset: 0.4 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(-14deg) scale(0.2)`, opacity: 0.35 },
+  ], { duration: ms(720), easing: 'cubic-bezier(0.45, 0, 0.2, 1)', fill: 'forwards' }).finished;
+  fly.remove();
+  await Promise.all(others);
+  if (o.kind !== 'ascend') deckN += 1;
+  const n = q('#deckn');
+  n.textContent = deckN; n.classList.remove('bump'); void n.offsetWidth; n.classList.add('bump');
+  await wait(ms(380));
+  after(o.kind === 'ascend' ? `${o.from.rank} ${SUIT_GEN[o.from.suit]} стала ${o.card.rank}` : `${o.kind === 'body' ? o.name : `${o.card.rank} ${SUIT_GEN[o.card.suit]} · ${o.name}`} — в колоде`);
+}
+
+/* ── Чистое небо: звёзды переворачиваются и уходят в колоду, «+2» поднимается к золоту ── */
+async function doSkip() {
+  if (!S || S.busy) return;
+  S.busy = true;
+  clearInterval(S.glintTimer);
+  const deck = q('#deckpill .stack').getBoundingClientRect();
+  await Promise.all(S.items.map((it, i) => flipTo(it, false, 380, i * 70)));
+  const backs = S.items.map((it, i) => {
+    const r = it.slot.getBoundingClientRect();
+    const dx = deck.left + deck.width / 2 - (r.left + r.width / 2), dy = deck.top + deck.height / 2 - (r.top + r.height / 2);
+    return it.slot.animate([{ transform: it.slot.style.transform, opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(0.3)`, opacity: 0 }], { duration: ms(480), delay: ms(i * 60), easing: 'cubic-bezier(0.55, 0, 0.75, 0.2)', fill: 'forwards' }).finished;
+  });
+  const sr = stage.getBoundingClientRect(), bb = q('#skipbtn').getBoundingClientRect(), gc = q('#goldcoin').getBoundingClientRect();
+  const plus = h('div', { class: 'plus2' }, '+2', h('span', { class: 'coin' }));
+  Object.assign(plus.style, { left: bb.left - sr.left + bb.width / 2 - 20 + 'px', top: bb.top - sr.top + 8 + 'px' });
+  stage.append(plus);
+  const fly = plus.animate([{ transform: 'translateY(0)', opacity: 0 }, { opacity: 1, offset: 0.2 }, { transform: `translate(${gc.left - bb.left - bb.width / 2 + 20}px, ${gc.top - bb.top - 8}px) scale(0.7)`, opacity: 0.2 }], { duration: ms(760), easing: 'cubic-bezier(0.45, 0, 0.2, 1)', fill: 'forwards' }).finished;
+  await Promise.all([...backs, fly]);
+  plus.remove();
+  const g = q('#goldn');
+  await countUp(g, gold, gold + 2, ms(420) || 1);
+  gold += 2;
+  g.classList.remove('bump'); void g.offsetWidth; g.classList.add('bump');
+  await wait(ms(380));
+  after('Чистое небо: колода прежняя, +2 золота в Обсерваторию');
+}
+
+function after(note) {
+  view.replaceChildren(sceneTop(),
+    h('div', { class: 'after rise' }, h('div', { class: 'plate-title' }, 'Обсерватория'), h('div', { class: 'sill', style: { width: '220px', margin: '0' } }), h('div', { class: 'plate-sub' }, note)),
+    h('div', { class: 'stage-foot' }, h('button', { class: 'btn btn-secondary', onclick: () => { setIdx++; showGift(); } }, 'Следующая ночь — ещё дар')));
+}
+
+facts(q('#aside'), [
+  ['Раскрытие', 'Общее для всех: три звезды рубашкой вверх вылетают из «Колоды» и переворачиваются по одной. Это дар — его открывают, а не листают прилавок. Дальше на экране ничего не движется само, кроме тихого блика.'],
+  ['A · Три звезды', 'Три карты ровно в ряд, под каждой — имя. Касание: карта приподнимается, вокруг проявляется свет и латунная кромка, остальные тускнеют. <b>Всё видно сразу, ничего не наклонено</b> — карты самые чёткие.'],
+  ['B · Карусель', 'Одна карта крупно по центру (118 px), соседи меньше по краям; свайп или стрелки, точки внизу. Выбор уже сделан — это та, что в центре. <b>Крупнее всего рассмотреть</b>, но варианты не видны одновременно.'],
+  ['C · Спокойный веер', 'Веер из первой витрины без скачков: наклон у каждой карты свой и не меняется, выбранная выдвигается вдоль своей оси. <b>Самый «карточный»</b>, но наклонённый растр чуть мягче прямого.'],
+  ['Понятно, что выбрать', 'Лента «Одна звезда в колоду — или чистое небо», под картами — «Коснись звезды, чтобы рассмотреть», блик бежит по картам, а главная кнопка до выбора говорит «Выбери звезду» (в A и C).'],
+  ['Уход', 'Взять — карта по дуге улетает в «Колоду», число подпрыгивает. Чистое небо — звёзды переворачиваются и уходят обратно в колоду, «+2» поднимается к золоту.'],
+], [
+  ['GF.2', 'В игру — после твоего выбора варианта'],
+]);
+
+q('#cmp').append(
+  h('div', { class: 'r' }, h('span', {}), h('span', { class: 'head' }, 'Было'), h('span', { class: 'head' }, 'Стало')),
+  ...[
+    ['Скачут', 'При выборе менялись сразу наклон, масштаб и яркость; кривая с перелётом давала отскок.', 'Меняется одно — подъём на 14 px с мягким торможением. Наклон не трогается никогда.'],
+    ['Покадрово', 'Анимировались filter: brightness и drop-shadow — браузер перерисовывает их каждый кадр.', 'Только transform и opacity. Свет и кромка — отдельные слои, они проявляются прозрачностью.'],
+    ['Плывёт', 'Растровая карта увеличивалась в 1.09 раза — картинка мылилась.', 'Карта всегда в своём размере, вверх не масштабируется; в карусели крупная карта нарисована крупной.'],
+    ['Непонятно', 'Средняя карта уже выбрана — неясно, что вообще есть выбор.', 'До касания ничего не выбрано: подсказка, блик по картам, кнопка «Выбери звезду».'],
+  ].map(([k, was, now]) => h('div', { class: 'r' }, h('span', {}, k), h('span', { class: 'was' }, was), h('span', { class: 'now' }, now))));
+
+ladder(q('#ladder'), 1);
+showGift();
+</script>
+</body>
+</html>

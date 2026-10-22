@@ -27,6 +27,8 @@ function playLogged(seed: number, skyId: string, stake: number): RunState {
     if (run.phase === 'reward') apply(run, { c: 'collectReward' });
     if (run.phase === 'shop') {
       const shop = run.shop!;
+      // Дар ночи: по очереди берём первый вариант и пропускаем
+      if (run.pending[0]?.kind === 'gift') tryCmd(run.stats.nightsWon % 2 ? { c: 'choose', index: run.stats.nightsWon % 3 } : { c: 'skip' });
       shop.omens
         .map((item, slot) => ({ item, slot }))
         .filter(({ item }) => item.kind === 'omen' && !item.sold)

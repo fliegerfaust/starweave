@@ -1,3 +1,4 @@
+import { bodyColor } from '@/art/bodies';
 import { SUIT_COLORS, UI } from '@/art/palette';
 import { assertNever } from '@/core/errors';
 import type { GameEvent, LineScore, PlacementScore, ScoreStep, Suit } from '@/core/types';
@@ -73,10 +74,14 @@ export class Presenter {
       case 'clear':
         return this.onClear(ev.cells);
       case 'cardDestroyed':
-        return this.onShatter(ev.cardId);
+        return ev.reason === 'consumed' ? this.onConsume(ev.cardId) : this.onShatter(ev.cardId);
       case 'cardStays':
-        // Карта остаётся на небе: её не уносит «clear», вспышка уже показана
-        return;
+        // Карта остаётся на небе: её не уносит «clear»; Полярная звезда это показывает
+        return this.onStays(ev.cardId);
+      case 'knocked':
+        return this.onKnocked(ev.cardId, ev.cell, ev.by);
+      case 'pulse':
+        return this.onPulse(ev.cell, ev.total);
       case 'gold':
         this.scene.hud.setGold(ev.goldAfter);
         if (ev.amount > 0) this.audio.coin();
@@ -233,6 +238,70 @@ export class Presenter {
     burst(this.world, tr.x, tr.y, '#c8f0ff', { count: 22, speed: 320, kind: 'shard', size: 5, gravity: 600, life: 0.9 });
     floatText(this.world, tr.x, tr.y - 20, t('night.shattered'), { size: 14, color: '#c8f0ff' });
     await this.wait(0.15);
+  }
+
+  // ─── Небесные тела (GF.4) ───────────────────────────────────────────────
+
+  /** Полярная звезда не гаснет: холодное кольцо и подпись над ней. */
+  private async onStays(cardId: number): Promise<void> {
+    const e = this.scene.cards.get(cardId);
+    if (e === undefined) return;
+    const view = this.world.req(e, CardView);
+    if (view.card.body !== 'polaris') return;
+    const tr = this.world.req(e, Transform);
+    const col = bodyColor('polaris');
+    view.glowColor = col;
+    view.glow = 1;
+    ring(this.world, tr.x, tr.y, col, this.scene.layout.cardW * 1.4, 0.7);
+    floatText(this.world, tr.x, tr.y - this.scene.layout.cardH * 0.45, t('night.stays'), { size: 14, color: col });
+    void this.tweens.to(view, { glow: 0 }, { duration: 1.1 / this.speed, delay: 0.3 / this.speed });
+  }
+
+  /** Метеор выбил соседа: след от Метеора, карта улетает с неба кувырком. */
+  private async onKnocked(cardId: number, cell: number, by: number): Promise<void> {
+    const scene = this.scene;
+    const e = scene.cards.get(cardId);
+    if (e === undefined) return;
+    scene.board[cell] = null;
+    scene.cards.delete(cardId);
+    const from = this.cellPos(by);
+    const to = this.cellPos(cell);
+    const col = bodyColor('meteor');
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    burst(this.world, (from.x + to.x) / 2, (from.y + to.y) / 2, col, { count: 18, speed: 160, size: 2, life: 0.6, angle: Math.atan2(dy, dx), spread: 0.5, colors: [col, '#ffe2c4', '#ffffff'] });
+    this.audio.burn();
+    this.scene.svc.haptics.play('place');
+    shake(this.world, 0.25);
+    const tr = this.world.req(e, Transform);
+    const len = Math.hypot(dx, dy) || 1;
+    await this.tweens.to(tr, { x: tr.x + (dx / len) * 90, y: tr.y + (dy / len) * 90 - 50, rot: Math.sign(dx || 1) * 0.9, alpha: 0, scale: tr.scale * 0.7 }, { duration: 0.45 / this.speed, ease: 'inQuad' });
+    this.world.destroy(e);
+  }
+
+  /** Пульсар зарядился: волна от него и общий заряд множителя над ним. */
+  private async onPulse(cell: number, total: number): Promise<void> {
+    const p = this.cellPos(cell);
+    const col = bodyColor('pulsar');
+    const { cardW, cardH } = this.scene.layout;
+    ring(this.world, p.x, p.y, col, cardW * 1.2, 0.5);
+    ring(this.world, p.x, p.y, col, cardW * 2, 0.8);
+    floatText(this.world, p.x, p.y - cardH * 0.45, t('night.pulse', { n: total }), { size: 16, color: UI.mult });
+    this.audio.tick();
+    await this.wait(0.2);
+  }
+
+  /** Чёрная дыра схлопывается: карта закручивается в точку, вокруг — золотое кольцо. */
+  private async onConsume(cardId: number): Promise<void> {
+    const e = this.scene.cards.get(cardId);
+    if (e === undefined) return;
+    const tr = this.world.req(e, Transform);
+    const col = bodyColor('blackhole');
+    ring(this.world, tr.x, tr.y, col, this.scene.layout.cardW * 1.3, 0.6);
+    burst(this.world, tr.x, tr.y, col, { count: 20, speed: 120, size: 1.8, life: 0.5, colors: [col, '#ffffff'] });
+    floatText(this.world, tr.x, tr.y - 20, t('night.consumed'), { size: 14, color: col });
+    this.audio.shatter();
+    await this.tweens.to(tr, { scale: tr.scale * 0.1, rot: tr.rot + 3.5 }, { duration: 0.55 / this.speed, ease: 'inCubic' });
   }
 
   // ─── Вспышка ────────────────────────────────────────────────────────────
@@ -472,6 +541,8 @@ export class Presenter {
       }
       case 'glyph':
         return t('calc.glyph', { glyph: t(`glyph.${src.glyph}`), desc: effect });
+      case 'body':
+        return t('calc.glyph', { glyph: t(`body.${src.body}`), desc: effect });
       case 'omen':
         return t('calc.omen', { name: named('omen', src.omenId).name, effect });
       case 'boss':
