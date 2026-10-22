@@ -7,7 +7,9 @@ import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
 import { layoutMode } from '../map-layout';
-import { button } from '../widgets';
+import { button, type ModalHandle } from '../widgets';
+import { showWonder } from '../wonder';
+import { currentChoice } from '@/core/choices';
 import { showDeck, showHelp, showRunMenu } from './common';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -93,6 +95,7 @@ export class SkyMap {
   private readonly go: HTMLButtonElement;
   private readonly goLabel: HTMLElement;
   private group: SVGGElement | null = null;
+  private wonder: ModalHandle | null = null;
   private readonly title: HTMLElement;
 
   constructor(
@@ -162,9 +165,18 @@ export class SkyMap {
     this.resize.observe(this.map);
     // Развилка с одним вариантом (Затмение) — выбрана сама
     if (!this.peek && this.chapter.at >= 0) this.select(this.chapter.at);
+    // Вошли в Комету или Телескоп: их выбор поверх карты (RT.4)
+    const choice = currentChoice(this.run);
+    if (!this.peek && (choice?.kind === 'comet' || choice?.kind === 'telescope')) {
+      this.wonder = showWonder(this.app, this.run, choice, {
+        take: (index) => this.app.runs.wonderAction({ c: 'choose', index }),
+        skip: () => this.app.runs.wonderAction({ c: 'skip' }),
+      });
+    }
   }
 
   unmount(): void {
+    this.wonder?.close();
     this.resize?.disconnect();
     this.timers.forEach((id) => clearTimeout(id));
     this.el.remove();
@@ -405,6 +417,8 @@ export class SkyMap {
       this.app.svc.audio.ignite(1);
       await star.querySelector('.sm-orb')!.animate([{ boxShadow: '0 0 0 0 rgb(255 230 168 / 0.9)' }, { boxShadow: '0 0 0 20px rgb(255 230 168 / 0)' }], { duration: 560, easing: 'ease-out' }).finished.catch(() => undefined);
     }
-    this.app.runs.beginNight(this.chapter.at === i ? undefined : i);
+    const node = this.chapter.at === i ? undefined : i;
+    if (isWonder(this.plans[i]!.route)) this.app.runs.visitWonder(node);
+    else this.app.runs.beginNight(node);
   }
 }

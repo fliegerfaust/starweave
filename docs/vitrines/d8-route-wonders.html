@@ -366,6 +366,23 @@ b, strong { font-weight: 700; }
 .scr.res-landscape .jC .nums b { font-size: 15px; }
 .scr.res-desktop { align-content: center; }
 .scr.res-desktop .res-in { width: 720px; margin: 0 auto; }
+/* ПК, открытка: крупно и читаемо — открытка 560 px слева, итоги и кнопки справа */
+.scr.res-desktop.card { grid-template-columns: 560px 420px; justify-content: center; align-items: center; gap: 56px; }
+.scr.res-desktop.card .res-in { width: auto; margin: 0; }
+.scr.res-desktop .jC { max-width: none; width: 560px; padding: 30px 30px 26px; gap: 16px; border-radius: 24px; }
+.scr.res-desktop .jC .ttl { font-size: 26px; }
+.scr.res-desktop .jC .sub { font-size: 15px; }
+.scr.res-desktop .jC .grid8 { gap: 14px 18px; }
+.scr.res-desktop .jC .grid8 .ch8 { display: grid; justify-items: center; gap: 6px; }
+.scr.res-desktop .jC .grid8 small { font: 400 13px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; color: var(--ink-faint); }
+.scr.res-desktop .jC .nums { gap: 36px; font-size: 14px; }
+.scr.res-desktop .jC .nums b { font-size: 28px; }
+.scr.res-desktop .jC .btn { min-height: 52px !important; font-size: 16px; }
+.scr.res-desktop .res-rows div { font-size: 15px; padding: 9px 0; }
+.scr.res-desktop .ribbon b { font-size: 30px; }
+.scr.res-desktop .j-w { stroke-width: 2.2; }
+.jC .grid8 .ch8 small { display: none; }
+.scr.res-desktop .jC .grid8 .ch8 small { display: block; }
 .scr.res .ribbon b { font-size: 24px; }
 .j-e { fill: none; stroke: rgb(var(--gold-rgb) / 0.22); stroke-width: 1; stroke-dasharray: 1.5 3; }
 .j-w { fill: none; stroke: #ffe6a8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2px rgb(var(--gold-rgb) / 0.9)); }
@@ -904,13 +921,13 @@ function mountWonder(f) {
 renderW();
 
 facts(q('#factsW'), [
-  ['A · Строки обмена', 'Три строки «отдай → получи» на игровых элементах (монеты, карты, Знамения, звёздные карты), под каждой — одна строка текстом. <b>Самый читаемый</b>: сравнить три обмена можно, не касаясь.'],
+  ['A · Строки обмена — выбрано', 'Три строки «отдай → получи» на игровых элементах (монеты, карты, Знамения, звёздные карты), под каждой — одна строка текстом. <b>Самый читаемый</b>: сравнить три обмена можно, не касаясь.'],
   ['B · Три плиты', 'Три высокие плиты в цвет Кометы или Телескопа: сверху «отдай», след, снизу «получи». Похоже на развилку — тот же язык, что на «Карте неба». <b>Самый цельный</b>, но на 320 px предметы мельче.'],
   ['C · Одна крупно', 'Один обмен крупно по центру, листание стрелками или свайпом, точки внизу. <b>Нагляднее всего</b> каждый обмен, но три сразу не сравнить.'],
   ['Вход', 'Авторский момент: Комета пролетает по небу огненным следом, у Телескопа наводится линза — и варианты проявляются снизу. Дальше — тихо: выбор кромкой и светом, без скачков.'],
   ['Мимо', '«Мимо» — честная вторая кнопка. После выбора или «Мимо» — сразу следующий шаг на «Карте неба», без Обсерватории.'],
 ], [
-  ['RT.4', 'Сцены Кометы и Телескопа — после твоего выбора варианта'],
+  ['RT.4', 'Сцены Кометы и Телескопа — вариант A, в игре'],
 ]);
 
 /* ════ Путь забега (RT.3) ════ */
@@ -951,7 +968,7 @@ function threadSvg(W = 340, H = 120) {
   return svg(`${dots.map(([x, y]) => `<circle class="j-d" cx="${x}" cy="${y}" r="1.4"/>`).join('')}<path class="j-w" d="${d}" style="stroke-dasharray:${len};stroke-dashoffset:${len}"/>${pts.slice(1).map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r === 'eclipse' ? 3.4 : 2.4}" fill="${RC[r]}"/>`).join('')}${labels}`, W, H);
 }
 
-let jVar = 'A';
+let jVar = 'C';
 const J_VARIANTS = [['A', 'Восемь созвездий'], ['B', 'Нить забега'], ['C', 'Открытка']];
 segs(q('#segJ'), J_VARIANTS, () => jVar, (v) => { jVar = v; renderJ(); });
 const jFrames = [[q('#jP'), 'portrait', 390, 844], [q('#jL'), 'landscape', 844, 390], [q('#jD'), 'desktop', 1440, 900]].map(([fit, mode, Wd, Hd]) => ({ mode, ...frameIn(fit, Wd, Hd, 6) }));
@@ -963,10 +980,13 @@ function mountJourney({ mode, scr }) {
   let block;
   if (jVar === 'A') block = h('div', { style: { display: 'grid', gap: '10px', justifyItems: 'center', width: '100%' } }, h('div', { class: 'jt' }, 'Путь забега'), h('div', { class: 'jA' }, J.map((ch, i) => h('div', { class: 'ch' }, chapterSvg(ch), h('small', {}, ROMAN[i])))));
   else if (jVar === 'B') block = h('div', { style: { display: 'grid', gap: '10px', justifyItems: 'center', width: '100%' } }, h('div', { class: 'jt' }, 'Нить забега'), h('div', { class: 'jB' }, threadSvg(mode === 'desktop' ? 680 : 340, mode === 'desktop' ? 150 : 120)));
-  else block = h('div', { class: 'jC' }, h('div', { class: 'ttl' }, 'Мой путь'), h('div', { class: 'sub' }, 'Звёздное плетение · классическое небо'), h('div', { class: 'grid8' }, J.map((ch) => chapterSvg(ch, 70, 76))), h('div', { class: 'nums' }, h('div', {}, h('b', {}, 'VIII'), 'глав'), h('div', {}, h('b', {}, '48 210'), 'лучший ход'), h('div', {}, h('b', {}, '19'), 'крестов')), h('button', { class: 'btn btn-secondary', style: { minHeight: '40px', width: '100%' } }, 'Поделиться путём'));
+  else block = h('div', { class: 'jC' }, h('div', { class: 'ttl' }, 'Мой путь'), h('div', { class: 'sub' }, 'Звёздное плетение · классическое небо'), h('div', { class: 'grid8' }, J.map((ch, i) => h('div', { class: 'ch8' }, chapterSvg(ch, 70, 76), h('small', {}, ROMAN[i])))), h('div', { class: 'nums' }, h('div', {}, h('b', {}, 'VIII'), 'глав'), h('div', {}, h('b', {}, '48 210'), 'лучший ход'), h('div', {}, h('b', {}, '19'), 'крестов')), h('button', { class: 'btn btn-secondary', style: { minHeight: '40px', width: '100%' } }, 'Поделиться путём'));
   const acts = h('div', { class: 'acts', style: { width: '100%', maxWidth: mode === 'desktop' ? '360px' : 'none' } }, h('button', { class: 'btn btn-primary' }, 'Бесконечный режим'), h('button', { class: 'btn btn-secondary' }, 'В меню'));
   if (mode === 'landscape') scr.replaceChildren(h('div', { class: 'res-in' }, jVar === 'C' ? block : [ribbon, block]), h('div', { class: 'res-in' }, jVar === 'C' ? ribbon : null, rows, acts));
-  else scr.replaceChildren(h('div', { class: 'res-in' }, ribbon, block, rows, acts));
+  else if (mode === 'desktop' && jVar === 'C') {
+    scr.classList.add('card');
+    scr.replaceChildren(h('div', { class: 'res-in' }, block), h('div', { class: 'res-in' }, ribbon, rows, acts));
+  } else scr.replaceChildren(h('div', { class: 'res-in' }, ribbon, block, rows, acts));
   // Авторский момент: пути глав прорисовываются по очереди, как в победе загорается цепочка глав
   if (!REDUCED) scr.querySelectorAll('.j-w').forEach((p, i) => p.animate([{ strokeDashoffset: p.style.strokeDashoffset }, { strokeDashoffset: 0 }], { duration: jVar === 'B' ? 2400 : 700, delay: 300 + i * 160, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }));
   else scr.querySelectorAll('.j-w').forEach((p) => (p.style.strokeDashoffset = 0));
@@ -976,10 +996,10 @@ renderJ();
 facts(q('#factsJ'), [
   ['A · Восемь созвездий', 'Каждая глава — своё маленькое созвездие: точки — варианты шагов, золотая линия — твой путь, узлы цветом вида (Яркая — золото, Комета — пламя, Телескоп — лёд). <b>Читается как карта забега</b>, сетка 4×2.'],
   ['B · Нить забега', 'Весь забег одной нитью слева направо: развилки — отклонения вверх и вниз, главы подписаны снизу. <b>Самый цельный образ</b>, но отдельную главу разглядеть труднее.'],
-  ['C · Открытка', 'Те же восемь созвездий на открытке «Мой путь» с главными числами и кнопкой «Поделиться путём» — картинка забега для друзей. <b>Сразу под шеринг</b>, но в итогах занимает больше места.'],
+  ['C · Открытка — выбрано', 'Те же восемь созвездий на открытке «Мой путь» с главными числами и кнопкой «Поделиться путём» — картинка забега для друзей. <b>Сразу под шеринг</b>, но в итогах занимает больше места.'],
   ['Где', 'В окне победы и поражения, под лентой; в Коллекции — путь лучшего забега. Числа и кнопки окна — как сейчас.'],
 ], [
-  ['RT.3', 'Путь главы созвездием — после твоего выбора варианта'],
+  ['RT.3', 'Открытка «Мой путь» в итогах — в игре; на ПК крупно'],
 ]);
 ladder(q('#ladder'), 6);
 </script>

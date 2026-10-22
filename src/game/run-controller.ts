@@ -129,6 +129,24 @@ export class RunController {
     }
   }
 
+  /** Войти в Комету или Телескоп (RT.4): выбрать узел пути, если надо, и открыть его выбор. */
+  visitWonder(node?: number): void {
+    if (!this.guarded(() => {
+      if (node !== undefined) apply(this.run!, { c: 'route', node });
+      apply(this.run!, { c: 'visit' });
+    })) return;
+    this.save();
+    this.route();
+  }
+
+  /** Обмен Кометы, улучшение Телескопа или «Мимо» — и дальше по пути главы. */
+  wonderAction(cmd: Command): void {
+    if (!this.guarded(() => apply(this.run!, cmd))) return;
+    track('wonder', { kind: cmd.c === 'skip' ? 'pass' : 'take', ante: this.run!.ante });
+    this.save();
+    this.route();
+  }
+
   /** Начать ночь; `node` — узел пути, выбранный на развилке главы (RT.1). */
   beginNight(node?: number): void {
     this.guarded(() => {
