@@ -1,3 +1,4 @@
+import { LINEAR } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { playNight, shopGreedy } from '../src/core/ai/bot';
 import { GENTLE_NIGHT } from '../src/core/content/balance';
@@ -8,7 +9,7 @@ import { COLLECTIBLE_COMBOS, emptyProfile, recordDiscoveries } from '../src/meta
 
 describe('щедрая первая ночь', () => {
   it('меньше ходов и цель ниже — только в первой ночи', () => {
-    const run = newRun({ seed: 3, gentle: true });
+    const run = newRun({ seed: 3, gentle: true, unlocks: LINEAR });
     startNight(run);
     expect(run.night!.gentle).toBe(true);
     expect(run.night!.movesLeft).toBe(GENTLE_NIGHT.moves);
@@ -26,14 +27,14 @@ describe('щедрая первая ночь', () => {
   });
 
   it('вызов дня не подыгрывает никому', () => {
-    const run = newRun({ seed: 3, gentle: true, daily: true, dailyDate: '2026-10-13' });
+    const run = newRun({ seed: 3, gentle: true, daily: true, dailyDate: '2026-10-13', unlocks: LINEAR });
     startNight(run);
     expect(run.night!.gentle).toBeUndefined();
   });
 
   it('добор детерминирован сидом', () => {
-    const a = newRun({ seed: 11, gentle: true });
-    const b = newRun({ seed: 11, gentle: true });
+    const a = newRun({ seed: 11, gentle: true, unlocks: LINEAR });
+    const b = newRun({ seed: 11, gentle: true, unlocks: LINEAR });
     startNight(a);
     startNight(b);
     playNight(a, 0);
@@ -46,7 +47,7 @@ describe('щедрая первая ночь', () => {
     const score = (gentle: boolean) => {
       let sum = 0;
       for (let seed = 1; seed <= 200; seed++) {
-        const run = newRun({ seed, gentle });
+        const run = newRun({ seed, gentle, unlocks: LINEAR });
         startNight(run);
         const n = run.night!;
         for (const card of n.hand) {

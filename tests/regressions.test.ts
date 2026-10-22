@@ -6,11 +6,11 @@ import { buyItem, buyPack } from '../src/core/shop';
 import { RuleError } from '../src/core/errors';
 import { emptyProfile, recordRunEnd } from '../src/meta/profile';
 import { placeCard } from '../src/core/night';
-import { nightRun, setGrid, setHand } from './helpers';
+import { nightRun, setGrid, setHand, LINEAR } from './helpers';
 
 describe('регрессии ревью', () => {
   it('Безмолвие и Тяготение не отменяются Знамениями', () => {
-    const run = newRun({ seed: 1 });
+    const run = newRun({ seed: 1, unlocks: LINEAR });
     run.omens.push(createOmen(run, 'pyre'), createOmen(run, 'diagonalSight'));
     expect(buildRules(run, 'silence').burns).toBe(0);
     const g = buildRules(run, 'gravity');
@@ -19,7 +19,7 @@ describe('регрессии ревью', () => {
   });
 
   it('пакет Знамений нельзя купить без свободного слота', () => {
-    const run = newRun({ seed: 2 });
+    const run = newRun({ seed: 2, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 50;
     for (const id of ['stardust', 'pyre', 'abacus', 'miser', 'horizon']) run.omens.push(createOmen(run, id));
@@ -29,7 +29,7 @@ describe('регрессии ревью', () => {
   });
 
   it('Изгнание не берёт больше карт, чем можно убрать', () => {
-    const run = newRun({ seed: 3 });
+    const run = newRun({ seed: 3, unlocks: LINEAR });
     run.deck = run.deck.slice(0, 21);
     run.phase = 'shop';
     run.gold = 10;
@@ -56,7 +56,7 @@ describe('регрессии ревью', () => {
 
   it('забег после победы не записывается в профиль дважды', () => {
     const p = emptyProfile();
-    const run = newRun({ seed: 4 });
+    const run = newRun({ seed: 4, unlocks: LINEAR });
     run.stats.linesIgnited = 100;
     recordRunEnd(p, run, true);
     run.stats.linesIgnited = 130;
@@ -71,8 +71,8 @@ describe('звёздность', () => {
   it('усложняет цели, ходы и цены, а победа открывает следующую', async () => {
     const { startNight } = await import('../src/core/night');
     const { generateShop } = await import('../src/core/shop');
-    const easy = newRun({ seed: 7 });
-    const hard = newRun({ seed: 7, stake: 5 });
+    const easy = newRun({ seed: 7, unlocks: LINEAR });
+    const hard = newRun({ seed: 7, stake: 5, unlocks: LINEAR });
     startNight(easy);
     startNight(hard);
     expect(hard.night!.target).toBe(easy.night!.target * 1.5);
@@ -82,7 +82,7 @@ describe('звёздность', () => {
     const s2 = generateShop(hard);
     expect(s2.rerollCost).toBe(s1.rerollCost);
     const p = emptyProfile();
-    recordRunEnd(p, newRun({ seed: 1, stake: 2 }), true);
+    recordRunEnd(p, newRun({ seed: 1, stake: 2, unlocks: LINEAR }), true);
     expect(p.maxStake).toBe(3);
   });
 });
@@ -91,7 +91,7 @@ describe('награды за рекламу', () => {
   it('второй шанс: +3 хода один раз, удвоение награды раз за созвездие', async () => {
     const { canRevive, reviveNight, canDoubleReward, doubleReward } = await import('../src/core/run');
     const { startNight } = await import('../src/core/night');
-    const run = newRun({ seed: 8 });
+    const run = newRun({ seed: 8, unlocks: LINEAR });
     startNight(run);
     run.night!.movesLeft = 1;
     run.night!.target = 1e9;
@@ -116,7 +116,7 @@ describe('второй шанс и профиль', () => {
   it('поражение, затем второй шанс и победа — одна победа в профиле', async () => {
     const { unrecordRunEnd } = await import('../src/meta/profile');
     const p = emptyProfile();
-    const run = newRun({ seed: 3 });
+    const run = newRun({ seed: 3, unlocks: LINEAR });
     run.stats.linesIgnited = 10;
     recordRunEnd(p, run, false);
     unrecordRunEnd(p, run);

@@ -1,6 +1,7 @@
 import { bossSigil } from '@/art/sigil';
 import { FINAL_ANTE } from '@/core/content/balance';
-import { currentNode, nextStop, planNight, type NightPlan } from '@/core/route';
+import { currentNode, isForked, nextStop, planNight, type NightPlan } from '@/core/route';
+import { SkyMap } from './sky-map';
 import { omenSlots } from '@/core/shop';
 import type { Rules, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
@@ -27,6 +28,7 @@ export class MapScreen implements Screen {
   private el!: HTMLElement;
   private resize?: ResizeObserver;
   private timers: number[] = [];
+  private sky?: SkyMap;
 
   /** `peek` — карта открыта из Обсерватории посмотреть, что впереди. */
   constructor(
@@ -37,12 +39,18 @@ export class MapScreen implements Screen {
 
   mount(root: HTMLElement): void {
     const run = this.run;
+    // Глава с развилками — «Карта неба» (RT.2); цепочка из трёх ночей — «Восхождение»
+    if (isForked(this.peek ? nextStop(run).chapter : run.chapter)) {
+      this.sky = new SkyMap(this.app, run, this.peek);
+      this.sky.mount(root);
+      return;
+    }
     // Из Обсерватории показываем следующую ночь (она может быть уже в новой главе).
     // Карта только рисует план главы: ночи, цели и правила считает ядро (`core/route.ts`)
     const { ante, chapter } = this.peek ? nextStop(run) : run;
     const at = chapter.at;
     const view: RunState = { ...run, ante, chapter };
-    const plans = chapter.nodes.map((node, i): NightPlan => planNight(view, node, i));
+    const plans = chapter.nodes.map((node): NightPlan => planNight(view, node));
 
     const nodes = plans.map((p, i) => this.node(p, i, at, plans[0]!.rules));
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -200,6 +208,7 @@ export class MapScreen implements Screen {
   }
 
   unmount(): void {
+    if (this.sky) return this.sky.unmount();
     this.resize?.disconnect();
     this.timers.forEach((id) => clearTimeout(id));
     this.el.remove();

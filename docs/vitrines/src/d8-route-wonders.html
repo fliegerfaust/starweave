@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Комета, Телескоп и путь · Starweave 0.7</title>
+<!--KIT-->
+<style>
+:root { --ease: cubic-bezier(0.16, 1, 0.3, 1); --comet: #ff9a62; --scope: #9ff0ff; --bright: #ffd27a; }
+.wrap { max-width: 1400px; }
+.split > div { min-width: 0; }
+.bar { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
+.seg { display: flex; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); max-width: 100%; }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 12px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.devices { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 1100px) { .devices.top { grid-template-columns: 390px minmax(0, 1fr); } }
+.dev { display: grid; gap: 10px; min-width: 0; }
+.dev h3 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.dev h3 small { font: 600 12px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.fit { position: relative; width: 100%; }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.frame.stage { max-width: none; min-height: 0; margin: 0; border-radius: 28px; clip-path: inset(0 round 28px); }
+.scr { position: absolute; inset: 0; display: grid; }
+.facts2 { margin-top: 18px; }
+
+/* ── Общее: шапка главы, лента, кнопки ── */
+.mtop { display: grid; grid-template-columns: 40px minmax(0, 1fr) 70px; align-items: center; gap: 8px; }
+.medal { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--brass); color: var(--gold); }
+.medal i { width: 16px; height: 1.6px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; border-radius: 1px; }
+.plaque { display: grid; justify-items: center; gap: 6px; }
+.plaque b { font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; }
+.plaque b span { color: var(--ink-faint); }
+.ticks { display: flex; gap: 4px; }
+.ticks i { width: 14px; height: 2px; border-radius: 1px; background: rgb(var(--gold-rgb) / 0.2); }
+.ticks i.done { background: var(--gold); }
+.ticks i.now { background: var(--gold-hi); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.9); }
+.gold { justify-self: end; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); font: 800 15px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.coin { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.55); vertical-align: -2px; }
+.ribbon { width: min(340px, 100%); }
+.ribbon b { font-size: 22px; }
+.acts { display: grid; gap: 8px; }
+.acts .btn { width: 100%; }
+.btn-primary:disabled { filter: none; opacity: 0.42; }
+.note { text-align: center; font: 600 12px/1.35 var(--font-body); color: var(--ink-faint); }
+
+/* ── Строка обмена: одна высота при любом обмене. Знак слева, две строки текста справа ── */
+.rowsA { display: grid; gap: 8px; align-content: center; }
+.tr { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 14px; height: 80px; padding: 0 14px 0 8px; border: 0; border-radius: 16px; color: inherit; text-align: left; cursor: pointer; background: radial-gradient(90% 120% at 0% 50%, rgb(var(--gold-rgb) / 0.06), transparent 70%), rgb(12 10 32 / 0.8); box-shadow: inset 0 0 0 1px var(--hair); transition: box-shadow 0.3s var(--ease), opacity 0.3s var(--ease); }
+.tr.sel { box-shadow: inset 0 0 0 1.5px #ffe6a8, 0 0 22px rgb(var(--gold-rgb) / 0.2); }
+.has-sel .tr:not(.sel) { opacity: 0.55; }
+.flow { display: grid; grid-template-columns: 62px 16px 62px; align-items: center; }
+.items { height: 58px; display: flex; align-items: center; justify-content: center; }
+.items > .it + .it { margin-left: -14px; }
+.it { position: relative; display: grid; place-items: center; }
+.it .k-card img { filter: none; }
+.it.gone .k-card { opacity: 0.55; }
+.it.gone::after { content: ''; position: absolute; inset: 8% 12%; background: linear-gradient(45deg, transparent 46%, rgb(255 83 112 / 0.9) 47%, rgb(255 83 112 / 0.9) 53%, transparent 54%); pointer-events: none; }
+.badge { position: absolute; right: -8px; bottom: -5px; min-width: 20px; padding: 2px 5px; border-radius: 9px; font: 800 10.5px/1 var(--font-body); text-align: center; color: var(--gold-hi); background: #0c0b26; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.55); font-variant-numeric: tabular-nums; }
+.badge.minus { color: #ffb3c0; box-shadow: inset 0 0 0 1px rgb(255 120 150 / 0.5); }
+.coins { display: inline-flex; align-items: center; gap: 4px; font: 800 17px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.coins .coin { width: 16px; height: 16px; }
+.coins.minus { color: #ffb3c0; }
+.to { display: grid; place-items: center; color: var(--gold); }
+.to svg { width: 16px; height: 12px; }
+.txt { display: grid; gap: 4px; min-width: 0; }
+.gain { font: 700 14px/1.3 var(--font-body); color: var(--ink); }
+.cost { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); }
+.cost .lbl { color: var(--ink-faint); }
+/* Ключевое слово: золотая пунктирная черта и мягкий фон — хочется нажать; касание открывает подсказку */
+.kw { display: inline; padding: 0 3px; margin: 0 -1px; border-radius: 5px; color: var(--gold-hi); background: rgb(var(--gold-rgb) / 0.1); border-bottom: 1.5px dotted rgb(var(--gold-rgb) / 0.75); cursor: help; transition: background 0.2s, color 0.2s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.kw:hover, .kw.on { background: rgb(var(--gold-rgb) / 0.22); color: #fff3c4; }
+.kw.light { color: #b9f0ff; background: rgb(var(--light-rgb) / 0.14); border-bottom-color: rgb(var(--light-rgb) / 0.8); }
+.kw.mult { color: #ffb3c4; background: rgb(var(--mult-rgb) / 0.14); border-bottom-color: rgb(var(--mult-rgb) / 0.8); }
+.kw.xmult { color: #ffd0a8; background: linear-gradient(90deg, rgb(var(--mult-rgb) / 0.2), rgba(255, 179, 71, 0.2)); border-bottom-color: rgba(255, 179, 71, 0.85); font-weight: 800; }
+.kw.gold { color: #ffe6a8; }
+/* Подсказка ключевого слова — латунная табличка с носиком, как у Знамений в игре */
+.hint { position: absolute; z-index: 40; width: 260px; padding: 12px 14px 13px; border-radius: 14px; background: linear-gradient(180deg, #1d1950, #100e2c); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.55), 0 18px 40px -12px rgb(0 0 0 / 0.85); text-align: left; animation: hint-in 0.26s var(--ease) both; }
+.hint::before { content: ''; position: absolute; left: var(--nose, 50%); width: 10px; height: 10px; margin-left: -5px; background: inherit; transform: rotate(45deg); }
+.hint.below::before { top: -5px; box-shadow: inset 1px 1px 0 rgb(var(--gold-rgb) / 0.55); background: #1d1950; }
+.hint.above::before { bottom: -5px; box-shadow: inset -1px -1px 0 rgb(var(--gold-rgb) / 0.55); background: #100e2c; }
+.hint small { display: block; font: 800 9.5px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+.hint b { display: block; margin: 5px 0 6px; font: 400 17px/1.1 var(--font-display); letter-spacing: 0.06em; color: var(--gold-hi); }
+.hint p { margin: 0; font: 600 13px/1.45 var(--font-body); color: var(--ink); }
+.hint .back { appearance: none; display: inline-flex; align-items: center; gap: 4px; margin: -4px 0 6px -6px; min-height: 28px; padding: 0 8px; border: 0; border-radius: 8px; background: rgb(var(--gold-rgb) / 0.1); color: var(--gold); font: 700 11.5px/1 var(--font-body); cursor: pointer; }
+.hint .back:hover { background: rgb(var(--gold-rgb) / 0.2); color: var(--gold-hi); }
+.hint .body { animation: hint-swap 0.24s var(--ease) both; }
+@keyframes hint-swap { from { opacity: 0; transform: translateX(var(--dx, 8px)); } to { opacity: 1; transform: none; } }
+/* Глагол цены: платишь и отдаёшь розовым, получаешь золотым */
+.verb { font-weight: 800; color: #ffb3c0; }
+.verb.plus { color: var(--gold-hi); }
+@keyframes hint-in { from { opacity: 0; transform: translateY(var(--from, 4px)); } to { opacity: 1; transform: none; } }
+.scr.landscape .rowsA { gap: 6px; }
+.scr.landscape .tr { height: 68px; }
+.scr.landscape .items { height: 50px; }
+.scr.landscape .gain { font-size: 13px; }
+.scr.landscape .cost { font-size: 11.5px; }
+/* Телефон: строки крупнее и заполняют экран; без пустоты под ними */
+.scr.portrait .rowsA { gap: 10px; }
+.scr.portrait .tr { height: 124px; column-gap: 16px; padding: 0 16px 0 10px; border-radius: 18px; }
+.scr.portrait .flow { grid-template-columns: 74px 18px 74px; }
+.scr.portrait .items { height: 76px; }
+.scr.portrait .items > .it + .it { margin-left: -18px; }
+.scr.portrait .coins { font-size: 19px; }
+.scr.portrait .coins .coin { width: 18px; height: 18px; }
+.scr.portrait .gain { font-size: 15.5px; }
+.scr.portrait .cost { font-size: 13px; }
+.scr.desktop .rowsA { gap: 12px; }
+.scr.desktop .tr { height: 138px; column-gap: 28px; padding: 0 32px 0 16px; border-radius: 22px; }
+.scr.desktop .flow { grid-template-columns: 104px 26px 104px; }
+.scr.desktop .to svg { width: 24px; height: 17px; }
+.scr.desktop .items { height: 104px; }
+.scr.desktop .items > .it + .it { margin-left: -24px; }
+.scr.desktop .coins { font-size: 26px; }
+.scr.desktop .coins .coin { width: 24px; height: 24px; }
+.scr.desktop .badge { font-size: 13px; padding: 4px 7px; border-radius: 10px; }
+.scr.desktop .gain { font-size: 20px; }
+.scr.desktop .cost { font-size: 15.5px; }
+.scr.desktop .hint { width: 320px; }
+.scr.desktop .hint p { font-size: 14px; }
+/* Комета пролетает по небу — авторский момент входа */
+/* Комета летит по своей оси: голова впереди, хвост строго позади, сужается клином; рядом тонкий ионный хвост */
+.comet-fly { position: absolute; z-index: 30; left: -40%; top: 16%; width: 44%; height: 14px; pointer-events: none; transform-origin: 100% 50%; }
+.comet-fly .tail { position: absolute; right: 4px; top: 4px; width: 100%; height: 6px; clip-path: polygon(0 50%, 100% 0, 100% 100%); background: linear-gradient(90deg, transparent, rgb(255 154 98 / 0.35) 45%, rgb(255 210 160 / 0.95)); }
+.comet-fly .ion { position: absolute; right: 6px; top: 6px; width: 70%; height: 2px; transform: rotate(-2.5deg); transform-origin: 100% 50%; clip-path: polygon(0 50%, 100% 0, 100% 100%); background: linear-gradient(90deg, transparent, rgb(159 240 255 / 0.55)); }
+.comet-fly .head { position: absolute; right: 0; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #fffaf0 30%, #ffd0a0 60%, transparent 72%); box-shadow: 0 0 14px 4px rgb(255 179 122 / 0.7); }
+/* Телескоп: окуляр. Тёмное поле с кругом обзора и прицельной сеткой: сетка наводится на резкость, круг раскрывается на всю сцену */
+.eyepiece { position: absolute; z-index: 30; left: 50%; top: 46%; width: 240px; height: 240px; margin: -120px 0 0 -120px; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 3000px rgb(3 3 12 / 0.94), inset 0 0 40px 10px rgb(3 3 12 / 0.9), inset 0 0 0 1.5px rgb(159 240 255 / 0.55); }
+.reticle { position: absolute; z-index: 31; left: 50%; top: 46%; width: 240px; height: 240px; margin: -120px 0 0 -120px; pointer-events: none; color: rgb(159 240 255 / 0.85); }
+/* ── Раскладки сцены ── */
+.scr.portrait { grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 12px; padding: 44px 16px 20px; }
+.scr.landscape { grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; padding: 14px 44px; }
+.scr.landscape .side { display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; min-height: 0; align-content: start; }
+.scr.landscape .ribbon b { font-size: 19px; }
+.scr.landscape .mid { display: grid; align-content: center; min-height: 0; }
+.scr.desktop { grid-template-rows: auto minmax(0, 1fr); gap: 18px; padding: 26px 40px 32px; }
+.scr.desktop .mtop { max-width: 1060px; width: 100%; margin: 0 auto; grid-template-columns: 44px minmax(0, 1fr) 80px; }
+.scr.desktop .body { display: grid; grid-template-columns: 380px 780px; justify-content: center; align-items: center; column-gap: 64px; }
+.pane { display: grid; justify-items: center; gap: 18px; text-align: center; }
+.pane .emblem { width: 168px; height: 168px; color: var(--gold); filter: drop-shadow(0 0 18px rgb(var(--gold-rgb) / 0.25)); }
+.pane .lead2 { margin: 0; max-width: 340px; font: 600 15.5px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: pretty; }
+.pane .acts { width: 100%; }
+.pane .acts .btn { min-height: 58px; font-size: 17px; }
+.scr.desktop .mid { width: 780px; }
+.scr.desktop .ribbon b { font-size: 32px; }
+.scr.desktop .ribbon small { font-size: 15px; }
+
+/* ── Путь забега (RT.3) в итогах ── */
+.scr.res { align-content: center; }
+.res-in { display: grid; justify-items: center; gap: 14px; text-align: center; }
+.res-rows { width: 100%; display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
+.res-rows div { display: flex; justify-content: space-between; padding: 6px 0; box-shadow: 0 1px 0 var(--hair); font-size: 13px; color: var(--ink-dim); }
+.res-rows b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.jt { font: 400 12px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+/* A — восемь созвездий */
+.jA { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; width: 100%; }
+.jA .ch { display: grid; justify-items: center; gap: 4px; }
+.jA svg { width: 100%; max-width: 84px; height: auto; aspect-ratio: 1 / 1.1; overflow: visible; }
+.jA small { font: 400 11px/1 var(--font-display); letter-spacing: 0.2em; color: var(--ink-faint); padding-left: 0.2em; }
+/* B — нить забега */
+.jB { width: 100%; }
+.jB svg { width: 100%; height: auto; overflow: visible; }
+/* C — открытка */
+.jC { width: 100%; max-width: 330px; padding: 16px 14px 14px; border-radius: 18px; background: radial-gradient(120% 70% at 50% 0%, rgb(var(--gold-rgb) / 0.1), transparent 70%), linear-gradient(180deg, #1a1648, #0c0b26); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4), 0 20px 40px -18px rgb(0 0 0 / 0.8); display: grid; gap: 10px; justify-items: center; }
+.jC .ttl { font: 400 15px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.jC .sub { font: 600 11.5px/1.3 var(--font-body); color: var(--ink-dim); }
+.jC .grid8 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; }
+.jC .grid8 svg { width: 100%; height: auto; aspect-ratio: 1 / 1.1; overflow: visible; }
+.jC .nums { display: flex; gap: 16px; font: 700 12px/1.2 var(--font-body); color: var(--ink-dim); }
+.jC .nums b { display: block; font: 800 17px/1.1 var(--font-body); color: var(--gold-hi); }
+.scr.res-portrait { align-content: center; padding: 44px 18px 22px; }
+.scr.res-landscape { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; padding: 14px 44px; gap: 26px; }
+.scr.res-landscape .ribbon b { font-size: 20px; }
+.scr.res-landscape .jA { gap: 4px 8px; }
+.scr.res-landscape .jA svg { max-width: 64px; }
+.scr.res-landscape .jC { padding: 10px 12px; gap: 6px; max-width: 300px; }
+.scr.res-landscape .jC .sub { display: none; }
+.scr.res-landscape .jC .grid8 svg { max-height: 62px; }
+.scr.res-landscape .jC .nums b { font-size: 15px; }
+.scr.res-desktop { align-content: center; }
+.scr.res-desktop .res-in { width: 720px; margin: 0 auto; }
+/* ПК, открытка: крупно и читаемо — открытка 560 px слева, итоги и кнопки справа */
+.scr.res-desktop.card { grid-template-columns: 560px 420px; justify-content: center; align-items: center; gap: 56px; }
+.scr.res-desktop.card .res-in { width: auto; margin: 0; }
+.scr.res-desktop .jC { max-width: none; width: 560px; padding: 30px 30px 26px; gap: 16px; border-radius: 24px; }
+.scr.res-desktop .jC .ttl { font-size: 26px; }
+.scr.res-desktop .jC .sub { font-size: 15px; }
+.scr.res-desktop .jC .grid8 { gap: 14px 18px; }
+.scr.res-desktop .jC .grid8 .ch8 { display: grid; justify-items: center; gap: 6px; }
+.scr.res-desktop .jC .grid8 small { font: 400 13px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; color: var(--ink-faint); }
+.scr.res-desktop .jC .nums { gap: 36px; font-size: 14px; }
+.scr.res-desktop .jC .nums b { font-size: 28px; }
+.scr.res-desktop .jC .btn { min-height: 52px !important; font-size: 16px; }
+.scr.res-desktop .res-rows div { font-size: 15px; padding: 9px 0; }
+.scr.res-desktop .ribbon b { font-size: 30px; }
+.scr.res-desktop .j-w { stroke-width: 2.2; }
+.jC .grid8 .ch8 small { display: none; }
+.scr.res-desktop .jC .grid8 .ch8 small { display: block; }
+.scr.res .ribbon b { font-size: 24px; }
+.j-e { fill: none; stroke: rgb(var(--gold-rgb) / 0.22); stroke-width: 1; stroke-dasharray: 1.5 3; }
+.j-w { fill: none; stroke: #ffe6a8; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2px rgb(var(--gold-rgb) / 0.9)); }
+.j-d { fill: rgb(255 255 255 / 0.18); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="label">Шаг без ночи <small>Комета и Телескоп · строки обмена · ключевые слова с подсказкой</small></div>
+  <div class="bar"><div class="seg" id="segK"></div><div class="seg" id="segT"></div></div>
+  <div class="devices top">
+    <div class="dev"><h3>Телефон <small>390 × 844</small></h3><div class="fit" id="wP"></div></div>
+    <div class="dev"><h3>Ландшафт <small>844 × 390</small></h3><div class="fit" id="wL"></div></div>
+  </div>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1440 × 900</small></h3><div class="fit" id="wD"></div></div></div>
+  <div class="facts2" id="factsW"></div>
+
+  <div class="label">Путь забега <small>RT.3 · созвездия глав в итогах · три варианта</small></div>
+  <div class="bar"><div class="seg" id="segJ"></div></div>
+  <div class="devices top">
+    <div class="dev"><h3>Телефон <small>390 × 844</small></h3><div class="fit" id="jP"></div></div>
+    <div class="dev"><h3>Ландшафт <small>844 × 390</small></h3><div class="fit" id="jL"></div></div>
+  </div>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1440 × 900</small></h3><div class="fit" id="jD"></div></div></div>
+  <div class="facts2" id="factsJ"></div>
+
+  <div class="label">Когда открывается</div>
+  <div id="ladder"></div>
+  <p class="foot">Витрина 0.7 · Развилки · Комета, Телескоп и путь · 22.10.2026 · числа — черновик баланса</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: nebula-5 nebula-6 omen-crossroads omen-horizon omen-stardust omen-corona chart-flush chart-pair chart-triple card-moon-8-blazing card-star-9-radiant card-sun-8-glass */
+shell({ id: 'route-wonders', lead: 'Последние экраны эпика «Развилки». <b>Шаг без ночи</b>: Комета (обмен) и Телескоп (улучшение). Новые слова механики кликабельны: касание открывает подсказку. Ниже <b>путь забега</b> в итогах.' });
+
+const ARROW = (w = 20, hh = 14) => svg('<path d="M1 7h17m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>', w, hh);
+const CH = { flush: 'Флеш', pair: 'Пара', triple: 'Тройка' };
+const C = (suit, rank, extra) => ({ suit, rank, ...extra });
+
+/* Словарь ключевых слов: [вид, название, описание]. В описании те же ключевые слова — можно идти дальше */
+const KW = {
+  glass: ['Глиф', 'Стекло', '[Множитель ×2|mult|xmult], пока карта в линии. После хода карта разобьётся с шансом 25%.'],
+  blazing: ['Глиф', 'Пламя', '[+4 к множителю|mult|mult], пока карта в линии.'],
+  radiant: ['Глиф', 'Сияние', '[+30 света|light|light], пока карта в линии.'],
+  mult: ['Правило', 'Множитель', 'Во сколько раз растут очки созвездия. Очки = [свет|light|light] × множитель.'],
+  light: ['Правило', 'Свет', 'База созвездия плюс ранги карт линии. Очки = свет × [множитель|mult|mult].'],
+  rank: ['Правило', 'Ранг', 'Число на карте. Прибавляется к [свету|light|light] линии: чем выше ранг, тем больше очков.'],
+  level: ['Правило', 'Уровень созвездия', 'Навсегда добавляет созвездию [свет|light|light] и [множитель|mult|mult]. Растёт от звёздных карт.'],
+  crossroads: ['Знамение', 'Перекрёсток', 'Крест даёт [множитель ×3|mult|xmult].'],
+  horizon: ['Знамение', 'Горизонт', 'Ряд даёт [+6 к множителю|mult|mult].'],
+  corona: ['Знамение · редкое', 'Корона', 'В Затмение [множитель ×2.5|mult|xmult].'],
+};
+/** Текст с ключевыми словами: [слово|ключ|цвет]. */
+function rt(src) {
+  // Число не отрывается ни от своего слова, ни от короткого предлога перед ним
+  src = src.replace(/(^|\s)(\S{1,3}) (\d)/g, '$1$2\u00a0$3').replace(/(\d) (\S)/g, '$1\u00a0$2');
+  const out = []; let last = 0;
+  const v = src.match(/^(Заплатишь|Отдашь|Получишь|Взамен)/);
+  if (v) { out.push(h('span', { class: 'verb' + (v[1] === 'Получишь' ? ' plus' : '') }, v[1])); src = src.slice(v[1].length); }
+  for (const m of src.matchAll(/\[([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]/g)) {
+    out.push(src.slice(last, m.index));
+    out.push(h('span', { class: 'kw ' + (m[3] || ''), 'data-kw': m[2], role: 'button', tabindex: '0' }, m[1].replace(/ /g, ' ')));
+    last = m.index + m[0].length;
+  }
+  out.push(src.slice(last));
+  return out;
+}
+
+/* Предметы обмена: игровые элементы без подписей, изменения значком на углу */
+const W = { card: 34, sig: 38, chart: 36 };
+const badge = (t, minus) => h('span', { class: 'badge' + (minus ? ' minus' : '') }, t);
+const I = {
+  gold: (n, minus) => h('div', { class: 'it' }, h('span', { class: 'coins' + (minus ? ' minus' : '') }, (minus ? '−' : '+') + n, h('span', { class: 'coin' }))),
+  card: (c, mark) => h('div', { class: 'it' }, card(c, W.card), mark),
+  gone: (c) => h('div', { class: 'it gone' }, card(c, W.card)),
+  omen: (id) => h('div', { class: 'it' }, omen(id, W.sig)),
+  chart: (id, mark) => h('div', { class: 'it' }, sig('chart-' + id, W.chart), mark),
+};
+const items = (...xs) => h('div', { class: 'items' }, xs);
+
+/* 10 обменов Кометы, как в ядре. Первая строка: что получаешь. Вторая: цена */
+const TRADES = [
+  { give: () => items(I.gold(6, true)), get: () => items(I.omen('crossroads')), gain: 'Купить Знамение «[Перекрёсток|crossroads]»', cost: 'Заплатишь 6 золота' },
+  { give: () => items(I.gone(C('moon', 2))), get: () => items(I.card(C('moon', 8, { glyph: 'blazing' }))), gain: '8 Луны получит глиф [Пламя|blazing]', cost: 'Отдашь карту 2 Луны' },
+  { give: () => items(I.omen('horizon')), get: () => items(I.gold(10)), gain: 'Продать Знамение «[Горизонт|horizon]»', cost: 'Получишь 10 золота' },
+  { give: () => items(I.gold(4, true)), get: () => items(I.chart('flush', badge('+2'))), gain: 'Флеш: +2 [уровня|level]', cost: 'Заплатишь 4 золота' },
+  { give: () => items(I.card(C('star', 8), badge('−2', true))), get: () => items(I.card(C('moon', 5), badge('+2'))), gain: '5 Луны: [ранг|rank] вырастет до 7', cost: 'Взамен 8 Звезды упадёт до 6' },
+  { give: () => items(I.card(C('comet', 3)), I.card(C('sun', 6))), get: () => items(I.card(C('moon', 3)), I.card(C('moon', 6))), gain: 'Две карты станут Лунами', cost: '3 Кометы и 6 Солнца сменят масть' },
+  { give: () => items(I.gold(3, true)), get: () => items(I.gone(C('sun', 1)), I.gone(C('comet', 2))), gain: 'Убрать из колоды 1 Солнца и 2 Кометы', cost: 'Заплатишь 3 золота' },
+  { give: () => items(I.chart('pair', badge('−1', true))), get: () => items(I.chart('triple', badge('+2'))), gain: 'Тройка: +2 [уровня|level]', cost: 'Взамен Пара потеряет 1 уровень' },
+  { give: () => items(I.gold(5, true)), get: () => items(I.card(C('star', 9, { glyph: 'radiant' }), badge('×2'))), gain: 'Копия 9 Звезды с [Сиянием|radiant]', cost: 'Заплатишь 5 золота' },
+  { give: () => items(I.omen('horizon')), get: () => items(I.omen('corona')), gain: 'Обменять Знамение «[Горизонт|horizon]»', cost: 'Получишь редкое «[Корона|corona]»' },
+];
+/* Телескоп. Первая строка: что станет. Вторая: что это значит */
+const UPGRADES = [
+  { give: () => items(I.chart('pair', badge('2'))), get: () => items(I.chart('pair', badge('3'))), gain: 'Пара: [уровень|level] 3', cost: 'Сейчас уровень 2' },
+  { give: () => items(I.card(C('sun', 8))), get: () => items(I.card(C('sun', 8, { glyph: 'glass' }))), gain: '8 Солнца со [Стеклом|glass]', cost: '[Множитель ×2|mult|xmult], шанс 25% разбиться' },
+  { give: () => items(I.card(C('comet', 1))), get: () => items(I.gone(C('comet', 1))), gain: 'Убрать 1 Кометы из колоды', cost: 'В колоде останется 35 карт' },
+];
+
+/* ── Каркас рамок ── */
+function frameIn(fit, W, H, neb) {
+  const frame = h('div', { class: 'frame' });
+  frame.style.width = W + 'px'; frame.style.height = H + 'px';
+  fit.append(frame);
+  sky(frame, neb);
+  const scr = h('div', { class: 'scr' });
+  frame.append(scr);
+  const fs = () => { const s = Math.min(1, fit.clientWidth / W); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; frame.dataset.scale = s; };
+  new ResizeObserver(fs).observe(fit); fs();
+  return { frame, scr };
+}
+const mtop = (n = 'V') => h('div', { class: 'mtop' }, h('span', { class: 'medal' }, h('i')), h('div', { class: 'plaque' }, h('b', {}, 'Глава ' + n + ' ', h('span', {}, 'из VIII')), h('div', { class: 'ticks' }, Array.from({ length: 8 }, (_, i) => h('i', { class: i < 4 ? 'done' : i === 4 ? 'now' : '' })))), h('span', { class: 'gold' }, h('span', { class: 'coin' }), '17'));
+
+/*
+ * Подсказка ключевого слова внутри рамки. Носик всегда на слове строки, откуда начали.
+ * Слово внутри подсказки открывает следующую в той же табличке, «← Назад» возвращает:
+ * табличка не прыгает по экрану и не теряется.
+ */
+const hints = new WeakMap();
+function closeHint(frame) {
+  frame.querySelector('.hint')?.remove();
+  frame.querySelectorAll('.kw.on').forEach((k) => k.classList.remove('on'));
+  hints.delete(frame);
+}
+function openHint(frame, kw) {
+  closeHint(frame);
+  if (!KW[kw.dataset.kw]) return;
+  kw.classList.add('on');
+  const st = { anchor: kw, stack: [kw.dataset.kw], tip: h('div', { class: 'hint' }) };
+  hints.set(frame, st);
+  frame.append(st.tip);
+  paintHint(frame, 0);
+}
+function stepHint(frame, key, dir) {
+  const st = hints.get(frame); if (!st) return;
+  if (dir > 0) { if (!KW[key] || st.stack.at(-1) === key) return; st.stack.push(key); } else st.stack.pop();
+  paintHint(frame, dir);
+}
+function paintHint(frame, dir) {
+  const st = hints.get(frame), key = st.stack.at(-1), def = KW[key], prev = st.stack.at(-2);
+  const body = h('div', { class: 'body', style: { '--dx': (dir < 0 ? -8 : 8) + 'px', animation: dir ? '' : 'none' } },
+    prev ? h('button', { class: 'back', type: 'button', onclick: (e) => { e.stopPropagation(); stepHint(frame, null, -1); } }, '← ' + KW[prev][1]) : null,
+    h('small', {}, def[0]), h('b', {}, def[1]), h('p', {}, rt(def[2])));
+  st.tip.replaceChildren(body);
+  placeHint(frame, st);
+}
+function placeHint(frame, st) {
+  const tip = st.tip, kw = st.anchor;
+  const s = +frame.dataset.scale || 1, fr = frame.getBoundingClientRect(), r = kw.getBoundingClientRect();
+  const kx = (r.left - fr.left) / s, ky = (r.top - fr.top) / s, kw2 = r.width / s, kh = r.height / s;
+  const tw = tip.offsetWidth, th = tip.offsetHeight, FW = frame.offsetWidth, FH = frame.offsetHeight;
+  const x = Math.min(FW - tw - 12, Math.max(12, kx + kw2 / 2 - tw / 2));
+  // Сторона выбирается при открытии и не меняется в цепочке: табличка растёт от слова, не прыгает
+  st.below ??= ky + kh + 12 + th + 60 < FH - 12;
+  tip.classList.toggle('below', st.below); tip.classList.toggle('above', !st.below);
+  tip.style.left = x + 'px';
+  tip.style.top = (st.below ? ky + kh + 10 : Math.max(12, ky - th - 10)) + 'px';
+  tip.style.setProperty('--from', st.below ? '-4px' : '4px');
+  tip.style.setProperty('--nose', Math.min(tw - 16, Math.max(16, kx + kw2 / 2 - x)) + 'px');
+}
+const showHint = openHint;
+
+/* Эмблемы для ПК: латунная гравюра Кометы и Телескопа */
+function emblem(comet) {
+  const ring = '<circle cx="84" cy="84" r="80" fill="none" stroke="currentColor" stroke-opacity=".55"/><circle cx="84" cy="84" r="72" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="1 5"/>';
+  const art = comet
+    ? '<defs><linearGradient id="ct" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff9a62" stop-opacity="0"/><stop offset="1" stop-color="#ffd2a0"/></linearGradient></defs><path d="M34 128 L106 58 L112 66 Z" fill="url(#ct)"/><path d="M44 134 L108 62" stroke="#9ff0ff" stroke-opacity=".45" stroke-width="1.2"/><circle cx="110" cy="60" r="9" fill="#fff6e6"/><circle cx="110" cy="60" r="16" fill="#ffb37a" fill-opacity=".25"/><circle cx="52" cy="50" r="1.5" fill="currentColor"/><circle cx="128" cy="112" r="1.2" fill="currentColor"/><circle cx="70" cy="36" r="1" fill="currentColor"/>'
+    : '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M44 104 L114 62 L122 76 L52 118 Z" fill="#14123a"/><path d="M114 62 L130 52 L138 66 L122 76" fill="#14123a"/><path d="M48 111 L36 118 L40 125 L52 118"/><path d="M84 92 L66 140 M84 92 L104 140 M84 92 L84 136"/></g><ellipse cx="134" cy="59" rx="4" ry="8" transform="rotate(-31 134 59)" fill="#9ff0ff" fill-opacity=".6"/><circle cx="140" cy="34" r="1.6" fill="currentColor"/><circle cx="122" cy="26" r="1" fill="currentColor"/><circle cx="148" cy="44" r="1.1" fill="currentColor"/>';
+  const el = svg(ring + art, 168, 168); el.setAttribute('class', 'emblem'); return el;
+}
+/* Прицельная сетка окуляра: круги, перекрестие с разрывом в центре, риски по краю */
+function reticle() {
+  const ticks = Array.from({ length: 36 }, (_, i) => { const a = (i / 36) * Math.PI * 2, r1 = i % 9 === 0 ? 100 : 108; return `<line x1="${120 + Math.cos(a) * r1}" y1="${120 + Math.sin(a) * r1}" x2="${120 + Math.cos(a) * 114}" y2="${120 + Math.sin(a) * 114}"/>`; }).join('');
+  return svg(`<g fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="120" cy="120" r="116" stroke-opacity=".7"/><circle cx="120" cy="120" r="40" stroke-opacity=".5"/>${ticks}<path d="M120 20 V100 M120 140 V220 M20 120 H100 M140 120 H220" stroke-opacity=".75"/></g><circle cx="120" cy="120" r="2" fill="currentColor"/>`, 240, 240);
+}
+
+/* ════ Шаг без ночи ════ */
+let wKind = 'comet', tradeSet = 0;
+const W_KINDS = [['comet', 'Комета'], ['scope', 'Телескоп']];
+const wFrames = [[q('#wP'), 'portrait', 390, 844], [q('#wL'), 'landscape', 844, 390], [q('#wD'), 'desktop', 1440, 900]].map(([fit, mode, Wd, Hd]) => ({ mode, ...frameIn(fit, Wd, Hd, 5) }));
+function segs(el, list, get, set) {
+  el.replaceChildren(...list.map(([id, name]) => h('button', { 'aria-pressed': String(id === get()), onclick: () => { set(id); [...el.children].forEach((b, i) => b.setAttribute('aria-pressed', String(list[i][0] === id))); } }, name)));
+}
+segs(q('#segK'), W_KINDS, () => wKind, (v) => { wKind = v; renderW(); });
+const T_SETS = [[0, 'Обмены 1–3'], [1, 'Обмены 4–6'], [2, 'Обмены 7–9'], [3, 'Обмен 10']];
+segs(q('#segT'), T_SETS, () => tradeSet, (v) => { tradeSet = v; if (wKind === 'comet') renderW(); });
+function wData() {
+  if (wKind === 'scope') return UPGRADES;
+  const out = TRADES.slice(tradeSet * 3, tradeSet * 3 + 3);
+  return out.length === 3 ? out : [...out, ...TRADES.slice(0, 3 - out.length)];
+}
+function renderW() { wFrames.forEach((f) => mountWonder(f)); }
+
+function mountWonder(f) {
+  const { mode, scr, frame } = f;
+  closeHint(frame);
+  const desk = mode === 'desktop';
+  Object.assign(W, desk ? { card: 60, sig: 68, chart: 62 } : mode === 'landscape' ? { card: 32, sig: 36, chart: 34 } : { card: 44, sig: 50, chart: 48 });
+  const data = wData();
+  const comet = wKind === 'comet';
+  const st = { sel: -1, busy: false };
+  const ribbon = h('div', { class: 'ribbon pop' }, h('b', {}, comet ? 'Комета' : 'Телескоп'), h('small', {}, comet ? 'Отдай одно, получи другое' : 'Одно улучшение колоды'));
+  const take = h('button', { class: 'btn btn-primary', disabled: true, onclick: () => commit() }, comet ? 'Выбери обмен' : 'Выбери улучшение');
+  const pass = h('button', { class: 'btn btn-secondary', onclick: () => commit(true) }, 'Пропустить');
+  const note = h('div', { class: 'note' }, 'Дальше следующий шаг главы');
+  const acts = h('div', { class: 'acts' }, take, pass);
+  const mark = (i) => {
+    st.sel = i;
+    take.disabled = false;
+    take.textContent = comet ? 'Обменять' : 'Взять';
+    mid.classList.add('has-sel');
+    mid.querySelectorAll('[data-i]').forEach((el) => el.classList.toggle('sel', +el.dataset.i === i));
+  };
+  const mid = h('div', { class: 'rowsA' }, data.map((t, i) => h('button', { class: 'tr', 'data-i': i, onclick: (e) => { const k = e.target.closest('.kw'); if (k) { e.stopPropagation(); showHint(frame, k); return; } mark(i); } },
+    h('div', { class: 'flow', 'aria-hidden': 'true' }, t.give(), h('span', { class: 'to' }, ARROW()), t.get()),
+    h('div', { class: 'txt' }, h('div', { class: 'gain' }, rt(t.gain)), h('div', { class: 'cost' }, rt(t.cost))))));
+  frame.onclick = (e) => {
+    const k = e.target.closest('.kw');
+    if (k && k.closest('.hint')) { stepHint(frame, k.dataset.kw, 1); return; }
+    if (k) { openHint(frame, k); return; }
+    if (!e.target.closest('.hint')) closeHint(frame);
+  };
+  async function commit(skip) {
+    if (st.busy || (!skip && st.sel < 0)) return;
+    st.busy = true;
+    frame.querySelector('.hint')?.remove();
+    const chosen = !skip && mid.querySelector(`[data-i="${st.sel}"]`);
+    if (chosen) await chosen.animate([{ boxShadow: 'inset 0 0 0 1.5px #ffe6a8, 0 0 0 0 rgb(255 230 168 / 0.8)' }, { boxShadow: 'inset 0 0 0 1.5px #ffe6a8, 0 0 0 18px rgb(255 230 168 / 0)' }], { duration: 520, easing: 'ease-out' }).finished;
+    await scr.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished;
+    const msg = h('div', { style: { position: 'absolute', inset: '0', display: 'grid', placeContent: 'center', justifyItems: 'center', gap: '12px', textAlign: 'center' } }, h('div', { class: 'plate-title' }, skip ? 'Пропущено' : comet ? 'Обмен совершён' : 'Улучшено'), h('div', { class: 'plate-sub' }, 'Дальше следующий шаг главы на карте неба'));
+    frame.append(msg);
+    await wait(1200); msg.remove();
+    scr.getAnimations().forEach((a) => a.cancel());
+    mountWonder(f);
+  }
+  const head = h('div', { style: { display: 'grid', justifyItems: 'center' } }, ribbon);
+  scr.className = 'scr ' + mode;
+  if (mode === 'portrait') scr.replaceChildren(mtop(), head, h('div', { class: 'mid', style: { display: 'grid', alignContent: 'center' } }, mid), h('div', { style: { display: 'grid', gap: '6px' } }, acts, note));
+  else if (mode === 'landscape') scr.replaceChildren(h('div', { class: 'mid' }, mid), h('div', { class: 'side', style: { gridTemplateRows: 'auto minmax(0, 1fr)' } }, mtop(), h('div', { style: { display: 'grid', alignContent: 'center', gap: '18px' } }, head, h('div', { style: { display: 'grid', gap: '6px' } }, acts, note))));
+  else scr.replaceChildren(mtop(), h('div', { class: 'body' }, h('div', { class: 'pane' }, emblem(comet), head, h('p', { class: 'lead2' }, comet ? 'Комета пролетает через главу один раз. Выбери один обмен или пропусти её.' : 'В Телескоп видна вся колода. Выбери одно улучшение бесплатно или пропусти его.'), acts, note), h('div', { class: 'mid' }, mid)));
+  // Вход: Комета пролетает по небу, Телескоп наводит линзу; строки проявляются следом
+  if (!REDUCED) {
+    if (comet) {
+      // Летит по своей оси: поворот задан до сдвига, поэтому хвост всегда точно позади головы
+      const c = h('div', { class: 'comet-fly' }, h('span', { class: 'ion' }), h('span', { class: 'tail' }), h('span', { class: 'head' })); frame.append(c);
+      const d = frame.offsetWidth * 1.7;
+      c.animate([{ transform: 'rotate(14deg) translateX(0)', opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.8 }, { transform: `rotate(14deg) translateX(${d}px)`, opacity: 0 }], { duration: 1250, easing: 'cubic-bezier(0.35, 0, 0.25, 1)' }).finished.then(() => c.remove());
+    } else {
+      // Окуляр: сетка наводится на резкость (поворот и масштаб), затем круг обзора раскрывается на сцену
+      const eye = h('div', { class: 'eyepiece' }), ret = h('div', { class: 'reticle' }, reticle()); frame.append(eye, ret);
+      ret.animate([{ transform: 'rotate(-35deg) scale(1.18)', opacity: 0 }, { transform: 'rotate(0) scale(1)', opacity: 1, offset: 0.45 }, { transform: 'rotate(0) scale(1)', opacity: 1, offset: 0.62 }, { transform: 'scale(3.2)', opacity: 0 }], { duration: 1300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }).finished.then(() => ret.remove());
+      eye.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)', offset: 0.55 }, { transform: 'scale(9)' }], { duration: 1300, easing: 'cubic-bezier(0.55, 0, 0.3, 1)' }).finished.then(() => eye.remove());
+    }
+    [...mid.querySelectorAll('[data-i]')].forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 520, delay: (comet ? 380 : 700) + i * 90, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  }
+  // На ПК подсказка показана сразу: видно, как выглядит ключевое слово и что оно открывает
+  if (desk) setTimeout(() => { const k = mid.querySelector(comet ? '[data-kw="blazing"], .kw' : '[data-kw="glass"]'); if (k && !st.busy) showHint(frame, k); }, REDUCED ? 0 : 1000);
+}
+renderW();
+
+facts(q('#factsW'), [
+  ['Строка одной высоты', 'Слева знак обмена на игровых элементах: что отдаёшь, стрелка, что получаешь. Изменения значком на углу: −2, +2, ×2. Подписей над картинками нет, поэтому ничего не прыгает.'],
+  ['Явные глаголы', 'Первая строка говорит, что происходит: «Купить Знамение», «Продать Знамение», «Убрать из колоды». Вторая начинается с глагола цены: <b>Заплатишь</b>, <b>Отдашь</b>, <b>Взамен</b> розовым, <b>Получишь</b> золотым.'],
+  ['Цепочка подсказок', 'Касание ключевого слова открывает табличку у этого слова. Слово внутри таблички открывает следующую в той же табличке, «← Назад» возвращает. Табличка не прыгает и не уходит за край.'],
+  ['Без пустоты', 'На телефоне строки крупнее и занимают экран. На ПК полноценная сцена: слева эмблема, название, пояснение и кнопки, справа крупные строки.'],
+  ['Вход', 'Комета пролетает по своей оси, хвост клином строго позади головы, рядом тонкий голубой ионный хвост. Телескоп: тёмное поле окуляра, прицельная сетка наводится на резкость, круг обзора раскрывается на сцену.'],
+], [
+  ['RT.4', 'Сцены Кометы и Телескопа: строки обмена с ключевыми словами'],
+]);
+
+/* ════ Путь забега (RT.3) ════ */
+/* Журнал пути: по главе — шаги {route, col, of}, как в ядре (run.journey) */
+const J = [
+  [['night', 0, 2], ['bright', 1, 2]], [['bright', 1, 2], ['night', 0, 2]], [['night', 0, 2], ['night', 1, 2]], [['bright', 0, 2], ['bright', 0, 2]],
+  [['comet', 2, 3], ['night', 1, 3]], [['bright', 0, 3], ['telescope', 2, 3]], [['night', 1, 3], ['bright', 0, 3]], [['telescope', 0, 3], ['night', 2, 3]],
+].map((ch) => [...ch.map(([route, col, of]) => ({ route, col, of })), { route: 'eclipse', col: 0, of: 1 }]);
+const RC = { night: '#ffe6a8', bright: '#ffd27a', comet: '#ff9a62', telescope: '#9ff0ff', eclipse: '#e8e4f4' };
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+/** Мини-созвездие главы: ряды вариантов точками, пройденный путь — золотой линией, узлы — цветом вида. */
+function chapterSvg(ch, w = 80, hh = 88) {
+  const pts = [[w / 2, hh - 8]];
+  const all = [];
+  ch.forEach((s, i) => {
+    const y = hh - 8 - ((i + 1) * (hh - 18)) / ch.length;
+    for (let c = 0; c < s.of; c++) all.push([s.of === 1 ? w / 2 : 12 + ((w - 24) * c) / (s.of - 1), y]);
+    pts.push([s.of === 1 ? w / 2 : 12 + ((w - 24) * s.col) / (s.of - 1), y]);
+  });
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const len = pts.reduce((a, p, i) => (i ? a + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+  return svg(`${all.map(([x, y]) => `<circle class="j-d" cx="${x}" cy="${y}" r="1.6"/>`).join('')}<path class="j-w" d="${d}" style="stroke-dasharray:${len};stroke-dashoffset:${len}"/>${pts.slice(1).map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${ch[i].route === 'eclipse' ? 3.6 : 2.8}" fill="${RC[ch[i].route]}" style="filter:drop-shadow(0 0 3px ${RC[ch[i].route]})"/>`).join('')}<circle cx="${w / 2}" cy="${hh - 8}" r="2" fill="#fff3c4"/>`, w, hh);
+}
+/** Нить забега: восемь глав одной линией слева направо, развилки — отклонением вверх-вниз. */
+function threadSvg(W = 340, H = 120) {
+  const step = (W - 20) / (J.length * 3);
+  const pts = [[10, H / 2]];
+  const dots = [];
+  J.forEach((ch, ci) => ch.forEach((s, si) => {
+    const x = 10 + (ci * 3 + si + 1) * step;
+    for (let c = 0; c < s.of; c++) dots.push([x, s.of === 1 ? H / 2 : H / 2 + ((c - (s.of - 1) / 2) * H * 0.5) / Math.max(1, s.of - 1)]);
+    pts.push([x, s.of === 1 ? H / 2 : H / 2 + ((s.col - (s.of - 1) / 2) * H * 0.5) / Math.max(1, s.of - 1), s.route]);
+  }));
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const len = pts.reduce((a, p, i) => (i ? a + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+  const labels = J.map((_, ci) => `<text x="${10 + (ci * 3 + 3) * step}" y="${H - 2}" text-anchor="middle" style="font:400 9px Forum,serif;letter-spacing:.2em;fill:#8a85b8">${ROMAN[ci]}</text>`).join('');
+  return svg(`${dots.map(([x, y]) => `<circle class="j-d" cx="${x}" cy="${y}" r="1.4"/>`).join('')}<path class="j-w" d="${d}" style="stroke-dasharray:${len};stroke-dashoffset:${len}"/>${pts.slice(1).map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r === 'eclipse' ? 3.4 : 2.4}" fill="${RC[r]}"/>`).join('')}${labels}`, W, H);
+}
+
+let jVar = 'C';
+const J_VARIANTS = [['A', 'Восемь созвездий'], ['B', 'Нить забега'], ['C', 'Открытка']];
+segs(q('#segJ'), J_VARIANTS, () => jVar, (v) => { jVar = v; renderJ(); });
+const jFrames = [[q('#jP'), 'portrait', 390, 844], [q('#jL'), 'landscape', 844, 390], [q('#jD'), 'desktop', 1440, 900]].map(([fit, mode, Wd, Hd]) => ({ mode, ...frameIn(fit, Wd, Hd, 6) }));
+function renderJ() { jFrames.forEach(mountJourney); }
+function mountJourney({ mode, scr }) {
+  scr.className = 'scr res res-' + mode;
+  const ribbon = h('div', { class: 'ribbon pop' }, h('b', {}, 'Победа'), h('small', {}, 'Восемь глав пройдены'));
+  const rows = h('div', { class: 'res-rows' }, [['Ночей', '22'], ['Линий', '146'], ['Крестов', '19'], ['Лучший ход', '48 210'], ['Созвездие', 'Сверхновая'], ['Золота', '214']].map(([a, b]) => h('div', {}, a, h('b', {}, b))));
+  let block;
+  if (jVar === 'A') block = h('div', { style: { display: 'grid', gap: '10px', justifyItems: 'center', width: '100%' } }, h('div', { class: 'jt' }, 'Путь забега'), h('div', { class: 'jA' }, J.map((ch, i) => h('div', { class: 'ch' }, chapterSvg(ch), h('small', {}, ROMAN[i])))));
+  else if (jVar === 'B') block = h('div', { style: { display: 'grid', gap: '10px', justifyItems: 'center', width: '100%' } }, h('div', { class: 'jt' }, 'Нить забега'), h('div', { class: 'jB' }, threadSvg(mode === 'desktop' ? 680 : 340, mode === 'desktop' ? 150 : 120)));
+  else block = h('div', { class: 'jC' }, h('div', { class: 'ttl' }, 'Мой путь'), h('div', { class: 'sub' }, 'Звёздное плетение · классическое небо'), h('div', { class: 'grid8' }, J.map((ch, i) => h('div', { class: 'ch8' }, chapterSvg(ch, 70, 76), h('small', {}, ROMAN[i])))), h('div', { class: 'nums' }, h('div', {}, h('b', {}, 'VIII'), 'глав'), h('div', {}, h('b', {}, '48 210'), 'лучший ход'), h('div', {}, h('b', {}, '19'), 'крестов')), h('button', { class: 'btn btn-secondary', style: { minHeight: '40px', width: '100%' } }, 'Поделиться путём'));
+  const acts = h('div', { class: 'acts', style: { width: '100%', maxWidth: mode === 'desktop' ? '360px' : 'none' } }, h('button', { class: 'btn btn-primary' }, 'Бесконечный режим'), h('button', { class: 'btn btn-secondary' }, 'В меню'));
+  if (mode === 'landscape') scr.replaceChildren(h('div', { class: 'res-in' }, jVar === 'C' ? block : [ribbon, block]), h('div', { class: 'res-in' }, jVar === 'C' ? ribbon : null, rows, acts));
+  else if (mode === 'desktop' && jVar === 'C') {
+    scr.classList.add('card');
+    scr.replaceChildren(h('div', { class: 'res-in' }, block), h('div', { class: 'res-in' }, ribbon, rows, acts));
+  } else scr.replaceChildren(h('div', { class: 'res-in' }, ribbon, block, rows, acts));
+  // Авторский момент: пути глав прорисовываются по очереди, как в победе загорается цепочка глав
+  if (!REDUCED) scr.querySelectorAll('.j-w').forEach((p, i) => p.animate([{ strokeDashoffset: p.style.strokeDashoffset }, { strokeDashoffset: 0 }], { duration: jVar === 'B' ? 2400 : 700, delay: 300 + i * 160, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }));
+  else scr.querySelectorAll('.j-w').forEach((p) => (p.style.strokeDashoffset = 0));
+}
+renderJ();
+
+facts(q('#factsJ'), [
+  ['A · Восемь созвездий', 'Каждая глава — своё маленькое созвездие: точки — варианты шагов, золотая линия — твой путь, узлы цветом вида (Яркая — золото, Комета — пламя, Телескоп — лёд). <b>Читается как карта забега</b>, сетка 4×2.'],
+  ['B · Нить забега', 'Весь забег одной нитью слева направо: развилки — отклонения вверх и вниз, главы подписаны снизу. <b>Самый цельный образ</b>, но отдельную главу разглядеть труднее.'],
+  ['C · Открытка — выбрано', 'Те же восемь созвездий на открытке «Мой путь» с главными числами и кнопкой «Поделиться путём» — картинка забега для друзей. <b>Сразу под шеринг</b>, но в итогах занимает больше места.'],
+  ['Где', 'В окне победы и поражения, под лентой; в Коллекции — путь лучшего забега. Числа и кнопки окна — как сейчас.'],
+], [
+  ['RT.3', 'Открытка «Мой путь» в итогах — в игре; на ПК крупно'],
+]);
+ladder(q('#ladder'), 6);
+</script>
+</body>
+</html>

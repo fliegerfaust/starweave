@@ -15,6 +15,37 @@
 .goal span { display: block; margin-top: 3px; color: var(--ink-dim); font-size: 13.5px; line-height: 1.45; text-wrap: pretty; }
 .goal svg { width: 40px; height: 40px; }
 
+/* Где мы сейчас: сделано, в работе, впереди */
+.prog { display: grid; gap: 14px; }
+.prog-bar { display: grid; gap: 8px; }
+.prog-bar .track { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: rgb(170 160 255 / 0.12); }
+.prog-bar .track i { display: block; height: 100%; }
+.prog-bar .track .d { background: linear-gradient(180deg, #ffe09a, #f6c25b 55%, #e09a2f); }
+.prog-bar .track .w { background: repeating-linear-gradient(135deg, rgb(246 194 91 / 0.55) 0 6px, rgb(246 194 91 / 0.25) 6px 12px); }
+.prog-bar .nums { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--ink-dim); font: 600 13px/1.2 var(--font-body); }
+.prog-bar .nums b { font: 800 22px/1 var(--font-body); color: var(--gold-hi); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.lanes { display: grid; gap: 18px; }
+@media (min-width: 900px) { .lanes { grid-template-columns: 1fr 1.25fr 1.25fr; align-items: start; } }
+.lane h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-dim); }
+.lane h3 i { width: 10px; height: 10px; border-radius: 50%; }
+.lane.done h3 { color: var(--gold-hi); } .lane.done h3 i { background: #f6c25b; box-shadow: 0 0 8px rgb(246 194 91 / 0.8); }
+.lane.work h3 { color: #ffe6a8; } .lane.work h3 i { box-shadow: inset 0 0 0 2px #f6c25b; }
+.lane.next h3 i { box-shadow: inset 0 0 0 1px rgb(170 160 255 / 0.5); }
+.lane-list { display: grid; gap: 8px; }
+.pcard { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px 14px; border-radius: 16px; color: inherit; text-decoration: none; background: rgb(14 12 34 / 0.6); box-shadow: inset 0 0 0 1px var(--hair); transition: box-shadow 0.2s ease; }
+.pcard:hover { box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.5); }
+.lane.done .pcard { background: radial-gradient(120% 100% at 0% 0%, rgb(246 194 91 / 0.1), transparent 60%), rgb(14 12 34 / 0.7); box-shadow: inset 0 0 0 1px rgb(246 194 91 / 0.45); }
+.lane.next .pcard { opacity: 0.78; }
+.pcard .ic { width: 40px; height: 40px; display: grid; place-items: center; }
+.pcard b { display: block; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
+.pcard small { display: block; margin-top: 3px; color: var(--ink-dim); font: 600 12.5px/1.4 var(--font-body); text-wrap: pretty; }
+.pcard ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.pcard li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 6px; font: 600 12.5px/1.35 var(--font-body); color: var(--ink-dim); }
+.pcard li::before { content: ''; width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(170 160 255 / 0.5); }
+.pcard li.ok { color: var(--ink); }
+.pcard li.ok::before { background: #f6c25b; box-shadow: none; }
+.pcard .mini { margin-top: 8px; height: 4px; border-radius: 999px; background: rgb(170 160 255 / 0.12); overflow: hidden; }
+.pcard .mini i { display: block; height: 100%; background: linear-gradient(90deg, #e09a2f, #ffe09a); }
 /* Петля: было → стало */
 .loops { display: grid; gap: 22px; }
 @media (min-width: 900px) { .loops { grid-template-columns: 1fr 1.6fr; align-items: start; } }
@@ -133,6 +164,8 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 <body>
 <div class="wrap">
   <div class="goals" id="goals"></div>
+  <div class="label">Где мы сейчас <small>сделано, в работе и впереди · на 22.10.2026 · карточка открывает витрину</small></div>
+  <div class="prog" id="prog"></div>
 
   <div class="label">Петля забега <small>одна глава — сейчас и в 0.7 · золотая точка — решение игрока</small></div>
   <div class="loops" id="loops"></div>
@@ -158,12 +191,12 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 
   <div class="label">Риски</div>
   <div class="risks" id="risks"></div>
-  <p class="src">Подробно — <a href="../RELEASE-0.7-DEPTH.md">docs/RELEASE-0.7-DEPTH.md</a>. Источники: <a href="https://www.pcgamesn.com/slay-the-spire-2/ancients">StS 2: Ancients</a> · <a href="https://mobalytics.gg/slay-the-spire-2/guides/alternate-acts">StS 2: альтернативные акты</a> · <a href="https://slaythespire2.gg/">StS 2 Wiki</a> · <a href="https://www.gamespot.com/reviews/slay-the-spire-review-trend-setter/1900-6417497/">GameSpot</a> · <a href="https://www.lesswrong.com/posts/MEimkSwwuRgiPaZaY/review-slay-the-spire">LessWrong</a></p>
+  <p class="src">Подробно — <a href="../RELEASE-0.7-DEPTH.md">docs/RELEASE-0.7-DEPTH.md</a>. </p>
   <p class="foot">Релиз 0.7 «Глубина» · экспериментальный, ветка release/0.7.0 · 21.10.2026</p>
 </div>
 <!--KITJS-->
 <script>
-/* art: nebula-2 omen-crossroads boss-gravity chart-flush omen-sunWorship card-sun-7-gilded omen-diagonalSight boss-void card-star-9-radiant omen-stardust boss-wane pack-omen */
+/* art: nebula-2 omen-corona omen-crossroads boss-gravity chart-flush omen-sunWorship card-sun-7-gilded omen-diagonalSight boss-void card-star-9-radiant omen-stardust boss-wane pack-omen */
 shell({ id: 'index', lead: 'Релиз 0.7 «Глубина»: решения не только в лавке, сборки расходятся, каждый забег оставляет след на небе — и всё это <b>открывается постепенно</b>: первый забег такой же простой, как сейчас.' });
 
 /* Значки целей — нарисованы кодом, одна линия и вес */
@@ -175,6 +208,38 @@ const GOALS = [
   [G('<path d="M6 32a14 14 0 0 1 28 0"/><path d="M12 32a8 8 0 0 1 16 0"/><circle cx="14" cy="16" r="1.8" fill="#f6c25b"/><circle cx="22" cy="11" r="1.8" fill="#f6c25b"/><circle cx="28" cy="18" r="1.8"/>'), 'Постепенно', 'Небосвод: система за системой, когда прошлая уже понятна'],
 ];
 q('#goals').replaceChildren(...GOALS.map(([ic, b, s]) => h('div', { class: 'goal' }, ic, h('div', {}, h('b', {}, b), h('span', {}, s)))));
+
+
+/* Где мы сейчас: каждая идея релиза — сделана, в работе или впереди. Карточка открывает витрину */
+const STATUS = [
+  { lane: 'done', id: 'gift', name: 'Дар ночи', sub: 'После победной ночи 1 из 3 звёзд или чистое небо. Вмёржено в release/0.7.0', ic: () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 26),
+    items: [['Ядро и сцена «Спокойный веер»', 1], ['Бот и симуляция для дара', 1]] },
+  { lane: 'done', id: 'gift', name: 'Небесные тела', sub: 'Первая волна: 6 тел со своим правилом места на сетке', ic: () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 26),
+    items: [['6 тел, арт и анимации на небе', 1], ['Справочник: тела во вкладке «Карты»', 1]] },
+  { lane: 'work', id: 'route', name: 'Развилки главы', sub: 'Путь главы — решение игрока. 4 из 6 задач на проверке, в epic/sky-route', ic: () => omen('crossroads', 36), part: 4 / 6,
+    items: [['Ядро: граф главы и выбор пути', 1], ['«Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика и длина забега (RT.6)', 0], ['e2e развилок (RT.7)', 0]] },
+  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
+  { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Фигуры на всём небе', ic: mythIcon },
+  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Цель внутри главы', ic: () => sig('chart-flush', 36) },
+  { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Пара Знамений как находка', ic: () => omen('sunWorship', 36) },
+  { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'След проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
+  { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Разное начало забега', ic: () => omen('diagonalSight', 36) },
+  { lane: 'next', id: 'heart', name: 'Сердце неба', sub: 'Тайная глава за ключи', ic: () => boss('void', 36) },
+  { lane: 'next', id: 'skyvault', name: 'Небосвод', sub: 'Прогресс как небо игрока', ic: () => omen('stardust', 36) },
+];
+{
+  const n = (l) => STATUS.filter((x) => x.lane === l).length;
+  const total = STATUS.length;
+  const bar = h('div', { class: 'prog-bar' },
+    h('div', { class: 'track' }, h('i', { class: 'd', style: { width: (n('done') / total) * 100 + '%' } }), h('i', { class: 'w', style: { width: (n('work') / total) * 100 + '%' } })),
+    h('div', { class: 'nums' }, h('span', {}, h('b', {}, n('done')), 'сделано'), h('span', {}, h('b', {}, n('work')), 'в работе'), h('span', {}, h('b', {}, n('next')), 'впереди'), h('span', {}, 'из ' + total + ' идей релиза')));
+  const lane = (key, title) => h('div', { class: 'lane ' + key }, h('h3', {}, h('i'), title + ' · ' + n(key)),
+    h('div', { class: 'lane-list' }, STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
+      h('div', {}, h('b', {}, x.name), h('small', {}, x.sub),
+        x.part ? h('div', { class: 'mini' }, h('i', { style: { width: x.part * 100 + '%' } })) : null,
+        x.items ? h('ul', {}, x.items.map(([t, ok]) => h('li', { class: ok ? 'ok' : '' }, t))) : null)))));
+  q('#prog').replaceChildren(bar, h('div', { class: 'lanes' }, lane('done', 'Сделано'), lane('work', 'В работе'), lane('next', 'Впереди')));
+}
 
 /* Петля главы */
 const NOW = [
@@ -262,16 +327,16 @@ drawClimb();
 
 /* Матрица: идея × цели (0–3) и цена для новичка */
 const IDEAS = [
-  ['gift', 'Дар ночи', 'StS: награда после боя', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 24), [2, 3, 1, 1], 1, false],
-  ['route', 'Развилки', 'StS: карта с путями', () => omen('crossroads', 34), [3, 1, 2, 1], 1, false],
+  ['gift', 'Дар ночи', 'выбор после победной ночи', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 24), [2, 3, 1, 1], 1, false],
+  ['route', 'Развилки', 'путь главы — решение игрока', () => omen('crossroads', 34), [3, 1, 2, 1], 1, false],
   ['gift', 'Небесные тела', 'своё: правило места на сетке', () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 24), [2, 3, 2, 2], 2, true],
-  ['trophy', 'Трофеи Затмений', 'StS: реликвии босса', () => boss('gravity', 34), [2, 2, 2, 3], 1, true],
+  ['trophy', 'Трофеи Затмений', 'побеждённое правило — в твою пользу', () => boss('gravity', 34), [2, 2, 2, 3], 1, true],
   ['myths', 'Мифы неба', 'своё: фигуры на всём небе', mythIcon, [3, 2, 3, 3], 2, true],
-  ['prophecy', 'Пророчества', 'StS 2: карты-квесты', () => sig('chart-flush', 34), [2, 1, 2, 2], 1, false],
-  ['resonance', 'Резонанс', 'Vampire Survivors: эволюции', () => omen('sunWorship', 34), [1, 3, 2, 3], 2, false],
-  ['legacy', 'Звезда памяти', 'Inscryption: карта смерти', () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 24), [1, 1, 3, 2], 1, false],
-  ['patrons', 'Покровители', 'StS, Monster Train: персонажи', () => omen('diagonalSight', 34), [1, 3, 3, 2], 2, false],
-  ['heart', 'Сердце неба', 'StS: акт 4 за ключи', () => boss('void', 34), [2, 1, 3, 2], 3, false],
+  ['prophecy', 'Пророчества', 'цель внутри главы', () => sig('chart-flush', 34), [2, 1, 2, 2], 1, false],
+  ['resonance', 'Резонанс', 'пара Знамений — находка', () => omen('sunWorship', 34), [1, 3, 2, 3], 2, false],
+  ['legacy', 'Звезда памяти', 'след проигранного забега', () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 24), [1, 1, 3, 2], 1, false],
+  ['patrons', 'Покровители', 'разное начало забега', () => omen('diagonalSight', 34), [1, 3, 3, 2], 2, false],
+  ['heart', 'Сердце неба', 'тайная глава за ключи', () => boss('void', 34), [2, 1, 3, 2], 3, false],
   ['skyvault', 'Небосвод', 'своё: прогресс — небо игрока', () => omen('stardust', 34), [0, 1, 3, 3], 0, true],
 ];
 const dots = (n, cost) => h('span', { class: 'dots' + (cost ? ' cost' : '') }, [1, 2, 3].map((k) => h('i', { class: k <= n ? 'on' : '' })));
@@ -316,6 +381,10 @@ const VDESC = {
   skyvault: ['Купол заполняется звёздами игрока, созвездия открывают системы', () => omen('stardust', 40)],
   gift: ['После ночи — звезда в колоду или чистое небо; небесные тела', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 30)],
   route: ['Глава ветвится; путь рисует созвездие забега', () => omen('crossroads', 40)],
+  'gift-ui': ['Экран дара: выбор звезды, выбрано «Спокойный веер»', () => card({ suit: 'star', rank: 9, glyph: 'radiant' }, 30)],
+  'gift-scene': ['Сцена дара после ночи в трёх формах', () => card({ suit: 'moon', rank: 5, body: 'polaris' }, 30)],
+  'route-screen': ['«Карта неба»: глава с развилками в трёх формах', () => omen('crossroads', 40)],
+  'route-wonders': ['Комета и Телескоп с ключевыми словами, открытка «Мой путь»', () => omen('corona', 40)],
   trophy: ['Побеждённое Затмение работает на тебя', () => boss('gravity', 40)],
   myths: ['Кассиопея, Лебедь, Плеяды — фигуры на небе 4×4', mythIcon],
   prophecy: ['Цель главы с наградой и книга пророчеств', () => sig('chart-flush', 40)],
@@ -324,7 +393,7 @@ const VDESC = {
   patrons: ['Мореход, Алхимик, Гадалка, Астроном', () => omen('diagonalSight', 40)],
   heart: ['Звёздность 6–12 и 9-я глава за три ключа', () => boss('void', 40)],
 };
-q('#vlist').replaceChildren(...VITRINES.filter((v) => v.id !== 'index').map((v) => {
+q('#vlist').replaceChildren(...VITRINES.filter((v) => v.id !== 'index' && VDESC[v.id]).map((v) => {
   const [d, ic] = VDESC[v.id];
   return h('a', { class: 'vrow', href: v.file }, h('div', { class: 'ic' }, ic()), h('div', {}, h('b', {}, v.title), h('small', {}, d)), h('span', { class: 'go' }, icon('next')));
 }));

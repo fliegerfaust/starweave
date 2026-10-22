@@ -3,7 +3,8 @@ import { OMENS } from './content/omens';
 import { RITUALS } from './content/rituals';
 import { SKIES } from './content/skies';
 import { allContent } from './content/pools';
-import { planChapter } from './route';
+import { planChapter, ROUTE_KINDS } from './route';
+import { COMET_EVENTS } from './wonders';
 import { SAVE_VERSION } from './run';
 import { BODY_IDS, COMBO_IDS, GLYPHS, MAX_RANK, MIN_RANK, NIGHT_KINDS, SUITS, type PackKind, type RunPhase, type RunState } from './types';
 
@@ -21,7 +22,8 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
   // 2 (TD.6): место в главе — план главы `chapter` вместо номера ночи 0..2
   1(run) {
     if (!isInt(run.ante) || !Array.isArray(run.bosses) || !isInt(run.nightIndex)) return;
-    run.chapter = { ...planChapter({ ante: run.ante, bosses: run.bosses as string[] }), at: run.nightIndex };
+    // Тогда глава была цепочкой: узлы без пути и шагов — их допишет шаг 5
+    run.chapter = { nodes: planChapter({ ante: run.ante, bosses: run.bosses as string[] }).nodes.map(({ kind, bossId }) => ({ kind, bossId })), at: run.nightIndex };
     delete run.nightIndex;
   },
   // 3 (TD.7): открытый пакет Обсерватории — выбор в очереди `pending`; команды пакета в журнале — общие
@@ -46,6 +48,14 @@ const RUN_MIGRATIONS: Record<number, (run: Record<string, unknown>) => void> = {
       run.unlocks.gift = false;
       run.unlocks.bodies = [];
     }
+  },
+  // 6 (RT.1): глава — граф с путём; старая цепочка из трёх ночей — тот же граф, без развилок
+  5(run) {
+    if (isObj(run.unlocks)) run.unlocks.routes = false;
+    const c = run.chapter;
+    if (!isObj(c) || !Array.isArray(c.nodes) || !isInt(c.at)) return;
+    c.nodes = (c.nodes as Raw[]).map((n, i, all) => ({ ...n, route: n.kind === 'eclipse' ? 'eclipse' : 'night', step: i + 1, next: i < all.length - 1 ? [i + 1] : [] }));
+    c.path = Array.from({ length: c.at }, (_, i) => i);
   },
 };
 
@@ -82,7 +92,8 @@ function isLog(log: unknown): boolean {
 function isUnlocks(u: unknown): boolean {
   return isObj(u) && Array.isArray(u.omens) && u.omens.every((id) => has(OMENS, id))
     && Array.isArray(u.rituals) && u.rituals.every((id) => has(RITUALS, id))
-    && typeof u.gift === 'boolean' && Array.isArray(u.bodies) && u.bodies.every(isBody);
+    && typeof u.gift === 'boolean' && Array.isArray(u.bodies) && u.bodies.every(isBody) && typeof u.routes === 'boolean'
+    && (u.wonders === undefined || typeof u.wonders === 'boolean');
 }
 
 const PACK_SET: Record<PackKind, true> = { omen: true, ritual: true, chart: true };
@@ -92,17 +103,45 @@ function isGiftOffer(o: unknown): boolean {
   return isObj(o) && ((o.k === 'card' && isFace(o.card)) || (o.k === 'ascend' && isInt(o.cardId)));
 }
 
+const isEvent = (e: unknown) => (COMET_EVENTS as readonly unknown[]).includes(e);
+const isCombo = (c: unknown) => has(comboRegistry, c);
+
+/** Обмен Кометы: известный вид и числа на месте; Знамения — этой сборки. */
+function isTrade(t: unknown): boolean {
+  if (!isObj(t) || !isEvent(t.e)) return false;
+  if ('omen' in t && !has(OMENS, t.omen)) return false;
+  for (const k of ['combo', 'from', 'to'] as const) if (k in t && !isCombo(t[k])) return false;
+  if ('glyph' in t && !isGlyph(t.glyph)) return false;
+  if ('suit' in t && !(SUITS as readonly unknown[]).includes(t.suit)) return false;
+  return Object.entries(t).every(([k, v]) => k === 'e' || typeof v === 'string' || isInt(v) || (Array.isArray(v) && v.every(isInt)));
+}
+
+/** Улучшение Телескопа. */
+function isUpgrade(u: unknown): boolean {
+  if (!isObj(u)) return false;
+  if (u.u === 'chart') return isCombo(u.combo);
+  if (u.u === 'glyph') return isInt(u.card) && isGlyph(u.glyph);
+  return u.u === 'banish' && isInt(u.card);
+}
+
 /** Выбор в очереди: варианты существуют в этой сборке (иначе `omenDef` уронит экран). */
 function isChoice(c: unknown): boolean {
+  if (isObj(c) && c.kind === 'comet') return Array.isArray(c.options) && c.options.every(isTrade);
+  if (isObj(c) && c.kind === 'telescope') return Array.isArray(c.options) && c.options.every(isUpgrade);
   if (isObj(c) && c.kind === 'gift') return Array.isArray(c.options) && c.options.length > 0 && c.options.every(isGiftOffer);
   if (!isObj(c) || c.kind !== 'pack' || !has(PACK_SET, c.pack) || !Array.isArray(c.options) || c.options.length === 0) return false;
   const reg = c.pack === 'omen' ? OMENS : c.pack === 'ritual' ? RITUALS : comboRegistry;
   return c.options.every((id) => has(reg, id));
 }
 
+/** План главы: узлы с видами этой сборки, рёбра и путь — по индексам узлов. */
 function isChapter(c: unknown): boolean {
-  if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < 0 || c.at >= c.nodes.length) return false;
-  return c.nodes.every((n) => isObj(n) && (NIGHT_KINDS as readonly unknown[]).includes(n.kind) && (n.bossId === null || has(BOSSES, n.bossId)));
+  if (!isObj(c) || !Array.isArray(c.nodes) || c.nodes.length === 0 || !isInt(c.at) || c.at < -1 || c.at >= c.nodes.length) return false;
+  const n = c.nodes.length;
+  const index = (i: unknown) => isInt(i) && i >= 0 && i < n;
+  if (!Array.isArray(c.path) || !c.path.every(index)) return false;
+  return c.nodes.every((node) => isObj(node) && (NIGHT_KINDS as readonly unknown[]).includes(node.kind) && (node.bossId === null || has(BOSSES, node.bossId))
+    && (ROUTE_KINDS as readonly unknown[]).includes(node.route) && isInt(node.step) && Array.isArray(node.next) && node.next.every(index));
 }
 
 /**
@@ -115,6 +154,7 @@ function isPlayable(run: Raw): boolean {
   if (!isInt(run.ante) || run.ante < 1 || !isChapter(run.chapter)) return false;
   if (!Array.isArray(run.pending) || !run.pending.every(isChoice)) return false;
   if (!isUnlocks(run.unlocks)) return false;
+  if (run.journey !== undefined && !(Array.isArray(run.journey) && run.journey.every((ch) => ch === null || (Array.isArray(ch) && ch.every((s) => isObj(s) && (ROUTE_KINDS as readonly unknown[]).includes(s.route) && isInt(s.col) && isInt(s.of)))))) return false;
   if (!isCards(run.deck) || !isObj(run.rng) || typeof run.gold !== 'number') return false;
   if (!Array.isArray(run.omens) || !run.omens.every((o) => isObj(o) && isInt(o.uid) && has(OMENS, o.id) && isObj(o.data))) return false;
   if (!Array.isArray(run.bosses) || !run.bosses.every((b) => has(BOSSES, b))) return false;
@@ -151,6 +191,8 @@ export function deserializeRun(text: string | null): RunState | null {
     if (isObj(run.shop)) {
       run.shop.packs ??= [];
     }
+    // Комета и Телескоп (RT.4) — после v6: забег без поля играет без них
+    if (isObj(run.unlocks)) run.unlocks.wonders ??= false;
     // Битый журнал не должен стоить игроку забега: забег открываем без журнала
     if (run.log !== undefined && !isLog(run.log)) delete run.log;
     return isPlayable(run) ? (run as unknown as RunState) : null;

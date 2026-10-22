@@ -46,7 +46,7 @@ test('сохранение 0.5.9 посреди ночи продолжаетс�
     const saved = JSON.parse(localStorage.getItem('starweave.run.v1')!) as { version: number; chapter: { at: number }; log?: unknown };
     return { before, after: app.run!.night!.movesLeft, version: saved.version, at: saved.chapter.at, log: 'log' in saved };
   });
-  expect(res).toEqual({ before: 15, after: 14, version: 5, at: 1, log: false });
+  expect(res).toEqual({ before: 15, after: 14, version: 6, at: 1, log: false });
   expect(errors).toEqual([]);
 });
 

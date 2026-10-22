@@ -291,6 +291,8 @@ const VITRINES = [
   { id: 'gift-ui', title: 'Дар ночи · экраны', file: 'd8-gift-ui.html', step: 1 },
   { id: 'gift-scene', title: 'Дар ночи · сцена', file: 'd8-gift-scene.html', step: 1 },
   { id: 'route', title: 'Развилки', file: 'd8-route.html', step: 2 },
+  { id: 'route-screen', title: 'Развилки · экран', file: 'd8-route-screen.html', step: 2 },
+  { id: 'route-wonders', title: 'Комета, Телескоп, путь', file: 'd8-route-wonders.html', step: 6 },
   { id: 'trophy', title: 'Трофеи Затмений', file: 'd8-trophy.html', step: 4 },
   { id: 'myths', title: 'Мифы неба', file: 'd8-myths.html', step: 5 },
   { id: 'prophecy', title: 'Пророчества', file: 'd8-prophecy.html', step: 7 },
@@ -630,7 +632,7 @@ const shuffle = (a, r = random) => { for (let i = a.length - 1; i > 0; i--) { co
 
 </script>
 <script>
-shell({ id: 'patrons', lead: 'Как персонажи Slay the Spire, но поверх колоды неба: <b>свой стартовый знак, своё тело и одно особое правило</b>. Шесть небес на четыре покровителя — 24 разных начала.' });
+shell({ id: 'patrons', lead: 'Покровитель — лицо забега поверх колоды неба: <b>свой стартовый знак, своё тело и одно особое правило</b>. Шесть небес на четыре покровителя — 24 разных начала.' });
 const stage = sky(q('#stage'), 5); /* art: nebula-5 omen-diagonalSight omen-alchemist omen-gambler omen-constellationMap */
 
 /* Знаки покровителей — латунная гравировка кодом */

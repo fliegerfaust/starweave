@@ -10,7 +10,7 @@ import { deserializeRun, serializeRun } from '../src/core/save';
 import type { RunState } from '../src/core/types';
 
 /** Забег на экране награды: ночь будто бы выиграна. */
-function rewardRun(seed = 5, unlocks = allContent()): RunState {
+function rewardRun(seed = 5, unlocks = { ...allContent(), routes: false }): RunState {
   const run = newRun({ seed, unlocks });
   run.phase = 'reward';
   run.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
@@ -74,7 +74,7 @@ describe('дар ночи (GF.1)', () => {
   });
 
   it('нет дара: ступень не открыта, обучение', () => {
-    const run = rewardRun(5, { ...allContent(), gift: false });
+    const run = rewardRun(5, { ...allContent(), gift: false, routes: false });
     collectReward(run);
     expect(run.pending).toEqual([]);
     const tut = rewardRun();

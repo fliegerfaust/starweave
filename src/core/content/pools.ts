@@ -16,6 +16,10 @@ export interface Unlocks {
   gift: boolean;
   /** Небесные тела, которые могут выпасть в даре (ступень 3). */
   bodies: BodyId[];
+  /** Развилки главы: Ночь или Яркая ночь на каждом шаге (ступень 2). */
+  routes: boolean;
+  /** Комета и Телескоп на развилках — шаги без ночи (ступень 6). */
+  wonders: boolean;
 }
 
 /** Контент с правилом открытия. Без `unlock` — открыт с первого забега. */
@@ -23,6 +27,12 @@ interface Unlockable {
   id: string;
   unlock?: Unlock;
 }
+
+/** Ступень «Комета и Телескоп»: дойти до 5-й главы. */
+export const WONDERS_UNLOCK: Unlock = { kind: 'reachAnte', ante: 5 };
+
+/** Ступень «Развилки»: дойти до 3-й главы. */
+export const ROUTES_UNLOCK: Unlock = { kind: 'reachAnte', ante: 3 };
 
 /** Ступень «Дар ночи»: закончить первый забег. */
 export const GIFT_UNLOCK: Unlock = { kind: 'runsDone', runs: 1 };
@@ -53,6 +63,9 @@ export function contentPools(open: (unlock: Unlock) => boolean, shared = false):
     omens: pick(OMEN_LIST, open),
     rituals: pick(RITUAL_LIST, open),
     gift: shared || open(GIFT_UNLOCK),
+    routes: shared || open(ROUTES_UNLOCK),
+    // Вызов дня — только ступени 0–2, одинаковые у всех
+    wonders: !shared && open(WONDERS_UNLOCK),
     bodies: BODY_IDS.filter((b) => open(BODY_UNLOCKS[b])),
   };
 }
@@ -64,7 +77,7 @@ export function allContent(): Unlocks {
 
 /**
  * Базовый набор без открытий — одинаков для всех (вызов дня, архив, вызов друга): ступени
- * 0–2 открыты всем, так что дар ночи в нём есть, а небесных тел нет.
+ * 0–2 открыты всем, так что дар ночи и развилки в нём есть, а небесных тел нет.
  */
 export function baseContent(): Unlocks {
   return contentPools(() => false, true);

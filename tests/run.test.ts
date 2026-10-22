@@ -1,6 +1,7 @@
+import { LINEAR } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { GIFT_SKIP_GOLD } from '../src/core/content/balance';
-import { playNight, shopGreedy } from '../src/core/ai/bot';
+import { enterNight, playNight, shopGreedy } from '../src/core/ai/bot';
 import { startNight } from '../src/core/night';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
 import { deserializeRun, serializeRun } from '../src/core/save';
@@ -15,8 +16,8 @@ import { RITUAL_LIST } from '../src/core/content/rituals';
 
 describe('забег', () => {
   it('одинаковый сид — одинаковый забег', () => {
-    const a = newRun({ seed: 42 });
-    const b = newRun({ seed: 42 });
+    const a = newRun({ seed: 42, unlocks: LINEAR });
+    const b = newRun({ seed: 42, unlocks: LINEAR });
     startNight(a);
     startNight(b);
     playNight(a, 0);
@@ -25,7 +26,7 @@ describe('забег', () => {
   });
 
   it('сохранение переживает JSON', () => {
-    const run = newRun({ seed: 5 });
+    const run = newRun({ seed: 5, unlocks: LINEAR });
     startNight(run);
     const back = deserializeRun(serializeRun(run))!;
     expect(back.night!.hand).toEqual(run.night!.hand);
@@ -33,7 +34,7 @@ describe('забег', () => {
   });
 
   it('полный цикл: ночь → награда → Обсерватория → следующая ночь', () => {
-    const run = newRun({ seed: 11 });
+    const run = newRun({ seed: 11, unlocks: LINEAR });
     startNight(run);
     playNight(run, 0);
     expect(['reward', 'gameOver']).toContain(run.phase);
@@ -54,7 +55,7 @@ describe('забег', () => {
   });
 
   it('услуга «Убрать карту»: раз за визит и не ниже минимума колоды', () => {
-    const run = newRun({ seed: 3 });
+    const run = newRun({ seed: 3, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 10;
     run.shop = { omens: [], items: [], packs: [], rerollCost: 5 };
@@ -71,7 +72,7 @@ describe('забег', () => {
   });
 
   it('продажа, переброс и ритуал в Обсерватории', () => {
-    const run = newRun({ seed: 2 });
+    const run = newRun({ seed: 2, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 100;
     run.omens.push(createOmen(run, 'stardust'));
@@ -86,7 +87,7 @@ describe('забег', () => {
   });
 
   it('пакет: покупка раскрывает варианты, выбор применяет', () => {
-    const run = newRun({ seed: 9 });
+    const run = newRun({ seed: 9, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 50;
     run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5 };
@@ -107,7 +108,7 @@ describe('забег', () => {
   });
 
   it('очередь выборов: пока выбор открыт, второй пакет не купить и из Обсерватории не уйти (TD.7)', () => {
-    const run = newRun({ seed: 9 });
+    const run = newRun({ seed: 9, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 50;
     run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'chart', price: 4, sold: false }, { kind: 'pack', pack: 'chart', price: 4, sold: false }], rerollCost: 5 };
@@ -132,13 +133,14 @@ describe('забег', () => {
 describe('фаззинг: бот проходит много забегов без исключений', () => {
   it.each(SKY_LIST.map((s) => s.id))('небо %s', (skyId) => {
     for (let seed = 1; seed <= 4; seed++) {
+      // Фаззинг играет с развилками (RT.1): бот выбирает путь сам
       const run = newRun({ seed: seed * 977, skyId });
       // Даём всем Знамениям поработать: случайный набор на старте.
       for (let i = 0; i < 5; i++) run.omens.push(createOmen(run, OMEN_LIST[(seed * 7 + i * 5) % OMEN_LIST.length]!.id));
       run.omens = run.omens.slice(0, 5);
       let guard = 0;
       while (run.phase !== 'gameOver' && run.phase !== 'victory' && guard++ < 40) {
-        if (run.phase === 'map') startNight(run);
+        if (run.phase === 'map') enterNight(run);
         if (run.phase === 'night') playNight(run, 0);
         if (run.phase === 'reward') collectReward(run);
         if (run.phase === 'shop') {

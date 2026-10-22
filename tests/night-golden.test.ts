@@ -36,7 +36,8 @@ function stable(value: unknown): string {
 function canonicalRun(run: RunState): string {
   // Версия сохранения растёт вместе с форматом (TD.6: 1 → 2) — ход ночи от неё не зависит
   // Снимок открытий (TD.8) в эталоне — весь контент, как и до него; хэш его не включает
-  const { chapter, nightIndex, version: _version, pending, unlocks: _unlocks, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number; pending?: unknown[] };
+  // Журнал пути (RT.3) — запись о главах, не ход ночи; в эталон не входит
+  const { chapter, nightIndex, version: _version, pending, unlocks: _unlocks, journey: _journey, ...rest } = run as RunState & { chapter?: { at: number }; nightIndex?: number; pending?: unknown[] };
   // Пустая очередь выборов (TD.7) — то же, что «пакет не открыт» до неё
   return stable({ ...rest, at: chapter?.at ?? nightIndex, ...(pending?.length ? { pending } : {}) });
 }
@@ -51,7 +52,7 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
     }
   };
   // Эталон — ход ночи без дара и тел (GF): с ними меняется колода, а этапы хода — нет
-  const run = newRun({ seed, skyId, stake, unlocks: { ...allContent(), gift: false, bodies: [] } });
+  const run = newRun({ seed, skyId, stake, unlocks: { ...allContent(), gift: false, bodies: [], routes: false, wonders: false } });
   // Каждая третья карта — с глифом: Стекло бьётся, Эхо перезапускает, Позолота даёт золото
   if (glyphs) run.deck.forEach((c, i) => i % 3 === 0 && (c.glyph = GLYPHS[(i / 3) % GLYPHS.length]));
   let guard = 0;
@@ -68,7 +69,7 @@ function play(seed: number, skyId: string, stake: number, glyphs = false): { has
       leaveShop(run);
     }
   }
-  expect(run.unlocks, 'эталон играет со всем контентом, кроме дара').toEqual({ ...allContent(), gift: false, bodies: [] });
+  expect(run.unlocks, 'эталон играет со всем контентом, кроме дара').toEqual({ ...allContent(), gift: false, bodies: [], routes: false, wonders: false });
   h.update(canonicalRun(run));
   return { hash: h.digest('hex'), kinds };
 }
