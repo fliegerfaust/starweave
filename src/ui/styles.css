@@ -1270,48 +1270,50 @@ body.landscape .scene-acts > .scene-pair { min-width: 260px; }
 .scene-pair .btn { width: 100%; min-width: 0; padding-inline: 10px; }
 .scene-pair .btn .icon { display: none; }
 .scene-pair.one .btn .icon { display: inline-block; }
-/* ─── Дар ночи (GF.2, вариант A «Веер») ──────────────────────────────── */
-/* Три карты веером, средняя поднята и описана; касание меняет выбор. Взятая улетает в «Колоду». */
+/* ─── Дар ночи (GF.2, вариант C «Спокойный веер», выбор Дениса) ─────────── */
+/* Движутся только transform и opacity, торможение без отскока; растр карты не масштабируется вверх.
+   Слот держит место и наклон, карта при выборе только приподнимается; свет и кромка — слои прозрачности. */
 .gift-first { margin: -6px 0 0; max-width: 300px; text-align: center; font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
-.gift-fan { position: relative; display: flex; justify-content: center; align-items: flex-end; height: 196px; margin-top: 4px; }
-.gift-opt { --i: 0; position: relative; margin: 0 -8px; padding: 0; border: 0; background: none; cursor: pointer; transform-origin: 50% 125%;
-  transform: translateY(calc(var(--i) * var(--i) * 14px)) rotate(calc(var(--i) * 10deg)); transition: transform 0.38s cubic-bezier(.2,.9,.3,1.15), filter 0.3s ease;
-  animation: gift-deal 0.62s cubic-bezier(.16,1,.3,1) both; animation-delay: calc(0.15s + (var(--i) + 1) * 0.1s); }
-.gift-opt .card-thumb { pointer-events: none; }
-.gift-opt.sel { z-index: 2; transform: translateY(-16px) scale(1.09); filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.5)) drop-shadow(0 0 14px rgb(var(--gold-rgb) / 0.55)); }
-.gift-opt:not(.sel) { filter: brightness(0.62) saturate(0.75); }
-.gift-opt:not(.sel):hover { filter: brightness(0.85) saturate(0.9); }
-@keyframes gift-deal { from { opacity: 0; transform: translateY(90px) scale(0.8); } }
-.gift-up { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); white-space: nowrap; font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
-.gift-detail { display: grid; justify-items: center; align-content: start; gap: 6px; min-height: 112px; padding-top: 30px; text-align: center; }
+.gift-fan { --w: 96px; position: relative; width: 100%; height: calc(var(--w) / 0.7 + 54px); }
+.gift-slot { position: absolute; left: 50%; top: 50%; width: var(--w); height: calc(var(--w) / 0.7); margin: calc(var(--w) / -1.4) 0 0 calc(var(--w) / -2); }
+.gift-card { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; perspective: 700px; transition: transform 0.34s cubic-bezier(0.16, 1, 0.3, 1); }
+.gift-card.sel { transform: translateY(-14px); }
+.gift-card:focus-visible { outline: none; }
+.gift-card:focus-visible .gift-ring { opacity: 1; }
+.gift-flip { position: absolute; inset: 0; }
+/* Переворот — до ребра и обратно (ui/gift.ts): видна одна сторона, другая скрыта */
+.gift-face, .gift-back { position: absolute; inset: 0; }
+.gift-face .card-thumb, .gift-back canvas { pointer-events: none; }
+.gift-halo { position: absolute; inset: -22% -30%; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.42), rgb(var(--gold-rgb) / 0.12) 55%, transparent 100%); opacity: 0; transition: opacity 0.34s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-ring { position: absolute; inset: -4px; z-index: 1; border-radius: calc(var(--w) * 0.12); box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.95); opacity: 0; transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-shade { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); background: #05061a; opacity: 0; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; }
+.gift-card.sel .gift-halo, .gift-card.sel .gift-ring { opacity: 1; }
+.gift-fan.has-sel .gift-card:not(.sel) .gift-shade { opacity: 0.42; }
+/* Блик-приглашение: полоса света проходит по карте, пока ничего не выбрано */
+.gift-glint { position: absolute; inset: 0; border-radius: calc(var(--w) * 0.09); overflow: hidden; pointer-events: none; }
+.gift-glint::before { content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgb(255 246 220 / 0.38), transparent); }
+.gift-glint.run::before { animation: gift-glint 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes gift-glint { to { transform: translateX(400%); } }
+.gift-up { position: absolute; left: 50%; top: -22px; z-index: 2; transform: translateX(-50%); white-space: nowrap; font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; pointer-events: none; }
+/* Описание: высота задаётся замером самого большого варианта (ui/gift.ts) — сцена не прыгает */
+.gift-detail { display: grid; justify-items: center; align-content: start; gap: 5px; width: 100%; overflow: hidden; text-align: center; }
+.gift-detail > * { transition: opacity 0.18s ease; }
+.gift-detail.swap > * { opacity: 0; }
 .gift-detail > b { font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
 .gift-detail > span { max-width: 300px; font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: balance; }
-.gift-asc { display: flex; align-items: center; gap: 10px; margin-top: 2px; color: var(--gold); }
+.gift-prompt { margin: 0; align-self: center; font: 600 13px/1.35 var(--font-body); color: var(--ink-dim); }
+.gift-asc { display: flex; align-items: center; gap: 10px; color: var(--gold); }
 .gift-asc .icon { width: 18px; height: 18px; }
+/* До выбора главная кнопка — «Выбери звезду»: приглушённое золото, а не серая «сломанная» */
+.gift-take:disabled { filter: none; opacity: 0.42; }
 .gift-flyer { position: fixed; z-index: 1000; pointer-events: none; }
-.gift-deck span { font-variant-numeric: tabular-nums; }
-.gift-deck.bump span { animation: gift-bump 0.5s cubic-bezier(.2,.9,.3,1.4); }
-@keyframes gift-bump { 40% { transform: scale(1.3); color: #fff6e0; } }
-/* Невысокий экран: веер ниже, описание плотнее — кнопки остаются видны */
+.gift-deck span { display: inline-block; font-variant-numeric: tabular-nums; }
+.gift-deck.bump span { animation: gift-bump 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes gift-bump { 35% { transform: scale(1.3); color: #fff6e0; } }
 /* Дар открывается поверх лавки — фон плотнее, чтобы строки товаров не просвечивали */
 .modal-backdrop.scene:has(.gift-scene) { background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.97), rgb(3 3 14 / 0.99)); }
-/* Невысокий экран (iPhone SE, ландшафт телефона): веер мельче, без строки «первый раз», описание плотнее */
-@media (max-height: 700px) {
-  .gift-fan { height: 150px; margin-top: 14px; }
-  .gift-opt { zoom: 0.78; }
-  .gift-detail { min-height: 0; padding-top: 4px; }
-  .gift-scene .scene-mid { gap: 12px; }
-}
-@media (max-height: 600px) {
-  .gift-first { display: none; }
-  .gift-scene .scene-ribbon b { font-size: 26px; }
-}
-@media (max-height: 460px) {
-  .gift-fan { height: 124px; }
-  .gift-opt { zoom: 0.64; }
-  .gift-scene .scene-ribbon { padding-block: 8px 9px; }
-  .gift-scene .scene-ribbon b { font-size: 24px; }
-}
+@media (max-height: 600px) { .gift-first { display: none; } .gift-scene .scene-mid { gap: 12px; } }
+@media (max-height: 460px) { .gift-scene .scene-ribbon { padding-block: 8px 9px; } .gift-scene .scene-ribbon b { font-size: 24px; } }
 
 /* Короткое свечение главной кнопки (DESIGN.md, The Short Glow Rule): длинное Safari обрезает прямоугольником */
 .scene-acts .btn-primary, .pause-acts .btn-primary, .map-primary.btn-primary { box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(var(--gold-rgb) / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }

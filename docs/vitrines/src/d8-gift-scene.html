@@ -41,9 +41,9 @@
 .gc { position: relative; width: 100%; height: 100%; perspective: 700px; cursor: pointer; transition: transform calc(0.34s * var(--k)) var(--ease); }
 .gc:focus-visible { outline: none; }
 .gc:focus-visible .ring { opacity: 1; }
-.flip { position: absolute; inset: 0; transform-style: preserve-3d; }
-.face, .back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.back { transform: rotateY(180deg); }
+.flip { position: absolute; inset: 0; }
+/* Переворот — до ребра и обратно: на ребре лицо меняется на рубашку (Safari не прячет обратную сторону с canvas) */
+.face, .back { position: absolute; inset: 0; }
 .back img { position: absolute; pointer-events: none; }
 .face .k-card { width: 100% !important; height: 100% !important; }
 /* Свет вокруг выбранной и латунная кромка — отдельные слои, проявляются прозрачностью */
@@ -63,9 +63,10 @@
 .up { position: absolute; left: 50%; top: -22px; transform: translateX(-50%); font: 800 12.5px/1 var(--font-body); color: var(--gold-hi); white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
 
 /* Описание выбранной: высота постоянная, смена — растворением */
-.detail { min-height: 70px; display: grid; justify-items: center; align-content: start; gap: 5px; text-align: center; }
+.detail { overflow: hidden; display: grid; justify-items: center; align-content: start; gap: 5px; text-align: center; }
 .detail > * { transition: opacity calc(0.18s * var(--k)); }
 .detail.swap > * { opacity: 0; }
+.detail .prompt { align-self: center; }
 .detail b { font: 700 15.5px/1.2 var(--font-body); color: var(--gold-hi); }
 .detail span { max-width: 300px; color: var(--ink); font-size: 14px; line-height: 1.45; text-wrap: balance; }
 .detail .asc { display: flex; align-items: center; gap: 10px; color: var(--gold); }
@@ -175,7 +176,14 @@ function giftCard(o, w) {
   const gc = h('div', { class: 'gc', tabindex: '0', role: 'button', 'aria-label': o.name }, h('div', { class: 'halo' }), h('div', { class: 'ring' }), flip);
   const slot = h('div', { class: 'slot', style: { '--w': w + 'px' } }, gc);
   slot.style.setProperty('--w', w + 'px');
-  return { slot, gc, flip };
+  back.style.visibility = 'hidden';
+  return { slot, gc, flip, face, back };
+}
+const side = (it, face) => { it.face.style.visibility = face ? '' : 'hidden'; it.back.style.visibility = face ? 'hidden' : ''; };
+async function flipTo(it, face, dur, delay) {
+  await it.flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(90deg)' }], { duration: ms(dur / 2), delay: ms(delay), easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' }).finished;
+  side(it, face);
+  await it.flip.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(dur / 2), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }).finished;
 }
 
 /* ── Сцена дара ── */
@@ -214,10 +222,12 @@ function showGift() {
   }
   view.replaceChildren(sceneTop(),
     h('div', { class: 'stage-head' }, h('div', { class: 'ribbon pop' }, h('b', {}, 'Дар ночи'), h('small', {}, 'Одна звезда в колоду — или чистое небо'))),
-    h('div', { class: 'gift-body' }, cards, ...extra, variant === 'B' ? null : prompt, detail),
+    h('div', { class: 'gift-body' }, cards, ...extra, detail),
     h('div', { class: 'stage-foot' }, take, skip, h('div', { class: 'btn-row' }, h('button', { class: 'btn btn-light', onclick: () => { setIdx++; showGift(); } }, icon('replay'), 'Другой дар'))));
   layout(true);
+  steadyDetail();
   if (variant === 'B') select(1, true);
+  else detail.replaceChildren(prompt);
   void deal();
 }
 
@@ -241,7 +251,7 @@ function layout(instant = false) {
 async function deal() {
   const deck = q('#deckpill .stack').getBoundingClientRect();
   const L = LAYOUT[variant];
-  S.items.forEach((it) => it.flip.style.transform = 'rotateY(180deg)');
+  S.items.forEach((it) => side(it, false));
   const flights = S.items.map((it, i) => {
     const r = it.slot.getBoundingClientRect();
     const dx = deck.left + deck.width / 2 - (r.left + r.width / 2), dy = deck.top + deck.height / 2 - (r.top + r.height / 2);
@@ -249,7 +259,7 @@ async function deal() {
     return it.slot.animate([{ transform: `translate(${dx}px, ${dy}px) ${rest} scale(0.3)`, opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: rest, opacity: 1 }], { duration: ms(560), delay: ms(i * 90), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }).finished;
   });
   await Promise.all(flights);
-  await Promise.all(S.items.map((it, i) => it.flip.animate([{ transform: 'rotateY(180deg)' }, { transform: 'rotateY(0deg)' }], { duration: ms(420), delay: ms(i * 130), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' }).finished.then(() => (it.flip.style.transform = 'none'))));
+  await Promise.all(S.items.map((it, i) => flipTo(it, true, 440, i * 130)));
   S.busy = false;
   if (variant === 'B') return;
   glintLoop();
@@ -288,7 +298,6 @@ function select(i, quiet = false) {
       // В веере выбранная — поверх соседей; слой меняется мгновенно, без движения
       if (variant === 'C') it.slot.style.zIndex = j === i ? 3 : j === 1 ? 2 : 1;
     });
-    S.prompt.style.opacity = '0';
     if (S.take.disabled) {
       S.take.disabled = false;
       S.takeLbl.style.opacity = '0';
@@ -297,12 +306,33 @@ function select(i, quiet = false) {
   }
   showDetail(S.opts[i]);
 }
+/** Содержимое описания варианта. */
+function detailNodes(o) {
+  const nodes = [h('b', {}, o.kind === 'body' ? o.name : o.kind === 'glyph' ? `${o.card.rank} ${SUIT_GEN[o.card.suit]} · ${o.name}` : o.name), h('span', { html: o.rule })];
+  if (o.kind === 'ascend') nodes.push(h('div', { class: 'asc' }, card(o.from, 30), svg('<path d="M2 8h20m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', 26, 16), card(o.card, 30)));
+  return nodes;
+}
+/**
+ * Коробка описания не меняет высоту при смене карты: примеряем все варианты (и подсказку)
+ * и держим высоту самого большого — сцена над и под ней не сдвигается ни на пиксель.
+ */
+function steadyDetail() {
+  const d = S.detail;
+  const keep = [...d.childNodes];
+  d.style.height = 'auto';
+  let max = 0;
+  for (const nodes of [[S.prompt], ...S.opts.map(detailNodes)]) {
+    d.replaceChildren(...nodes);
+    max = Math.max(max, d.scrollHeight);
+  }
+  d.replaceChildren(...keep);
+  d.style.height = max + 'px';
+}
+// Шрифты догрузились — переносы строк могли измениться, меряем заново
+document.fonts?.ready.then(() => S && steadyDetail());
 function showDetail(o) {
   const d = S.detail;
-  const fill = () => {
-    d.replaceChildren(h('b', {}, o.kind === 'body' ? o.name : o.kind === 'glyph' ? `${o.card.rank} ${SUIT_GEN[o.card.suit]} · ${o.name}` : o.name), h('span', { html: o.rule }));
-    if (o.kind === 'ascend') d.append(h('div', { class: 'asc' }, card(o.from, 30), svg('<path d="M2 8h20m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', 26, 16), card(o.card, 30)));
-  };
+  const fill = () => d.replaceChildren(...detailNodes(o));
   if (!d.childElementCount) return fill();
   d.classList.add('swap');
   setTimeout(() => { fill(); d.classList.remove('swap'); }, ms(170));
@@ -350,7 +380,7 @@ async function doSkip() {
   S.busy = true;
   clearInterval(S.glintTimer);
   const deck = q('#deckpill .stack').getBoundingClientRect();
-  await Promise.all(S.items.map((it, i) => it.flip.animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }], { duration: ms(360), delay: ms(i * 70), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }).finished));
+  await Promise.all(S.items.map((it, i) => flipTo(it, false, 380, i * 70)));
   const backs = S.items.map((it, i) => {
     const r = it.slot.getBoundingClientRect();
     const dx = deck.left + deck.width / 2 - (r.left + r.width / 2), dy = deck.top + deck.height / 2 - (r.top + r.height / 2);

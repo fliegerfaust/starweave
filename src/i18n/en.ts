@@ -468,6 +468,8 @@ export const en: Dict = {
     sub: 'One star for your deck — or a clear sky',
     first: 'Now after every night you win. A thin deck is a strategy too.',
     take: 'Add to deck',
+    choose: 'Choose a star',
+    prompt: 'Tap a star to look closer',
     skip: 'Clear sky +{n}',
     deck: 'Deck · {n}',
     glyphCard: '{glyph} {card}',
