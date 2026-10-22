@@ -35,7 +35,7 @@ npm run legal      # пересобрать public/legal/*.html из legal/*.md
 Имитация рекламы и покупок в разработке: `http://localhost:5173/?fakeads&fakepay`.
 
 Релиз 0.7.0 — первая часть «Глубины» (Дар ночи, небесные тела, Развилки главы) — вышел
-22.10.2026 (тег `v0.7.0`); фиксы — 0.7.1, план и следующие части 0.7.2–0.7.5 — [RELEASE-0.7-DEPTH](docs/RELEASE-0.7-DEPTH.md),
+22.10.2026 (тег `v0.7.0`); фиксы — 0.7.1 и 0.7.2, план и следующие части 0.7.3–0.7.6 — [RELEASE-0.7-DEPTH](docs/RELEASE-0.7-DEPTH.md),
 витрины-прототипы — `docs/vitrines`. Прошлый релиз 0.6 «Фундамент» — [RELEASE-0.6-FOUNDATION](docs/RELEASE-0.6-FOUNDATION.md). Все релизы — [ROADMAP](docs/ROADMAP.md).
 
 Документы: задачи — в трекере, проект CG ([TASKS.md](TASKS.md) — как открыть); продукт — [PRODUCT.md](PRODUCT.md); дизайн-система —
