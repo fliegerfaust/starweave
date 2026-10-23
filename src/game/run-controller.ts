@@ -480,6 +480,7 @@ export class RunController {
   finishTutorial(): void {
     track('tutorial_complete', {});
     // Короткое обучение не показало Обсерваторию: её подсказки первых забегов остаются
+    const burned = this.tutorial?.taught.has('burn') ?? true;
     if (this.shortTutorial) this.rememberTaught();
     else this.app.profile.tutorialFinished = true;
     this.keepTutorialGold();
@@ -488,6 +489,6 @@ export class RunController {
     // оставалась нажимаемой и вела в уже несуществующий забег (js_error 14.10.2026)
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.app.svc.audio.win();
-    void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this.app, this.shortTutorial));
+    void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this.app, this.shortTutorial, burned));
   }
 }
