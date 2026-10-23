@@ -479,10 +479,10 @@ export class Presenter {
         const step = score.steps[i]!;
         const board = scene.layout.board;
         const bc = { x: board.x + board.w / 2, y: board.y + board.h / 2 };
-        let anchor: Pt = bc;
-        if (step.source.kind === 'omen') anchor = hud.pulseOmen(step.source.uid) ?? bc;
+        // Знамение вспыхивает в шапке, а метка — в центре неба, одна: новая вместо прошлой (CQ.10)
+        if (step.source.kind === 'omen') hud.pulseOmen(step.source.uid);
         const label = step.source.kind === 'chain' ? t('night.chain', { n: step.xMult ?? 1 }) : `×${fmtX(step.xMult ?? 1)}`;
-        floatText(this.world, anchor.x, anchor.y + (anchor === bc ? 0 : 30), label, { size: step.source.kind === 'chain' ? 44 : 34, color: UI.mult, life: 1.2, punch: true });
+        this.replaceHudLabel(floatText(this.world, bc.x, bc.y, label, { size: step.source.kind === 'chain' ? 44 : 34, color: UI.mult, life: 1.2, punch: true }));
         hud.setCalc(sum, step.multAfter, 'mult');
         hud.setCalcTotal(Math.floor(sum * step.multAfter));
         hud.setCaption(
@@ -627,6 +627,8 @@ export class Presenter {
     const hud = scene.hud;
     let anchor: Pt | null = null;
     let cardEntity: Entity | undefined;
+    /** Откуда летит искра в формулу: от Знамения или Затмения, хоть метка и на небе. */
+    let moteFrom: Pt | null = null;
     const src = step.source;
     if (src.kind === 'card' || src.kind === 'glyph') {
       anchor = this.cellPos(src.cell);
@@ -636,12 +638,13 @@ export class Presenter {
       if (src.cell !== undefined) {
         anchor = this.cellPos(src.cell);
         cardEntity = this.cardEntityAt(src.cell);
-      } else anchor = omenPos ? { x: omenPos.x, y: omenPos.y + 26 } : null;
-    } else if (src.kind === 'boss') {
-      const b = hud.bossAnchor();
-      anchor = { x: b.x, y: b.y + 26 };
-    }
-    anchor ??= { x: scene.layout.board.x + scene.layout.board.w / 2, y: scene.layout.board.y };
+      } else moteFrom = omenPos;
+    } else if (src.kind === 'boss') moteFrom = hud.bossAnchor();
+    // Метка Знамения или Затмения без своей карты — в центре неба: под шапкой она ложилась на
+    // лоток подсчёта (ландшафт) и на цифры верхнего ряда карт (телефон) (CQ.10)
+    const fromHud = !anchor;
+    const board = scene.layout.board;
+    anchor ??= { x: board.x + board.w / 2, y: board.y + board.h / 2 };
 
     if (cardEntity !== undefined) {
       const tr = this.world.req(cardEntity, Transform);
@@ -674,7 +677,8 @@ export class Presenter {
     const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.5 : 0;
     // Цифра по размеру карты: на телефоне крупнее прежнего, на ПК не раздувается
     const size = Math.round(Math.min(40, Math.max(28, scene.layout.cardH * 0.36)) * (kind === 'xmult' ? 1.2 : 1));
-    floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
+    const label = floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
+    if (fromHud) this.replaceHudLabel(label);
     this.audio.count(index, kind);
     this.scene.svc.haptics.play(kind === 'xmult' ? 'countX' : kind === 'mult' ? 'countMult' : 'count');
     if (kind === 'xmult') shake(this.world, 0.15);
@@ -690,8 +694,15 @@ export class Presenter {
       hud.setCalc(step.lightAfter, step.multAfter, flashCell);
       return;
     }
-    await this.mote({ x: anchor.x, y: anchor.y + offY }, to, color);
+    await this.mote(moteFrom ?? { x: anchor.x, y: anchor.y + offY }, to, color);
     hud.setCalc(step.lightAfter, step.multAfter, flashCell);
+  }
+
+  /** Метка из шапки (Знамение, Затмение, цепь креста) в центре неба — одна: новая вместо прошлой. */
+  private hudLabel: Entity | null = null;
+  private replaceHudLabel(label: Entity): void {
+    if (this.hudLabel !== null && this.hudLabel !== label && this.world.isAlive(this.hudLabel)) this.world.destroy(this.hudLabel);
+    this.hudLabel = label;
   }
 
   /** Сколько летит искра шага подсчёта, с. Шаг ждёт её прилёта — пауза между шагами короче на столько же. */

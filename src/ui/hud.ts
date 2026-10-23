@@ -371,6 +371,8 @@ export class Hud {
   setCalc(light: number, mult: number, flash?: 'light' | 'mult'): void {
     this.calcLight.textContent = num(light);
     this.calcMult.textContent = Number.isInteger(mult) ? num(mult) : mult.toFixed(1);
+    fitCalc(this.calcLight);
+    fitCalc(this.calcMult);
     const el = flash === 'light' ? this.calcLight : flash === 'mult' ? this.calcMult : null;
     if (el) {
       el.classList.remove('bump');
@@ -420,6 +422,7 @@ export class Hud {
 
   setCalcTotal(total: number): void {
     this.calcTotal.textContent = num(total);
+    fitCalc(this.calcTotal);
     this.calcTotal.classList.add('done');
     this.calcTotal.classList.remove('bump');
     void this.calcTotal.offsetWidth;
@@ -480,4 +483,20 @@ export class Hud {
     const r = this.score.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
+}
+
+/**
+ * Число формулы не шире своей ячейки (CQ.10): «27 774» в ячейке очков ужимается шрифтом,
+ * а не выдавливает плашку за край лотка. Каждый раз — от размера из стилей.
+ */
+function fitCalc(el: HTMLElement): void {
+  el.style.fontSize = '';
+  const cell = el.parentElement;
+  if (!cell) return;
+  const room = cell.clientWidth - parseFloat(getComputedStyle(cell).paddingLeft) - parseFloat(getComputedStyle(cell).paddingRight);
+  // Запас 2 px: дробные ширины цифр и разрядка иначе вылезают на пиксель-другой
+  const fit = room - 2;
+  if (fit <= 0 || el.scrollWidth <= fit) return;
+  const size = parseFloat(getComputedStyle(el).fontSize);
+  el.style.fontSize = `${Math.max(12, Math.floor(size * (fit / el.scrollWidth)))}px`;
 }
