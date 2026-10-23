@@ -86,6 +86,8 @@ export class App {
     world.add(bg, Drawable, { layer: Layer.Background, z: 0, visible: true, draw: (ctx) => starfield.draw(ctx, res.time) });
 
     const audio = new Synth();
+    // Звучание «Обсерватория» (CQ.7) — только где включено `music`
+    audio.voice = this.features.music;
     audio.setVolumes(this.settings.sfx, this.settings.music);
     const input = new PointerInput(stage);
     const haptics = new Haptics();
