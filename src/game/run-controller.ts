@@ -414,21 +414,32 @@ export class RunController {
   skipTutorial(): void {
     const at = this.tutorial?.progress ?? { step: '', index: 0 };
     track('tutorial_skip', at);
+    // Пройденное до «Пропустить» не пропадает: плашки о том же не повторяются, золото ждёт
+    // первого забега — раньше пропуск в Обсерватории сжигал заработанное (CQ.2)
+    const { profile } = this.app;
+    for (const step of this.tutorial?.taught ?? []) if (!profile.tutorial.includes(step)) profile.tutorial.push(step);
+    this.keepTutorialGold();
     this.endTutorial();
     void this.app.router.goMenu();
+  }
+
+  /**
+   * Золото обучения (с несобранной наградой) ждёт первого настоящего забега;
+   * Знамения игрок заработает там сам.
+   */
+  private keepTutorialGold(): void {
+    const { profile } = this.app;
+    const tut = this.run;
+    if (tut?.tutorial && profile.runs === 0) {
+      profile.tutorialGift = { gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)) };
+    }
   }
 
   /** Обучение пройдено: поздравление и старт настоящего забега. */
   finishTutorial(): void {
     track('tutorial_complete', {});
-    const { profile } = this.app;
-    profile.tutorialFinished = true;
-    // Золото обучения (с несобранной наградой) ждёт первого настоящего забега;
-    // Знамения игрок заработает там сам
-    const tut = this.run;
-    if (tut?.tutorial && profile.runs === 0) {
-      profile.tutorialGift = { gold: Math.min(GIFT_GOLD_CAP, tut.gold + (tut.reward?.total ?? 0)) };
-    }
+    this.app.profile.tutorialFinished = true;
+    this.keepTutorialGold();
     this.endTutorial();
     // Окно награды учебной ночи ещё открыто: под «Обучение пройдено» его кнопка «Забрать»
     // оставалась нажимаемой и вела в уже несуществующий забег (js_error 14.10.2026)

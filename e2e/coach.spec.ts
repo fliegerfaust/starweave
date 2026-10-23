@@ -69,3 +69,29 @@ test('подсказки первых забегов: нить к цели, це
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('первая ночь: подсказка ждёт, пока уйдёт тост, и не ложится на него (CQ.2)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  const log = await page.evaluate(async () => {
+    const a = (window as unknown as { starweave: A }).starweave;
+    Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
+    a.runs.startRun('classic');
+    await new Promise((r) => setTimeout(r, 300));
+    a.runs.beginNight();
+    // Каждые 50 мс: виден ли тост ночи и плашка подсказки
+    const seen: { toast: boolean; coach: boolean }[] = [];
+    for (let i = 0; i < 240; i++) {
+      seen.push({ toast: !!document.querySelector('#ui .toast:not(.out)'), coach: !!document.querySelector('.coach:not(.out)') });
+      if (seen.length > 20 && seen.at(-1)!.coach && !seen.at(-1)!.toast) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return seen;
+  });
+  expect(log.some((s) => s.toast), 'тост первой ночи был').toBe(true);
+  expect(log.filter((s) => s.toast && s.coach).length, 'плашка не поверх тоста').toBe(0);
+  expect(log.at(-1)!.coach, 'после тоста плашка появилась').toBe(true);
+  expect(errors).toEqual([]);
+});

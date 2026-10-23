@@ -8,6 +8,7 @@ import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
 import { track } from '@/analytics';
+import type { TutorialStep } from '@/ui/tutorial';
 
 /** Реплика обучения — строка из `tut` словаря (без вложенных таблиц). */
 type Tut = Dict['tut'];
@@ -25,6 +26,17 @@ export type TutorialEvent =
 type Waiter = { pred: (e: TutorialEvent) => boolean; resolve: (e: TutorialEvent, seq: number) => void };
 
 const TOTAL_STEPS = 22;
+
+/** Шаг обучения → плашка первых забегов о том же: пройденное после «Пропустить» не повторяем. */
+const TAUGHT: Partial<Record<string, TutorialStep>> = {
+  place1: 'place',
+  almost: 'fillLine',
+  target: 'target',
+  combos: 'combos',
+  burn: 'burn',
+  crossCell: 'cross',
+  shop: 'shop',
+};
 
 /** Общий прямоугольник двух областей. */
 function union(a: Rect, b: Rect): Rect {
@@ -159,8 +171,13 @@ export class TutorialDirector {
   /** Где сейчас игрок — для аналитики пропуска обучения. */
   progress = { step: 'start', index: 0 };
 
+  /** Плашки первых забегов, которые обучение уже объяснило. */
+  readonly taught = new Set<TutorialStep>();
+
   private mark(step: string): void {
     this.progress = { step, index: this.step };
+    const coach = TAUGHT[step];
+    if (coach) this.taught.add(coach);
     track('tutorial_step', this.progress);
   }
 
@@ -232,7 +249,8 @@ export class TutorialDirector {
     scene.setGuide({});
     scene.setStepPause(2.4);
 
-    await this.say('board', { spot: union(scene.layout.board, scene.handAreaRect()) });
+    // В ландшафте и на ПК рука справа от неба, а не под ним
+    await this.say(scene.layout.mode === 'landscape' ? 'boardSide' : 'board', { spot: union(scene.layout.board, scene.handAreaRect()) });
     await this.guidePlace('place1', '3s', TUTORIAL_CELLS.pairRow[0]);
     await this.guidePlace('place2', '3m', TUTORIAL_CELLS.pairRow[1]);
     await this.guidePlace('place3', '7t', TUTORIAL_CELLS.pairRow[2]);

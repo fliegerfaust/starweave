@@ -125,12 +125,16 @@ export class TutorialOverlay {
       const text = h('div.tut-text', null, content);
       const skip = h('button.tut-skip', { type: 'button', attrs: { 'aria-label': t('tut.skip') } }, t('tut.skipShort'));
       skip.addEventListener('click', () => this.onSkip());
-      const actions = h('div.tut-actions', null, [this.progress, skip]);
-      if (opts.next) {
-        const next = h('button.btn.btn-primary.tut-next', { type: 'button' }, opts.next);
-        next.addEventListener('click', () => resolve());
-        actions.append(next);
+      // Место «Далее» занято всегда: без него «Пропустить» съезжало туда, где только что была
+      // «Далее», и второй клик по тому же месту закрывал обучение (CQ.2)
+      const next = h('button.btn.btn-primary.tut-next', { type: 'button' }, opts.next ?? t('tut.next'));
+      if (opts.next) next.addEventListener('click', () => resolve());
+      else {
+        next.classList.add('ghost');
+        next.tabIndex = -1;
+        next.setAttribute('aria-hidden', 'true');
       }
+      const actions = h('div.tut-actions', null, [this.progress, skip, next]);
       this.place = opts.place ?? 'auto';
       this.above = opts.above ?? null;
       this.bubble.replaceChildren(text, actions);
