@@ -19,7 +19,7 @@ import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { parseStartParam, type Challenge } from './challenge';
 import { initAnalytics, measureFps, track } from '@/analytics';
-import type { Platform } from '@/platform';
+import { resolveFeatures, type Features, type Platform } from '@/platform';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
@@ -40,6 +40,8 @@ export class App {
   readonly router: Router;
   readonly runs: RunController;
   readonly money: Monetization;
+  /** Переключатели нового поведения площадки (0.7.4); в разработке — ещё и `?ff=`. */
+  readonly features: Features;
   private last = performance.now();
 
   constructor(readonly platform: Platform) {
@@ -51,6 +53,7 @@ export class App {
     if (!storage.get(KEYS.settings) && platform.language()) this.settings.lang = platform.language()!;
     setLang(this.settings.lang);
     this.profile = loadProfile();
+    this.features = resolveFeatures(platform.features, import.meta.env.DEV ? new URLSearchParams(location.search).get('ff') : null);
     const stage = document.getElementById('stage')!;
     const renderer = new Renderer(stage);
     const tweens = new Tweener();

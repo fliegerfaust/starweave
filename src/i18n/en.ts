@@ -175,6 +175,7 @@ export const en: Dict = {
     skip: 'Skip tutorial',
     skipShort: 'Skip',
     board: 'This is the 4×4 sky, your hand is below. A card has a rank (1–9) and a suit.',
+    boardSide: 'This is the 4×4 sky, your hand is on the right. A card has a rank (1–9) and a suit.',
     place1: 'Drag the 3 of Sun to the highlighted cell. Or tap the card, then the cell.',
     place2: 'Now the 3 of Moon — next to it.',
     place3: 'Now the 7 of Star.',

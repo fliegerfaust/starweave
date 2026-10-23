@@ -1,4 +1,5 @@
 import type { Lang } from '@/i18n';
+import type { Feature } from './features';
 
 export type PurchaseResult = 'paid' | 'cancelled' | 'failed';
 
@@ -28,6 +29,8 @@ export interface Platform {
    * даром). Магазина на такой площадке нет: вкладка «Поддержать» скрыта. Рекламу дар не убирает.
    */
   readonly grants?: readonly string[];
+  /** Новое поведение, включённое на площадке (см. `features.ts`); остальные площадки его не видят. */
+  readonly features?: readonly Feature[];
   init(): Promise<void>;
   /** Игра загрузилась и готова к игре. */
   ready(): void;

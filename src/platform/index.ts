@@ -2,6 +2,7 @@ import type { Platform } from './types';
 import { WebPlatform } from './web';
 
 export type { Payments, Platform, PurchaseResult } from './types';
+export { FEATURES, resolveFeatures, type Feature, type Features } from './features';
 
 /**
  * Яндекс и CrazyGames выбираются при сборке (`VITE_PLATFORM=yandex|crazygames`): у порталов свои архивы.
