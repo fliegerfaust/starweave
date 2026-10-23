@@ -1,6 +1,5 @@
 import type { Card, GameEvent, RunState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
-import type { FlareVariant } from './flare';
 import type { Hud } from '@/ui/hud';
 import { CardView, Transform } from '../components';
 import type { Services } from '../context';
@@ -34,8 +33,8 @@ export interface SceneHooks {
    * табло прижато к небу, под ним созвездия со светом и множителем.
    */
   wide?: boolean;
-  /** Яркая вспышка созвездия (CQ.6, `brightFlare`): вариант витрины; null — прежняя. */
-  flare?: FlareVariant | null;
+  /** Яркая вспышка созвездия (CQ.6, `brightFlare`): волны света по небу и быстрый подсчёт. */
+  flare?: boolean;
 }
 
 export interface CellState {
@@ -95,7 +94,7 @@ export class NightScene {
     this.input = new SceneInput(this);
     this.forecast = new Forecast(this);
     this.presenter = new Presenter(this);
-    this.presenter.flare = hooks.flare ?? null;
+    this.presenter.flare = !!hooks.flare;
     this.view.computeLayout();
     if (import.meta.env.DEV) (window as unknown as { __scene: NightScene }).__scene = this;
   }

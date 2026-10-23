@@ -8,7 +8,7 @@ import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
-import { beam, shockwave, type FlareVariant } from './flare';
+import { shockwave } from './flare';
 import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
@@ -37,8 +37,8 @@ export class Presenter {
 
   /** Касание во время подсчёта ускоряет его до конца хода (долгий крест не держит игрока). */
   hurry = 1;
-  /** Яркая вспышка и быстрый подсчёт (CQ.6, `brightFlare`): вариант витрины; null — как было. */
-  flare: FlareVariant | null = null;
+  /** Яркая вспышка и быстрый подсчёт (CQ.6, `brightFlare`): волны света по небу. */
+  flare = false;
   /** Темп подсчёта: с яркой вспышкой паузы короче, чтобы удар не тонул в ожидании. */
   private get pace(): number {
     return this.flare ? 0.6 : 1;
@@ -396,35 +396,22 @@ export class Presenter {
     line.cells.forEach((cell, i) => {
       void this.tweens.wait((drawDur * i) / Math.max(1, line.cells.length - 1)).then(() => this.igniteCard(cell));
     });
-    const pts = line.cells.map((c) => this.cellPos(c));
-    const { cardW, board } = this.scene.layout;
-    // Луч бежит вместе с прорисовкой линии
-    if (this.flare === 'a') void beam(this.world, pts, color, cardW * 0.9, drawDur);
     await drawn;
     // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
     fx.state.breathe = true;
-    if (this.flare === 'b') {
-      // Стоп-кадр: всё замирает на миг, затем удар — сильная короткая вспышка и отдача
-      await this.tweens.wait(0.12);
-      flash(this.world, '255,246,220', 0.55, 0.22);
-      shake(this.world, 0.42);
-      this.scene.svc.haptics.play('heavy');
-    } else if (this.flare === 'c') {
+    if (this.flare) {
       // Волна света от центра линии до края неба; второе кольцо — чуть позже и тише
+      const { board } = this.scene.layout;
       const reach = Math.hypot(board.w, board.h) * 0.75;
       shockwave(this.world, center, reach, color, 0.7 / this.speed);
       shockwave(this.world, center, reach * 0.7, 'rgba(255,236,190,0.8)', 0.55 / this.speed, 0.08 / this.speed);
       flash(this.world, '255,240,200', 0.32, 0.4);
       shake(this.world, 0.26);
-    } else if (this.flare === 'a') {
-      flash(this.world, '255,240,200', 0.38, 0.45);
-      shake(this.world, 0.28);
-    }
-    hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
-    if (!this.flare) {
+    } else {
       flash(this.world, '255,240,200', 0.22, 0.4);
       shake(this.world, 0.14);
     }
+    hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
     await this.wait(this.flare ? 0.55 : 0.9);
     // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
     hud.hideRibbon();
@@ -473,10 +460,7 @@ export class Presenter {
     hud.setCalcTotal(line.total);
     hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
     // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
-    // В варианте «Удар» итог линии крупнее — им заканчивается вспышка
-    const totalSize = Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44)) * (this.flare === 'b' ? 1.4 : 1));
-    floatText(this.world, center.x, center.y + 4, num(line.total), { size: totalSize, color: UI.gold, life: 1.1, rise: 30, punch: true });
-    if (this.flare === 'b') shake(this.world, 0.3);
+    floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
     this.scene.svc.haptics.play('countMult');
     this.audio.count(steps.length + 2, 'light');
     await this.wait(0.35 * this.pace);
@@ -509,8 +493,8 @@ export class Presenter {
         this.audio.count(10 + i, 'xmult');
         this.scene.svc.haptics.play('countX');
         shake(this.world, 0.25);
-        // Крест в «Волне» — ещё одно кольцо от клетки креста
-        if (this.flare === 'c' && step.source.kind === 'chain') {
+        // Крест — ещё одно кольцо, розовое, как множитель: двойная линия — двойной счёт
+        if (this.flare && step.source.kind === 'chain') {
           const lb = scene.layout.board;
           shockwave(this.world, { x: lb.x + lb.w / 2, y: lb.y + lb.h / 2 }, Math.hypot(lb.w, lb.h) * 0.8, 'rgba(255,107,139,0.9)', 0.6 / this.speed);
         }
