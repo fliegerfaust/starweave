@@ -9,7 +9,7 @@ import { button, modal } from '../widgets';
  * растянутой «Начать забег» на широком экране).
  */
 export function showTutorialDone(app: App, short = false): void {
-  // Короткое обучение (вариант C первого запуска) кончается до Обсерватории: без «Знамений»
+  // Короткое обучение первого запуска кончается до Обсерватории: без «Знамений»
   const all = dict().tut.learned;
   const learned = short ? all.slice(0, -1) : all;
   const chain = h('div.tut-chain', { attrs: { 'aria-label': learned.join(', ') } }, learned.map((name, i) => {

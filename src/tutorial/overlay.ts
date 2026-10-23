@@ -147,6 +147,13 @@ export class TutorialOverlay {
     });
   }
 
+  /** Вернуть ту же подсказку после хода — без повторного появления: слова не менялись. */
+  showBubble(): void {
+    if (!this.bubble.childElementCount) return;
+    this.bubble.classList.add('on');
+    this.layout();
+  }
+
   hideBubble(): void {
     this.bubble.classList.remove('on');
     this.thread.replaceChildren();
