@@ -8,11 +8,10 @@ import { button, modal } from '../widgets';
  * очереди, как ночи на карте главы; подарок монетой; две кнопки по своей ширине (без
  * растянутой «Начать забег» на широком экране).
  */
-export function showTutorialDone(app: App, short = false, burn = true): void {
-  // Короткое обучение первого запуска кончается до Обсерватории: без «Знамений»;
-  // короткая ночь без сжигания (CQ.4, вариант `c`) — ещё и без «Сжечь»
-  const [card, line, cross, burnName, omens] = dict().tut.learned;
-  const learned = [card, line, cross, ...(burn ? [burnName] : []), ...(short ? [] : [omens])];
+export function showTutorialDone(app: App, short = false): void {
+  // Короткое обучение первого запуска кончается до Обсерватории: без «Знамений»
+  const all = dict().tut.learned;
+  const learned = short ? all.slice(0, -1) : all;
   const chain = h('div.tut-chain', { attrs: { 'aria-label': learned.join(', ') } }, learned.map((name, i) => {
     const star = h('i');
     star.style.setProperty('--d', `${0.2 + i * 0.15}s`);
@@ -25,7 +24,7 @@ export function showTutorialDone(app: App, short = false, burn = true): void {
   const m = modal(
     [
       h('h2.tut-done-title', null, t('tut.doneTitle')),
-      h('p.tut-done-sub', null, t(learned.length === 5 ? 'tut.doneSub' : learned.length === 4 ? 'tut.doneSubShort' : 'tut.doneSubThree')),
+      h('p.tut-done-sub', null, t(short ? 'tut.doneSubShort' : 'tut.doneSub')),
       chain,
       giftRow,
       h('div.tut-done-acts', null, [
