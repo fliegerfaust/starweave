@@ -27,13 +27,6 @@ interface ToneOptions {
   lowpass?: number;
 }
 
-/**
- * Доработанное звучание (CQ.7, `music`), витрина: `a` — «Обсерватория» (колокольчики с
- * неровными обертонами, пэд и челеста по аккордам), `b` — «Шкатулка» (щипок и мелодия
- * шкатулки), `c` — «Тёплая ночь» (маримба, тёмный пэд, пульс баса). null — прежнее.
- */
-export type Voice = 'a' | 'b' | 'c';
-
 /** Нота по полутонам от до первой октавы. */
 const semi = (n: number) => 261.63 * 2 ** (n / 12);
 /** Аккорды Am – F – C – G: тоны (полутона от до) и бас. */
@@ -43,8 +36,6 @@ const CHORDS: { tones: number[]; bass: number }[] = [
   { tones: [-5, 0, 4], bass: -24 },
   { tones: [-5, -1, 2], bass: -17 },
 ];
-/** Мелодия шкатулки на два такта (полутона, null — пауза); повторяется с аккордами. */
-const BOX_TUNE: (number | null)[] = [12, 16, 19, 16, 14, 12, 9, null, 16, 19, 21, 19, 16, 14, 12, null];
 /** Восьмая при 72 ударах в минуту. */
 const EIGHTH = 60 / 72 / 2;
 
@@ -60,8 +51,11 @@ export class Synth {
   private musicTimer: number | null = null;
   private musicStep = 0;
 
-  /** Звучание CQ.7 (переключатель `music`); null — прежние звуки и эмбиент. */
-  voice: Voice | null = null;
+  /**
+   * Звучание «Обсерватория» (CQ.7, переключатель `music`, выбор Дениса): колокольчики с неровным
+   * обертоном, войлочный стук карты, пэд и челеста по аккордам. false — прежние звуки и эмбиент.
+   */
+  voice = false;
   sfxVolume = 0.8;
   musicVolume = 0.4;
 
@@ -205,26 +199,12 @@ export class Synth {
   /** Колокольчик для карты: высота по рангу. */
   bell(rank: number, delay = 0): void {
     const f = pentatonicFreq(rank + 4);
-    if (this.voice === 'a') {
+    if (this.voice) {
       // Колокольчик: неровный обертон 2,76 гаснет быстрее основы; под ним — войлочный стук карты
       this.tone({ freq: f, duration: 1.6, gain: 0.13, delay, wet: 0.55 });
       this.tone({ freq: f * 2.76, duration: 0.5, gain: 0.04, delay, wet: 0.5 });
       this.tone({ freq: f * 5.4, duration: 0.18, gain: 0.012, delay, wet: 0.4 });
       this.noise(0.09, 500, 180, 0.07, delay, 0.7, 'lowpass');
-      return;
-    }
-    if (this.voice === 'b') {
-      // Щипок шкатулки: треугольник с быстрым спадом и тихий щелчок язычка
-      this.tone({ freq: f * 2, duration: 0.7, type: 'triangle', gain: 0.07, delay, wet: 0.45, lowpass: 5200 });
-      this.tone({ freq: f * 4, duration: 0.2, gain: 0.02, delay, wet: 0.3 });
-      this.noise(0.03, 6000, 4000, 0.03, delay, 2);
-      return;
-    }
-    if (this.voice === 'c') {
-      // Маримба: короткая основа с лёгким падением высоты и деревянный стук
-      this.tone({ freq: f * 1.02, slideTo: f, duration: 0.55, gain: 0.15, delay, wet: 0.3, lowpass: 2400 });
-      this.tone({ freq: f * 4, duration: 0.08, gain: 0.03, delay, wet: 0.2 });
-      this.noise(0.07, 400, 160, 0.08, delay, 0.7, 'lowpass');
       return;
     }
     this.tone({ freq: f, duration: 1.2, type: 'sine', gain: 0.16, delay });
@@ -243,8 +223,8 @@ export class Synth {
   pickup(): void {
     if (this.voice) {
       // Карта скользит по сукну: шорох вверх, без писка
-      this.noise(0.14, 1500, 4200, 0.05, 0, 0.8, this.voice === 'c' ? 'lowpass' : 'bandpass');
-      this.tone({ freq: this.voice === 'b' ? 1320 : 520, duration: 0.09, type: 'triangle', gain: 0.025, slideTo: this.voice === 'b' ? 1560 : 700, wet: 0.15 });
+      this.noise(0.14, 1500, 4200, 0.05, 0, 0.8);
+      this.tone({ freq: 520, duration: 0.09, type: 'triangle', gain: 0.025, slideTo: 700, wet: 0.15 });
       return;
     }
     this.noise(0.12, 2000, 5000, 0.05);
@@ -264,10 +244,8 @@ export class Synth {
   count(step: number, kind: 'light' | 'mult' | 'xmult' | 'gold' = 'light'): void {
     const f = pentatonicFreq(8 + Math.min(step, 14));
     if (this.voice && kind === 'light') {
-      // Шаг подсчёта: стекло (a), щипок (b) или маримба (c) — выше с каждым шагом
-      if (this.voice === 'a') this.tone({ freq: f * 2, duration: 0.3, gain: 0.045, wet: 0.45 });
-      else if (this.voice === 'b') this.tone({ freq: f * 2, duration: 0.35, type: 'triangle', gain: 0.05, wet: 0.4, lowpass: 5000 });
-      else this.tone({ freq: f, slideTo: f * 0.98, duration: 0.3, gain: 0.08, wet: 0.25, lowpass: 2600 });
+      // Шаг подсчёта — стеклянная нота, выше с каждым шагом
+      this.tone({ freq: f * 2, duration: 0.3, gain: 0.045, wet: 0.45 });
       return;
     }
     if (kind === 'light') this.tone({ freq: f, duration: 0.18, type: 'triangle', gain: 0.07, wet: 0.2 });
@@ -289,10 +267,10 @@ export class Synth {
   impact(power: number): void {
     const p = Math.min(1, power);
     if (this.voice) {
-      // Удар в счёт: глубокий саб без щелчка, мягкий шум и (a, b) звёздный хвост
+      // Удар в счёт: глубокий саб без щелчка, мягкий шум и звёздный хвост
       this.tone({ freq: 70 - p * 20, duration: 0.7 + p * 0.6, gain: 0.3 + p * 0.15, slideTo: 36, wet: 0.15, attack: 0.008 });
       this.noise(0.5 + p * 0.4, 1800, 200, 0.06 + p * 0.06, 0, 0.6, 'lowpass');
-      if (this.voice !== 'c') [0, 4, 7].forEach((st, i) => this.tone({ freq: semi(24 + st), duration: 1.4, gain: 0.025 + p * 0.02, delay: 0.05 + i * 0.06, wet: 0.8 }));
+      [0, 4, 7].forEach((st, i) => this.tone({ freq: semi(24 + st), duration: 1.4, gain: 0.025 + p * 0.02, delay: 0.05 + i * 0.06, wet: 0.8 }));
       return;
     }
     this.tone({ freq: 90 - p * 30, duration: 0.5 + p * 0.5, type: 'sine', gain: 0.25 + p * 0.15, slideTo: 40, wet: 0.2 });
@@ -326,53 +304,37 @@ export class Synth {
     [7, 4, 2, 0].forEach((s, i) => this.tone({ freq: pentatonicFreq(4 + s) * 0.94, duration: 1.4, type: 'triangle', gain: 0.08, delay: i * 0.22 }));
   }
 
-  /** Вспышка линии своим звучанием: восходящий аккорд, у креста — выше и шире. */
+  /** Вспышка линии: восходящий аккорд колоколов, у креста — выше и шире. */
   private igniteVoice(lines: number): void {
-    const v = this.voice!;
-    this.noise(0.7, 300, 5000, v === 'c' ? 0.06 : 0.09, 0, 0.7);
+    this.noise(0.7, 300, 5000, 0.09, 0, 0.7);
     const steps = lines >= 2 ? [0, 4, 7, 12, 16, 19] : [0, 4, 7, 12];
     steps.forEach((st, i) => {
       const f = semi(12 + st);
-      const delay = i * (v === 'b' ? 0.07 : 0.05);
-      if (v === 'a') {
-        this.tone({ freq: f, duration: 1.8, gain: 0.06, delay, wet: 0.7 });
-        this.tone({ freq: f * 2.76, duration: 0.5, gain: 0.015, delay, wet: 0.6 });
-      } else if (v === 'b') this.tone({ freq: f * 2, duration: 1, type: 'triangle', gain: 0.05, delay, wet: 0.55, lowpass: 5000 });
-      else this.tone({ freq: f, duration: 2.2, type: 'sawtooth', gain: 0.018, delay, attack: 0.15, wet: 0.7, lowpass: 1400 });
+      const delay = i * 0.05;
+      this.tone({ freq: f, duration: 1.8, gain: 0.06, delay, wet: 0.7 });
+      this.tone({ freq: f * 2.76, duration: 0.5, gain: 0.015, delay, wet: 0.6 });
     });
-    if (v === 'c') this.tone({ freq: 55, duration: 1.2, gain: 0.18, slideTo: 40, wet: 0.2 });
   }
 
-  /** Музыка своим звучанием: такт из восьми восьмых, аккорд меняется каждый такт (c — раз в два). */
+  /** Музыка: такт из восьми восьмых, аккорд Am–F–C–G меняется каждый такт. */
   private musicVoice(s: number): void {
-    const v = this.voice!;
     const bar = Math.floor(s / 8);
     const beat = s % 8;
-    const chord = CHORDS[Math.floor(v === 'c' ? bar / 2 : bar) % CHORDS.length]!;
-    const barLen = EIGHTH * 8 * (v === 'c' ? 2 : 1);
+    const chord = CHORDS[bar % CHORDS.length]!;
+    const barLen = EIGHTH * 8;
     const m = this.music;
-    if (beat === 0 && (v !== 'c' || bar % 2 === 0)) {
+    if (beat === 0) {
       // Пэд: две слегка расстроенные волны на тон аккорда, медленная атака, тёплый фильтр
       for (const tn of chord.tones) {
-        for (const det of [-7, 7]) {
-          this.tone({ freq: semi(tn), duration: barLen + 0.8, type: v === 'c' ? 'sawtooth' : 'triangle', gain: v === 'b' ? 0.012 : 0.016, attack: barLen * 0.35, detune: det, wet: 0.7, lowpass: v === 'c' ? 650 : 1300 }, m);
-        }
+        for (const det of [-7, 7]) this.tone({ freq: semi(tn), duration: barLen + 0.8, type: 'triangle', gain: 0.016, attack: barLen * 0.35, detune: det, wet: 0.7, lowpass: 1300 }, m);
       }
-      if (v !== 'b') this.tone({ freq: semi(chord.bass), duration: barLen, gain: 0.07, attack: 0.4, wet: 0.3, lowpass: 400 }, m);
+      this.tone({ freq: semi(chord.bass), duration: barLen, gain: 0.07, attack: 0.4, wet: 0.3, lowpass: 400 }, m);
     }
-    if (v === 'a' && [0, 3, 5, 6].includes(beat)) {
+    if ([0, 3, 5, 6].includes(beat)) {
       // Челеста: тон аккорда на две октавы выше, по сетке, а не наугад
       const tn = chord.tones[(bar + beat) % chord.tones.length]! + 24;
       this.tone({ freq: semi(tn), duration: 1.6, gain: 0.022, wet: 0.85 }, m);
       this.tone({ freq: semi(tn) * 2.76, duration: 0.3, gain: 0.005, wet: 0.8 }, m);
-    }
-    if (v === 'b') {
-      const note = BOX_TUNE[s % BOX_TUNE.length];
-      if (note !== null && note !== undefined) this.tone({ freq: semi(note + 12), duration: 0.9, type: 'triangle', gain: 0.026, wet: 0.6, lowpass: 4800 }, m);
-    }
-    if (v === 'c') {
-      if (beat === 4) this.tone({ freq: semi(chord.bass), duration: 0.9, gain: 0.05, attack: 0.05, wet: 0.2, lowpass: 300 }, m);
-      if (s % 12 === 7) this.tone({ freq: semi(chord.tones[s % 3]! + 24), duration: 3, gain: 0.016, wet: 0.95 }, m);
     }
   }
 
