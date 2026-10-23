@@ -222,7 +222,7 @@ test('короткая первая ночь с shortTutorial: ряд, сжеч�
   test.setTimeout(120_000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/?ff=quickStart,shortTutorial');
+  await page.goto('/?ff=quickStart,shortTutorial,wideDesktop');
   // Каждые 100 мс: не появилась ли настоящая кнопка «Далее»
   await page.evaluate(() => {
     const w = window as unknown as { __sawNext?: boolean };
