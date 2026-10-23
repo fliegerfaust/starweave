@@ -86,6 +86,11 @@ export class App {
     world.add(bg, Drawable, { layer: Layer.Background, z: 0, visible: true, draw: (ctx) => starfield.draw(ctx, res.time) });
 
     const audio = new Synth();
+    // Доработанное звучание (CQ.7) — в разработке вариант витрины выбирает `?snd=`
+    if (this.features.music) {
+      const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('snd') : null;
+      audio.voice = v === 'b' || v === 'c' ? v : 'a';
+    }
     audio.setVolumes(this.settings.sfx, this.settings.music);
     const input = new PointerInput(stage);
     const haptics = new Haptics();
