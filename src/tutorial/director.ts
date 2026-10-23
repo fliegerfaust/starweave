@@ -26,6 +26,8 @@ export type TutorialEvent =
 type Waiter = { pred: (e: TutorialEvent) => boolean; resolve: (e: TutorialEvent, seq: number) => void };
 
 const TOTAL_STEPS = 22;
+/** Короткое обучение первого запуска — только первая ночь, до её награды. */
+const SHORT_STEPS = 14;
 
 /** Шаг обучения → плашка первых забегов о том же: пройденное после «Пропустить» не повторяем. */
 const TAUGHT: Partial<Record<string, TutorialStep>> = {
@@ -77,7 +79,11 @@ export class TutorialDirector {
     this.overlay.layout();
   }, 60);
 
-  constructor(private readonly app: App) {
+  /** Шагов в сценарии: полоса прогресса заполняется к концу именно этого обучения. */
+  private readonly total: number;
+
+  constructor(private readonly app: App, short = false) {
+    this.total = short ? SHORT_STEPS : TOTAL_STEPS;
     this.overlay = new TutorialOverlay(() => this.app.runs.skipTutorial());
     window.addEventListener('resize', this.onResize);
   }
@@ -185,7 +191,7 @@ export class TutorialDirector {
     if (this.stopped) throw new Error('stopped');
     this.step += 1;
     this.mark(key);
-    this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
@@ -210,7 +216,7 @@ export class TutorialDirector {
     scene.setGuide({ card: id, cell });
     this.step += 1;
     this.mark(key);
-    this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
     // Цель — клетка: рамка и нить ведут к ней, палец показывает жест
     this.overlay.spotlight(scene.cellRect(cell), 4);
     this.reposition = () => {
@@ -271,7 +277,7 @@ export class TutorialDirector {
     };
     this.reposition();
     this.step += 1;
-    this.overlay.setProgress(this.step, TOTAL_STEPS);
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
     this.mark('burn');
     this.overlay.spotlight(elementRect(this.hud!.burnBtn), 4);
     this.sync();

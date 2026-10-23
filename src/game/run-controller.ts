@@ -72,19 +72,20 @@ export class RunController {
   }
 
   /**
-   * Первый запуск без меню (CQ.3): обучение или сразу первая ночь — по варианту `quickStart`.
-   * false — не первый запуск или площадка этого не включила: показываем меню.
+   * Первый запуск без меню (CQ.3, `quickStart`, выбор Дениса — вариант C): сразу первая ночь
+   * обучения, после неё — первая ночь настоящего забега. false — показываем меню.
    */
   firstLaunch(): boolean {
     const { app } = this;
     const { profile } = app;
-    if (!app.quickStart || this.hasSave || profile.tutorialDone || profile.runs > 0 || app.pendingChallenge) return false;
-    if (app.quickStart === 'b') {
-      profile.tutorialDone = true;
-      this.persistProfile();
-      this.startFirstNight();
-    } else this.startTutorial('auto');
+    if (!app.features.quickStart || this.hasSave || profile.tutorialDone || profile.runs > 0 || app.pendingChallenge) return false;
+    this.startTutorial('auto');
     return true;
+  }
+
+  /** Обучение первого запуска — одна ночь: Обсерваторию потом объяснит подсказка. */
+  private get shortTutorial(): boolean {
+    return this.tutorialSource === 'auto';
   }
 
   /** Первый забег сразу с ночи: небо — классика, карта главы покажется после первой ночи. */
@@ -95,7 +96,7 @@ export class RunController {
 
   /** После обучения: из первого запуска — сразу в ночь, из меню — как раньше, на карту главы. */
   startRunAfterTutorial(): void {
-    if (this.tutorialSource === 'auto') this.startFirstNight();
+    if (this.shortTutorial) this.startFirstNight();
     else this.startRun('classic');
   }
 
@@ -271,8 +272,8 @@ export class RunController {
 
   private doCollectReward(): void {
     const run = this.run!;
-    // Вариант C первого запуска: обучение — одна ночь, награда уходит в первый забег
-    if (run.tutorial && this.tutorialSource === 'auto' && this.app.quickStart === 'c') return this.finishTutorial();
+    // Короткое обучение кончается на награде первой ночи: она уходит в первый забег
+    if (run.tutorial && this.shortTutorial) return this.finishTutorial();
     apply(run, { c: 'collectReward' });
     if (run.tutorial) run.shop = tutorialShop();
     this.save();
@@ -432,7 +433,7 @@ export class RunController {
     this.tutorial?.stop();
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.run = newTutorialRun();
-    this.tutorial = new TutorialDirector(this.app);
+    this.tutorial = new TutorialDirector(this.app, this.shortTutorial);
     this.tutorial.start();
     this.doBeginNight();
   }
@@ -450,12 +451,17 @@ export class RunController {
     track('tutorial_skip', at);
     // Пройденное до «Пропустить» не пропадает: плашки о том же не повторяются, золото ждёт
     // первого забега — раньше пропуск в Обсерватории сжигал заработанное (CQ.2)
-    const { profile } = this.app;
-    for (const step of this.tutorial?.taught ?? []) if (!profile.tutorial.includes(step)) profile.tutorial.push(step);
+    this.rememberTaught();
     this.keepTutorialGold();
     this.endTutorial();
-    if (this.tutorialSource === 'auto') this.startFirstNight();
+    if (this.shortTutorial) this.startFirstNight();
     else void this.app.router.goMenu();
+  }
+
+  /** Подсказки первых забегов о том, что обучение уже показало, больше не появляются. */
+  private rememberTaught(): void {
+    const { profile } = this.app;
+    for (const step of this.tutorial?.taught ?? []) if (!profile.tutorial.includes(step)) profile.tutorial.push(step);
   }
 
   /**
@@ -473,13 +479,15 @@ export class RunController {
   /** Обучение пройдено: поздравление и старт настоящего забега. */
   finishTutorial(): void {
     track('tutorial_complete', {});
-    this.app.profile.tutorialFinished = true;
+    // Короткое обучение не показало Обсерваторию: её подсказки первых забегов остаются
+    if (this.shortTutorial) this.rememberTaught();
+    else this.app.profile.tutorialFinished = true;
     this.keepTutorialGold();
     this.endTutorial();
     // Окно награды учебной ночи ещё открыто: под «Обучение пройдено» его кнопка «Забрать»
     // оставалась нажимаемой и вела в уже несуществующий забег (js_error 14.10.2026)
     document.querySelectorAll('.modal-backdrop').forEach((el) => el.remove());
     this.app.svc.audio.win();
-    void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this.app, this.tutorialSource === 'auto' && this.app.quickStart === 'c'));
+    void import('@/ui/screens/tutorial-done').then(({ showTutorialDone }) => showTutorialDone(this.app, this.shortTutorial));
   }
 }
