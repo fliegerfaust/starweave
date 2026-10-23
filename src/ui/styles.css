@@ -1786,6 +1786,33 @@ body.landscape .actions {
   padding: 0;
 }
 body.landscape .calc { bottom: auto; top: var(--calc-top, 220px); }
+/* Широкий ПК (CQ.5, `wideDesktop`): табло, кнопки и лоток растут с окном; в `b` и `c` табло
+   прижато к небу — вровень с его верхом, кнопки вровень с низом (сцена ставит --hud-*) */
+body.wide .hud, body.wide .actions, body.wide .calc { zoom: var(--ui-k, 1); }
+body:is(.wide-b, .wide-c) .hud { left: var(--hud-left); top: var(--hud-top); padding-top: 0; }
+body:is(.wide-b, .wide-c) .actions { left: var(--hud-left); bottom: var(--actions-bottom); }
+body.wide .card-info { zoom: var(--ui-k, 1); }
+/* Вариант C: созвездия под рамой вместо пустой колонки — строки «имя · свет × множитель»,
+   без плашек; на время подсчёта лоток встаёт поверх, строки гаснут */
+.hud-combos { display: none; }
+body.wide-c .hud-combos:not(.cut) {
+  display: grid;
+  margin-top: 12px;
+  padding: 4px 14px;
+  max-height: var(--combos-h, 0px);
+  overflow: hidden;
+  transition: opacity 0.25s ease;
+}
+body.wide-c:has(.calc.show) .hud-combos { opacity: 0; }
+.hud-combos-title { padding: 6px 0 8px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: #ffe6a8; }
+.hud-combo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 5px 0; font: 600 13.5px/1.25 var(--font-body); color: var(--ink-dim); }
+.hud-combo + .hud-combo { box-shadow: 0 -1px 0 rgb(var(--gold-rgb) / 0.12); }
+.hud-combo small { font-weight: 700; color: var(--ink-faint); }
+.hud-combo b { font-weight: 800; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hud-combo i { font-style: normal; }
+.hud-combo i.l { color: #7fe0ff; }
+.hud-combo i.m { color: #ff6b8b; }
+body:is(.wide-b, .wide-c) .card-info { left: calc(var(--hud-left) + 140px); bottom: calc(var(--actions-bottom) + 60px); }
 /* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
 body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
 /* Вне ночи в ландшафте и на ПК плашка — по центру (Обсерватория, карта главы) */

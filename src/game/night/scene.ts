@@ -28,6 +28,11 @@ export interface SceneHooks {
   /** События проиграны — приложение решает, что дальше. */
   onSettled(events: GameEvent[]): void;
   onSelect?(handIndex: number | null): void;
+  /**
+   * Раскладка широкого ПК (CQ.5, `wideDesktop`): `a` — крупнее на месте, `b` — табло прижато
+   * к небу, `c` — как `b`, под табло созвездия со светом и множителем. null — прежняя раскладка.
+   */
+  wide?: 'a' | 'b' | 'c' | null;
 }
 
 export interface CellState {
@@ -81,7 +86,7 @@ export class NightScene {
     readonly svc: Services,
     readonly run: RunState,
     readonly hud: Hud,
-    private readonly hooks: SceneHooks,
+    readonly hooks: SceneHooks,
   ) {
     this.view = new BoardView(this);
     this.input = new SceneInput(this);

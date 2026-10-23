@@ -1,7 +1,8 @@
 import { bossSigil, omenSigil } from '@/art/sigil';
 import { omenDef, type OmenKind } from '@/core/content/omens';
+import { comboBase } from '@/core/content/combos';
 import { omenSlots } from '@/core/shop';
-import type { Card, ComboId, Glyph, NightKind, OmenInstance, RunState } from '@/core/types';
+import { COMBO_IDS, type Card, type ComboId, type Glyph, type NightKind, type OmenInstance, type RunState } from '@/core/types';
 import { dict, getLang, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
 import { rich } from './rich';
@@ -63,6 +64,9 @@ export class Hud {
   private readonly moves: HTMLElement;
   private readonly burns: HTMLElement;
   private readonly omens: HTMLElement;
+  /** Широкий ПК, вариант C (CQ.5): созвездия под рамой — свет × множитель с уровнем. */
+  readonly combos: HTMLElement;
+  private drawnCombos = '';
   private readonly calc: HTMLElement;
   private readonly calcCombo: HTMLElement;
   private readonly calcLight: HTMLElement;
@@ -129,7 +133,7 @@ export class Hud {
     this.ribbon = h('div.combo-ribbon', { attrs: { 'aria-hidden': 'true' } }, [h('b'), h('small')]);
     // «Рама» (RD.1): всё о ночи в одной латунной раме — табличка главы, правило Затмения,
     // счёт с полосой, ходы и сжигания, ряд Знамений и золото
-    this.el = h('div.hud', null, h('div.hud-frame', null, [
+    this.el = h('div.hud', null, [h('div.hud-frame', null, [
       h('div.hud-row.top', null, [menuBtn, h('div.hud-title-wrap', null, this.title), guideBtn]),
       this.bossBadge,
       h('div.hud-row.mid', null, [
@@ -138,7 +142,7 @@ export class Hud {
         h('div.stat', null, [this.burns, h('div.stat-label', null, t('night.burns'))]),
       ]),
       h('div.hud-row.omens', null, [this.omens, this.gold]),
-    ]));
+    ]), (this.combos = h('div.hud-combos', { attrs: { 'aria-hidden': 'true' } }))]);
 
     this.deckBtn = button('', () => cb.onDeck(), { variant: 'secondary', className: 'deck-btn' });
     this.burnBtn = button(t('night.burn'), () => cb.onBurn(), { variant: 'secondary', className: 'burn-btn' });
@@ -178,6 +182,18 @@ export class Hud {
     const night = run.night;
     const kind = night?.kind ?? 'dusk';
     const head = `${getLang()}|${run.ante}|${kind}|${night?.bossId ?? ''}`;
+    const levels = COMBO_IDS.map((id) => run.comboLevels[id] ?? 1).join(',') + getLang();
+    if (levels !== this.drawnCombos) {
+      this.drawnCombos = levels;
+      this.combos.replaceChildren(h('div.hud-combos-title', null, t('combos.title')), ...COMBO_IDS.map((id) => {
+        const level = run.comboLevels[id] ?? 1;
+        const base = comboBase(id, level);
+        return h('div.hud-combo', null, [
+          h('span', null, [t(`combo.${id}`), level > 1 ? h('small', null, ` ${t('combos.level', { n: level })}`) : null]),
+          h('b', null, [h('i.l', null, num(base.light)), ' × ', h('i.m', null, String(base.mult))]),
+        ]);
+      }));
+    }
     if (head !== this.drawnHead) {
       this.drawnHead = head;
       this.renderHead(run.ante, kind, night?.bossId ?? null);
