@@ -17,7 +17,7 @@ export interface EventMap {
   challenge_result: { ante: number; best: number; their_ante: number; their_best: number; outcome: number };
 
   // ── Воронка новичка ────────────────────────────────────────────────────
-  tutorial_start: { source: 'offer' | 'menu' | 'retry' };
+  tutorial_start: { source: 'auto' | 'offer' | 'menu' | 'retry' };
   tutorial_step: { step: string; index: number };
   tutorial_skip: { step: string; index: number };
   tutorial_complete: Record<string, never>;

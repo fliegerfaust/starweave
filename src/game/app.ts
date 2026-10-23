@@ -42,6 +42,12 @@ export class App {
   readonly money: Monetization;
   /** Переключатели нового поведения площадки (0.7.4); в разработке — ещё и `?ff=`. */
   readonly features: Features;
+  /**
+   * Первый запуск без меню (CQ.3, `quickStart`). Витрина: `a` — обучение целиком, затем ночь;
+   * `b` — сразу настоящая ночь с подсказками; `c` — одна учебная ночь, затем настоящая.
+   * В разработке вариант выбирает `?qs=`; после выбора Дениса останется один.
+   */
+  readonly quickStart: 'a' | 'b' | 'c' | null;
   private last = performance.now();
 
   constructor(readonly platform: Platform) {
@@ -54,6 +60,8 @@ export class App {
     setLang(this.settings.lang);
     this.profile = loadProfile();
     this.features = resolveFeatures(platform.features, import.meta.env.DEV ? new URLSearchParams(location.search).get('ff') : null);
+    const qs = import.meta.env.DEV ? new URLSearchParams(location.search).get('qs') : null;
+    this.quickStart = this.features.quickStart ? (qs === 'b' || qs === 'c' ? qs : 'a') : null;
     const stage = document.getElementById('stage')!;
     const renderer = new Renderer(stage);
     const tweens = new Tweener();
@@ -172,7 +180,8 @@ export class App {
       this.svc.renderer.observeFrame((performance.now() - start) / 1000);
     };
     requestAnimationFrame(frame);
-    void this.router.goMenu().then(() => this.platform.ready());
+    // Новичок на площадке с `quickStart` попадает сразу в ночь, остальные — в меню
+    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready());
     void this.money.refreshPurchases();
   }
 

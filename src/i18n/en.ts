@@ -198,6 +198,7 @@ export const en: Dict = {
     finish: 'Finish the night: reach the target.',
     doneTitle: 'Tutorial complete',
     doneSub: 'Five moves — and you are ready for the first night.',
+    doneSubShort: 'Four moves, and you are ready for the first night.',
     learned: ['Card', 'Line', 'Cross', 'Burn', 'Omens'],
     giftCaption: 'Yours for the first run',
     startRun: 'Start a run',
