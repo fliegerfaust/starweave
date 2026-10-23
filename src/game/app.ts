@@ -172,7 +172,8 @@ export class App {
       this.svc.renderer.observeFrame((performance.now() - start) / 1000);
     };
     requestAnimationFrame(frame);
-    void this.router.goMenu().then(() => this.platform.ready());
+    // Новичок на площадке с `quickStart` попадает сразу в ночь, остальные — в меню
+    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready());
     void this.money.refreshPurchases();
   }
 

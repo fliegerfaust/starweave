@@ -163,6 +163,61 @@ test('«Пропустить» не встаёт на место «Далее»;
   expect(errors).toEqual([]);
 });
 
+test('первый запуск с quickStart: без меню сразу обучение, после первой ночи сразу забег (CQ.3)', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  type P = { starweave: { run: { tutorial?: boolean; phase: string; ante: number; gold: number } | null; profile: { tutorialDone: boolean; tutorialFinished?: boolean; tutorial: string[]; tutorialGift?: { gold: number } } } };
+  await page.goto('/?ff=quickStart');
+  // Меню не показывается: первым на экране — обучение
+  await page.waitForSelector('.tut-bubble.on', { timeout: 20_000 });
+  expect(await page.locator('.menu-buttons').count(), 'меню не открывалось').toBe(0);
+  await firstNight(page);
+  await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
+  // Полоса прогресса к концу ночи заполнена: обучение — одна ночь
+  const ticks = await page.evaluate(() => [document.querySelectorAll('.tut-ticks i.on').length, document.querySelectorAll('.tut-ticks i').length]);
+  expect(ticks[0], 'полоса обучения заполнена').toBe(ticks[1]);
+  await page.click('.btn.tut-allow');
+  await page.waitForSelector('.tut-done .tut-chain');
+  const done = await page.evaluate(() => ({
+    steps: document.querySelectorAll('.tut-chain > span').length,
+    gift: !!document.querySelector('.tut-gift'),
+    shop: document.querySelector('.shop-screen, [data-shop]') !== null,
+  }));
+  expect(done, 'четыре приёма, золото с собой, Обсерватории не было').toEqual({ steps: 4, gift: true, shop: false });
+  const gift = await page.evaluate(() => (window as unknown as P).starweave.profile.tutorialGift!.gold);
+  await page.click('.tut-done-acts .btn:last-child');
+  await page.waitForSelector('.hud');
+  await page.waitForTimeout(600);
+  const state = await page.evaluate(() => {
+    const a = (window as unknown as P).starweave;
+    return { tutorial: !!a.run?.tutorial, phase: a.run?.phase, ante: a.run?.ante, gold: a.run?.gold ?? 0, done: a.profile.tutorialDone, finished: !!a.profile.tutorialFinished, shopHint: a.profile.tutorial.includes('shop') };
+  });
+  expect(state, 'первая ночь настоящего забега; подсказка Обсерватории ещё впереди').toMatchObject({ tutorial: false, phase: 'night', ante: 1, done: true, finished: false, shopHint: false });
+  expect(state.gold).toBeGreaterThanOrEqual(gift);
+  expect(errors).toEqual([]);
+});
+
+test('первый запуск с quickStart: «Пропустить» ведёт в первую ночь, а не в меню (CQ.3)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?ff=quickStart');
+  await page.waitForSelector('.tut-bubble.on .tut-skip', { timeout: 20_000 });
+  await page.click('.tut-bubble.on .tut-skip');
+  await page.waitForSelector('.hud');
+  await page.waitForTimeout(600);
+  const state = await page.evaluate(() => {
+    const a = (window as unknown as { starweave: { run: { tutorial?: boolean; phase: string } | null } }).starweave;
+    return { tutorial: !!a.run?.tutorial, phase: a.run?.phase, menu: !!document.querySelector('.menu-buttons') };
+  });
+  expect(state).toEqual({ tutorial: false, phase: 'night', menu: false });
+  // Перезагрузка: уже не первый запуск — сохранённый забег, а не обучение заново
+  await page.reload();
+  await page.waitForSelector('.menu-buttons .btn');
+  expect(await page.locator('.tut-bubble.on').count()).toBe(0);
+  expect(errors).toEqual([]);
+});
+
 /** Нажать «Далее» в подсказке, когда она появится. */
 async function next(page: Page): Promise<void> {
   await page.waitForSelector('.tut-bubble.on .tut-next:not(.ghost)', { timeout: 20_000 });
