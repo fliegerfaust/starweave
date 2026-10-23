@@ -53,6 +53,7 @@ export class NightScreen implements Screen {
           this.hud.setCardInfo(i !== null && n ? (n.hand[i] ?? null) : null, n?.rules.hideRanks);
         },
         wide: this.app.features.wideDesktop,
+        flare: this.app.features.brightFlare ? flareVariant() : null,
       });
       this.scene.build();
       const scene = this.scene;
@@ -464,4 +465,10 @@ function lostTip(run: RunState): string {
   if (run.stats.crosses === 0) return t('over.tipCross');
   if (run.omens.length < 2) return t('over.tipOmens');
   return t('over.tipOrder');
+}
+
+/** Вариант вспышки для витрины CQ.6: в разработке — `?fl=`, иначе `a`. */
+function flareVariant(): 'a' | 'b' | 'c' {
+  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('fl') : null;
+  return v === 'b' || v === 'c' ? v : 'a';
 }
