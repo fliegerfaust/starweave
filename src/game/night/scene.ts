@@ -29,10 +29,10 @@ export interface SceneHooks {
   onSettled(events: GameEvent[]): void;
   onSelect?(handIndex: number | null): void;
   /**
-   * Раскладка широкого ПК (CQ.5, `wideDesktop`): `a` — крупнее на месте, `b` — табло прижато
-   * к небу, `c` — как `b`, под табло созвездия со светом и множителем. null — прежняя раскладка.
+   * Раскладка широкого ПК (CQ.5, `wideDesktop`, выбор Дениса — вариант C): карты и табло крупнее,
+   * табло прижато к небу, под ним созвездия со светом и множителем.
    */
-  wide?: 'a' | 'b' | 'c' | null;
+  wide?: boolean;
 }
 
 export interface CellState {

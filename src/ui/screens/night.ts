@@ -52,7 +52,7 @@ export class NightScreen implements Screen {
           const n = this.run.night;
           this.hud.setCardInfo(i !== null && n ? (n.hand[i] ?? null) : null, n?.rules.hideRanks);
         },
-        wide: this.app.features.wideDesktop ? wideVariant() : null,
+        wide: this.app.features.wideDesktop,
       });
       this.scene.build();
       const scene = this.scene;
@@ -464,10 +464,4 @@ function lostTip(run: RunState): string {
   if (run.stats.crosses === 0) return t('over.tipCross');
   if (run.omens.length < 2) return t('over.tipOmens');
   return t('over.tipOrder');
-}
-
-/** Вариант раскладки широкого ПК для витрины CQ.5: в разработке — `?pc=`, иначе `a`. */
-function wideVariant(): 'a' | 'b' | 'c' {
-  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('pc') : null;
-  return v === 'b' || v === 'c' ? v : 'a';
 }

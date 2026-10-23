@@ -64,7 +64,7 @@ export class Hud {
   private readonly moves: HTMLElement;
   private readonly burns: HTMLElement;
   private readonly omens: HTMLElement;
-  /** Широкий ПК, вариант C (CQ.5): созвездия под рамой — свет × множитель с уровнем. */
+  /** Широкий ПК (CQ.5): созвездия под рамой — свет × множитель с уровнем. */
   readonly combos: HTMLElement;
   private drawnCombos = '';
   private readonly calc: HTMLElement;
@@ -182,6 +182,7 @@ export class Hud {
     const night = run.night;
     const kind = night?.kind ?? 'dusk';
     const head = `${getLang()}|${run.ante}|${kind}|${night?.bossId ?? ''}`;
+    this.combos.classList.toggle('off', !!run.tutorial);
     const levels = COMBO_IDS.map((id) => run.comboLevels[id] ?? 1).join(',') + getLang();
     if (levels !== this.drawnCombos) {
       this.drawnCombos = levels;

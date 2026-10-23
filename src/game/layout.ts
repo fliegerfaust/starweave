@@ -33,10 +33,7 @@ export interface NightLayout {
   wide: boolean;
 }
 
-/**
- * Широкий ПК (CQ.5, `wideDesktop`): карты крупнее, рука дальше от неба. `dock` — ширина табло,
- * прижатого к небу слева (варианты витрины B и C); 0 — табло у края окна (вариант A).
- */
+/** Широкий ПК (CQ.5, `wideDesktop`): карты крупнее, рука дальше от неба, `dock` — ширина табло слева от неба. */
 export interface WideOptions {
   dock: number;
 }

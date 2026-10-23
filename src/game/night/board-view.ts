@@ -22,20 +22,18 @@ export class BoardView {
     const safe = safeInsets();
     const landscape = isLandscape(width, height);
     document.body.classList.toggle('landscape', landscape);
-    // Широкий ПК (CQ.5): табло и кнопки растут с окном (`--ui-k`), в `b` и `c` табло у неба
-    const variant = this.scene.hooks.wide && isWideDesktop(width, height) ? this.scene.hooks.wide : null;
-    const k = variant ? Math.max(1, Math.min(1.6, height / 700, width / 1200)) : 1;
+    // Широкий ПК (CQ.5): табло и кнопки растут с окном (`--ui-k`) и стоят у неба одним блоком
+    const wide = !!this.scene.hooks.wide && isWideDesktop(width, height);
+    const k = wide ? Math.max(1, Math.min(1.6, height / 700, width / 1200)) : 1;
     const root = document.documentElement.style;
     root.setProperty('--ui-k', String(k));
-    document.body.classList.toggle('wide', !!variant);
-    for (const v of ['a', 'b', 'c']) document.body.classList.toggle(`wide-${v}`, variant === v);
+    document.body.classList.toggle('pc-wide', wide);
     const hud = this.scene.hud.el.getBoundingClientRect();
     const actions = this.scene.hud.actions.getBoundingClientRect();
-    const docked = variant === 'b' || variant === 'c';
     const area: PlayArea = landscape
-      ? { top: safe.top, bottom: height - safe.bottom, left: docked ? 0 : Math.max(hud.right, actions.right), right: width }
+      ? { top: safe.top, bottom: height - safe.bottom, left: wide ? 0 : Math.max(hud.right, actions.right), right: width }
       : { top: hud.bottom || safe.top + 168, bottom: actions.top || height - safe.bottom - 64, left: 0, right: width };
-    this.scene.layout = computeLayout(width, height, this.scene.night.rules.gridSize, area, variant ? { dock: docked ? Math.max(hud.width, actions.width) : 0 } : null);
+    this.scene.layout = computeLayout(width, height, this.scene.night.rules.gridSize, area, wide ? { dock: Math.max(hud.width, actions.width) } : null);
     const { board, hudX } = this.scene.layout;
     if (hudX !== null) {
       // Табло встаёт вровень с верхом неба, кнопки — с низом; значения делятся на `zoom` панели
@@ -43,8 +41,8 @@ export class BoardView {
       root.setProperty('--hud-top', `${Math.max(safe.top, board.y) / k}px`);
       root.setProperty('--actions-bottom', `${Math.max(safe.bottom, height - board.y - board.h) / k}px`);
     }
-    if (variant === 'c') {
-      // Созвездия — между рамой и кнопками; не влезают целиком — колонка остаётся как в B
+    if (wide) {
+      // Созвездия — между рамой и кнопками; не влезают целиком (окно 907×510) — колонка пустая
       const list = this.scene.hud.combos;
       const frameEl = this.scene.hud.el.querySelector('.hud-frame')!.getBoundingClientRect();
       const free = height - Math.max(safe.bottom, height - board.y - board.h) - 46 * k - 16 * k - frameEl.bottom - 12 * k;
