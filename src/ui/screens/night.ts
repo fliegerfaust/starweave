@@ -53,6 +53,7 @@ export class NightScreen implements Screen {
           this.hud.setCardInfo(i !== null && n ? (n.hand[i] ?? null) : null, n?.rules.hideRanks);
         },
         wide: this.app.features.wideDesktop,
+        flare: this.app.features.brightFlare,
       });
       this.scene.build();
       const scene = this.scene;

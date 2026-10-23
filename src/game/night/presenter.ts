@@ -8,6 +8,7 @@ import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
+import { shockwave } from './flare';
 import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
@@ -36,6 +37,12 @@ export class Presenter {
 
   /** Касание во время подсчёта ускоряет его до конца хода (долгий крест не держит игрока). */
   hurry = 1;
+  /** Яркая вспышка и быстрый подсчёт (CQ.6, `brightFlare`): волны света по небу. */
+  flare = false;
+  /** Темп подсчёта: с яркой вспышкой паузы короче, чтобы удар не тонул в ожидании. */
+  private get pace(): number {
+    return this.flare ? 0.6 : 1;
+  }
 
   private get speed() {
     return this.world.res.speed * this.hurry;
@@ -392,10 +399,20 @@ export class Presenter {
     await drawn;
     // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
     fx.state.breathe = true;
+    if (this.flare) {
+      // Волна света от центра линии до края неба; второе кольцо — чуть позже и тише
+      const { board } = this.scene.layout;
+      const reach = Math.hypot(board.w, board.h) * 0.75;
+      shockwave(this.world, center, reach, color, 0.7 / this.speed);
+      shockwave(this.world, center, reach * 0.7, 'rgba(255,236,190,0.8)', 0.55 / this.speed, 0.08 / this.speed);
+      flash(this.world, '255,240,200', 0.32, 0.4);
+      shake(this.world, 0.26);
+    } else {
+      flash(this.world, '255,240,200', 0.22, 0.4);
+      shake(this.world, 0.14);
+    }
     hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
-    flash(this.world, '255,240,200', 0.22, 0.4);
-    shake(this.world, 0.14);
-    await this.wait(0.9);
+    await this.wait(this.flare ? 0.55 : 0.9);
     // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
     hud.hideRibbon();
     this.dissolveLine(line, fx.state);
@@ -423,7 +440,7 @@ export class Presenter {
         ? { text: `${s.light > 0 ? '+' : ''}${num(s.light)}`, kind: 'light' as const }
         : { text: s.xMult !== undefined ? `×${fmtX(s.xMult)}` : `+${num(s.mult ?? 0)}`, kind: 'mult' as const })));
     }
-    await this.wait(0.3);
+    await this.wait(0.3 * this.pace);
     // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
     const gate = this.scoringGate;
     if (gate) {
@@ -431,7 +448,7 @@ export class Presenter {
       await gate();
     }
 
-    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
+    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01)) * this.pace;
     const seenCells = new Set<number>();
     // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
     this.moteTime = Math.min(0.16, stepDelay * 0.85);
@@ -446,7 +463,7 @@ export class Presenter {
     floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
     this.scene.svc.haptics.play('countMult');
     this.audio.count(steps.length + 2, 'light');
-    await this.wait(0.35);
+    await this.wait(0.35 * this.pace);
   }
 
   /** Шаги уровня хода: цепь креста, ×множители Знамений хода. */
@@ -476,7 +493,12 @@ export class Presenter {
         this.audio.count(10 + i, 'xmult');
         this.scene.svc.haptics.play('countX');
         shake(this.world, 0.25);
-        await this.wait(0.45);
+        // Крест — ещё одно кольцо, розовое, как множитель: двойная линия — двойной счёт
+        if (this.flare && step.source.kind === 'chain') {
+          const lb = scene.layout.board;
+          shockwave(this.world, { x: lb.x + lb.w / 2, y: lb.y + lb.h / 2 }, Math.hypot(lb.w, lb.h) * 0.8, 'rgba(255,107,139,0.9)', 0.6 / this.speed);
+        }
+        await this.wait(0.45 * this.pace);
       }
     }
   }
@@ -561,7 +583,7 @@ export class Presenter {
     const target = this.scene.hud.scoreAnchor();
     const layer = document.getElementById('ui')!;
     const unique = [...new Set(cells)];
-    const dur = 520 / this.speed;
+    const dur = (this.flare ? 380 : 520) / this.speed;
     const jobs: Promise<void>[] = [];
     unique.forEach((cell, i) => {
       const from = this.cellPos(cell);
