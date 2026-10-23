@@ -1,4 +1,5 @@
 import { BODY_FONT, DISPLAY_FONT } from '@/art/palette';
+import type { Entity } from '@/engine/ecs';
 import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
 import type { GameWorld } from './context';
 import { drawParticle } from './systems/particles';
@@ -128,7 +129,8 @@ function inside(world: GameWorld, x: number, y: number, text: string, size: numb
 }
 
 /** Всплывающий текст: «+12», «×2», «ПАРА». Поднимается и тает; рисуется поверх интерфейса. */
-export function floatText(world: GameWorld, px: number, py: number, text: string, opts: FloatTextOptions = {}): void {
+/** Всплывающая надпись; возвращает её сущность — следующую можно поставить вместо этой. */
+export function floatText(world: GameWorld, px: number, py: number, text: string, opts: FloatTextOptions = {}): Entity {
   const [x, y] = inside(world, px, py, text, opts.size ?? (opts.punch ? 30 : 22), opts.rise ?? (opts.punch ? 26 : 36));
   if (opts.punch) return punchText(world, x, y, text, opts);
   const size = opts.size ?? 22;
@@ -165,10 +167,11 @@ export function floatText(world: GameWorld, px: number, py: number, text: string
   void tweens.to(t, { scale: 1 }, { duration: 0.25 / world.res.speed, ease: 'outBack' });
   void tweens.to(t, { y: y - (opts.rise ?? 36) }, { duration: life, ease: 'outCubic' });
   void tweens.to(t, { alpha: 0 }, { duration: life * 0.35, delay: life * 0.65, ease: 'inQuad' });
+  return e;
 }
 
 /** Цифра подсчёта с ударом — см. FloatTextOptions.punch. */
-function punchText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions): void {
+function punchText(world: GameWorld, x: number, y: number, text: string, opts: FloatTextOptions): Entity {
   const size = opts.size ?? 30;
   const speed = world.res.speed;
   const life = (opts.life ?? 1) / speed;
@@ -226,6 +229,7 @@ function punchText(world: GameWorld, x: number, y: number, text: string, opts: F
   // Замирает на 45 % жизни, потом всплывает и тает
   void tweens.to(t, { y: y - (opts.rise ?? 26) }, { duration: life * 0.55, delay: life * 0.45, ease: 'inOutQuad' });
   void tweens.to(t, { alpha: 0 }, { duration: life * 0.3, delay: life * 0.7, ease: 'inQuad' });
+  return e;
 }
 
 /** Вспышка всего экрана — для крупных ходов. */
