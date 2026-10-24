@@ -1,5 +1,6 @@
 import type { Lang } from '@/i18n';
 import type { Platform } from './types';
+import { FEATURES } from './features';
 
 type AdType = 'midgame' | 'rewarded';
 
@@ -61,6 +62,8 @@ export class CrazyGamesPlatform implements Platform {
   readonly payments = null;
   /** Атлас и внешний вид бесплатно: покупок на площадке нет. Набор мецената — тоже нет. */
   readonly grants = ['atlas', 'back_comet', 'back_aurora', 'sky_aurora', 'sky_ember'] as const;
+  /** Всё новое 0.7.4 включено: проверка CrazyGames смотрит на первые минуты (CQ). */
+  readonly features = FEATURES;
   private sdk: CGSDK | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
   private muteListeners: ((muted: boolean) => void)[] = [];

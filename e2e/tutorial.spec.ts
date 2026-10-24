@@ -61,7 +61,7 @@ test('обучение: нить к цели, подсказка не закры
   const failures: string[] = [];
   await check(page, 'обзор', failures);
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/32-tut-board.png` });
-  await page.click('.tut-next');
+  await page.click('.tut-next:not(.ghost)');
   const steps: [string, number][] = [['3s', 12], ['3m', 13], ['7t', 14]];
   for (const [i, [code, cell]] of steps.entries()) {
     await page.waitForSelector('.tut-bubble.on');
@@ -69,13 +69,13 @@ test('обучение: нить к цели, подсказка не закры
     if (i === 0) await page.screenshot({ path: `e2e-results/${test.info().project.name}/33-tut-place.png` });
     await place(page, code, cell);
   }
-  await page.waitForSelector('.tut-bubble.on .tut-next');
+  await page.waitForSelector('.tut-bubble.on .tut-next:not(.ghost)');
   await check(page, 'почти линия', failures);
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34-tut-almost.png` });
 
   // Формула подсчёта (TU.3): подсказка над линией без нити через экран, не закрывает ни
   // линию, ни формулу; под формулой — база Пары и фишки четырёх карт
-  await page.click('.tut-next');
+  await page.click('.tut-next:not(.ghost)');
   await page.waitForSelector('.tut-bubble.on');
   // Подсчёт ждёт «Далее» — не ждём конца хода
   await page.evaluate(() => {
@@ -84,7 +84,7 @@ test('обучение: нить к цели, подсказка не закры
     void w.__scene.place(i, 15);
   });
   await page.waitForSelector('.calc.show');
-  await page.waitForSelector('.tut-bubble.on .tut-next');
+  await page.waitForSelector('.tut-bubble.on .tut-next:not(.ghost)');
   await page.waitForTimeout(700);
   const formula = await page.evaluate(() => {
     const w = window as unknown as W & { __scene: { cellsRect(c: number[]): Rect } };
@@ -103,7 +103,7 @@ test('обучение: нить к цели, подсказка не закры
   expect(formula).toEqual({ thread: false, onLine: false, onCalc: false, onHand: false, parts: ['база: Пара10×2', '+3', '+3', '+7', '+5'], dim: 4 });
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34b-tut-formula.png` });
   // После «Далее» фишки карт загораются по очереди
-  await page.click('.tut-bubble.on .tut-next');
+  await page.click('.tut-bubble.on .tut-next:not(.ghost)');
   await page.waitForFunction(() => document.querySelectorAll('.calc-part.dim').length === 0, null, { timeout: 20_000 });
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/34c-tut-parts.png` });
   expect(failures).toEqual([]);
@@ -127,10 +127,141 @@ test('обучение: нить к цели, подсказка не закры
   expect(errors).toEqual([]);
 });
 
+test('«Пропустить» не встаёт на место «Далее»; пропуск в Обсерватории бережёт золото и пройденное (CQ.2)', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as Partial<W>).starweave && !!document.querySelector('.menu-buttons .btn'));
+  await page.evaluate(() => (window as unknown as W).starweave.runs.startTutorial());
+
+  // «Пропустить» от правого края подсказки: с «Далее» и без неё — одно и то же место
+  const skipAt = () => page.evaluate(() => {
+    const r = document.querySelector('.tut-bubble.on .tut-skip')!.getBoundingClientRect();
+    return Math.round(document.querySelector('.tut-bubble.on')!.getBoundingClientRect().right - r.right);
+  });
+  await firstNight(page);
+  await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
+  await page.click('.btn.tut-allow');
+
+  // Обсерватория: шаг с «Далее», затем «купи Знамение» — без неё
+  await page.waitForSelector('.tut-bubble.on .tut-next:not(.ghost)', { timeout: 20_000 });
+  await page.waitForTimeout(400);
+  const before = await skipAt();
+  await next(page);
+  await page.waitForSelector('[data-shop="omen-0"] .btn.tut-allow');
+  await page.waitForTimeout(400);
+  expect(await page.locator('.tut-bubble.on .tut-next.ghost').count(), 'место «Далее» занято пустышкой').toBe(1);
+  expect(await skipAt(), '«Пропустить» не съехало').toBe(before);
+
+  const gold = await page.evaluate(() => (window as unknown as { starweave: { run: { gold: number; reward?: { total: number } } } }).starweave.run.gold);
+  await page.click('.tut-bubble.on .tut-skip');
+  await page.waitForSelector('.menu-buttons .btn');
+  const profile = await page.evaluate(() => (window as unknown as { starweave: { profile: { tutorial: string[]; tutorialGift?: { gold: number } } } }).starweave.profile);
+  expect(profile.tutorialGift?.gold ?? 0, 'золото обучения ждёт первого забега').toBeGreaterThanOrEqual(gold);
+  expect(profile.tutorial, 'пройденное в обучении не повторяется').toEqual(expect.arrayContaining(['place', 'fillLine', 'target', 'combos', 'burn', 'cross', 'shop']));
+  expect(errors).toEqual([]);
+});
+
+test('первый запуск с quickStart: без меню сразу обучение, после первой ночи сразу забег (CQ.3)', async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  type P = { starweave: { run: { tutorial?: boolean; phase: string; ante: number; gold: number } | null; profile: { tutorialDone: boolean; tutorialFinished?: boolean; tutorial: string[]; tutorialGift?: { gold: number } } } };
+  await page.goto('/?ff=quickStart');
+  // Меню не показывается: первым на экране — обучение
+  await page.waitForSelector('.tut-bubble.on', { timeout: 20_000 });
+  expect(await page.locator('.menu-buttons').count(), 'меню не открывалось').toBe(0);
+  await firstNight(page);
+  await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
+  // Полоса прогресса к концу ночи заполнена: обучение — одна ночь
+  const ticks = await page.evaluate(() => [document.querySelectorAll('.tut-ticks i.on').length, document.querySelectorAll('.tut-ticks i').length]);
+  expect(ticks[0], 'полоса обучения заполнена').toBe(ticks[1]);
+  await page.click('.btn.tut-allow');
+  await page.waitForSelector('.tut-done .tut-chain');
+  const done = await page.evaluate(() => ({
+    steps: document.querySelectorAll('.tut-chain > span').length,
+    gift: !!document.querySelector('.tut-gift'),
+    shop: document.querySelector('.shop-screen, [data-shop]') !== null,
+  }));
+  expect(done, 'четыре приёма, золото с собой, Обсерватории не было').toEqual({ steps: 4, gift: true, shop: false });
+  const gift = await page.evaluate(() => (window as unknown as P).starweave.profile.tutorialGift!.gold);
+  await page.click('.tut-done-acts .btn:last-child');
+  await page.waitForSelector('.hud');
+  await page.waitForTimeout(600);
+  const state = await page.evaluate(() => {
+    const a = (window as unknown as P).starweave;
+    return { tutorial: !!a.run?.tutorial, phase: a.run?.phase, ante: a.run?.ante, gold: a.run?.gold ?? 0, done: a.profile.tutorialDone, finished: !!a.profile.tutorialFinished, shopHint: a.profile.tutorial.includes('shop') };
+  });
+  expect(state, 'первая ночь настоящего забега; подсказка Обсерватории ещё впереди').toMatchObject({ tutorial: false, phase: 'night', ante: 1, done: true, finished: false, shopHint: false });
+  expect(state.gold).toBeGreaterThanOrEqual(gift);
+  expect(errors).toEqual([]);
+});
+
+test('первый запуск с quickStart: «Пропустить» ведёт в первую ночь, а не в меню (CQ.3)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?ff=quickStart');
+  await page.waitForSelector('.tut-bubble.on .tut-skip', { timeout: 20_000 });
+  await page.click('.tut-bubble.on .tut-skip');
+  await page.waitForSelector('.hud');
+  await page.waitForTimeout(600);
+  const state = await page.evaluate(() => {
+    const a = (window as unknown as { starweave: { run: { tutorial?: boolean; phase: string } | null } }).starweave;
+    return { tutorial: !!a.run?.tutorial, phase: a.run?.phase, menu: !!document.querySelector('.menu-buttons') };
+  });
+  expect(state).toEqual({ tutorial: false, phase: 'night', menu: false });
+  // Перезагрузка: уже не первый запуск — сохранённый забег, а не обучение заново
+  await page.reload();
+  await page.waitForSelector('.menu-buttons .btn');
+  expect(await page.locator('.tut-bubble.on').count()).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('короткая первая ночь, как в сборке CrazyGames: ряд, сжечь, крест без «Далее» (CQ.4, CQ.6)', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?ff=quickStart,shortTutorial,wideDesktop,brightFlare');
+  // Каждые 100 мс: не появилась ли настоящая кнопка «Далее»
+  await page.evaluate(() => {
+    const w = window as unknown as { __sawNext?: boolean };
+    setInterval(() => { if (document.querySelector('.tut-bubble.on .tut-next:not(.ghost)')) w.__sawNext = true; }, 100);
+  });
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Собери ряд'), null, { timeout: 20_000 });
+  const rowText = await page.locator('.tut-bubble.on .tut-text').textContent();
+  for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
+    await place(page, code, cell);
+    // Ряд под одной подсказкой: после хода она та же и на экране
+    expect(await page.locator('.tut-bubble.on .tut-text').textContent(), 'подсказка ряда не меняется').toBe(rowText);
+  }
+  await place(page, '5c', 15);
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Сжечь'), null, { timeout: 30_000 });
+  await page.evaluate(async () => {
+    const w = window as unknown as W & { __scene: { select(i: number): void; burnSelected(): Promise<void> } };
+    w.__scene.select(w.starweave.run.night.hand.findIndex((c) => c.rank === 1 && c.suit === 'moon'));
+    await w.__scene.burnSelected();
+  });
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('×2'), null, { timeout: 30_000 });
+  await place(page, '9t', 3);
+  await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
+  const ticks = await page.evaluate(() => [document.querySelectorAll('.tut-ticks i.on').length, document.querySelectorAll('.tut-ticks i').length]);
+  expect(ticks[0], 'полоса обучения заполнена').toBe(ticks[1]);
+  expect(await page.evaluate(() => !!(window as unknown as { __sawNext?: boolean }).__sawNext), 'ни одной кнопки «Далее»').toBe(false);
+  await page.click('.btn.tut-allow');
+  await page.waitForSelector('.tut-done .tut-chain');
+  expect(await page.locator('.tut-chain > span').count(), 'четыре приёма').toBe(4);
+  const taught = await page.evaluate(() => (window as unknown as { starweave: { profile: { tutorial: string[] } } }).starweave.profile.tutorial);
+  expect(taught, 'пройденное отмечено').toEqual(expect.arrayContaining(['place', 'fillLine', 'burn', 'cross']));
+  expect(taught, 'цель и «?» объяснят подсказки забега').not.toEqual(expect.arrayContaining(['target']));
+  expect(taught).not.toEqual(expect.arrayContaining(['combos']));
+  expect(errors).toEqual([]);
+});
+
 /** Нажать «Далее» в подсказке, когда она появится. */
 async function next(page: Page): Promise<void> {
-  await page.waitForSelector('.tut-bubble.on .tut-next', { timeout: 20_000 });
-  await page.click('.tut-bubble.on .tut-next');
+  await page.waitForSelector('.tut-bubble.on .tut-next:not(.ghost)', { timeout: 20_000 });
+  await page.click('.tut-bubble.on .tut-next:not(.ghost)');
 }
 
 test('обучение до второй ночи: награда без подсказки, Знамение не закрыто (TU.1, TU.2)', async ({ page }) => {
@@ -143,43 +274,7 @@ test('обучение до второй ночи: награда без под�
   const failures: string[] = [];
   const dir = `e2e-results/${test.info().project.name}`;
 
-  await next(page); // обзор
-  // Шапка ночи заперта: «?», меню и колода не открываются посреди шага
-  const hudLocked = await page.evaluate(() => ['.icon-btn.q', '.hud .icon-btn.medal:not(.q)', '.deck-btn'].map((sel) => {
-    const el = document.querySelector(sel)!;
-    const r = el.getBoundingClientRect();
-    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
-  }));
-  expect(hudLocked, '«?», меню и колода не нажимаются').toEqual([false, false, false]);
-  for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
-    await page.waitForSelector('.tut-bubble.on');
-    await place(page, code, cell);
-  }
-  await next(page); // почти линия
-  // Первый подсчёт ждёт «Далее» у формулы
-  await page.evaluate(() => {
-    const w = window as unknown as W;
-    const i = w.starweave.run.night.hand.findIndex((c) => c.rank === 5 && c.suit === 'comet');
-    void w.__scene.place(i, 15);
-  });
-  await page.waitForSelector('.calc.show');
-  await next(page);
-  await page.waitForFunction(() => !(window as unknown as W).__scene.busy, null, { timeout: 20_000 });
-  await next(page); // цель
-  await next(page); // «?»
-  // Сжечь единицу
-  await page.waitForSelector('.tut-bubble.on');
-  await page.evaluate(async () => {
-    const w = window as unknown as W & { __scene: { select(i: number): void; burnSelected(): Promise<void> } };
-    w.__scene.select(w.starweave.run.night.hand.findIndex((c) => c.rank === 1 && c.suit === 'moon'));
-    await w.__scene.burnSelected();
-  });
-  await next(page); // главный приём — дальше раскладывает сам
-  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Комет'), null, { timeout: 30_000 });
-  await place(page, '4c', 15);
-  await next(page); // клетка ×2
-  await page.waitForSelector('.tut-bubble.on');
-  await place(page, '9t', 3);
+  await firstNight(page);
 
   // Награда: подсказки и нити нет, светится только «Забрать»
   await page.waitForSelector('.btn.tut-allow', { timeout: 30_000 });
@@ -219,3 +314,44 @@ test('обучение до второй ночи: награда без под�
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/** Первая ночь обучения: обзор, Пара, формула, сжигание, крест — до окна награды. */
+async function firstNight(page: Page): Promise<void> {
+  await next(page); // обзор
+  // Шапка ночи заперта: «?», меню и колода не открываются посреди шага
+  const hudLocked = await page.evaluate(() => ['.icon-btn.q', '.hud .icon-btn.medal:not(.q)', '.deck-btn'].map((sel) => {
+    const el = document.querySelector(sel)!;
+    const r = el.getBoundingClientRect();
+    return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+  }));
+  expect(hudLocked, '«?», меню и колода не нажимаются').toEqual([false, false, false]);
+  for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
+    await page.waitForSelector('.tut-bubble.on');
+    await place(page, code, cell);
+  }
+  await next(page); // почти линия
+  // Первый подсчёт ждёт «Далее» у формулы
+  await page.evaluate(() => {
+    const w = window as unknown as W;
+    const i = w.starweave.run.night.hand.findIndex((c) => c.rank === 5 && c.suit === 'comet');
+    void w.__scene.place(i, 15);
+  });
+  await page.waitForSelector('.calc.show');
+  await next(page);
+  await page.waitForFunction(() => !(window as unknown as W).__scene.busy, null, { timeout: 20_000 });
+  await next(page); // цель
+  await next(page); // «?»
+  // Сжечь единицу
+  await page.waitForSelector('.tut-bubble.on');
+  await page.evaluate(async () => {
+    const w = window as unknown as W & { __scene: { select(i: number): void; burnSelected(): Promise<void> } };
+    w.__scene.select(w.starweave.run.night.hand.findIndex((c) => c.rank === 1 && c.suit === 'moon'));
+    await w.__scene.burnSelected();
+  });
+  await next(page); // главный приём — дальше раскладывает сам
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('Комет'), null, { timeout: 30_000 });
+  await place(page, '4c', 15);
+  await next(page); // клетка ×2
+  await page.waitForSelector('.tut-bubble.on');
+  await place(page, '9t', 3);
+}

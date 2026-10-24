@@ -4,7 +4,7 @@ import { SUIT_COLORS, rgba } from '@/art/palette';
 import type { Card } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import { CardView, Drawable, Hit, Layer, Transform, transform } from '../components';
-import { computeLayout, handPositions, isLandscape, type PlayArea } from '../layout';
+import { computeLayout, handPositions, isLandscape, isWideDesktop, type PlayArea } from '../layout';
 import type { CellState, NightScene } from './scene';
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -22,22 +22,44 @@ export class BoardView {
     const safe = safeInsets();
     const landscape = isLandscape(width, height);
     document.body.classList.toggle('landscape', landscape);
+    // Широкий ПК (CQ.5): табло и кнопки растут с окном (`--ui-k`) и стоят у неба одним блоком
+    const wide = !!this.scene.hooks.wide && isWideDesktop(width, height);
+    const k = wide ? Math.max(1, Math.min(1.6, height / 700, width / 1200)) : 1;
+    const root = document.documentElement.style;
+    root.setProperty('--ui-k', String(k));
+    document.body.classList.toggle('pc-wide', wide);
     const hud = this.scene.hud.el.getBoundingClientRect();
     const actions = this.scene.hud.actions.getBoundingClientRect();
     const area: PlayArea = landscape
-      ? { top: safe.top, bottom: height - safe.bottom, left: Math.max(hud.right, actions.right), right: width }
+      ? { top: safe.top, bottom: height - safe.bottom, left: wide ? 0 : Math.max(hud.right, actions.right), right: width }
       : { top: hud.bottom || safe.top + 168, bottom: actions.top || height - safe.bottom - 64, left: 0, right: width };
-    this.scene.layout = computeLayout(width, height, this.scene.night.rules.gridSize, area);
-    const root = document.documentElement.style;
+    this.scene.layout = computeLayout(width, height, this.scene.night.rules.gridSize, area, wide ? { dock: Math.max(hud.width, actions.width) } : null);
+    const { board, hudX } = this.scene.layout;
+    if (hudX !== null) {
+      // Табло встаёт вровень с верхом неба, кнопки — с низом; значения делятся на `zoom` панели
+      root.setProperty('--hud-left', `${hudX / k}px`);
+      root.setProperty('--hud-top', `${Math.max(safe.top, board.y) / k}px`);
+      root.setProperty('--actions-bottom', `${Math.max(safe.bottom, height - board.y - board.h) / k}px`);
+    }
+    if (wide) {
+      // Созвездия — между рамой и кнопками; не влезают целиком (окно 907×510) — колонка пустая
+      const list = this.scene.hud.combos;
+      const frameEl = this.scene.hud.el.querySelector('.hud-frame')!.getBoundingClientRect();
+      const free = height - Math.max(safe.bottom, height - board.y - board.h) - 46 * k - 16 * k - frameEl.bottom - 12 * k;
+      root.setProperty('--combos-h', `${Math.max(0, free) / k}px`);
+      list.classList.remove('cut');
+      list.classList.toggle('cut', list.scrollHeight > list.clientHeight + 1);
+    }
     root.setProperty('--board-top', `${this.scene.layout.board.y}px`);
     root.setProperty('--board-cx', `${this.scene.layout.board.x + this.scene.layout.board.w / 2}px`);
     // Лоток подсчёта («Рама»): в портрете — над рукой, прямо над кнопками; вспыхнувшие
     // карты он не закрывает. В ландшафте и на ПК — в колонке под рамой табло.
     const frame = this.scene.hud.el.querySelector('.hud-frame')?.getBoundingClientRect() ?? hud;
     if (landscape) {
-      root.setProperty('--calc-top', `${frame.bottom + 12}px`);
-      root.setProperty('--calc-cx', `${frame.left + frame.width / 2}px`);
-      root.setProperty('--calc-w', `${frame.width}px`);
+      // Лоток в `zoom` вместе с табло: его координаты — в единицах до увеличения
+      root.setProperty('--calc-top', `${(frame.bottom + 12) / k}px`);
+      root.setProperty('--calc-cx', `${(frame.left + frame.width / 2) / k}px`);
+      root.setProperty('--calc-w', `${frame.width / k}px`);
     } else {
       root.setProperty('--calc-bottom', `${Math.max(0, height - (actions.top || height - safe.bottom - 64)) + 8}px`);
       root.setProperty('--calc-cx', `${this.scene.layout.board.x + this.scene.layout.board.w / 2}px`);
@@ -156,13 +178,15 @@ export class BoardView {
       ctx.stroke();
       return;
     }
-    ctx.fillStyle = `rgba(30,26,80,${0.28 + s.hover * 0.25})`;
+    // Широкий ПК (CQ.5): пустое небо видно с первого взгляда — клетка плотнее, кромка сплошная
+    const wide = this.scene.layout.wide;
+    ctx.fillStyle = `rgba(30,26,80,${(wide ? 0.42 : 0.28) + s.hover * 0.25})`;
     ctx.fill();
     const pulse = 0.5 + 0.5 * Math.sin(time * 4);
-    const a = 0.16 + s.avail * (0.22 + pulse * 0.18) + s.hover * 0.4;
+    const a = (wide ? 0.3 : 0.16) + s.avail * (0.22 + pulse * 0.18) + s.hover * 0.4;
     ctx.strokeStyle = `rgba(170,160,255,${a})`;
     ctx.lineWidth = 1 + s.hover;
-    ctx.setLineDash([4, 5]);
+    if (!wide) ctx.setLineDash([4, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
     // Звёздочки по углам клетки

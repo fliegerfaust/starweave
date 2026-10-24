@@ -23,7 +23,21 @@ interface ToneOptions {
   slideTo?: number;
   detune?: number;
   wet?: number;
+  /** Срез фильтра низких частот (Гц) — тёплые пэды и маримба. */
+  lowpass?: number;
 }
+
+/** Нота по полутонам от до первой октавы. */
+const semi = (n: number) => 261.63 * 2 ** (n / 12);
+/** Аккорды Am – F – C – G: тоны (полутона от до) и бас. */
+const CHORDS: { tones: number[]; bass: number }[] = [
+  { tones: [-3, 0, 4], bass: -15 },
+  { tones: [-7, -3, 0], bass: -19 },
+  { tones: [-5, 0, 4], bass: -24 },
+  { tones: [-5, -1, 2], bass: -17 },
+];
+/** Восьмая при 72 ударах в минуту. */
+const EIGHTH = 60 / 72 / 2;
 
 export class Synth {
   private ctx: BaseAudioContext | null = null;
@@ -37,6 +51,11 @@ export class Synth {
   private musicTimer: number | null = null;
   private musicStep = 0;
 
+  /**
+   * Звучание «Обсерватория» (CQ.7, переключатель `music`, выбор Дениса): колокольчики с неровным
+   * обертоном, войлочный стук карты, пэд и челеста по аккордам. false — прежние звуки и эмбиент.
+   */
+  voice = false;
   sfxVolume = 0.8;
   musicVolume = 0.4;
 
@@ -137,7 +156,12 @@ export class Synth {
     env.gain.setValueAtTime(0, t0);
     env.gain.linearRampToValueAtTime(peak, t0 + attack);
     env.gain.exponentialRampToValueAtTime(0.0001, t0 + o.duration);
-    osc.connect(env);
+    if (o.lowpass) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = o.lowpass;
+      osc.connect(lp).connect(env);
+    } else osc.connect(env);
     env.connect(bus);
     if ((o.wet ?? 0.5) > 0) {
       const send = ctx.createGain();
@@ -148,7 +172,7 @@ export class Synth {
     osc.stop(t0 + o.duration + 0.05);
   }
 
-  private noise(duration: number, from: number, to: number, gain = 0.15, delay = 0, q = 1): void {
+  private noise(duration: number, from: number, to: number, gain = 0.15, delay = 0, q = 1, kind: BiquadFilterType = 'bandpass'): void {
     const ctx = this.ctx;
     if (!ctx) return;
     const t0 = this.now() + delay;
@@ -156,7 +180,7 @@ export class Synth {
     const src = ctx.createBufferSource();
     src.buffer = this.noiseBuffer;
     const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
+    filter.type = kind;
     filter.Q.value = q;
     filter.frequency.setValueAtTime(from, t0);
     filter.frequency.exponentialRampToValueAtTime(to, t0 + duration);
@@ -175,6 +199,14 @@ export class Synth {
   /** Колокольчик для карты: высота по рангу. */
   bell(rank: number, delay = 0): void {
     const f = pentatonicFreq(rank + 4);
+    if (this.voice) {
+      // Колокольчик: неровный обертон 2,76 гаснет быстрее основы; под ним — войлочный стук карты
+      this.tone({ freq: f, duration: 1.6, gain: 0.13, delay, wet: 0.55 });
+      this.tone({ freq: f * 2.76, duration: 0.5, gain: 0.04, delay, wet: 0.5 });
+      this.tone({ freq: f * 5.4, duration: 0.18, gain: 0.012, delay, wet: 0.4 });
+      this.noise(0.09, 500, 180, 0.07, delay, 0.7, 'lowpass');
+      return;
+    }
     this.tone({ freq: f, duration: 1.2, type: 'sine', gain: 0.16, delay });
     this.tone({ freq: f * 2.01, duration: 0.6, type: 'sine', gain: 0.05, delay });
     this.tone({ freq: f * 3.98, duration: 0.25, type: 'triangle', gain: 0.02, delay });
@@ -189,12 +221,19 @@ export class Synth {
   }
 
   pickup(): void {
+    if (this.voice) {
+      // Карта скользит по сукну: шорох вверх, без писка
+      this.noise(0.14, 1500, 4200, 0.05, 0, 0.8);
+      this.tone({ freq: 520, duration: 0.09, type: 'triangle', gain: 0.025, slideTo: 700, wet: 0.15 });
+      return;
+    }
     this.noise(0.12, 2000, 5000, 0.05);
     this.tone({ freq: 700, duration: 0.08, type: 'triangle', gain: 0.05, slideTo: 1000, wet: 0.1 });
   }
 
   /** Шелест и подъём при вспышке линии. */
   ignite(lines: number): void {
+    if (this.voice) return this.igniteVoice(lines);
     this.noise(0.6, 400, 6000, 0.12, 0, 0.8);
     const root = 6;
     [0, 2, 4, 7].forEach((step, i) => this.tone({ freq: pentatonicFreq(root + step), duration: 1.4, gain: 0.07, delay: i * 0.05 }));
@@ -204,6 +243,11 @@ export class Synth {
   /** Блип подсчёта: высота растёт с номером шага. */
   count(step: number, kind: 'light' | 'mult' | 'xmult' | 'gold' = 'light'): void {
     const f = pentatonicFreq(8 + Math.min(step, 14));
+    if (this.voice && kind === 'light') {
+      // Шаг подсчёта — стеклянная нота, выше с каждым шагом
+      this.tone({ freq: f * 2, duration: 0.3, gain: 0.045, wet: 0.45 });
+      return;
+    }
     if (kind === 'light') this.tone({ freq: f, duration: 0.18, type: 'triangle', gain: 0.07, wet: 0.2 });
     else if (kind === 'mult') {
       this.tone({ freq: f / 2, duration: 0.3, type: 'sawtooth', gain: 0.04, wet: 0.3 });
@@ -222,6 +266,13 @@ export class Synth {
   /** Итог хода влетает в счёт: чем больше, тем ниже и мощнее. */
   impact(power: number): void {
     const p = Math.min(1, power);
+    if (this.voice) {
+      // Удар в счёт: глубокий саб без щелчка, мягкий шум и звёздный хвост
+      this.tone({ freq: 70 - p * 20, duration: 0.7 + p * 0.6, gain: 0.3 + p * 0.15, slideTo: 36, wet: 0.15, attack: 0.008 });
+      this.noise(0.5 + p * 0.4, 1800, 200, 0.06 + p * 0.06, 0, 0.6, 'lowpass');
+      [0, 4, 7].forEach((st, i) => this.tone({ freq: semi(24 + st), duration: 1.4, gain: 0.025 + p * 0.02, delay: 0.05 + i * 0.06, wet: 0.8 }));
+      return;
+    }
     this.tone({ freq: 90 - p * 30, duration: 0.5 + p * 0.5, type: 'sine', gain: 0.25 + p * 0.15, slideTo: 40, wet: 0.2 });
     this.noise(0.4 + p * 0.4, 3000, 300, 0.08 + p * 0.08);
   }
@@ -253,9 +304,52 @@ export class Synth {
     [7, 4, 2, 0].forEach((s, i) => this.tone({ freq: pentatonicFreq(4 + s) * 0.94, duration: 1.4, type: 'triangle', gain: 0.08, delay: i * 0.22 }));
   }
 
+  /** Вспышка линии: восходящий аккорд колоколов, у креста — выше и шире. */
+  private igniteVoice(lines: number): void {
+    this.noise(0.7, 300, 5000, 0.09, 0, 0.7);
+    const steps = lines >= 2 ? [0, 4, 7, 12, 16, 19] : [0, 4, 7, 12];
+    steps.forEach((st, i) => {
+      const f = semi(12 + st);
+      const delay = i * 0.05;
+      this.tone({ freq: f, duration: 1.8, gain: 0.06, delay, wet: 0.7 });
+      this.tone({ freq: f * 2.76, duration: 0.5, gain: 0.015, delay, wet: 0.6 });
+    });
+  }
+
+  /** Музыка: такт из восьми восьмых, аккорд Am–F–C–G меняется каждый такт. */
+  private musicVoice(s: number): void {
+    const bar = Math.floor(s / 8);
+    const beat = s % 8;
+    const chord = CHORDS[bar % CHORDS.length]!;
+    const barLen = EIGHTH * 8;
+    const m = this.music;
+    if (beat === 0) {
+      // Пэд: две слегка расстроенные волны на тон аккорда, медленная атака, тёплый фильтр
+      for (const tn of chord.tones) {
+        for (const det of [-7, 7]) this.tone({ freq: semi(tn), duration: barLen + 0.8, type: 'triangle', gain: 0.016, attack: barLen * 0.35, detune: det, wet: 0.7, lowpass: 1300 }, m);
+      }
+      this.tone({ freq: semi(chord.bass), duration: barLen, gain: 0.07, attack: 0.4, wet: 0.3, lowpass: 400 }, m);
+    }
+    if ([0, 3, 5, 6].includes(beat)) {
+      // Челеста: тон аккорда на две октавы выше, по сетке, а не наугад
+      const tn = chord.tones[(bar + beat) % chord.tones.length]! + 24;
+      this.tone({ freq: semi(tn), duration: 1.6, gain: 0.022, wet: 0.85 }, m);
+      this.tone({ freq: semi(tn) * 2.76, duration: 0.3, gain: 0.005, wet: 0.8 }, m);
+    }
+  }
+
   /** Тихий генеративный эмбиент: редкие колокольчики и бас-гудение. */
   startMusic(): void {
     if (!this.ctx || this.musicTimer !== null) return;
+    if (this.voice) {
+      const play = () => {
+        if (!this.ctx || this.musicVolume <= 0) return;
+        this.musicVoice(this.musicStep++);
+      };
+      play();
+      this.musicTimer = window.setInterval(play, EIGHTH * 1000);
+      return;
+    }
     const playStep = () => {
       if (!this.ctx || this.musicVolume <= 0) return;
       const s = this.musicStep++;

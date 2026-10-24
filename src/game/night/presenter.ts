@@ -8,6 +8,7 @@ import { toast } from '@/ui/widgets';
 import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
+import { shockwave } from './flare';
 import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
@@ -36,6 +37,12 @@ export class Presenter {
 
   /** Касание во время подсчёта ускоряет его до конца хода (долгий крест не держит игрока). */
   hurry = 1;
+  /** Яркая вспышка и быстрый подсчёт (CQ.6, `brightFlare`): волны света по небу. */
+  flare = false;
+  /** Темп подсчёта: с яркой вспышкой паузы короче, чтобы удар не тонул в ожидании. */
+  private get pace(): number {
+    return this.flare ? 0.6 : 1;
+  }
 
   private get speed() {
     return this.world.res.speed * this.hurry;
@@ -392,10 +399,20 @@ export class Presenter {
     await drawn;
     // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
     fx.state.breathe = true;
+    if (this.flare) {
+      // Волна света от центра линии до края неба; второе кольцо — чуть позже и тише
+      const { board } = this.scene.layout;
+      const reach = Math.hypot(board.w, board.h) * 0.75;
+      shockwave(this.world, center, reach, color, 0.7 / this.speed);
+      shockwave(this.world, center, reach * 0.7, 'rgba(255,236,190,0.8)', 0.55 / this.speed, 0.08 / this.speed);
+      flash(this.world, '255,240,200', 0.32, 0.4);
+      shake(this.world, 0.26);
+    } else {
+      flash(this.world, '255,240,200', 0.22, 0.4);
+      shake(this.world, 0.14);
+    }
     hud.showRibbon(t(`combo.${line.combo}`), dict().comboDesc[line.combo] ?? '', center.y);
-    flash(this.world, '255,240,200', 0.22, 0.4);
-    shake(this.world, 0.14);
-    await this.wait(0.9);
+    await this.wait(this.flare ? 0.55 : 0.9);
     // Лента уходит — линия рассыпается звёздной пылью и гаснет, карты тихо светятся
     hud.hideRibbon();
     this.dissolveLine(line, fx.state);
@@ -423,7 +440,7 @@ export class Presenter {
         ? { text: `${s.light > 0 ? '+' : ''}${num(s.light)}`, kind: 'light' as const }
         : { text: s.xMult !== undefined ? `×${fmtX(s.xMult)}` : `+${num(s.mult ?? 0)}`, kind: 'mult' as const })));
     }
-    await this.wait(0.3);
+    await this.wait(0.3 * this.pace);
     // Обучение может придержать подсчёт на открытой формуле, пока игрок читает
     const gate = this.scoringGate;
     if (gate) {
@@ -431,7 +448,7 @@ export class Presenter {
       await gate();
     }
 
-    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01));
+    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01)) * this.pace;
     const seenCells = new Set<number>();
     // Длинная цепочка шагов не должна тянуться: искра летит не дольше паузы шага
     this.moteTime = Math.min(0.16, stepDelay * 0.85);
@@ -442,11 +459,11 @@ export class Presenter {
     }
     hud.setCalcTotal(line.total);
     hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
-    // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
-    floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
+    // Итог линии — крупно и с ударом, золотом; это та же одна метка, что у шагов хода: «×2» креста встаёт на её место
+    this.replaceHudLabel(floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true }));
     this.scene.svc.haptics.play('countMult');
     this.audio.count(steps.length + 2, 'light');
-    await this.wait(0.35);
+    await this.wait(0.35 * this.pace);
   }
 
   /** Шаги уровня хода: цепь креста, ×множители Знамений хода. */
@@ -462,10 +479,10 @@ export class Presenter {
         const step = score.steps[i]!;
         const board = scene.layout.board;
         const bc = { x: board.x + board.w / 2, y: board.y + board.h / 2 };
-        let anchor: Pt = bc;
-        if (step.source.kind === 'omen') anchor = hud.pulseOmen(step.source.uid) ?? bc;
+        // Знамение вспыхивает в шапке, а метка — в центре неба, одна: новая вместо прошлой (CQ.10)
+        if (step.source.kind === 'omen') hud.pulseOmen(step.source.uid);
         const label = step.source.kind === 'chain' ? t('night.chain', { n: step.xMult ?? 1 }) : `×${fmtX(step.xMult ?? 1)}`;
-        floatText(this.world, anchor.x, anchor.y + (anchor === bc ? 0 : 30), label, { size: step.source.kind === 'chain' ? 44 : 34, color: UI.mult, life: 1.2, punch: true });
+        this.replaceHudLabel(floatText(this.world, bc.x, bc.y, label, { size: step.source.kind === 'chain' ? 44 : 34, color: UI.mult, life: 1.2, punch: true }));
         hud.setCalc(sum, step.multAfter, 'mult');
         hud.setCalcTotal(Math.floor(sum * step.multAfter));
         hud.setCaption(
@@ -476,7 +493,12 @@ export class Presenter {
         this.audio.count(10 + i, 'xmult');
         this.scene.svc.haptics.play('countX');
         shake(this.world, 0.25);
-        await this.wait(0.45);
+        // Крест — ещё одно кольцо, розовое, как множитель: двойная линия — двойной счёт
+        if (this.flare && step.source.kind === 'chain') {
+          const lb = scene.layout.board;
+          shockwave(this.world, { x: lb.x + lb.w / 2, y: lb.y + lb.h / 2 }, Math.hypot(lb.w, lb.h) * 0.8, 'rgba(255,107,139,0.9)', 0.6 / this.speed);
+        }
+        await this.wait(0.45 * this.pace);
       }
     }
   }
@@ -488,7 +510,8 @@ export class Presenter {
     const target = scene.night.target;
     const board = scene.layout.board;
     if (score.lines.length > 1 || score.xMult !== 1) {
-      floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true });
+      // Итог встаёт на место метки «Цепь ×2» в центре неба, а не поверх неё
+      this.replaceHudLabel(floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true }));
     }
     // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
     hud.hideCalc();
@@ -561,7 +584,7 @@ export class Presenter {
     const target = this.scene.hud.scoreAnchor();
     const layer = document.getElementById('ui')!;
     const unique = [...new Set(cells)];
-    const dur = 520 / this.speed;
+    const dur = (this.flare ? 380 : 520) / this.speed;
     const jobs: Promise<void>[] = [];
     unique.forEach((cell, i) => {
       const from = this.cellPos(cell);
@@ -605,6 +628,8 @@ export class Presenter {
     const hud = scene.hud;
     let anchor: Pt | null = null;
     let cardEntity: Entity | undefined;
+    /** Откуда летит искра в формулу: от Знамения или Затмения, хоть метка и на небе. */
+    let moteFrom: Pt | null = null;
     const src = step.source;
     if (src.kind === 'card' || src.kind === 'glyph') {
       anchor = this.cellPos(src.cell);
@@ -614,12 +639,13 @@ export class Presenter {
       if (src.cell !== undefined) {
         anchor = this.cellPos(src.cell);
         cardEntity = this.cardEntityAt(src.cell);
-      } else anchor = omenPos ? { x: omenPos.x, y: omenPos.y + 26 } : null;
-    } else if (src.kind === 'boss') {
-      const b = hud.bossAnchor();
-      anchor = { x: b.x, y: b.y + 26 };
-    }
-    anchor ??= { x: scene.layout.board.x + scene.layout.board.w / 2, y: scene.layout.board.y };
+      } else moteFrom = omenPos;
+    } else if (src.kind === 'boss') moteFrom = hud.bossAnchor();
+    // Метка Знамения или Затмения без своей карты — в центре неба: под шапкой она ложилась на
+    // лоток подсчёта (ландшафт) и на цифры верхнего ряда карт (телефон) (CQ.10)
+    const fromHud = !anchor;
+    const board = scene.layout.board;
+    anchor ??= { x: board.x + board.w / 2, y: board.y + board.h / 2 };
 
     if (cardEntity !== undefined) {
       const tr = this.world.req(cardEntity, Transform);
@@ -652,7 +678,8 @@ export class Presenter {
     const offY = cardEntity !== undefined ? -scene.layout.cardH * 0.5 : 0;
     // Цифра по размеру карты: на телефоне крупнее прежнего, на ПК не раздувается
     const size = Math.round(Math.min(40, Math.max(28, scene.layout.cardH * 0.36)) * (kind === 'xmult' ? 1.2 : 1));
-    floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
+    const label = floatText(this.world, anchor.x, anchor.y + offY, text, { size, color, life: 1.05, punch: true });
+    if (fromHud) this.replaceHudLabel(label);
     this.audio.count(index, kind);
     this.scene.svc.haptics.play(kind === 'xmult' ? 'countX' : kind === 'mult' ? 'countMult' : 'count');
     if (kind === 'xmult') shake(this.world, 0.15);
@@ -668,8 +695,15 @@ export class Presenter {
       hud.setCalc(step.lightAfter, step.multAfter, flashCell);
       return;
     }
-    await this.mote({ x: anchor.x, y: anchor.y + offY }, to, color);
+    await this.mote(moteFrom ?? { x: anchor.x, y: anchor.y + offY }, to, color);
     hud.setCalc(step.lightAfter, step.multAfter, flashCell);
+  }
+
+  /** Метка из шапки (Знамение, Затмение, цепь креста) в центре неба — одна: новая вместо прошлой. */
+  private hudLabel: Entity | null = null;
+  private replaceHudLabel(label: Entity): void {
+    if (this.hudLabel !== null && this.hudLabel !== label && this.world.isAlive(this.hudLabel)) this.world.destroy(this.hudLabel);
+    this.hudLabel = label;
   }
 
   /** Сколько летит искра шага подсчёта, с. Шаг ждёт её прилёта — пауза между шагами короче на столько же. */
