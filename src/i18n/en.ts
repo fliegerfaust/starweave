@@ -51,6 +51,7 @@ export const en: Dict = {
   suit: { sun: 'Sun', moon: 'Moon', star: 'Star', comet: 'Comet' },
   suitPl: { sun: 'Sun', moon: 'Moon', star: 'Star', comet: 'Comet' },
   night: {
+    trophy: 'Trophy “{name}”',
     dusk: 'Dusk',
     midnight: 'Midnight',
     eclipse: 'Eclipse',

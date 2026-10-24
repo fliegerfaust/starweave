@@ -446,6 +446,21 @@ body {
 .omen-slot.empty::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.22); }
 .omen-slot.empty:hover { transform: none; }
 .omen-slot.fire { animation: omen-fire 0.45s ease; }
+/* Трофей Затмения (TR.2): за волосяной линией после Знамений, знак в золотой оправе */
+.hud-trophies { display: flex; gap: 8px; padding-left: 8px; box-shadow: inset 1px 0 0 rgb(var(--gold-rgb) / 0.18); }
+.hud-trophies.none { display: none; }
+.omen-slot.trophy { box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.9), 0 0 12px rgb(var(--gold-rgb) / 0.5); }
+.trophy-medal { display: grid; place-items: center; border-radius: 50%; overflow: hidden; }
+.trophy-medal canvas { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); }
+.tip-title.trophy { color: var(--gold-hi); }
+/* «Ясное небо»: верхние карты колоды на кнопке колоды; ближайшая справа и крупнее */
+.deck-peek { display: none; align-items: flex-end; margin: -14px 6px -14px 4px; }
+.deck-btn.peeking .deck-peek { display: inline-flex; }
+.deck-btn.peeking .btn-label::before { display: none; }
+.peek-card { display: block; margin-left: -8px; line-height: 0; }
+.peek-card canvas { display: block; margin: -3px; }
+.peek-card.in { animation: peek-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes peek-in { from { opacity: 0; transform: translateX(10px); } }
 
 /* Затмение: небо темнеет, рама в тонкой жемчужной короне — без красного */
 .hud.boss .hud-frame {

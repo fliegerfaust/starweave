@@ -72,7 +72,7 @@ export class Presenter {
           this.world.req(e, Transform).flip = -1;
           this.scene.hand.push(card.id);
         }
-        this.scene.hud.setDeckCount(this.scene.night.drawPile.length);
+        this.scene.hud.setDeck(this.scene.night);
         return this.dealToHand(ev.cards.map((c) => c.id));
       case 'burn':
         return this.onBurn(ev.card.id, ev.handIndex);

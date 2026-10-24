@@ -1,8 +1,10 @@
+import { cardFace } from '@/art/card';
 import { bossSigil, omenSigil } from '@/art/sigil';
 import { omenDef, type OmenKind } from '@/core/content/omens';
 import { comboBase } from '@/core/content/combos';
 import { omenSlots } from '@/core/shop';
-import { COMBO_IDS, type Card, type ComboId, type Glyph, type NightKind, type OmenInstance, type RunState } from '@/core/types';
+import { trophiesOf } from '@/core/trophy';
+import { COMBO_IDS, type Card, type ComboId, type Glyph, type NightKind, type NightState, type OmenInstance, type RunState } from '@/core/types';
 import { dict, getLang, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
 import { rich } from './rich';
@@ -44,6 +46,16 @@ export function omenMedal(id: string, size: number): HTMLElement {
   return h('div.omen-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(omenSigil(id, size, dpr()), size)]);
 }
 
+/** Трофей Затмения (TR.2): знак Затмения в золотой оправе. */
+export function trophyMedal(id: string, size: number): HTMLElement {
+  return h('div.trophy-medal', { style: { width: `${size}px`, height: `${size}px` } }, [canvasImg(bossSigil(id, size, dpr()), size)]);
+}
+
+export function trophyTooltip(id: string): HTMLElement {
+  const { name, desc } = named('trophy', id);
+  return h('div.tip-body', null, [h('div.tip-title.trophy', null, t('night.trophy', { name })), h('div.tip-desc', null, rich(desc))]);
+}
+
 export function bossTooltip(bossId: string): HTMLElement {
   const { name, desc } = named('boss', bossId);
   return h('div.tip-body', null, [h('div.tip-title.boss', null, name), h('div.tip-desc', null, rich(desc))]);
@@ -64,6 +76,10 @@ export class Hud {
   private readonly moves: HTMLElement;
   private readonly burns: HTMLElement;
   private readonly omens: HTMLElement;
+  private readonly trophies: HTMLElement;
+  private readonly peek: HTMLElement;
+  private drawnPeek = '';
+  private drawnTrophies = '';
   /** Широкий ПК (CQ.5): созвездия под рамой — свет × множитель с уровнем. */
   readonly combos: HTMLElement;
   private drawnCombos = '';
@@ -100,6 +116,8 @@ export class Hud {
     this.moves = h('div.stat-value');
     this.burns = h('div.stat-value');
     this.omens = h('div.hud-omens');
+    this.trophies = h('div.hud-trophies');
+    this.peek = h('span.deck-peek', { attrs: { 'aria-hidden': 'true' } });
     this.calcCombo = h('div.calc-combo');
     this.calcLight = h('div.calc-light', null, '0');
     this.calcMult = h('div.calc-mult', null, '0');
@@ -141,10 +159,12 @@ export class Hud {
         h('div.stat', null, [this.moves, h('div.stat-label', null, t('night.moves'))]),
         h('div.stat', null, [this.burns, h('div.stat-label', null, t('night.burns'))]),
       ]),
-      h('div.hud-row.omens', null, [this.omens, this.gold]),
+      h('div.hud-row.omens', null, [this.omens, this.trophies, this.gold]),
     ]), (this.combos = h('div.hud-combos', { attrs: { 'aria-hidden': 'true' } }))]);
 
     this.deckBtn = button('', () => cb.onDeck(), { variant: 'secondary', className: 'deck-btn' });
+    // «Ясное небо» (TR.2): верхние карты колоды лицом вверх — прямо на кнопке колоды
+    this.deckBtn.prepend(this.peek);
     this.burnBtn = button(t('night.burn'), () => cb.onBurn(), { variant: 'secondary', className: 'burn-btn' });
     this.actions = h('div.actions', null, [this.deckBtn, this.burnBtn]);
   }
@@ -207,7 +227,7 @@ export class Hud {
       this.burns.textContent = String(night.burnsLeft);
       this.setBurnLabel(night.burnsLeft);
       if (opts.score !== false) this.setScore(night.score, night.target, false);
-      this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${night.drawPile.length}`;
+      this.setDeck(night);
     }
     this.omenList = run.omens;
     const slots = omenSlots(run);
@@ -216,6 +236,21 @@ export class Hud {
       this.drawnOmens = omens;
       this.renderOmens(run.omens, slots);
     }
+    const trophies = `${getLang()}|${trophiesOf(run).join(',')}`;
+    if (trophies !== this.drawnTrophies) {
+      this.drawnTrophies = trophies;
+      this.renderTrophies(trophiesOf(run));
+    }
+  }
+
+  /** Трофеи — за волосяной линией после Знамений; пока трофея нет, места не занимают. */
+  private renderTrophies(ids: string[]): void {
+    this.trophies.classList.toggle('none', ids.length === 0);
+    this.trophies.replaceChildren(...ids.map((id) => {
+      const el = h('div.omen-slot.trophy', { dataset: { trophy: id } }, trophyMedal(id, 34));
+      attachTooltip(el, () => trophyTooltip(id));
+      return el;
+    }));
   }
 
   private renderHead(ante: number, kind: NightKind, bossId: string | null): void {
@@ -270,8 +305,25 @@ export class Hud {
     this.burnBtn.querySelector('.btn-label')!.textContent = `${t('night.burn')} · ${burns}`;
   }
 
-  setDeckCount(n: number): void {
-    this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${n}`;
+  /** Число карт в колоде и, при «Ясном небе», её верхние карты: ближайшая — справа, крупнее. */
+  setDeck(night: NightState): void {
+    this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${night.drawPile.length}`;
+    const top = night.drawPile.slice(-(night.rules.peek ?? 0)).reverse();
+    const key = top.map((c) => c.id).join(',');
+    if (key === this.drawnPeek) return;
+    const fresh = !this.drawnPeek;
+    this.drawnPeek = key;
+    this.deckBtn.classList.toggle('peeking', top.length > 0);
+    const hide = night.rules.hideRanks;
+    const cards = top.map((card, i) => {
+      // Ближайшая карта чуть крупнее: её возьмёшь следующей
+      const w = i === 0 ? 26 : 21;
+      const pad = Math.ceil(w * 0.12);
+      const art = cardFace(card, w, dpr(), { hideRank: hide });
+      return h(`span.peek-card${i === 0 ? '.next' : ''}`, null, canvasImg(art, w + pad * 2, Math.round(w / 0.7) + pad * 2));
+    });
+    this.peek.replaceChildren(...cards.reverse());
+    if (!fresh) for (const el of this.peek.children) el.classList.add('in');
   }
 
   /** Счёт ночи: плавно докручивается до значения. */

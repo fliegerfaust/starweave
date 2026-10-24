@@ -54,6 +54,7 @@ export const ru = {
   suit: { sun: 'Солнце', moon: 'Луна', star: 'Звезда', comet: 'Комета' },
   suitPl: { sun: 'Солнца', moon: 'Луны', star: 'Звезды', comet: 'Кометы' },
   night: {
+    trophy: 'Трофей «{name}»',
     dusk: 'Сумерки',
     midnight: 'Полночь',
     eclipse: 'Затмение',
