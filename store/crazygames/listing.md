@@ -51,4 +51,4 @@ Reach the night's target before you run out of moves. Burn a card to swap it for
 ## Controls
 
 - Mouse / touch: drag a card onto a cell, or tap the card, then the cell
-- Keyboard: 1–9 — pick a card from your hand, arrow keys — choose a cell, Enter / Space — place it, B — burn the picked card, Esc — cancel
+- Keyboard: 1–9 — pick a card from your hand, arrow keys — choose a cell, Enter / Space — place it, B — burn the picked card
