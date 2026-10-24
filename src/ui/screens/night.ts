@@ -1,3 +1,4 @@
+import { currentChoice, type Choice } from '@/core/choices';
 import { assertNever } from '@/core/errors';
 import { canDoubleReward, canRevive } from '@/core/run';
 import { misorderedOmens } from '@/core/omen-order';
@@ -10,6 +11,7 @@ import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
 import { Hud } from '../hud';
+import { showTrophyScene } from '../trophy-scene';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
@@ -273,7 +275,9 @@ export class NightScreen implements Screen {
         button(withCoin(t('reward.collect', { n: reward.total })), () => {
           this.overlay?.close();
           this.overlay = null;
-          this.app.runs.collectReward();
+          this.app.runs.collectReward(true);
+          const choice = currentChoice(this.run);
+          if (choice?.kind === 'trophy') this.showTrophy(choice);
         }),
         this.app.platform.rewardedAvailable && canDoubleReward(this.run)
           ? this.adButton(t('ads.double'), async () => {
@@ -290,6 +294,30 @@ export class NightScreen implements Screen {
     });
     this.overlay = scene;
     this.app.runs.tutorial?.emit({ type: 'reward', panel: scene.acts });
+  }
+
+  /** «Небо сдаётся» (TR.2): выбор после Затмения прямо на небе ночи, под рамой. */
+  private showTrophy(choice: Extract<Choice, { kind: 'trophy' }>): void {
+    // Ночи в забеге уже нет (награда забрана), но небо ещё на экране — сцена встаёт на него
+    const field = this.scene?.layout.board ?? null;
+    const foot = this.hud.actions.getBoundingClientRect();
+    showTrophyScene(this.run, choice, {
+      field: field ? new DOMRect(field.x, field.y, field.w, field.h) : null,
+      foot: foot.width ? foot : null,
+      root: this.hud.el.parentElement,
+      from: this.hud.bossSigilEl(),
+      take: (index) => {
+        const ok = this.app.runs.shopAction({ c: 'choose', index });
+        if (ok) {
+          this.hud.syncBelt(this.run);
+          const offer = choice.options[index]!;
+          track('trophy_take', { kind: offer.k, id: offer.id, ante: this.run.ante });
+        }
+        return ok;
+      },
+      landing: (offer) => this.hud.beltSlot(offer.k, offer.id),
+      done: () => this.app.runs.afterTrophy(),
+    });
   }
 
   private showGameOver(): void {

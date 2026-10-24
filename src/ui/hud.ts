@@ -229,6 +229,11 @@ export class Hud {
       if (opts.score !== false) this.setScore(night.score, night.target, false);
       this.setDeck(night);
     }
+    this.syncBelt(run);
+  }
+
+  /** Только ряд Знамений и трофеев: шапка ночи остаётся, даже когда ночи уже нет (TR.2). */
+  syncBelt(run: RunState): void {
     this.omenList = run.omens;
     const slots = omenSlots(run);
     const omens = `${getLang()}|${slots}|${run.omens.map((o) => `${o.uid}:${o.id}`).join(',')}`;
@@ -241,6 +246,18 @@ export class Hud {
       this.drawnTrophies = trophies;
       this.renderTrophies(trophiesOf(run));
     }
+  }
+
+  /** Знак правила Затмения в раме: оттуда спускается сигил в сцене трофея. */
+  bossSigilEl(): HTMLElement | null {
+    return this.bossBadge.querySelector('canvas');
+  }
+
+  /** Знак в раме, куда прилетает выбор после Затмения: трофей или Знамение. */
+  beltSlot(kind: 'trophy' | 'omen', id: string): HTMLElement | null {
+    if (kind === 'trophy') return this.trophies.querySelector(`[data-trophy="${id}"]`);
+    const slots = [...this.omens.querySelectorAll<HTMLElement>('.omen-slot:not(.empty)')];
+    return slots.at(-1) ?? null;
   }
 
   /** Трофеи — за волосяной линией после Знамений; пока трофея нет, места не занимают. */
@@ -308,7 +325,9 @@ export class Hud {
   /** Число карт в колоде и, при «Ясном небе», её верхние карты: ближайшая — справа, крупнее. */
   setDeck(night: NightState): void {
     this.deckBtn.querySelector('.btn-label')!.textContent = `${t('night.deck')} · ${night.drawPile.length}`;
-    const top = night.drawPile.slice(-(night.rules.peek ?? 0)).reverse();
+    // Без «Ясного неба» карт не видно: slice(-0) отдал бы всю колоду
+    const peek = night.rules.peek ?? 0;
+    const top = peek > 0 ? night.drawPile.slice(-peek).reverse() : [];
     const key = top.map((c) => c.id).join(',');
     if (key === this.drawnPeek) return;
     const fresh = !this.drawnPeek;
