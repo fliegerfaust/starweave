@@ -388,6 +388,7 @@ const VDESC = {
   keywords: ['Подсказки к словам механики на всех экранах (0.7.1)', () => omen('stardust', 40)],
   'route-wonders': ['Комета и Телескоп с ключевыми словами, открытка «Мой путь»', () => omen('corona', 40)],
   trophy: ['Побеждённое Затмение работает на тебя', () => boss('gravity', 40)],
+  'trophy-scene': ['Сцена «приручить или Знамение»: три варианта в трёх формах', () => { const i = boss('gravity', 40); i.style.filter = 'sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08)'; return i; }],
   myths: ['Кассиопея, Лебедь, Плеяды — фигуры на небе 4×4', mythIcon],
   prophecy: ['Цель главы с наградой и книга пророчеств', () => sig('chart-flush', 40)],
   resonance: ['Два Знамения рядом — одно легендарное', () => omen('sunWorship', 40)],
