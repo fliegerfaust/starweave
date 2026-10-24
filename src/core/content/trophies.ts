@@ -1,9 +1,11 @@
 import { cardSuits } from '../deck';
-import type { EffectHooks } from '../effects';
+import type { BaseCtx, EffectHooks } from '../effects';
 import type { Suit } from '../types';
 import { SUITS } from '../types';
 import { BOSS_LIST } from './bosses';
+import { omenDef } from './omens';
 import { registry } from './registry';
+import type { Unlock } from './skies';
 
 /**
  * Трофей Затмения (TR.1): правило побеждённого Затмения, вывернутое в пользу игрока. Игрок
@@ -18,6 +20,16 @@ export interface TrophyDef extends EffectHooks {
 
 /** Сколько трофеев держит забег; новый заменяет старый. */
 export const TROPHY_SLOTS = 1;
+
+/** Ступень «Трофеи»: победить 6 Затмений. */
+export const TROPHY_UNLOCK: Unlock = { kind: 'eclipses', count: 6 };
+
+/** Изобилие: после 5-го хода рука снова обычная — лишняя карта уходит в игру, новая не приходит. */
+const DROUGHT_MOVES = 5;
+function droughtMove(ctx: BaseCtx): void {
+  ctx.data.moves = (ctx.data.moves ?? 0) + 1;
+  if (ctx.data.moves === DROUGHT_MOVES) ctx.night.rules.handSize -= 1;
+}
 
 /** Карты масти засчитываются дважды. */
 const suitTrophy = (suit: Suit, omen: string): TrophyDef => ({
@@ -56,12 +68,17 @@ export const TROPHY_LIST: TrophyDef[] = [
     },
   },
   {
-    // Изобилие: +1 карта в руке
+    // Изобилие: первые 5 ходов ночи — +1 карта в руке
     id: 'drought',
     omen: 'wideSky',
     modifyRules(rules) {
       rules.handSize += 1;
     },
+    onNightStart(ctx) {
+      ctx.data.moves = 0;
+    },
+    onIgnite: (ctx) => droughtMove(ctx),
+    onQuietPlacement: (ctx) => droughtMove(ctx),
   },
   {
     // Долгая ночь: +1 ход за каждый крест
@@ -129,5 +146,5 @@ export function trophyDef(id: string): TrophyDef {
   return def;
 }
 
-// Трофей есть у каждого Затмения: новое Затмение без трофея — ошибка при загрузке
-for (const boss of BOSS_LIST) trophyDef(boss.id);
+// Трофей есть у каждого Затмения, а парное Знамение — в игре: иначе ошибка при загрузке
+for (const boss of BOSS_LIST) omenDef(trophyDef(boss.id).omen);

@@ -81,6 +81,10 @@ export interface Rules {
   sealedCells: number;
   debuffSuit: Suit | null;
   hideRanks: boolean;
+  /** Сколько верхних карт колоды видно (трофей «Ясное небо»); нет — ни одной. */
+  peek?: number;
+  /** Россыпь засчитывается Парой (трофей «Помилование»). */
+  scatterAsPair?: boolean;
   interestStep: number;
   interestCap: number;
 }
@@ -103,7 +107,9 @@ export interface OmenInstance {
  */
 export type EffectSource =
   | { kind: 'omen'; uid: number; omenId: string; cell?: number }
-  | { kind: 'boss'; bossId: string };
+  | { kind: 'boss'; bossId: string }
+  /** Трофей Затмения (TR.1): `trophyId` — id Затмения, которое приручили. */
+  | { kind: 'trophy'; trophyId: string };
 
 export type StepSource =
   | { kind: 'combo'; combo: ComboId }
@@ -175,6 +181,8 @@ export interface NightState {
   gentle?: boolean;
   /** Сколько множителя накопили Пульсары за ночь: прибавляется к каждой линии. */
   pulse?: number;
+  /** Счётчики трофеев на ночь (TR.1), по id трофея. */
+  trophyData?: Record<string, Record<string, number>>;
 }
 
 // ─── Забег ─────────────────────────────────────────────────────────────────
@@ -234,6 +242,8 @@ export interface RunState {
   nextCardId: number;
   omens: OmenInstance[];
   nextOmenUid: number;
+  /** Приручённые Затмения (TR.1): id Затмений, не больше `TROPHY_SLOTS`. Нет в старых сохранениях. */
+  trophies?: string[];
   comboLevels: Record<ComboId, number>;
   /** Затмение каждого созвездия, разыграно заранее (видно на карте). */
   bosses: string[];

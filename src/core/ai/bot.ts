@@ -220,8 +220,14 @@ export function omenPickGreedy(run: RunState): void {
   choose(run, best);
 }
 
-/** Простая политика Обсерватории: дар ночи, Знамение Яркой ночи, Знамения по редкости, затем Звёздные карты. */
+/** После Затмения: приручить — трофей не занимает слот Знамения (баланс подберёт DB.1). */
+export function trophyGreedy(run: RunState): void {
+  if (currentChoice(run)?.kind === 'trophy') choose(run, 0);
+}
+
+/** Простая политика Обсерватории: трофей, дар ночи, Знамение Яркой ночи, Знамения по редкости, затем Звёздные карты. */
 export function shopGreedy(run: RunState): void {
+  trophyGreedy(run);
   giftGreedy(run);
   omenPickGreedy(run);
   const shop = run.shop;
