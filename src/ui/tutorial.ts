@@ -9,6 +9,7 @@ const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
 let ring: HTMLElement | null = null;
 let thread: SVGSVGElement | null = null;
+let waitToast = 0;
 
 interface Box {
   x: number;
@@ -61,6 +62,15 @@ function targetOf(step: TutorialStep): Box | null {
 export function coach(app: App, step: TutorialStep): void {
   if (app.run?.tutorial || app.profile.tutorialFinished || app.profile.tutorial.includes(step) || app.profile.runs >= 3 || current?.dataset.step === step) return;
   if (document.querySelector('.modal-backdrop')) return;
+  // Тост ночи («Первая ночь…») посередине экрана: плашка ждёт, пока он уйдёт, — вместе
+  // они ложились друг на друга и тост закрывал «Понятно» (CQ.2)
+  if (!current && document.querySelector('#ui .toast:not(.out)')) {
+    if (!queue.includes(step)) queue.push(step);
+    clearTimeout(waitToast);
+    // Вся очередь заново и по порядку: первая встанет (или снова подождёт), остальные — за ней
+    waitToast = window.setTimeout(() => queue.splice(0).forEach((s) => coach(app, s)), 400);
+    return;
+  }
   if (current) {
     if (!queue.includes(step)) queue.push(step);
     return;
@@ -208,6 +218,7 @@ function dismiss(app: App, step: TutorialStep): void {
 }
 
 export function clearCoach(): void {
+  clearTimeout(waitToast);
   current?.remove();
   ring?.remove();
   thread?.remove();

@@ -27,6 +27,15 @@ export interface NightLayout {
   handSpan: number;
   /** Точка, откуда вылетают карты (колода). */
   deck: { x: number; y: number };
+  /** Широкий ПК (CQ.5, `wideDesktop`): левый край табло, когда оно прижато к небу; иначе null. */
+  hudX: number | null;
+  /** Широкий ПК: раскладка крупнее, клетки заметнее. */
+  wide: boolean;
+}
+
+/** Широкий ПК (CQ.5, `wideDesktop`): карты крупнее, рука дальше от неба, `dock` — ширина табло слева от неба. */
+export interface WideOptions {
+  dock: number;
 }
 
 /** Свободная от DOM-интерфейса область для неба и руки. */
@@ -43,9 +52,16 @@ export function isLandscape(width: number, height: number): boolean {
 }
 
 const MAX_CARD_W = 132;
+/** На широком ПК карта растёт вместе с окном: на 1920×1080 небо во всю высоту. */
+const WIDE_MAX_CARD_W = 240;
 
-export function computeLayout(width: number, height: number, gridSize: number, area: PlayArea): NightLayout {
-  return isLandscape(width, height) ? landscapeLayout(width, height, gridSize, area) : portraitLayout(width, height, gridSize, area);
+export function computeLayout(width: number, height: number, gridSize: number, area: PlayArea, wide: WideOptions | null = null): NightLayout {
+  return isLandscape(width, height) ? landscapeLayout(width, height, gridSize, area, wide) : portraitLayout(width, height, gridSize, area);
+}
+
+/** Широкий ПК: ландшафт в окне от 900×480 — не телефон, повёрнутый боком. */
+export function isWideDesktop(width: number, height: number): boolean {
+  return isLandscape(width, height) && width >= 900 && height >= 480;
 }
 
 function cellCenters(x: number, y: number, gridSize: number, cardW: number, cardH: number, gap: number): { x: number; y: number }[] {
@@ -96,6 +112,8 @@ function portraitLayout(width: number, height: number, gridSize: number, area: P
     handY,
     handSpan: colW - 24,
     deck: { x: width / 2 + colW / 2 - 10, y: height + handH },
+    hudX: null,
+    wide: false,
   };
 }
 
@@ -103,24 +121,32 @@ function portraitLayout(width: number, height: number, gridSize: number, area: P
  * Ландшафт: HUD — колонка слева (DOM), небо по центру свободной области,
  * рука — вертикальной колонкой справа от неба.
  */
-function landscapeLayout(width: number, height: number, gridSize: number, area: PlayArea): NightLayout {
+function landscapeLayout(width: number, height: number, gridSize: number, area: PlayArea, wide: WideOptions | null): NightLayout {
   const gap = Math.max(6, Math.round(height * 0.012));
-  const top = area.top + 12;
-  const bottom = area.bottom - 12;
+  // На большом экране небо не упирается в края окна: поля растут с высотой выше 768 px
+  const margin = wide ? Math.round(12 + Math.max(0, height - 768) * 0.12) : 12;
+  const top = area.top + margin;
+  const bottom = area.bottom - margin;
   const availH = bottom - top;
-  const availW = area.right - area.left - 24;
+  // Табло, прижатое к небу, занимает место слева от него внутри общего блока
+  const dock = wide?.dock ?? 0;
+  const dockGap = dock ? gap * 5 : 0;
+  const availW = area.right - area.left - 24 - dock - dockGap;
   const handScale = 1.0;
+  // Рука отдельно от неба: на широком ПК зазор вдвое больше
+  const handGap = wide ? gap * 8 : gap * 4;
   const byHeight = ((availH - gap * (gridSize - 1)) / gridSize) * CARD_ASPECT;
   // Ширина: небо + зазор + колонка руки
-  const byWidth = (availW - gap * (gridSize - 1) - gap * 4) / (gridSize + handScale * 1.1);
-  const cardW = Math.floor(Math.max(36, Math.min(byHeight, byWidth, MAX_CARD_W)));
+  const byWidth = (availW - gap * (gridSize - 1) - handGap) / (gridSize + handScale * 1.1);
+  const cardW = Math.floor(Math.max(36, Math.min(byHeight, byWidth, wide ? WIDE_MAX_CARD_W : MAX_CARD_W)));
   const cardH = Math.round(cardW / CARD_ASPECT);
   const handW = Math.round(cardW * handScale);
   const handH = Math.round(handW / CARD_ASPECT);
   const boardW = gridSize * cardW + (gridSize - 1) * gap;
   const boardH = gridSize * cardH + (gridSize - 1) * gap;
-  const groupW = boardW + gap * 4 + handW * 1.1;
-  const boardX = area.left + Math.max(12, (area.right - area.left - groupW) / 2);
+  const groupW = dock + dockGap + boardW + handGap + handW * 1.1;
+  const groupX = area.left + Math.max(12, (area.right - area.left - groupW) / 2);
+  const boardX = groupX + dock + dockGap;
   const boardY = top + Math.max(0, (availH - boardH) / 2);
   return {
     mode: 'landscape',
@@ -131,10 +157,12 @@ function landscapeLayout(width: number, height: number, gridSize: number, area: 
     gap,
     cells: cellCenters(boardX, boardY, gridSize, cardW, cardH, gap),
     board: { x: boardX, y: boardY, w: boardW, h: boardH },
-    handX: boardX + boardW + gap * 4 + handW * 0.55,
+    handX: boardX + boardW + handGap + handW * 0.55,
     handY: boardY + boardH / 2,
     handSpan: Math.min(availH, boardH + handH * 0.3),
     deck: { x: width + handW, y: boardY + boardH / 2 },
+    hudX: dock ? groupX : null,
+    wide: !!wide,
   };
 }
 

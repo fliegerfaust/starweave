@@ -8,6 +8,7 @@ import { h } from '@/ui/dom';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
 import { track } from '@/analytics';
+import type { TutorialStep } from '@/ui/tutorial';
 
 /** Реплика обучения — строка из `tut` словаря (без вложенных таблиц). */
 type Tut = Dict['tut'];
@@ -25,6 +26,25 @@ export type TutorialEvent =
 type Waiter = { pred: (e: TutorialEvent) => boolean; resolve: (e: TutorialEvent, seq: number) => void };
 
 const TOTAL_STEPS = 22;
+/** Короткое обучение первого запуска — только первая ночь, до её награды. */
+const SHORT_STEPS = 14;
+/** Шагов в короткой первой ночи (CQ.4): четыре карты ряда, сжечь, крест и награда. */
+const COMPACT_STEPS = 7;
+
+/** Шаг обучения → плашка первых забегов о том же: пройденное после «Пропустить» не повторяем. */
+const TAUGHT: Partial<Record<string, TutorialStep[]>> = {
+  place1: ['place'],
+  almost: ['fillLine'],
+  target: ['target'],
+  combos: ['combos'],
+  burn: ['burn'],
+  crossCell: ['cross'],
+  shop: ['shop'],
+  // Короткая первая ночь (CQ.4)
+  shortRow: ['place', 'fillLine'],
+  shortBurn: ['burn'],
+  shortCross: ['cross'],
+};
 
 /** Общий прямоугольник двух областей. */
 function union(a: Rect, b: Rect): Rect {
@@ -65,7 +85,16 @@ export class TutorialDirector {
     this.overlay.layout();
   }, 60);
 
-  constructor(private readonly app: App) {
+  /** Шагов в сценарии: полоса прогресса заполняется к концу именно этого обучения. */
+  private readonly total: number;
+  /** Короткая первая ночь (CQ.4, `shortTutorial`). */
+  private readonly compact: boolean;
+
+  constructor(private readonly app: App, short = false) {
+    this.compact = app.features.shortTutorial;
+    const night1 = this.compact ? COMPACT_STEPS : SHORT_STEPS;
+    // Обучение из одной ночи кончается наградой, у неё нет подсказки: полоса полна на кресте
+    this.total = short ? night1 - 1 : night1 + (TOTAL_STEPS - SHORT_STEPS);
     this.overlay = new TutorialOverlay(() => this.app.runs.skipTutorial());
     window.addEventListener('resize', this.onResize);
   }
@@ -159,8 +188,12 @@ export class TutorialDirector {
   /** Где сейчас игрок — для аналитики пропуска обучения. */
   progress = { step: 'start', index: 0 };
 
+  /** Плашки первых забегов, которые обучение уже объяснило. */
+  readonly taught = new Set<TutorialStep>();
+
   private mark(step: string): void {
     this.progress = { step, index: this.step };
+    for (const coach of TAUGHT[step] ?? []) this.taught.add(coach);
     track('tutorial_step', this.progress);
   }
 
@@ -168,7 +201,7 @@ export class TutorialDirector {
     if (this.stopped) throw new Error('stopped');
     this.step += 1;
     this.mark(key);
-    this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
@@ -186,14 +219,15 @@ export class TutorialDirector {
   }
 
   /** Попросить положить карту в клетку: подсветка, палец, ограничение. */
-  private async guidePlace(key: TutKey, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top'): Promise<GameEvent[]> {
+  /** `key` null — подсказка прежняя (ряд под одной фразой), меняется только цель. */
+  private async guidePlace(key: TutKey | null, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top'): Promise<GameEvent[]> {
     const scene = this.night;
     const id = this.cardId(code);
     this.sync();
     scene.setGuide({ card: id, cell });
     this.step += 1;
-    this.mark(key);
-    this.overlay.setProgress(Math.min(this.step, TOTAL_STEPS), TOTAL_STEPS);
+    if (key) this.mark(key);
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
     // Цель — клетка: рамка и нить ведут к ней, палец показывает жест
     this.overlay.spotlight(scene.cellRect(cell), 4);
     this.reposition = () => {
@@ -202,7 +236,8 @@ export class TutorialDirector {
       if (from && !scene.busy) this.overlay.point(center(from), center(scene.cellRect(cell)));
     };
     this.reposition();
-    await this.overlay.say(t(`tut.${key}`), { place });
+    if (key) await this.overlay.say(t(`tut.${key}`), { place });
+    else this.overlay.showBubble();
     // Как только карта легла — убираем пузырь, чтобы он не закрывал подсчёт
     const watch = this.every(50, () => {
       if (scene.busy) {
@@ -226,69 +261,9 @@ export class TutorialDirector {
     // Ночь 1
     await this.waitFor('night');
     await this.waitFor('dealt');
-    this.watchFormula();
     const scene = this.night;
-    scene.setExplain(true);
-    scene.setGuide({});
-    scene.setStepPause(2.4);
-
-    await this.say('board', { spot: union(scene.layout.board, scene.handAreaRect()) });
-    await this.guidePlace('place1', '3s', TUTORIAL_CELLS.pairRow[0]);
-    await this.guidePlace('place2', '3m', TUTORIAL_CELLS.pairRow[1]);
-    await this.guidePlace('place3', '7t', TUTORIAL_CELLS.pairRow[2]);
-    await this.say('almost', { spot: scene.cellsRect(TUTORIAL_CELLS.pairRow) });
-    this.overlay.hideBubble();
-    await this.guidePlace('place4', '5c', TUTORIAL_CELLS.pairRow[3], 'top');
-
-    await this.say('target', { spot: elementRect(document.querySelector('.hud-row.mid')) });
-    await this.say('combos', { spot: elementRect(this.hud!.guideBtn) });
-
-    // Сжигание
-    const bad = this.cardId('1m');
-    scene.setGuide({ card: bad, burn: true });
-    this.hud!.setTutorialLock(true, true);
-    this.reposition = () => {
-      const r = scene.handRect(bad);
-      if (r) this.overlay.point(center(scene.selected !== null ? elementRect(this.hud!.burnBtn)! : r));
-    };
-    this.reposition();
-    this.step += 1;
-    this.overlay.setProgress(this.step, TOTAL_STEPS);
-    this.mark('burn');
-    this.overlay.spotlight(elementRect(this.hud!.burnBtn), 4);
-    this.sync();
-    await this.overlay.say(t('tut.burn'), { place: 'top' });
-    const burnBtn = this.hud!.burnBtn;
-    const waitSelect = this.every(200, () => {
-      this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
-    });
-    await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'burn'));
-    this.clear(waitSelect);
-    this.hud!.setTutorialLock(true);
-    this.reposition = null;
-    this.overlay.point(null);
-    this.overlay.spotlight(null);
-    scene.setGuide({});
-
-    // Крест
-    await this.say('prepare');
-    this.overlay.hideBubble();
-    scene.setStepPause(1);
-    // Почти всё раскладываем сами, последнюю карту подготовки кладёт игрок: крест он
-    // строит своими руками, а не смотрит со стороны
-    const setup = TUTORIAL_CELLS.crossSetup;
-    for (const step of setup.slice(0, -1)) {
-      scene.setGuide(null);
-      const index = this.app.run!.night!.hand.findIndex((c) => cardCode(c) === step.card);
-      await scene.place(index, step.cell);
-      scene.setGuide({});
-    }
-    const last = setup[setup.length - 1]!;
-    await this.guidePlace('setupLast', last.card, last.cell, 'top');
-    scene.setStepPause(2);
-    await this.say('crossCell', { spot: scene.cellRect(TUTORIAL_CELLS.cross.cell) });
-    this.overlay.hideBubble();
-    await this.guidePlace('cross', TUTORIAL_CELLS.cross.card, TUTORIAL_CELLS.cross.cell, 'top');
+    if (this.compact) await this.compactNight(scene);
+    else await this.fullNight(scene);
 
     // Награда
     const reward = await this.waitFor('reward');
@@ -364,15 +339,123 @@ export class TutorialDirector {
     this.app.runs.finishTutorial();
   }
 
+  /** Первая ночь целиком: обзор, Пара с разбором формулы, цель, «?», сжигание, крест. */
+  private async fullNight(scene: NightScene): Promise<void> {
+    this.watchFormula();
+    scene.setExplain(true);
+    scene.setGuide({});
+    scene.setStepPause(2.4);
+
+    // В ландшафте и на ПК рука справа от неба, а не под ним
+    await this.say(scene.layout.mode === 'landscape' ? 'boardSide' : 'board', { spot: union(scene.layout.board, scene.handAreaRect()) });
+    await this.guidePlace('place1', '3s', TUTORIAL_CELLS.pairRow[0]);
+    await this.guidePlace('place2', '3m', TUTORIAL_CELLS.pairRow[1]);
+    await this.guidePlace('place3', '7t', TUTORIAL_CELLS.pairRow[2]);
+    await this.say('almost', { spot: scene.cellsRect(TUTORIAL_CELLS.pairRow) });
+    this.overlay.hideBubble();
+    await this.guidePlace('place4', '5c', TUTORIAL_CELLS.pairRow[3], 'top');
+
+    await this.say('target', { spot: elementRect(document.querySelector('.hud-row.mid')) });
+    await this.say('combos', { spot: elementRect(this.hud!.guideBtn) });
+
+    await this.burnStep(scene, 'burn');
+
+    // Крест
+    await this.say('prepare');
+    this.overlay.hideBubble();
+    scene.setStepPause(1);
+    // Почти всё раскладываем сами, последнюю карту подготовки кладёт игрок: крест он
+    // строит своими руками, а не смотрит со стороны
+    const setup = TUTORIAL_CELLS.crossSetup;
+    for (const step of setup.slice(0, -1)) {
+      scene.setGuide(null);
+      const index = this.app.run!.night!.hand.findIndex((c) => cardCode(c) === step.card);
+      await scene.place(index, step.cell);
+      scene.setGuide({});
+    }
+    const last = setup[setup.length - 1]!;
+    await this.guidePlace('setupLast', last.card, last.cell, 'top');
+    scene.setStepPause(2);
+    await this.say('crossCell', { spot: scene.cellRect(TUTORIAL_CELLS.cross.cell) });
+    this.overlay.hideBubble();
+    await this.guidePlace('cross', TUTORIAL_CELLS.cross.card, TUTORIAL_CELLS.cross.cell, 'top');
+  }
+
+  /**
+   * Короткая первая ночь (CQ.4, `shortTutorial`, выбор Дениса — вариант A): только действия —
+   * собрать ряд, сжечь единицу, положить карту на крест. Без «Далее»: формулу показывает сам
+   * подсчёт, цель и «?» объяснят подсказки первых забегов.
+   */
+  private async compactNight(scene: NightScene): Promise<void> {
+    scene.setExplain(true);
+    scene.setGuide({});
+    // Без паузы на разбор: подписи и фишки подсчёта сами показывают, как растёт счёт
+    this.watchFormula(false);
+    scene.setStepPause(1.6);
+    // Ряд целиком под одной подсказкой: палец ведёт от карты к клетке, слова не меняются
+    const row: [string, number][] = [['3s', TUTORIAL_CELLS.pairRow[0]], ['3m', TUTORIAL_CELLS.pairRow[1]], ['7t', TUTORIAL_CELLS.pairRow[2]], ['5c', TUTORIAL_CELLS.pairRow[3]]];
+    for (const [i, [code, cell]] of row.entries()) await this.guidePlace(i === 0 ? 'shortRow' : null, code, cell);
+    await this.waitIdle(scene);
+
+    await this.burnStep(scene, 'shortBurn');
+
+    // Крест раскладываем сами, игрок кладёт карту на «×2»
+    scene.setStepPause(1);
+    for (const step of TUTORIAL_CELLS.crossSetup) {
+      scene.setGuide(null);
+      const index = this.app.run!.night!.hand.findIndex((c) => cardCode(c) === step.card);
+      await scene.place(index, step.cell);
+      scene.setGuide({});
+    }
+    scene.setStepPause(1.6);
+    await this.guidePlace('shortCross', TUTORIAL_CELLS.cross.card, TUTORIAL_CELLS.cross.cell, 'top');
+  }
+
+
+  /** Сжечь единицу: палец ведёт карту на «Сжечь», ход не тратится. */
+  private async burnStep(scene: NightScene, key: 'burn' | 'shortBurn'): Promise<void> {
+    const bad = this.cardId('1m');
+    scene.setGuide({ card: bad, burn: true });
+    this.hud!.setTutorialLock(true, true);
+    this.reposition = () => {
+      const r = scene.handRect(bad);
+      if (r) this.overlay.point(center(scene.selected !== null ? elementRect(this.hud!.burnBtn)! : r));
+    };
+    this.reposition();
+    this.step += 1;
+    this.overlay.setProgress(Math.min(this.step, this.total), this.total);
+    this.mark(key);
+    this.overlay.spotlight(elementRect(this.hud!.burnBtn), 4);
+    this.sync();
+    await this.overlay.say(t(`tut.${key}`), { place: 'top' });
+    const burnBtn = this.hud!.burnBtn;
+    const waitSelect = this.every(200, () => {
+      this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
+    });
+    await this.waitFor('settled', (e) => e.events.some((x) => x.t === 'burn'));
+    this.clear(waitSelect);
+    this.hud!.setTutorialLock(true);
+    this.reposition = null;
+    this.overlay.point(null);
+    this.overlay.spotlight(null);
+    scene.setGuide({});
+  }
+
+  /** Подсчёт прошлого хода закончился: следующая подсказка не ложится на него. */
+  private async waitIdle(scene: NightScene): Promise<void> {
+    while (scene.busy) await pause(80);
+  }
+
   /** Пока идёт подсчёт — подсвечиваем формулу. */
   private formulaShown = false;
   /** Отпускает подсчёт, ждущий «Далее», если обучение остановили посреди паузы. */
   private releaseGate: (() => void) | null = null;
 
-  private watchFormula(): void {
+  /** `gate` false — без паузы на разбор: подсчёт идёт сам, рамка только подсвечивает формулу. */
+  private watchFormula(gate = true): void {
     // Первый подсчёт стоит на паузе, пока игрок не прочитает объяснение и не нажмёт «Далее»
     let gateOpen = false;
-    this.night.setScoringGate(async () => {
+    if (gate) this.night.setScoringGate(async () => {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
