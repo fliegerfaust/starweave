@@ -510,7 +510,8 @@ export class Presenter {
     const target = scene.night.target;
     const board = scene.layout.board;
     if (score.lines.length > 1 || score.xMult !== 1) {
-      floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true });
+      // Итог встаёт на место метки «Цепь ×2» в центре неба, а не поверх неё
+      this.replaceHudLabel(floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true }));
     }
     // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
     hud.hideCalc();
