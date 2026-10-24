@@ -459,8 +459,8 @@ export class Presenter {
     }
     hud.setCalcTotal(line.total);
     hud.setCaption(t('calc.lineTotal', { light: num(line.light), mult: fmtX(line.mult), total: num(line.total) }));
-    // Итог линии — крупно и с ударом, как цифры карт, но золотом и сильнее отдачей
-    floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true });
+    // Итог линии — крупно и с ударом, золотом; это та же одна метка, что у шагов хода: «×2» креста встаёт на её место
+    this.replaceHudLabel(floatText(this.world, center.x, center.y + 4, num(line.total), { size: Math.round(Math.min(48, Math.max(34, scene.layout.cardH * 0.44))), color: UI.gold, life: 1.1, rise: 30, punch: true }));
     this.scene.svc.haptics.play('countMult');
     this.audio.count(steps.length + 2, 'light');
     await this.wait(0.35 * this.pace);

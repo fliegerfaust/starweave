@@ -5,6 +5,7 @@
 //   npm run clips -- --raw             — только запись игры, без оформления
 //   npm run clips -- --reuse           — только оформление, запись игры — прошлая
 //   npm run clips -- --raw --view 960x540 --scale 2 — запись в другом кадре (CrazyGames: 16:9 и 360x540 ×3 для 2:3)
+//   npm run clips -- --raw --ff wideDesktop,brightFlare — с переключателями площадки (?ff=, см. src/platform/features.ts)
 // 1. Игра идёт в Chrome без окна на виртуальном времени (scripts/clips/virtual-time.js):
 //    шаг 1/60 с → снимок → ffmpeg. Звук — тем же кодом в OfflineAudioContext.
 //    Запись → clips/public/raw/<ролик>-<язык>.mp4.
@@ -39,19 +40,21 @@ function parseArgs(argv) {
   let reuse = false;
   let view = null;
   let scale = null;
+  let ff = null;
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--lang') langs = [argv[++i]];
     else if (argv[i] === '--raw') raw = true;
     else if (argv[i] === '--reuse') reuse = true;
     else if (argv[i] === '--view') view = argv[++i];
     else if (argv[i] === '--scale') scale = Number(argv[++i]);
+    else if (argv[i] === '--ff') ff = argv[++i];
     else names.push(argv[i]);
   }
   const all = Object.keys(CLIPS);
   const unknown = names.filter((n) => !all.includes(n));
   if (unknown.length) throw new Error(`нет ролика: ${unknown.join(', ')} (есть: ${all.join(', ')})`);
   if (view && !raw) throw new Error('--view — только с --raw: оформление Remotion рассчитано на 1080×1920');
-  return { names: names.length ? names : all, langs, raw, reuse, view, scale };
+  return { names: names.length ? names : all, langs, raw, reuse, view, scale, ff };
 }
 
 function run(cmd, args, { input, cwd } = {}) {
@@ -72,7 +75,7 @@ async function record(browser, base, name, lang, tmp) {
   page.on('pageerror', (e) => console.error(`  [${name}] ошибка страницы:`, e.message));
   page.on('console', (m) => m.type() === 'error' && console.error(`  [${name}]`, m.text()));
   const cdp = await context.newCDPSession(page);
-  await page.goto(`${base}?demo=${name}&capture&lang=${lang}`);
+  await page.goto(`${base}?demo=${name}&capture&lang=${lang}${FF ? `&ff=${FF}` : ''}`);
 
   const video = path.join(tmp, `${name}-${lang}.video.mp4`);
   let frames = 0;
@@ -137,7 +140,7 @@ async function render(name, lang, frames, out) {
   );
 }
 
-const { names, langs, raw, reuse, view, scale } = parseArgs(process.argv.slice(2));
+const { names, langs, raw, reuse, view, scale, ff: FF } = parseArgs(process.argv.slice(2));
 if (view) {
   const [width, height] = view.split('x').map(Number);
   VIEW = { width, height };
