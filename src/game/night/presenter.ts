@@ -570,6 +570,8 @@ export class Presenter {
         return t('calc.omen', { name: named('omen', src.omenId).name, effect });
       case 'boss':
         return t('calc.boss', { name: named('boss', src.bossId).name, effect });
+      case 'trophy':
+        return t('calc.trophy', { name: named('trophy', src.trophyId).name, effect });
       case 'combo':
       case 'chain':
         return effect;

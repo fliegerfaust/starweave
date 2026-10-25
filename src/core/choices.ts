@@ -1,6 +1,7 @@
 import { RuleError } from './errors';
 import { skipGift, takeGift, type GiftOffer } from './gift';
 import { walk } from './route';
+import { canTakeTrophy, takeTrophy, type TrophyOffer } from './trophy';
 import { takeComet, takeScope, type CometTrade, type ScopeUpgrade } from './wonders';
 import { createOmen } from './omen-instance';
 import { applyRitual, omenSlots } from './shop';
@@ -8,8 +9,8 @@ import type { ComboId, PackKind, RunState } from './types';
 
 /**
  * Выбор «возьми одно из нескольких» в очереди `run.pending` (TD.7): пакет Обсерватории и
- * дар ночи (GF.1), Комета и Телескоп (RT.4). 0.7 «Глубина» добавит трофей Затмения и
- * пророчество — новым вариантом здесь и строкой в `CHOICE_KINDS`.
+ * дар ночи (GF.1), Комета и Телескоп (RT.4), трофей Затмения (TR.1). Пророчество встанет
+ * сюда же — новым вариантом и строкой в `CHOICE_KINDS`.
  */
 export type Choice =
   | { kind: 'pack'; pack: PackKind; options: string[] }
@@ -17,7 +18,9 @@ export type Choice =
   /** Комета на пути главы (RT.4): обмен 1 из 3 или мимо. */
   | { kind: 'comet'; options: CometTrade[] }
   /** Телескоп на пути главы (RT.4): улучшение 1 из 3 или мимо. */
-  | { kind: 'telescope'; options: ScopeUpgrade[] };
+  | { kind: 'telescope'; options: ScopeUpgrade[] }
+  /** После победы над Затмением (TR.1): приручить или парное Знамение. */
+  | { kind: 'trophy'; options: TrophyOffer[] };
 
 /** Как взять вариант выбора каждого вида. `targets` — карты колоды для ритуала. */
 interface ChoiceKindDef<C extends Choice> {
@@ -56,6 +59,11 @@ const CHOICE_KINDS: { [K in Choice['kind']]: ChoiceKindDef<Extract<Choice, { kin
     canTake: () => true,
     take: (run, choice, index) => takeScope(run, choice.options[index]!),
     done: walk,
+  },
+  trophy: {
+    // Приручить можно всегда; Знамение без свободного слота не возьмётся (проверка в take)
+    canTake: (run, choice) => choice.options.some((o) => canTakeTrophy(run, o)),
+    take: (run, choice, index) => takeTrophy(run, choice.options[index]!),
   },
 };
 
