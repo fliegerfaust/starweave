@@ -155,3 +155,65 @@ test('Справочник: доска не меняет размер при п�
   expect(jumps, 'доска прыгает').toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * Коллекция трофеев (TR.4, вариант A4 Дениса): взятый в сцене «Небо сдаётся» трофей
+ * считается приручением; в коллекции приручённое Затмение золотое, на доске главный трофей
+ * и сколько раз приручён, Затмение под чертой. Ничего не вылезает, ru и en.
+ */
+test('коллекция трофеев: взятый трофей приручён, доска трофея помещается', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?trophy');
+  await page.locator('.btn', { hasText: 'Забрать' }).click();
+  // Карты выбора въезжают в сцену: касаемся, пока кнопка не проснётся
+  await expect(async () => {
+    await page.locator('.ts-card[data-k="trophy"]').click();
+    await expect(page.locator('.ts-go')).toBeEnabled({ timeout: 1000 });
+  }).toPass();
+  await page.locator('.ts-go').click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { starweave: { profile: { tamed?: Record<string, number> } } }).starweave.profile.tamed)).toEqual({ gravity: 1 });
+  // Сохранено на устройство: после перезагрузки счёт тот же
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave);
+  const failures: string[] = [];
+  for (const lang of ['ru', 'en'] as const) {
+    await closeAll(page);
+    await page.evaluate(async (lang) => {
+      const { setLang } = await import('/src/i18n/index.ts');
+      setLang(lang);
+      const app = (window as unknown as { starweave: App & { profile: { eclipses?: number; tamed?: Record<string, number> } } }).starweave;
+      Object.assign(app.profile, { eclipses: 6, seenBosses: ['gravity', 'eclipse-moon', 'fog'] });
+      app.profile.tamed = { ...app.profile.tamed, fog: 3 };
+      const { showGuide } = await import('/src/ui/screens/guide.ts');
+      showGuide({ tab: 'collection', profile: app.profile as never });
+    }, lang);
+    await expect(page.locator('.gb-sigils button.tamed')).toHaveCount(2);
+    for (const label of lang === 'ru' ? ['Тяготение', 'Затмение Луны'] : ['Gravity', 'Lunar Eclipse']) {
+      await page.locator(`.gb-sigils button[aria-label="${label}"]`).click();
+      await expect(page.locator('.gb-tally .gb-ecl b')).toHaveText(label);
+      await check(page, `${lang} ${label}`, failures);
+    }
+    // Доска трофея не меняет высоту при переключении знаков
+    const heights = await page.evaluate(async () => {
+      const set = new Set<number>();
+      for (const b of document.querySelectorAll<HTMLElement>('.gb-sigils button')) {
+        b.click();
+        await new Promise((r) => setTimeout(r, 10));
+        set.add(Math.round(document.querySelector('.gb-board')!.getBoundingClientRect().height));
+      }
+      return [...set];
+    });
+    if (heights.length > 1) failures.push(`${lang}: доска прыгает ${heights.join(' / ')}`);
+    if (lang === 'ru') {
+      await page.locator('.gb-sigils button[aria-label="Затмение Луны"]').click();
+      await expect(page.locator('.gb-tally .gb-kind')).toHaveText('трофей · ещё не приручён');
+      await page.locator('.gb-sigils button[aria-label="Тяготение"]').click();
+      await expect(page.locator('.gb-tally .gb-kind')).toHaveText('трофей · Приручён 1 раз');
+      await expect(page.locator('.gb-board canvas.gb-big.gold')).toHaveCount(1);
+      await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-trophies.png` });
+    }
+  }
+  expect(failures).toEqual([]);
+  expect(errors).toEqual([]);
+});

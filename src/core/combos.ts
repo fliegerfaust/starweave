@@ -6,6 +6,8 @@ import { COMBO_IDS, SUITS } from './types';
 export interface ComboOptions {
   flushSlack: number;
   straightGaps: number;
+  /** Россыпь засчитывается Парой (трофей «Помилование»). */
+  scatterAsPair?: boolean;
 }
 
 export const DEFAULT_COMBO_OPTIONS: ComboOptions = { flushSlack: 0, straightGaps: 0 };
@@ -79,6 +81,11 @@ export interface ResolvedLine {
  * сильнейшее созвездие, при равенстве — больше света. Второй ранг Двойника идёт в пары и тройки.
  */
 export function resolveLine(cards: readonly Card[], opts: ComboOptions = DEFAULT_COMBO_OPTIONS): ResolvedLine {
+  const line = resolveRanks(cards, opts);
+  return opts.scatterAsPair && line.combo === 'scatter' ? { ...line, combo: 'pair' } : line;
+}
+
+function resolveRanks(cards: readonly Card[], opts: ComboOptions): ResolvedLine {
   const choices = cards.map((c) => traitOf(c)?.ranks?.(c) ?? null);
   if (choices.every((ch) => !ch)) return { combo: comboOf(comboFeatures(cards, opts)), ranks: cards.map((c) => c.rank) };
   let best: ResolvedLine | null = null;

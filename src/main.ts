@@ -81,6 +81,47 @@ async function boot(): Promise<void> {
     const { planChapter } = await import('./core/route');
     app.run!.unlocks.routes = true;
     app.run!.chapter = planChapter(app.run!);
+    // `fork` — два Затмения на последнем шаге (TR.3), `last` — сразу к их выбору
+    if (params.has('fork')) {
+      const run = app.run!;
+      Object.assign(run.unlocks, { trophies: true, wonders: true });
+      run.bosses[0] = 'gravity';
+      const chapter = (run.chapter = planChapter(run));
+      if (params.has('last')) {
+        const first = chapter.nodes.findIndex((n) => n.step === 1 && n.route === 'night');
+        const second = chapter.nodes.findIndex((n) => n.step === 2 && n.route === 'bright');
+        chapter.path = [first, second];
+        chapter.at = -1;
+      }
+    }
+    await app.router.route();
+  }
+  // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
+  if (dev && params.has('collection')) {
+    const seen = ['void', 'eclipse-sun', 'eclipse-moon', 'eclipse-star', 'fog', 'drought', 'shortNight', 'silence', 'gravity', 'judge', 'wane'];
+    Object.assign(app.profile, {
+      tutorialDone: true, tutorialFinished: true, runs: 23, wins: 3, bestAnte: 8, eclipses: 31,
+      seenBosses: seen, tamed: { gravity: 3, fog: 1, void: 2, 'eclipse-sun': 1, judge: 4 },
+    });
+    const [{ showHelp }, { OMEN_LIST }] = await Promise.all([import('./ui/screens/common'), import('./core/content/omens')]);
+    app.profile.seenOmens = OMEN_LIST.slice(0, 26).map((o) => o.id);
+    showHelp({ tab: 'collection', profile: app.profile });
+  }
+  // Ночь Затмения выиграна, награда на экране: «Забрать» откроет сцену трофея (TR.2)
+  if (dev && params.has('trophy')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const [{ planChapter }, { startNight }, { createOmen }] = await Promise.all([import('./core/route'), import('./core/night'), import('./core/omen-instance')]);
+    Object.assign(run.unlocks, { routes: false, trophies: true });
+    if (params.get('trophy')) run.trophies = [params.get('trophy')!];
+    for (const id of ['stardust', 'highNoon', 'horizon']) run.omens.push(createOmen(run, id));
+    run.bosses[0] = 'gravity';
+    run.chapter = { ...planChapter(run), at: 2 };
+    startNight(run);
+    Object.assign(run.night!, { result: 'won', score: run.night!.target + 600 });
+    run.phase = 'reward';
+    run.reward = { base: 5, moves: 2, burns: 0, interest: 1, total: 8 };
     await app.router.route();
   }
 }

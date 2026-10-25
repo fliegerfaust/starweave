@@ -4,7 +4,7 @@ import { OMEN_LIST } from '../src/core/content/omens';
 import { placeCard } from '../src/core/night';
 import { newRun } from '../src/core/run';
 import { generateShop } from '../src/core/shop';
-import { emptyProfile } from '../src/meta/profile';
+import { emptyProfile, sanitizeProfile } from '../src/meta/profile';
 import { recordEvent, unlocksFor } from '../src/meta/progress';
 import { nightRun, setGrid, setHand } from './helpers';
 
@@ -39,6 +39,28 @@ describe('прогресс из одного места (TD.8)', () => {
     run.ante = 9;
     expect(recordEvent(p, run, { e: 'runEnd', won: true }).skies.length).toBeGreaterThan(0);
     expect(p.wins).toBe(1);
+  });
+});
+
+describe('коллекция трофеев (TR.4)', () => {
+  it('каждый взятый трофей — ещё одно приручение его Затмения, навсегда', () => {
+    const p = emptyProfile();
+    const run = newRun({ seed: 1 });
+    expect(recordEvent(p, run, { e: 'tamed', bossId: 'gravity' }).changed).toBe(true);
+    recordEvent(p, run, { e: 'tamed', bossId: 'gravity' });
+    recordEvent(p, run, { e: 'tamed', bossId: 'fog' });
+    expect(p.tamed).toEqual({ gravity: 2, fog: 1 });
+    expect(sanitizeProfile(JSON.parse(JSON.stringify(p))).tamed).toEqual({ gravity: 2, fog: 1 });
+  });
+
+  it('учебный забег не приручает; испорченные числа из хранилища отбрасываются', () => {
+    const p = emptyProfile();
+    const run = newRun({ seed: 1 });
+    run.tutorial = true;
+    recordEvent(p, run, { e: 'tamed', bossId: 'gravity' });
+    expect(p.tamed).toBeUndefined();
+    expect(sanitizeProfile({ tamed: { gravity: 2.7, fog: 0, void: -1, judge: 'три' } }).tamed).toEqual({ gravity: 2 });
+    expect(sanitizeProfile({ tamed: [1, 2] }).tamed).toBeUndefined();
   });
 });
 

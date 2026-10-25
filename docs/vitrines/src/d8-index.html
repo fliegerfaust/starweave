@@ -165,7 +165,7 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border: 0; bord
 <body>
 <div class="wrap">
   <div class="goals" id="goals"></div>
-  <div class="label">Где мы сейчас <small>0.7.0 вышла 22.10.2026 · фиксы 0.7.1–0.7.3 · 0.7.4 вышла 25.10: качество для CrazyGames · «Глубина» выпусками 0.7.5–0.7.8 · карточка открывает витрину</small></div>
+  <div class="label">Где мы сейчас <small>0.7.0 вышла 22.10.2026 · фиксы 0.7.1–0.7.3 · 0.7.4 вышла 25.10: качество для CrazyGames · 0.7.5 вышла 25.10: Трофеи Затмений · дальше «Глубина» выпусками 0.7.6–0.7.8 · карточка открывает витрину</small></div>
   <div class="prog" id="prog"></div>
 
   <div class="label">Петля забега <small>одна глава — сейчас и в 0.7 · золотая точка — решение игрока</small></div>
@@ -219,9 +219,9 @@ const STATUS = [
     items: [['6 тел, арт и анимации на небе', 1], ['Справочник: тела во вкладке «Карты»', 1]] },
   { lane: 'done', id: 'route', name: 'Развилки главы', sub: 'Путь главы решает игрок. Вышло в 0.7.0', ic: () => omen('crossroads', 36),
     items: [['Ядро: граф главы, «Карта неба» в трёх формах', 1], ['Комета и Телескоп, ключевые слова с подсказкой', 1], ['Открытка «Мой путь» в итогах', 1], ['Экономика по симу и e2e на 8 устройствах', 1]] },
-  { lane: 'next', id: 'trophy', name: 'Трофеи Затмений', sub: 'Выпуск 0.7.5 · побеждённое правило в твою пользу', ic: () => boss('gravity', 36) },
+  { lane: 'done', id: 'trophy', name: 'Трофеи Затмений', sub: 'Побеждённое правило в твою пользу. Вышло в 0.7.5', ic: () => boss('gravity', 36) },
   { lane: 'next', id: 'myths', name: 'Мифы неба', sub: 'Выпуск 0.7.6 · фигуры на всём небе', ic: mythIcon },
-  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Выпуск 0.7.5 · цель внутри главы', ic: () => sig('chart-flush', 36) },
+  { lane: 'next', id: 'prophecy', name: 'Пророчества', sub: 'Перенесено из 0.7.5 · цель внутри главы', ic: () => sig('chart-flush', 36) },
   { lane: 'next', id: 'resonance', name: 'Резонанс', sub: 'Выпуск 0.7.6 · пара Знамений как находка', ic: () => omen('sunWorship', 36) },
   { lane: 'next', id: 'legacy', name: 'Звезда памяти', sub: 'Выпуск 0.7.7 · след проигранного забега', ic: () => card({ suit: 'sun', rank: 7, glyph: 'gilded' }, 26) },
   { lane: 'next', id: 'patrons', name: 'Покровители', sub: 'Выпуск 0.7.7 · разное начало забега', ic: () => omen('diagonalSight', 36) },
@@ -235,7 +235,7 @@ const STATUS = [
     h('div', { class: 'track' }, h('i', { class: 'd', style: { width: (n('done') / total) * 100 + '%' } }), h('i', { class: 'w', style: { width: (n('work') / total) * 100 + '%' } })),
     h('div', { class: 'nums' }, h('span', {}, h('b', {}, n('done')), 'сделано'), h('span', {}, h('b', {}, n('work')), 'в работе'), h('span', {}, h('b', {}, n('next')), 'впереди'), h('span', {}, 'из ' + total + ' идей релиза')));
   const lane = (key, title) => h('div', { class: 'lane ' + key }, h('h3', {}, h('i'), title + ' · ' + n(key)),
-    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Вышли фиксы 0.7.1–0.7.3 и 0.7.4: качество для CrazyGames. Следующий выпуск 0.7.5: Трофеи и Пророчества'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
+    h('div', { class: 'lane-list' }, n(key) ? null : h('p', { class: 'lane-empty' }, 'Вышли 0.7.4: качество для CrazyGames и 0.7.5: Трофеи Затмений. Дальше Пророчества, Мифы неба и Резонанс'), STATUS.filter((x) => x.lane === key).map((x) => h('a', { class: 'pcard', href: `d8-${x.id}.html` }, h('div', { class: 'ic' }, x.ic()),
       h('div', {}, h('b', {}, x.name), h('small', {}, x.sub),
         x.part ? h('div', { class: 'mini' }, h('i', { style: { width: x.part * 100 + '%' } })) : null,
         x.items ? h('ul', {}, x.items.map(([t, ok]) => h('li', { class: ok ? 'ok' : '' }, t))) : null)))));
@@ -388,6 +388,9 @@ const VDESC = {
   keywords: ['Подсказки к словам механики на всех экранах (0.7.1)', () => omen('stardust', 40)],
   'route-wonders': ['Комета и Телескоп с ключевыми словами, открытка «Мой путь»', () => omen('corona', 40)],
   trophy: ['Побеждённое Затмение работает на тебя', () => boss('gravity', 40)],
+  'trophy-scene': ['Сцена «приручить или Знамение»: три варианта в трёх формах', () => { const i = boss('gravity', 40); i.style.filter = 'sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08)'; return i; }],
+  'eclipse-fork': ['Два Затмения на последнем шаге главы: выбран A, уже в игре', () => boss('fog', 40)],
+  'trophy-collection': ['Коллекция трофеев: готово, A4 в игре, трофей главный на доске', () => boss('gravity', 40)],
   myths: ['Кассиопея, Лебедь, Плеяды — фигуры на небе 4×4', mythIcon],
   prophecy: ['Цель главы с наградой и книга пророчеств', () => sig('chart-flush', 40)],
   resonance: ['Два Знамения рядом — одно легендарное', () => omen('sunWorship', 40)],

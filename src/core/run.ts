@@ -10,6 +10,7 @@ import { currentNode, isLastNight, planChapter, walk } from './route';
 import { generateShop, omenOptions } from './shop';
 import { offer } from './choices';
 import { rollGift } from './gift';
+import { rollTrophy } from './trophy';
 import { COMBO_IDS, type ComboId, type RunState } from './types';
 
 export const SAVE_VERSION = 6;
@@ -93,20 +94,24 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
 
 /** Снимок открытий из журнала до 0.7 — без дара и тел, как и игрался. */
 function normalizeUnlocks(u: Unlocks): Unlocks {
-  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false };
+  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false, trophies: u.trophies ?? false };
 }
 
 /**
  * Забрать награду ночи и войти в Обсерваторию. Дар ночи (GF.1) встаёт в очередь выборов
- * раньше лавки: Обсерватория открывается, а сверху — «1 из 3 или чистое небо».
+ * раньше лавки: Обсерватория открывается, а сверху — «1 из 3 или чистое небо». После
+ * Затмения ещё раньше — трофей (TR.1).
  */
 export function collectReward(run: RunState): void {
   if (run.phase !== 'reward' || !run.reward) throw new RuleError('noReward');
   run.gold += run.reward.total;
   run.stats.goldEarned += run.reward.total;
+  const bossId = run.night?.bossId ?? null;
   run.reward = null;
   run.night = null;
   run.phase = 'shop';
+  // Трофей Затмения (TR.1): приручить или Знамение — первым, до дара
+  if (bossId && run.unlocks.trophies && !run.tutorial) offer(run, { kind: 'trophy', options: rollTrophy(run, bossId) });
   if (run.unlocks.gift && !run.tutorial) offer(run, { kind: 'gift', options: rollGift(run) });
   // Яркая ночь (RT.1): Знамение 1 из 3 — бесплатно, после дара
   if (currentNode(run).route === 'bright') {

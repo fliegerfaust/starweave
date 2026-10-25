@@ -1,8 +1,9 @@
 import { BRIGHT_TARGET_SCALE, FINAL_ANTE, GENTLE_NIGHT } from './content/balance';
+import { BOSS_LIST } from './content/bosses';
 import { runNightReward, runNightTarget } from './content/stakes';
 import { RuleError } from './errors';
 import { offer } from './choices';
-import { createRng, hashSeed, shuffle } from './rng';
+import { createRng, hashSeed, pick, shuffle, type RngState } from './rng';
 import { rollComet, rollScope } from './wonders';
 import { buildRules } from './rules';
 import type { NightKind, Rules, RunState } from './types';
@@ -59,12 +60,23 @@ export interface NightPlan extends ChapterNode {
 
 type PlanInput = Pick<RunState, 'ante' | 'bosses'> & Partial<Pick<RunState, 'seed' | 'unlocks' | 'tutorial'>>;
 
+/**
+ * Второе Затмение главы (TR.3): из тех, что могут выпасть в этой главе, не Затмение главы и не
+ * Затмения соседних глав (три прошлых, как у `rollBoss`, и следующее — его видно, заглянув вперёд).
+ */
+function rivalBoss(rng: RngState, run: PlanInput, bossId: string): string | null {
+  const near = new Set([bossId, ...run.bosses.slice(Math.max(0, run.ante - 4), run.ante + 1)]);
+  const pool = BOSS_LIST.filter((b) => b.minAnte <= run.ante && !near.has(b.id));
+  return pool.length ? pick(rng, pool).id : null;
+}
+
 /** Ступень главы по номеру шага: первый — Сумерки, второй — Полночь, последний — Затмение. */
 const STEP_KINDS: readonly NightKind[] = ['dusk', 'midnight', 'eclipse'];
 
 /**
  * План главы `run.ante`. Развилки (ступень 2, `unlocks.routes`) — на каждом из двух первых
- * шагов Ночь и Яркая ночь в своём порядке, из каждой можно пойти в любую следующую. Порядок —
+ * шагов Ночь и Яркая ночь в своём порядке, из каждой можно пойти в любую следующую. Со ступени 6
+ * ещё Комета или Телескоп на шаге и два Затмения на последнем. Порядок —
  * от сида и номера главы, а не от ГПСЧ забега: план главы впереди строится заранее и не
  * сдвигает броски. Без развилок — цепочка из трёх ночей.
  */
@@ -86,7 +98,10 @@ export function planChapter(run: PlanInput): Chapter {
     const kinds = shuffle(rng, ['night', 'bright', ...wonders.slice(step - 1, step)] as RouteKind[]);
     for (const route of kinds) nodes.push({ kind: STEP_KINDS[step - 1]!, bossId: null, route, step, next: [] });
   }
-  nodes.push({ kind: 'eclipse', bossId, route: 'eclipse', step: 3, next: [] });
+  // Ступень 6: в конце главы два Затмения на выбор (TR.3), порядок корон — от сида
+  const rival = run.unlocks?.wonders && bossId ? rivalBoss(rng, run, bossId) : null;
+  const crowns = rival ? shuffle(rng, [bossId, rival]) : [bossId];
+  for (const id of crowns) nodes.push({ kind: 'eclipse', bossId: id, route: 'eclipse', step: 3, next: [] });
   // Из каждого узла — в любой узел следующего шага; из шага без ночи — только в ночь:
   // до Затмения в любом пути хотя бы одна ночь
   nodes.forEach((n) => (n.next = nodes.flatMap((m, j) => (m.step === n.step + 1 && !(isWonder(n.route) && isWonder(m.route)) ? [j] : []))));
@@ -146,12 +161,14 @@ export function walk(run: RunState): void {
   const row = run.chapter.nodes.flatMap((m, j) => (m.step === node.step ? [j] : []));
   const journey = (run.journey ??= []);
   (journey[run.ante - 1] ??= []).push({ route: node.route, col: row.indexOf(run.chapter.at), of: row.length });
+  // Выбранное Затмение — Затмение главы: от него считаются повторы в главах дальше
+  if (node.bossId) run.bosses[run.ante - 1] = node.bossId;
   passNode(run.chapter);
 }
 
 /**
  * Ночь, которую игрок сыграет следующей. Пока путь не выбран — первый из вариантов шага:
- * его ступень (Сумерки, Полночь) и Затмение главы у всех вариантов одни и те же.
+ * ступень (Сумерки, Полночь, Затмение) у всех вариантов одна, а Затмение со ступени 6 выбирают.
  */
 export function currentNode(run: Pick<RunState, 'chapter'>): ChapterNode {
   const { chapter } = run;

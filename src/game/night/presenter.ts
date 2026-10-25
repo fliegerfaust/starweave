@@ -72,7 +72,7 @@ export class Presenter {
           this.world.req(e, Transform).flip = -1;
           this.scene.hand.push(card.id);
         }
-        this.scene.hud.setDeckCount(this.scene.night.drawPile.length);
+        this.scene.hud.setDeck(this.scene.night);
         return this.dealToHand(ev.cards.map((c) => c.id));
       case 'burn':
         return this.onBurn(ev.card.id, ev.handIndex);
@@ -570,6 +570,8 @@ export class Presenter {
         return t('calc.omen', { name: named('omen', src.omenId).name, effect });
       case 'boss':
         return t('calc.boss', { name: named('boss', src.bossId).name, effect });
+      case 'trophy':
+        return t('calc.trophy', { name: named('trophy', src.trophyId).name, effect });
       case 'combo':
       case 'chain':
         return effect;

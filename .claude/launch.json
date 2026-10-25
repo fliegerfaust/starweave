@@ -1,7 +1,40 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 },
-    { "name": "crazygames", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "preview", "--outDir", "dist-crazygames", "--port", "4174", "--strictPort"], "port": 4174 }
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "crazygames",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--outDir",
+        "dist-crazygames",
+        "--port",
+        "4174",
+        "--strictPort"
+      ],
+      "port": 4174
+    },
+    {
+      "name": "vitrines",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4180",
+        "--directory",
+        "docs/vitrines"
+      ],
+      "port": 4180
+    }
   ]
 }
