@@ -3110,16 +3110,26 @@ body.pc-wide .ts-pick, body.pc-wide .ts-medal { zoom: var(--ui-k, 1); }
 /* Два Затмения на последнем шаге главы (TR.3): Затмение впереди видно заранее, у каждого трофей */
 .sm-star.look .sm-orb { box-shadow: 0 0 0 1.5px rgb(232 228 244 / 0.85), 0 0 14px rgb(232 228 244 / 0.3); }
 .sm-star.boss:not(:disabled) { cursor: pointer; }
-.sm-o .g.tro { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.sm-o .g.tro { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; text-align: right; }
 .sm-tro-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: center; padding-top: 8px; box-shadow: 0 -1px 0 var(--hair); }
 .sm-tro-row small { margin-right: 6px; font: 800 10px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .sm-tro-row b { font: 700 13px/1.2 var(--font-body); color: var(--gold-hi); }
 .sm-tro-row .d { display: block; margin-top: 3px; font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
-.sm-detail.tight .sm-tro-row .d { display: none; }
-.sm-detail.tight .sm-tro-row { padding-top: 6px; }
+.map.sm.low .sm-tro-row .d, .map.sm.land .sm-tro-row .d { display: none; }
+.map.sm.low .sm-tro-row { padding-top: 6px; }
+/* Совсем низкая карта (iPhone SE в Telegram, TR.5): подписи только у Затмений, плашка короче */
+.map.sm.low .sm-star:not(.boss) .sm-lbl { opacity: 0; }
+.map.sm.low .sm-hd small { display: none; }
+.map.sm.low .sm-chip { padding: 3px 5px; }
+.map.sm.low .sm-chip .nm { display: none; }
+.map.sm.low .sm-chip .sm-ic, .map.sm.low .sm-chip .sm-sigil { width: 16px !important; height: 16px !important; }
+/* 320 px: медаль трофея повторяет знак Затмения в начале строки — на узкой строке без неё */
+.map.sm.low .sm-o .g.tro .trophy-medal { display: none; }
+.map.sm.low .sm-o .g.tro { min-width: 0; }
 /* Строки вариантов — общие колонки: цель и награда в одну линию, даже когда трофей длиннее золота */
 @supports (grid-template-columns: subgrid) {
-  .sm-opts { grid-template-columns: 22px minmax(0, 1fr) auto auto; column-gap: 10px; }
+  /* Имя не уже своего самого длинного слова: на 320 px длинный трофей переносится, а не наезжает */
+  .sm-opts { grid-template-columns: 22px minmax(auto, 1fr) auto auto; column-gap: 10px; }
   .sm-o { grid-column: 1 / -1; grid-template-columns: subgrid; }
 }
 
