@@ -51,6 +51,8 @@ const PAIR: [number, Suit][] = [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet
 
 /** Витрина TR.4: как показать трофеи в коллекции (dev, `?collection=A|B|C`). */
 const trophyView = () => document.body.dataset.coll ?? '';
+/** Раскладка доски Затмения в варианте A: 1, 2 или 3 (`?collection=A1|A2|A3`). */
+const cardView = () => document.body.dataset.card ?? '';
 
 let fakeId = -9000;
 const CELL = 34;
@@ -371,6 +373,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     const tally = known
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
       : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
+    if (pick.kind === 'boss' && trophyView() === 'A' && cardView() && known) return eclipseCard(pick.id, big, tally);
     // A и C: у Затмения на доске — его трофей и сколько раз приручён
     const pairView = pick.kind === 'boss' && (trophyView() === 'A' || trophyView() === 'C');
     if (pairView && known) tally.push(trophyLine(pick.id, trophyView() === 'A'));
@@ -395,6 +398,39 @@ export function showGuide(opts: GuideOptions = {}): void {
       h('small', null, c.trophy), h('b', null, tro.name), h('span.d', null, rich(tro.desc)),
       h('span.n', null, n ? tamedText(n) : c.notTamed),
     ])]);
+  };
+  /** Вариант A: доска Затмения с одной иконкой — три раскладки. */
+  const eclipseCard = (id: string, big: HTMLElement, head: Child[]): [HTMLElement, Child[]] => {
+    const n = tamedOf(id);
+    const tro = named('trophy', id);
+    const count = h(`span.n${n ? '' : '.none'}`, null, n ? tamedText(n) : c.notTamedShort);
+    const v = cardView();
+    if (v === '1') {
+      // Знак Затмения сам золотеет, счёт — в подписи трофея
+      big.classList.toggle('gold', n > 0);
+      return [h('div.gb-stage', null, big), [...head, h('div.gb-tro.bare.c1', null, h('div', null, [
+        h('small', null, [c.trophy, ' · ', count]), h('b', null, tro.name), h('span.d', null, rich(tro.desc)),
+      ]))]];
+    }
+    if (v === '2') {
+      // Счёт под знаком: число крупно, трофей в тексте без медали
+      const tally = h(`div.gb-times-big${n ? '' : '.none'}`, null, n ? [h('b', null, `×${n}`), h('span', null, c.tamedWord)] : h('span', null, c.notTamedShort));
+      big.classList.toggle('gold', n > 0);
+      return [h('div.gb-stage', null, [big, tally]), [...head, h('div.gb-tro.bare', null, h('div', null, [
+        h('small', null, c.trophy), h('b', null, tro.name), h('span.d', null, rich(tro.desc)),
+      ]))]];
+    }
+    // 3: шапка со знаком, ниже две колонки — правило и трофей
+    big.classList.add('gb-a3-sigil');
+    big.classList.toggle('gold', n > 0);
+    const [title, kind, rule] = head as HTMLElement[];
+    return [h('div.gb-a3', null, [
+      h('div.gb-a3-head', null, [big, h('div', null, [title, kind])]),
+      h('div.gb-a3-cols', null, [
+        h('div', null, [h('small', null, c.rule), rule]),
+        h('div', null, [h('small', null, c.trophy), h('b', null, tro.name), h('span.d', null, rich(tro.desc)), count]),
+      ]),
+    ]), []];
   };
   /** Вариант B: трофей крупно — медаль, имя, чей он, правило, сколько раз приручён. */
   const trophyBoard = (id: string): [HTMLElement, Child[]] => {

@@ -3144,3 +3144,34 @@ body.pc-wide .ts-pick, body.pc-wide .ts-medal { zoom: var(--ui-k, 1); }
 .gb-pairs .gb-row.miss .gb-text small { display: none; }
 .gb-times { font: 700 13px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
 .gb-pairs .gb-row.miss canvas { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
+
+/* Витрина TR.4: доска Затмения в варианте A — одна иконка (раскладки 1, 2, 3) */
+canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08) drop-shadow(0 0 14px rgb(255 200 90 / 0.5)); }
+.gb-tro.c1 small { color: var(--ink-faint); }
+.gb-tro .n.none, .gb-tro small .n.none { color: var(--ink-faint); font-weight: 600; }
+.gb-tro.c1 small .n { display: inline; margin: 0; font: inherit; color: var(--gold-hi); }
+.gb-tro.c1 small .n.none { color: var(--ink-faint); }
+.gb-times-big { display: grid; justify-items: center; gap: 2px; text-align: center; }
+.gb-times-big b { font: 400 26px/1 var(--font-display); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.gb-times-big span { font: 700 10px/1.2 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+.gb-times-big.none span { color: var(--ink-faint); max-width: 9ch; }
+.gb-board:has(.gb-a3) { grid-template-columns: minmax(0, 1fr); align-content: center; }
+.gb-board:has(.gb-a3) .gb-tally:empty { display: none; }
+.gb-a3 { display: grid; gap: 14px; min-width: 0; }
+.gb-a3-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; }
+.gb-a3-head > div { display: grid; gap: 4px; }
+.gb-a3 h3 { margin: 0; font: 400 22px/1.1 var(--font-display); letter-spacing: 0.04em; color: #ffe6a8; }
+canvas.gb-big.gb-a3-sigil { width: 56px !important; height: 56px !important; }
+.gb-a3-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding-top: 12px; box-shadow: 0 -1px 0 var(--hair); }
+.gb-a3-cols > div { display: grid; gap: 4px; align-content: start; }
+.gb-a3-cols > div + div { padding-left: 14px; box-shadow: -1px 0 0 var(--hair); }
+.gb-a3-cols small { font: 800 10px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.gb-a3-cols p { margin: 0; font: 500 12.5px/1.35 var(--font-body); color: #e6defa; text-wrap: pretty; }
+.gb-a3-cols b { font: 700 13px/1.2 var(--font-body); color: var(--gold-hi); }
+.gb-a3-cols .d { font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+.gb-a3-cols .n { margin-top: 2px; font: 700 12px/1.2 var(--font-body); color: var(--gold-hi); }
+@media (min-width: 900px) and (min-height: 561px) {
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-a3 h3 { font-size: 30px; }
+  body.landscape .modal-panel.board-modal:not(.sheet) canvas.gb-big.gb-a3-sigil { width: 72px !important; height: 72px !important; }
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-a3-cols p { font-size: 14px; }
+}
