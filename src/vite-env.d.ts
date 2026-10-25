@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Площадка сборки: `yandex`, `crazygames`, `pikabu` или пусто (обычный веб). */
   readonly VITE_PLATFORM?: string;
+  /** Переключатели CQ по умолчанию в разработке, как `?ff=` (e2e: `none`). */
+  readonly VITE_FF?: string;
   /** Номер счётчика Яндекс Метрики; без него аналитика выключена. */
   readonly VITE_METRIKA_ID?: string;
   /** Адрес приёма событий своего сервера, например `https://game.denvalclass.ru/v1/events`. */

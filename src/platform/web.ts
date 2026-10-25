@@ -1,5 +1,6 @@
 import type { Lang } from '@/i18n';
 import { FakePayments } from '@/store/fake-payments';
+import { FEATURES } from './features';
 import type { Payments, Platform } from './types';
 
 /**
@@ -11,6 +12,8 @@ export class WebPlatform implements Platform {
   readonly rewardedAvailable: boolean;
   readonly interstitialAvailable: boolean;
   readonly payments: Payments | null;
+  /** Всё новое 0.7.4 включено и на сайте (решение Дениса, выпуск 0.7.8). */
+  readonly features = FEATURES;
   private pauseListeners: ((paused: boolean) => void)[] = [];
 
   constructor() {
