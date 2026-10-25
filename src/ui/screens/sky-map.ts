@@ -3,7 +3,7 @@ import { FINAL_ANTE } from '@/core/content/balance';
 import { isWonder, nextStop, planNight, routeOptions, type Chapter, type ChapterNode, type NightPlan, type RouteKind } from '@/core/route';
 import type { RunState } from '@/core/types';
 import type { App } from '@/game/app';
-import { named, num, t } from '@/i18n';
+import { dict, named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
 import { layoutMode } from '../map-layout';
@@ -12,6 +12,7 @@ import { showWonder } from '../wonder';
 import { rich } from '../rich';
 import { currentChoice } from '@/core/choices';
 import { showDeck, showHelp, showRunMenu } from './common';
+import { trophyMedal } from '../hud';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 const roman = (n: number) => ROMAN[n - 1] ?? String(n);
@@ -37,6 +38,11 @@ const arrow = () => {
   el.innerHTML = '<svg viewBox="0 0 14 10" aria-hidden="true"><path d="M1 5h11m-3-3 3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   return el;
 };
+
+/** Витрина TR.3: как показать два Затмения (dev, `?skymap&fork=A|B|C`). */
+const forkView = () => document.body.dataset.fork ?? '';
+/** Первое предложение правила — для узкой колонки сравнения. */
+const firstLine = (s: string) => s.split('. ')[0]!;
 
 /** Место на карте в процентах; `hidden` — шаг уже позади и на невысокой карте свёрнут. */
 interface Spot {
@@ -99,6 +105,11 @@ export class SkyMap {
   private group: SVGGElement | null = null;
   private wonder: ModalHandle | null = null;
   private readonly title: HTMLElement;
+  /** Затмения главы; на последнем шаге их может быть два (TR.3). */
+  private readonly crowns: number[];
+  /** Затмение, на которое смотрят заранее, пока до него не дошли. */
+  private look: number | null = null;
+  private readonly or: HTMLElement | null;
 
   constructor(
     private readonly app: App,
@@ -127,7 +138,9 @@ export class SkyMap {
     const here = h('span.sm-star.here', { style: { left: '50%', top: '92%' } }, h('span.sm-orb'));
     this.here = here;
     this.stars = chapter.nodes.map((node, i) => this.star(node, i));
-    this.map = h('div.sm-map', null, [this.edges, here, ...this.stars]);
+    this.crowns = chapter.nodes.flatMap((n, j) => (n.bossId ? [j] : []));
+    this.or = this.crowns.length > 1 && forkView() === 'C' ? h('span.sm-or', null, t('route.or')) : null;
+    this.map = h('div.sm-map', null, [this.edges, here, ...this.stars, this.or]);
 
     this.detail = h('div.sm-detail', { attrs: { 'aria-live': 'polite' } });
     this.goLabel = h('span', null, t('route.choose'));
@@ -191,9 +204,11 @@ export class SkyMap {
   private star(node: ChapterNode, i: number): HTMLButtonElement {
     const boss = node.bossId;
     const label = boss ? named('boss', boss).name : t(`route.${node.route}`);
+    const lbl = h('span.sm-lbl', null, label);
+    if (boss && this.run.unlocks.trophies && forkView() === 'C') lbl.append(h('small.sm-tro', null, [trophyMedal(boss, 14), named('trophy', boss).name]));
     const el = h(`button.sm-star${boss ? '.boss' : ''}`, { type: 'button', ariaLabel: label, dataset: { i: String(i) }, onclick: () => this.select(i) }, [
       h('span.sm-orb', null, boss ? sigil(boss, 56) : routeIcon(node.route)),
-      h('span.sm-lbl', null, label),
+      lbl,
     ]);
     el.style.left = `${this.pos[i]!.x}%`;
     el.style.top = `${this.pos[i]!.y}%`;
@@ -204,23 +219,28 @@ export class SkyMap {
 
   /** Что ждёт: цель (у Яркой — ×1.35). Что даст: золото, Знамение. Что потом: Обсерватория или следующая глава. */
   private nodes(i: number | null): HTMLElement[] {
+    const trophies = this.run.unlocks.trophies;
     if (i === null) {
       const open = this.peek ? routeOptions(this.chapter) : this.options();
+      if (forkView() === 'B' && open.filter((j) => this.plans[j]!.bossId).length > 1) return this.duel(null, true);
       return [
-        h('div.sm-cap', null, t(this.chapter.path.length ? 'route.nextStep' : 'route.nowChoose')),
+        h('div.sm-cap', null, t(forkView() && open.filter((j) => this.plans[j]!.bossId).length > 1 ? 'route.chooseEclipse' : this.chapter.path.length ? 'route.nextStep' : 'route.nowChoose')),
         h('div.sm-opts', null, open.map((j) => {
           const p = this.plans[j]!;
           return h('div.sm-o', null, [
             p.bossId ? sigil(p.bossId, 18) : routeIcon(p.route),
             h('b', null, p.bossId ? named('boss', p.bossId).name : t(`route.${p.route}`)),
             isWonder(p.route) ? h('span.t.no', null, t('route.noNight')) : h('span.t', null, num(p.target)),
-            h('span.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
+            p.bossId && trophies && forkView() === 'A'
+              ? h('span.g.tro', null, [trophyMedal(p.bossId, 16), named('trophy', p.bossId).name])
+              : h('span.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
           ]);
         })),
       ];
     }
     const p = this.plans[i]!;
     const boss = p.bossId;
+    if (boss && forkView() === 'B' && this.crowns.length > 1) return this.duel(i, this.options().includes(i));
     const cell = (k: 'waits' | 'gives' | 'then', v: Node) => h('div', null, [h('small', null, t(`route.${k}`)), v]);
     const ahead = p.next;
     const last = this.ante >= FINAL_ANTE && !this.run.endless;
@@ -234,6 +254,7 @@ export class SkyMap {
         cell('gives', h('b.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` + ${t('route.omen')}` : ''])),
         cell('then', h('b', null, boss ? (last ? t('route.victory') : t('map.chapter', { n: roman(this.ante + 1) })) : isWonder(p.route) ? t('route.straightOn') : t('route.shop'))),
       ]),
+      boss && trophies && forkView() && this.crowns.length > 1 ? this.tame(boss) : null,
       ahead.length
         ? h('div.sm-next', null, [t('route.further'), arrow(), ...ahead.flatMap((j, k) => {
             const n = this.chapter.nodes[j]!;
@@ -241,6 +262,31 @@ export class SkyMap {
           })])
         : null,
     ].filter((x): x is HTMLDivElement => !!x);
+  }
+
+  /** Строка трофея под Затмением: что приручишь, если победишь (TR.3). */
+  private tame(boss: string): HTMLElement {
+    const tro = named('trophy', boss);
+    return h('div.sm-tro-row', null, [trophyMedal(boss, 26), h('div', null, [h('small', null, t('route.tame')), h('b', null, tro.name), h('span.d', null, rich(tro.desc))])]);
+  }
+
+  /** Вариант B: два Затмения рядом, «или» между ними; выбранное — золотой кромкой. */
+  private duel(sel: number | null, open: boolean): HTMLElement[] {
+    return [
+      h('div.sm-cap', null, t(open ? 'route.chooseEclipse' : 'route.twoEclipses')),
+      h('div.sm-duel', null, this.crowns.flatMap((j, k) => {
+        const id = this.plans[j]!.bossId!;
+        const boss = named('boss', id);
+        const col = h(`button.sm-crown${sel === j ? '.on' : ''}`, { type: 'button', onclick: () => this.select(j) }, [
+          sigil(id, 34),
+          h('b', null, boss.name),
+          h('small', null, rich(dict().route.eclipseRule[id] ?? firstLine(boss.desc))),
+          this.run.unlocks.trophies ? h('span.k', null, t('route.tame')) : null,
+          this.run.unlocks.trophies ? h('span.tn', null, [trophyMedal(id, 16), named('trophy', id).name]) : null,
+        ]);
+        return k ? [h('span.sm-vs', null, t('route.or')), col] : [col];
+      })),
+    ];
   }
 
   /** Плашка держит высоту самого большого содержимого — экран не прыгает (правило Дениса). */
@@ -279,7 +325,16 @@ export class SkyMap {
   }
 
   private select(i: number): void {
-    if (this.busy || !this.options().includes(i) || this.sel === i) return;
+    if (this.busy || this.sel === i) return;
+    if (!this.options().includes(i)) {
+      // Затмение впереди можно рассмотреть заранее: выбор пути — выбор, какое встретить (TR.3)
+      if (!forkView() || !this.chapter.nodes[i]!.bossId || this.look === i) return;
+      this.look = i;
+      this.fill(i);
+      this.paint();
+      return;
+    }
+    this.look = null;
     this.sel = i;
     const p = this.plans[i]!;
     (this.go as HTMLButtonElement).disabled = false;
@@ -301,6 +356,7 @@ export class SkyMap {
       el.classList.toggle('gone', !!this.pos[i]!.hidden);
     });
     this.here.classList.toggle('gone', !!this.herePos.hidden);
+    if (this.or) this.or.style.top = `${this.pos[this.crowns[0]!]!.y}%`;
     this.drawEdges();
   }
 
@@ -379,7 +435,8 @@ export class SkyMap {
       el.classList.toggle('sel', this.sel === i);
       el.classList.toggle('after', after.includes(i));
       el.classList.toggle('away', away);
-      el.disabled = !isOpen || this.peek;
+      el.classList.toggle('look', this.look === i);
+      el.disabled = (!isOpen && !(forkView() && n.bossId)) || this.peek;
     });
     if (!this.group) return;
     const from = this.from();

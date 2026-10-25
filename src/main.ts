@@ -81,6 +81,24 @@ async function boot(): Promise<void> {
     const { planChapter } = await import('./core/route');
     app.run!.unlocks.routes = true;
     app.run!.chapter = planChapter(app.run!);
+    // Витрина TR.3: два Затмения на последнем шаге (`fork=A|B|C` — вариант, `last` — сразу к выбору)
+    const fork = params.get('fork');
+    if (fork) {
+      const run = app.run!;
+      document.body.dataset.fork = fork;
+      Object.assign(run.unlocks, { trophies: true, wonders: true });
+      run.bosses[0] = 'gravity';
+      const chapter = (run.chapter = planChapter(run));
+      chapter.nodes.push({ kind: 'eclipse', bossId: 'fog', route: 'eclipse', step: 3, next: [] });
+      const crowns = chapter.nodes.flatMap((n, j) => (n.step === 3 ? [j] : []));
+      for (const n of chapter.nodes) if (n.step === 2) n.next = crowns;
+      if (params.has('last')) {
+        const first = chapter.nodes.findIndex((n) => n.step === 1 && n.route === 'night');
+        const second = chapter.nodes.findIndex((n) => n.step === 2 && n.route === 'bright');
+        chapter.path = [first, second];
+        chapter.at = -1;
+      }
+    }
     await app.router.route();
   }
   // Ночь Затмения выиграна, награда на экране: «Забрать» откроет сцену трофея (TR.2)

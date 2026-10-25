@@ -499,6 +499,12 @@ export const ru = {
     bright: 'Яркая ночь',
     eclipse: 'Затмение',
     choose: 'Выбери путь',
+    chooseEclipse: 'Выбери Затмение',
+    twoEclipses: 'В конце главы два Затмения',
+    tame: 'приручишь',
+    trophy: 'трофей',
+    /** Правило Затмения коротко — для колонки сравнения (TR.3); остальные — как есть. */
+    eclipseRule: { fog: 'Ранги карт в руке скрыты' } as Record<string, string>,
     meetEclipse: 'Встретить Затмение',
     nowChoose: 'Сейчас на выбор',
     nextStep: 'Следующий шаг',
