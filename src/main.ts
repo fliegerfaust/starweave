@@ -96,6 +96,17 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
+  // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
+  if (dev && params.has('collection')) {
+    const seen = ['void', 'eclipse-sun', 'eclipse-moon', 'eclipse-star', 'fog', 'drought', 'shortNight', 'silence', 'gravity', 'judge', 'wane'];
+    Object.assign(app.profile, {
+      tutorialDone: true, tutorialFinished: true, runs: 23, wins: 3, bestAnte: 8, eclipses: 31,
+      seenBosses: seen, tamed: { gravity: 3, fog: 1, void: 2, 'eclipse-sun': 1, judge: 4 },
+    });
+    const [{ showHelp }, { OMEN_LIST }] = await Promise.all([import('./ui/screens/common'), import('./core/content/omens')]);
+    app.profile.seenOmens = OMEN_LIST.slice(0, 26).map((o) => o.id);
+    showHelp({ tab: 'collection', profile: app.profile });
+  }
   // Ночь Затмения выиграна, награда на экране: «Забрать» откроет сцену трофея (TR.2)
   if (dev && params.has('trophy')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });

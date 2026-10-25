@@ -1,6 +1,6 @@
 import { contentPools, type Unlocks } from '@/core/content/pools';
 import type { GameEvent, RunState } from '@/core/types';
-import { isUnlocked, markDailyStarted, markOmensSeen, markSeen, recordDiscoveries, recordProgress, recordRunEnd, unrecordRunEnd, type Discovery, type Profile } from './profile';
+import { isUnlocked, markDailyStarted, markOmensSeen, markSeen, markTamed, recordDiscoveries, recordProgress, recordRunEnd, unrecordRunEnd, type Discovery, type Profile } from './profile';
 
 /**
  * Что случилось в забеге и важно профилю (TD.8). Всё, что открывает небеса, Знамения в
@@ -15,6 +15,8 @@ export type ProgressEvent =
   | { e: 'turn'; events: readonly GameEvent[] }
   /** Знамения показаны в Обсерватории или пакете — открыты для Кодекса. */
   | { e: 'omensShown'; ids: readonly string[] }
+  /** Трофей Затмения взят вместо Знамения — в коллекцию трофеев (TR.4). */
+  | { e: 'tamed'; bossId: string }
   /** Глава пройдена (вышли из Обсерватории дальше по забегу). */
   | { e: 'progress' }
   | { e: 'runEnd'; won: boolean }
@@ -59,6 +61,9 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
     }
     case 'omensShown':
       return { ...nothing(), changed: markOmensSeen(p, [...ev.ids]) };
+    case 'tamed':
+      markTamed(p, ev.bossId);
+      return { ...nothing(), changed: true };
     case 'progress':
       return { ...nothing(), skies: recordProgress(p, run), changed: true };
     case 'runEnd':

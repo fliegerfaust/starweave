@@ -6,7 +6,8 @@ import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
 import { BOSS_LIST } from '@/core/content/bosses';
 import { OMEN_LIST } from '@/core/content/omens';
 import { SKY_LIST } from '@/core/content/skies';
-import { dict, format, named, num, t } from '@/i18n';
+import { TROPHY_UNLOCK } from '@/core/content/trophies';
+import { dict, format, getLang, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { suitPath } from '@/art/glyphs';
 import { SUIT_COLORS } from '@/art/palette';
@@ -363,10 +364,31 @@ export function showGuide(opts: GuideOptions = {}): void {
     if (!known) big.classList.add('unknown');
     const info = named(pick.kind, pick.id);
     const kind = pick.kind === 'omen' ? OMEN_LIST.find((x) => x.id === pick!.id)?.kind ?? null : null;
+    if (pick.kind === 'boss' && known && trophiesOpen()) return trophyBoard(pick.id, big);
     const tally = known
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
       : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
     return [h('div.gb-stage', null, big), tally];
+  };
+  // ─── Трофеи Затмений (TR.4, вариант A4 Дениса): видны со ступени трофеев ──
+  const trophiesOpen = () => isUnlocked(TROPHY_UNLOCK, opts.profile!);
+  const tamedOf = (id: string) => opts.profile!.tamed?.[id] ?? 0;
+  const tamedText = (n: number) => format(c.tamedN[new Intl.PluralRules(getLang()).select(n)] ?? c.tamedN.other!, { n });
+  /**
+   * Трофей главный: что взято и какой бонус даёт, сколько раз приручён. Затмение — под
+   * чертой, тише. Знак один — Затмения; у приручённого он золотой, как медаль трофея.
+   */
+  const trophyBoard = (id: string, big: HTMLElement): [HTMLElement, Child[]] => {
+    const n = tamedOf(id);
+    const tro = named('trophy', id);
+    const boss = named('boss', id);
+    big.classList.toggle('gold', n > 0);
+    return [h('div.gb-stage', null, big), [
+      h(`h3${n ? '' : '.wild'}`, null, tro.name),
+      h(`span.gb-kind.gold${n ? '' : '.none'}`, null, [c.trophy, ' · ', n ? tamedText(n) : c.notTamed]),
+      h('p', null, rich(tro.desc)),
+      h('div.gb-ecl', null, [h('b', null, boss.name), h('span', null, rich(effect(boss.desc)))]),
+    ]];
   };
   const collectionList = (): HTMLElement[] => {
     const p = opts.profile!;
@@ -377,7 +399,8 @@ export function showGuide(opts: GuideOptions = {}): void {
       for (const x of list) {
         const isSeen = seen.includes(x.id);
         const on = pick?.kind === kind && pick.id === x.id;
-        const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}`, {
+        const gold = kind === 'boss' && isSeen && tamedOf(x.id) > 0 && trophiesOpen();
+        const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}${gold ? '.tamed' : ''}`, {
           type: 'button',
           attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : c.unknown },
         }, collSigil(kind, x.id, 40));
@@ -389,7 +412,9 @@ export function showGuide(opts: GuideOptions = {}): void {
         });
         el.append(b);
       }
-      return [section(kind === 'omen' ? c.omens : c.bosses, format(c.opened, { n: seen.length, total: list.length })), el];
+      let sub = format(c.opened, { n: seen.length, total: list.length });
+      if (kind === 'boss' && trophiesOpen()) sub += ` · ${format(c.tamedShort, { n: BOSS_LIST.filter((b) => tamedOf(b.id) > 0).length })}`;
+      return [section(kind === 'omen' ? c.omens : c.bosses, sub), el];
     };
     // Итоги игрока — строками «подпись · число», без плашек
     const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);

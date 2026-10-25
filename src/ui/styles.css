@@ -3122,3 +3122,16 @@ body.pc-wide .ts-pick, body.pc-wide .ts-medal { zoom: var(--ui-k, 1); }
   .sm-opts { grid-template-columns: 22px minmax(0, 1fr) auto auto; column-gap: 10px; }
   .sm-o { grid-column: 1 / -1; grid-template-columns: subgrid; }
 }
+
+/* Коллекция трофеев (TR.4): приручённое Затмение — золотом в сетке и на доске */
+.gb-sigils button.tamed canvas { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08) drop-shadow(0 0 6px rgb(255 200 90 / 0.45)); }
+canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08) drop-shadow(0 0 14px rgb(255 200 90 / 0.5)); }
+.gb-tally h3.wild { color: var(--ink); }
+.gb-kind.gold.none { color: var(--ink-faint); }
+/* Затмение под чертой: имя и правило тише трофея */
+.gb-ecl { display: grid; gap: 3px; margin-top: 6px; padding-top: 10px; box-shadow: 0 -1px 0 var(--hair); }
+.gb-ecl b { font: 400 15px/1.15 var(--font-display); letter-spacing: 0.03em; color: var(--ink-dim); }
+.gb-ecl span { font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+@media (min-width: 900px) and (min-height: 561px) {
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { font-size: 13px; }
+}

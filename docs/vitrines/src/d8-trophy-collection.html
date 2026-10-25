@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Трофеи · коллекция · Starweave 0.7</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Приручённый трофей <small>настоящая игра, Справочник → Коллекция; «Тяготение», трофей «Столп притяжения» приручён 3 раза</small></div>
+  <div class="shots" id="tamed"></div>
+
+  <div class="label">Ещё не приручён <small>«Затмение Луны» встречалось, но трофей «Луна в короне» пока не взят</small></div>
+  <div class="shots" id="wild"></div>
+
+  <div class="label">Чем различаются раскладки <small>трофей главный, Затмение второстепенно</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Трофеи Затмений · коллекция трофеев (TR.4) · 25.10.2026 · выбран A4, в игре · снимки настоящей игры, ветка feature/tr-trophy-collection</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: boss-gravity boss-eclipse-moon */
+shell({ id: 'trophy-collection', lead: 'У каждого из <b>13 Затмений</b> свой трофей. Коллекция в Справочнике показывает, какие трофеи ты уже приручал и <b>сколько раз</b>: приручённые горят золотом, остальные ждут. Варианты отличаются тем, <b>где</b> живут трофеи: на знаках Затмений, отдельной полкой или парами.' });
+
+const VARIANTS = [
+  ['final', 'Готово: A4 в игре', 'Выбран <b>A4</b> (25.10.2026), и он уже в игре: снимки ниже из реализации. Приручённое Затмение золотое в сетке; на доске главный <b>трофей</b>, его бонус и сколько раз приручён, Затмение под чертой. Счёт копится каждый раз, когда после Затмения берёшь трофей.'],
+  ['A4', 'Трофей главный', 'Трофей <b>на первом месте</b>: золотой знак, имя трофея, «Трофей · приручён 3 раза» и его бонус. Под чертой тише: какое Затмение и его правило.'],
+  ['A5', 'Бонус крупно', 'Доска по центру: знак, имя трофея и <b>бонус крупными буквами</b>, его видно сразу. Затмение подписью внизу.'],
+  ['A6', 'Счёт под знаком', 'Как A4, но число приручений вынесено <b>под знак</b>: крупно ×3. Справа имя трофея, бонус, ниже Затмение.'],
+  ['A1', 'Знак золотеет', 'Берём A, на доске <b>одна иконка</b>: знак Затмения сам становится золотым, когда трофей приручён. Счёт в подписи: «Трофей · приручён 3 раза», ниже имя и правило трофея.'],
+  ['A2', 'Счёт под знаком', 'Берём A, на доске <b>одна иконка</b>: под знаком Затмения крупно <b>×3</b> и «приручён». В тексте справа правило Затмения, ниже трофей без своей медали.'],
+  ['A3', 'Шапка и две колонки', 'Берём A, на доске <b>одна иконка</b> в шапке рядом с именем. Ниже две колонки: <b>правило</b> Затмения и <b>трофей</b> с числом приручений, их удобно сравнить взглядом.'],
+  ['A', 'Золото на Затмениях', 'Сетка Затмений та же, что сейчас. Затмение, чей трофей приручён, <b>горит золотом</b>. На доске под правилом Затмения строка трофея: имя, правило, «Приручён 3 раза».'],
+  ['B', 'Полка трофеев', 'Под Затмениями новый раздел <b>«Трофеи · приручено 5 из 13»</b>: тринадцать золотых медалей, неприручённые тусклые. Касание медали кладёт трофей на доску крупно.'],
+  ['C', 'Затмение → трофей', 'Затмения <b>строками</b>: знак, имя, под ним трофей, справа ×3. На доске пара «Затмение → трофей» и оба правила рядом: видно, как правило вывернуто в твою пользу.'],
+];
+const FORMS = [['portrait', 'Телефон · 390 × 844'], ['landscape', 'Ландшафт · 844 × 390'], ['pc', 'ПК · 1280 × 800']];
+const CAPS = {
+  tamed: { final: 'трофей и бонус сверху, «приручён 3 раза», Затмение под чертой', A4: 'трофей и бонус сверху, Затмение под чертой', A5: 'бонус крупно по центру, Затмение подписью', A6: '×3 под знаком, трофей и бонус справа', A1: 'знак золотой, счёт в подписи трофея', A2: 'знак золотой, под ним ×3', A3: 'шапка со знаком, правило и трофей в две колонки', A: 'золотые знаки в сетке, строка трофея на доске', B: 'полка трофеев, выбранный трофей крупно', C: 'строки пар, на доске Затмение и его трофей' },
+  wild: { final: 'знак серебряный, «трофей · ещё не приручён», бонус виден заранее', A4: 'знак серебряный, «Трофей · ещё не приручён»', A5: 'бонус виден, трофей ещё не приручён', A6: 'под знаком «ещё не приручён»', A1: 'знак серебряный, «ещё не приручён» в подписи', A2: 'под знаком «ещё не приручён»', A3: 'в колонке трофея «ещё не приручён»', A: 'трофей серый, «Ещё не приручён»', B: 'медаль тусклая, правило уже видно', C: 'медаль серая, в строке нет числа' },
+};
+let variant = VARIANTS.some(([id]) => id === location.hash.slice(1)) ? location.hash.slice(1) : 'final';
+
+function shots(el, state) {
+  const f = (form, cap, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
+    h('img', { src: `shots/coll-${variant}-${state}-${form}.jpg`, alt: `${cap}: ${variant === 'final' ? 'в игре' : variant.length > 1 ? `раскладка ${variant}` : `вариант ${variant}`}`, loading: 'lazy' }),
+    h('figcaption', {}, `${cap} · ${CAPS[state][variant]}`));
+  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+}
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  shots(q('#tamed'), 'tamed');
+  shots(q('#wild'), 'wild');
+}
+q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, id === 'final' ? name : `${id} · ${name}`)));
+render();
+
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.slice(1, 4).map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
+  ...[
+    ['Первым видно', 'Имя трофея', 'Бонус трофея', 'Имя трофея и ×3'],
+    ['Сколько раз', 'В подписи под именем', 'В подписи под именем', 'Крупно под знаком'],
+    ['Затмение', 'Под чертой: имя и правило', 'Подписью внизу по центру', 'Под чертой: имя и правило'],
+    ['Раскладка', 'Знак слева, текст справа', 'Всё по центру, столбиком', 'Знак слева, текст справа'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i + 1][0] }, x)))));
+
+facts(q('#aside'), [
+  ['Трофей главный', 'Затмение с приручённым трофеем рассказывает прежде всего, что взято и какой бонус даёт. Правило Затмения ниже и тише. A1–A3, где первым шло Затмение, остались для сравнения.'],
+  ['Одна иконка', 'Медаль трофея рядом со знаком Затмения повторяла тот же рисунок. Во всех трёх раскладках на доске один знак, а трофей описан словами; золото знака и есть медаль.'],
+  ['Во всех трёх', 'Приручённый трофей золотой, неприручённый серый. Считается каждый раз, когда после Затмения выбран трофей, а не Знамение. Число растёт навсегда, между забегами.'],
+  ['Пока Затмение не встречалось', 'Его трофей скрыт: «???», как и само Затмение. Встретил Затмение, и трофей виден: имя и правило, серой медалью.'],
+  ['До ступени 4', 'Пока трофеи не открыты, коллекция как сейчас: ни золота, ни строк трофея.'],
+  ['Ничего не скачет', 'Доска держит высоту самого большого содержимого, касание меняет только текст.'],
+], [
+  ['TR.4', 'Готово, вариант A4: счёт в профиле, Справочник, тесты; ждёт твоей проверки'],
+  ['TR.3', 'Готово, ждёт проверки'],
+]);
+ladder(q('#ladder'), 4);
+</script>
+</body>
+</html>

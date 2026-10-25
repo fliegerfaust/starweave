@@ -367,6 +367,10 @@ export const en: Dict = {
     bosses: 'Eclipses',
     skies: 'Skies',
     unknown: '???',
+    trophy: 'trophy',
+    tamedShort: '{n} tamed',
+    tamedN: { one: 'Tamed {n} time', few: 'Tamed {n} times', many: 'Tamed {n} times', other: 'Tamed {n} times' } as Record<string, string>,
+    notTamed: 'not tamed yet',
   },
   settings: {
     title: 'Settings',

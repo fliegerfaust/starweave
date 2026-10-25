@@ -370,6 +370,10 @@ export const ru = {
     bosses: 'Затмения',
     skies: 'Небеса',
     unknown: '???',
+    trophy: 'трофей',
+    tamedShort: 'приручено {n}',
+    tamedN: { one: 'Приручён {n} раз', few: 'Приручён {n} раза', many: 'Приручён {n} раз', other: 'Приручён {n} раза' } as Record<string, string>,
+    notTamed: 'ещё не приручён',
   },
   settings: {
     title: 'Настройки',

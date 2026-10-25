@@ -45,6 +45,8 @@ export interface Profile {
   crossFound?: boolean;
   /** Сколько Затмений побеждено за всё время — ступень «Небесные тела» (GF.3). */
   eclipses?: number;
+  /** Коллекция трофеев (TR.4): сколько раз приручён трофей каждого Затмения. */
+  tamed?: Record<string, number>;
   /** Золото и Знамения пройденного обучения — ждут первого забега. */
   tutorialGift?: TutorialGift;
   /** Когда игрок впервые открыл игру (мс): первые сутки без межстраничной рекламы. */
@@ -127,6 +129,10 @@ export function sanitizeProfile(p: Raw): Profile {
   if (combos.length) out.combosFound = combos;
   if (p.crossFound === true) out.crossFound = true;
   if (num(p.eclipses, 0) > 0) out.eclipses = num(p.eclipses, 0);
+  if (isObj(p.tamed)) {
+    const tamed = Object.fromEntries(Object.entries(p.tamed).filter(([id, n]) => id.length <= 64 && num(n, 0) >= 1).map(([id, n]) => [id, Math.floor(n as number)]));
+    if (Object.keys(tamed).length) out.tamed = tamed;
+  }
   if (isObj(p.tutorialGift)) out.tutorialGift = { gold: num(p.tutorialGift.gold, 0) };
   return out;
 }
@@ -207,6 +213,11 @@ export function markSeen(p: Profile, run: RunState): void {
   for (const o of run.omens) if (!p.seenOmens.includes(o.id)) p.seenOmens.push(o.id);
   const boss = run.night?.bossId;
   if (boss && !p.seenBosses.includes(boss)) p.seenBosses.push(boss);
+}
+
+/** Трофей Затмения взят (TR.4): ещё одно приручение в коллекцию. */
+export function markTamed(p: Profile, bossId: string): void {
+  p.tamed = { ...p.tamed, [bossId]: (p.tamed?.[bossId] ?? 0) + 1 };
 }
 
 /** Знамения, встреченные в Обсерватории, считаются открытыми для Кодекса. */
