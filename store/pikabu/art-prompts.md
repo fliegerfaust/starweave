@@ -15,7 +15,7 @@
    монтировке на каменном столбе, как в старых обсерваториях. И сказать, где у трубы какой конец.
 3. **Всё сразу в одном запросе.** Обсерватория, карты, нить и туманность вместе дают кашу.
    **Решение:** рисовать **в два шага**. Сначала одна обсерватория с правильной геометрией,
-   потом правкой поверх неё добавить карты и нить. Модель сохраняет то, что уже нарисовано.
+   потом правкой поверх неё добавить карты. Модель сохраняет то, что уже нарисовано.
 
 Правило для геометрии в каждом промпте: **каждая деталь названа и привязана к другой**
 («щель купола повёрнута к правому верхнему углу; труба телескопа выходит ровно из щели»).
@@ -45,8 +45,8 @@
 
 ## Горизонтальная иконка (16:9)
 
-Справа обсерватория на холме над облаками, её телескоп смотрит на карты в небе. Слева пустое
-небо под название.
+Справа обсерватория на холме над облаками, над ней в небе наши карты, как созвездие. Слева
+пустое небо под название.
 
 ### Шаг 1. Обсерватория
 
@@ -73,21 +73,27 @@ Avoid: text, letters, numbers, logos, watermarks, people, extra buildings, secon
 ширины, одна прямая щель открыта влево-вверх, из щели наружу выходит длинная прямая латунная труба
 телескопа под 40°. Тёплый свет в щели, двери и окнах. Вид сбоку, чуть снизу. Слева 40 % пустые.
 
-### Шаг 2. Карты и нить (правка поверх картинки шага 1, приложить образцы)
+### Шаг 2. Карты в небе (правка поверх картинки шага 1, приложить образцы)
+
+Карты не привязаны к телескопу: они сами по себе парят в небе, как созвездие, с глубиной,
+как кадр из кино. Телескоп просто смотрит в ту же сторону неба.
 
 ```
 Keep the observatory, the hill, the clouds and the camera exactly as they are. Do not change the dome, the slit or the telescope.
 
-Add: in the sky, along the line where the telescope points, four playing cards float in a gentle rising arc, exactly like the cards in the attached card reference: same shapes, thin gold borders, suit emblems and colors. From the one nearest the telescope outward: gold Sun card, pale-blue Moon card, violet Star card, crimson Comet card. They face the viewer, tilted no more than 10 degrees, all the same size, and each card is about one fifth of the image height.
+Add four playing cards floating high in the night sky, exactly like the cards in the attached card reference: same shapes, thin gold borders, suit emblems and colors, no numbers or letters. Stage them like a cinematic film shot with real depth:
+- the violet Star card is the hero: the largest and closest to the viewer, in the upper-right part of the sky, about one quarter of the image height, tilted about 12 degrees, sharp and glowing with soft golden-white light;
+- the gold Sun card and the pale-blue Moon card float farther away, smaller, a little higher and to the left of the hero, slightly turned, gently softened by distance;
+- the crimson Comet card is the smallest and farthest, deep in the nebula, catching a faint rim of light.
+The four cards are linked only to each other by thin, delicate golden lines of light, like a constellation drawn across the sky; the lines never touch the observatory or the telescope. Tiny golden sparks and a soft haze of starlight drift around the hero card.
 
-A thin, very bright golden thread of light starts at the telescope lens and runs through the emblems of the four cards like the lines of a constellation. The violet Star card bursts with the brightest light, with soft golden sparks drifting down toward the clouds. The cards' warm light faintly lights the top of the dome.
-
-The cards must stay in the right 60 percent of the image; the left 40 percent stays empty dark sky. No numbers or letters on the cards.
+The cards sit well above the dome, never overlapping it. Their warm light faintly tints the cloud tops. The cards and lines stay in the right 60 percent of the image; the left 40 percent stays empty dark sky.
 ```
 
-По-русски: обсерваторию не трогать. По линии, куда смотрит телескоп, четыре наши карты дугой
-(Солнце ближе к телескопу, дальше Луна, Звезда, Комета). Золотая нить идёт из объектива через знаки
-карт, как созвездие; Звезда вспыхивает ярче всех. Слева по-прежнему пусто.
+По-русски: обсерваторию не трогать. Четыре наши карты высоко в небе, с глубиной, как в кино:
+Звезда — главная, крупная и ближе всех, справа вверху; Солнце и Луна дальше и меньше, чуть
+размыты; Комета совсем далеко в туманности. Карты связаны тонкими золотыми линиями только между
+собой, как созвездие; к телескопу и куполу линии не идут. Карты выше купола и его не закрывают.
 
 ---
 
@@ -117,20 +123,21 @@ Avoid: text, letters, numbers, logos, watermarks, people, extra buildings, secon
 По-русски: на холме внизу одна обсерватория крупно: каменная башня, белый купол, щель смотрит
 вверх-вправо, из неё латунная труба под 60°. Нижняя половина — обсерватория, верхняя — небо.
 
-### Шаг 2. Карта и нить (правка поверх картинки шага 1, приложить образцы)
+### Шаг 2. Карты в небе (правка поверх картинки шага 1, приложить образцы)
 
 ```
 Keep the observatory, the hill and the camera exactly as they are. Do not change the dome, the slit or the telescope.
 
-Add: in the upper half of the image, right where the telescope points, ONE large playing card floats, exactly like the violet Star card in the attached card reference: thin gold border, glowing pale-violet four-pointed star emblem, no numbers or letters. It faces the viewer, tilted about 8 degrees, and is about 35 percent of the image height.
+In the upper half of the sky, add ONE large playing card floating freely, exactly like the violet Star card in the attached card reference: thin gold border, glowing pale-violet four-pointed star emblem, no numbers or letters. It faces the viewer, tilted about 10 degrees, about 35 percent of the image height, sharp and glowing warm golden-white, with a soft halo and a few drifting golden sparks.
 
-A thin, very bright golden thread of light runs from the telescope lens up to the card's emblem and circles the card once like an orbit, with three small golden star points on it. The card glows warm golden-white and lights the top of the dome.
+Far behind it, deep in the nebula, three tiny cards (gold Sun, pale-blue Moon, crimson Comet) shine like distant stars, linked to the big card by thin, delicate golden constellation lines. No line touches the observatory or the telescope.
 
-Make the card and the dome the two brightest shapes, so the icon reads clearly at 128 px.
+The big card floats well above the dome and never overlaps it. Make the card and the dome the two brightest shapes, so the icon reads clearly at 128 px.
 ```
 
-По-русски: в верхней половине, куда смотрит телескоп, одна крупная карта Звезды. Нить из объектива
-поднимается к её знаку и обвивает карту орбитой с тремя звёздочками.
+По-русски: в верхней половине одна крупная карта Звезды парит сама по себе, с ореолом и искрами.
+Далеко в туманности три крошечные карты (Солнце, Луна, Комета) светятся, как дальние звёзды, и
+связаны с ней тонкими линиями созвездия. К телескопу ничего не тянется.
 
 ---
 
@@ -145,6 +152,7 @@ Make the card and the dome the two brightest shapes, so the icon reads clearly a
 - **На картах цифры или буквы:** `Keep everything exactly as is. Remove all numbers and letters from the cards; leave only the emblems.`
 - **Карты не похожи на наши:** приложить `store/pikabu/art-refs/cards.png` и `The cards must match the attached card reference exactly: same shapes, colors, gold borders and suit emblems.`
 - **Слева тесно (горизонтальная):** `Keep everything else exactly as is. Clear the entire left 40 percent: only dark starry sky and clouds there.`
+- **Нить или луч тянется к телескопу или куполу:** `Keep everything else exactly as is. Remove any line, beam or thread that touches the observatory or the telescope; the golden lines connect only the cards to each other.`
 - **Хочется богаче:** `Keep the composition and every object exactly as is. Add more painterly detail and atmosphere: richer nebula colors, soft volumetric light from the slit, gentle mist on the hill, tiny fireflies of golden light around the cards.`
 
 ## Если геометрия так и не выходит
