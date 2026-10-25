@@ -6,7 +6,7 @@ import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
 import { BOSS_LIST } from '@/core/content/bosses';
 import { OMEN_LIST } from '@/core/content/omens';
 import { SKY_LIST } from '@/core/content/skies';
-import { dict, format, named, num, t } from '@/i18n';
+import { dict, format, getLang, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { suitPath } from '@/art/glyphs';
 import { SUIT_COLORS } from '@/art/palette';
@@ -15,6 +15,7 @@ import { icon } from '../icons';
 import { modal } from '../widgets';
 import { rich } from '../rich';
 import { cardThumb } from './common';
+import { trophyMedal } from '../hud';
 
 /*
  * «Живая доска» (RD.7, выбор Дениса): сверху — небо 4×4 или сцена термина, ниже — список.
@@ -47,6 +48,9 @@ const SHOP_IDS = ['omens', 'order', 'charts', 'rituals', 'gold'] as const;
 const STEP_OF: Record<string, number> = { line: 1, formula: 2, scoring: 2, cross: 3, burn: 4, eclipse: 5 };
 const GLYPH_CARD: Record<Glyph, [number, Suit]> = { gilded: [7, 'sun'], blazing: [8, 'moon'], radiant: [9, 'star'], echo: [7, 'comet'], glass: [8, 'sun'], prism: [9, 'moon'] };
 const PAIR: [number, Suit][] = [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet']];
+
+/** Витрина TR.4: как показать трофеи в коллекции (dev, `?collection=A|B|C`). */
+const trophyView = () => document.body.dataset.coll ?? '';
 
 let fakeId = -9000;
 const CELL = 34;
@@ -126,7 +130,7 @@ export function showGuide(opts: GuideOptions = {}): void {
   }
   const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
   // Коллекция: выбранное Знамение или Затмение — крупно на доске
-  let pick: { kind: 'omen' | 'boss'; id: string } | null = null;
+  let pick: { kind: 'omen' | 'boss' | 'trophy'; id: string } | null = null;
   track('guide_open', { focus: focus ?? tab });
   const g = dict().guide;
   const levelOf = (id: ComboId) => opts.levels?.[id] ?? 1;
@@ -357,6 +361,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       const omen = OMEN_LIST.find((x) => p.seenOmens.includes(x.id)) ?? OMEN_LIST[0]!;
       pick = { kind: 'omen', id: omen.id };
     }
+    if (pick.kind === 'trophy') return trophyBoard(pick.id);
     const known = (pick.kind === 'omen' ? p.seenOmens : p.seenBosses).includes(pick.id);
     const big = collSigil(pick.kind, pick.id, 72);
     big.classList.add('gb-big');
@@ -366,6 +371,44 @@ export function showGuide(opts: GuideOptions = {}): void {
     const tally = known
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
       : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
+    // A и C: у Затмения на доске — его трофей и сколько раз приручён
+    const pairView = pick.kind === 'boss' && (trophyView() === 'A' || trophyView() === 'C');
+    if (pairView && known) tally.push(trophyLine(pick.id, trophyView() === 'A'));
+    if (pairView && trophyView() === 'C' && known) {
+      const medal = trophyMedal(pick.id, 44);
+      medal.classList.toggle('untamed', !tamedOf(pick.id));
+      big.classList.add('gb-pair-sigil');
+      return [h('div.gb-stage.gb-pair', null, [big, h('span.gb-pair-arrow', null, '→'), medal]), tally];
+    }
+    return [h('div.gb-stage', null, big), tally];
+  };
+  const tamed = () => opts.profile!.tamed ?? {};
+  const tamedOf = (id: string) => tamed()[id] ?? 0;
+  const tamedText = (n: number) => format(c.tamedN[new Intl.PluralRules(getLang()).select(n)] ?? c.tamedN.other!, { n });
+  /** Строка трофея под Затмением: медаль, имя, правило, сколько раз приручён. */
+  const trophyLine = (id: string, withMedal: boolean): HTMLElement => {
+    const n = tamedOf(id);
+    const tro = named('trophy', id);
+    const medal = withMedal ? trophyMedal(id, 30) : null;
+    medal?.classList.toggle('untamed', !n);
+    return h(`div.gb-tro${n ? '' : '.none'}${medal ? '' : '.bare'}`, null, [medal, h('div', null, [
+      h('small', null, c.trophy), h('b', null, tro.name), h('span.d', null, rich(tro.desc)),
+      h('span.n', null, n ? tamedText(n) : c.notTamed),
+    ])]);
+  };
+  /** Вариант B: трофей крупно — медаль, имя, чей он, правило, сколько раз приручён. */
+  const trophyBoard = (id: string): [HTMLElement, Child[]] => {
+    const p = opts.profile!;
+    const n = tamedOf(id);
+    const seen = p.seenBosses.includes(id);
+    const big = trophyMedal(id, 72);
+    big.classList.add('gb-big');
+    big.classList.toggle('untamed', !n);
+    if (!seen) big.classList.add('unknown');
+    const tro = named('trophy', id);
+    const tally = seen
+      ? [h('h3', null, tro.name), h('span.gb-kind.gold', null, format(c.trophyOf, { name: named('boss', id).name })), h('p', null, rich(tro.desc)), h(`p.gb-count${n ? '' : '.none'}`, null, n ? tamedText(n) : c.notTamed)]
+      : [h('h3', null, c.unknown), h('p', null, c.unknownTrophy)];
     return [h('div.gb-stage', null, big), tally];
   };
   const collectionList = (): HTMLElement[] => {
@@ -377,7 +420,8 @@ export function showGuide(opts: GuideOptions = {}): void {
       for (const x of list) {
         const isSeen = seen.includes(x.id);
         const on = pick?.kind === kind && pick.id === x.id;
-        const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}`, {
+        const gold = kind === 'boss' && trophyView() === 'A' && tamedOf(x.id) > 0;
+        const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}${gold ? '.tamed' : ''}`, {
           type: 'button',
           attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : c.unknown },
         }, collSigil(kind, x.id, 40));
@@ -389,7 +433,43 @@ export function showGuide(opts: GuideOptions = {}): void {
         });
         el.append(b);
       }
-      return [section(kind === 'omen' ? c.omens : c.bosses, format(c.opened, { n: seen.length, total: list.length })), el];
+      const tamedN = BOSS_LIST.filter((b) => tamedOf(b.id)).length;
+      const sub = format(c.opened, { n: seen.length, total: list.length }) + (kind === 'boss' && trophyView() === 'A' ? ` · ${format(c.tamedShort, { n: tamedN })}` : '');
+      if (kind === 'boss' && trophyView() === 'C') return [section(c.bosses, `${format(c.opened, { n: seen.length, total: list.length })} · ${format(c.tamedShort, { n: tamedN })}`), pairList()];
+      return [section(kind === 'omen' ? c.omens : c.bosses, sub), el];
+    };
+    /** Вариант C: Затмения строками — знак, имя, его трофей, сколько раз приручён. */
+    const pairList = () => {
+      const el = h('div.gb-list.gb-pairs');
+      for (const x of BOSS_LIST) {
+        const isSeen = p.seenBosses.includes(x.id);
+        const n = tamedOf(x.id);
+        const on = pick?.kind === 'boss' && pick.id === x.id;
+        const medal = trophyMedal(x.id, 22);
+        medal.classList.toggle('untamed', !n);
+        el.append(row(on, !isSeen, isSeen
+          ? [h('b', null, named('boss', x.id).name), h('small', null, [medal, named('trophy', x.id).name])]
+          : [h('b', null, c.unknown)],
+        n ? h('span.gb-times', null, `×${n}`) : null, () => { pick = { kind: 'boss', id: x.id }; render(); }, collSigil('boss', x.id, 30)));
+      }
+      return el;
+    };
+    /** Вариант B: полка трофеев под Затмениями — золотые медали, неприручённые тусклые. */
+    const trophyShelf = () => {
+      const el = h('div.gb-sigils.gb-shelf');
+      for (const x of BOSS_LIST) {
+        const n = tamedOf(x.id);
+        const on = pick?.kind === 'trophy' && pick.id === x.id;
+        const medal = trophyMedal(x.id, 40);
+        medal.classList.toggle('untamed', !n);
+        const b = h(`button${n ? '' : '.untamed'}${p.seenBosses.includes(x.id) ? '' : '.unknown'}${on ? '.on' : ''}`, {
+          type: 'button', attrs: { 'aria-pressed': String(on), 'aria-label': named('trophy', x.id).name },
+        }, medal);
+        b.addEventListener('click', () => { if (!on) { pick = { kind: 'trophy', id: x.id }; render(); } });
+        el.append(b);
+      }
+      const tamedN = BOSS_LIST.filter((b) => tamedOf(b.id)).length;
+      return [section(c.trophies, format(c.tamedOf, { n: tamedN, total: BOSS_LIST.length })), el];
     };
     // Итоги игрока — строками «подпись · число», без плашек
     const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
@@ -404,7 +484,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       skies.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
     }
     const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
-    return [...grid('omen'), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+    return [...grid('omen'), ...grid('boss'), ...(trophyView() === 'B' ? trophyShelf() : []), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
@@ -432,7 +512,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
         : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
         : tab === 'glyphs' ? [...GLYPHS.map((id) => () => { glyph = id; showBody = false; }), ...openBodies.map((id) => () => { bodyId = id; showBody = true; })]
-        : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; })];
+        : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; }), ...(trophyView() === 'B' ? BOSS_LIST.map((x) => () => { pick = { kind: 'trophy', id: x.id }; }) : [])];
       const live = [...board.childNodes];
       max = board.offsetHeight;
       for (const apply of variants) {
