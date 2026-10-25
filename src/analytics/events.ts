@@ -51,6 +51,8 @@ export interface EventMap {
   /** Дар ночи (GF.2): что взято и какой была колода до него. */
   gift_take: { kind: string; id: string; ante: number; deck: number };
   gift_skip: { ante: number; deck: number };
+  /** После Затмения (TR.2): приручил (trophy) или взял парное Знамение (omen). */
+  trophy_take: { kind: string; id: string; ante: number };
   /** Комета или Телескоп (RT.4): взял вариант или прошёл мимо. */
   wonder: { kind: string; ante: number };
 

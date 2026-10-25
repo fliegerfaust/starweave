@@ -2,6 +2,7 @@ import { BODY_IDS, type BodyId } from '../types';
 import { OMEN_LIST } from './omens';
 import { RITUAL_LIST } from './rituals';
 import type { Unlock } from './skies';
+import { TROPHY_UNLOCK } from './trophies';
 
 /**
  * Снимок открытий забега (TD.8): какие Знамения и ритуалы могут выпасть в лавке и пакетах,
@@ -20,6 +21,8 @@ export interface Unlocks {
   routes: boolean;
   /** Комета и Телескоп на развилках — шаги без ночи (ступень 6). */
   wonders: boolean;
+  /** Трофей или Знамение после Затмения (ступень 4). */
+  trophies: boolean;
 }
 
 /** Контент с правилом открытия. Без `unlock` — открыт с первого забега. */
@@ -66,6 +69,7 @@ export function contentPools(open: (unlock: Unlock) => boolean, shared = false):
     routes: shared || open(ROUTES_UNLOCK),
     // Вызов дня — только ступени 0–2, одинаковые у всех
     wonders: !shared && open(WONDERS_UNLOCK),
+    trophies: !shared && open(TROPHY_UNLOCK),
     bodies: BODY_IDS.filter((b) => open(BODY_UNLOCKS[b])),
   };
 }

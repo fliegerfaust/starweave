@@ -47,7 +47,7 @@ function scoreLine(
 ): LineScore & { gold: number } {
   const cells = activeCells(line, night.sealed);
   const placed = cells.map((cell) => night.grid[cell] as Card);
-  const resolved = resolveLine(placed, { flushSlack: night.rules.flushSlack, straightGaps: night.rules.straightGaps });
+  const resolved = resolveLine(placed, night.rules);
   const combo = resolved.combo;
   // Туманность и Двойник засчитываются тем рангом, которым встали в линию
   const cards = placed.map((c, i) => (resolved.ranks[i] === c.rank ? c : { ...c, rank: resolved.ranks[i]! }));
