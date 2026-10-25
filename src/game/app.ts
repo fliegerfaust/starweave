@@ -54,7 +54,9 @@ export class App {
     if (!storage.get(KEYS.settings) && platform.language()) this.settings.lang = platform.language()!;
     setLang(this.settings.lang);
     this.profile = loadProfile();
-    this.features = resolveFeatures(platform.features, import.meta.env.DEV ? new URLSearchParams(location.search).get('ff') : null);
+    // В разработке поверх площадки: VITE_FF (e2e берут старое поведение — `none`), затем `?ff=`
+    const ff = [import.meta.env.VITE_FF, new URLSearchParams(location.search).get('ff')].filter(Boolean).join(',');
+    this.features = resolveFeatures(platform.features, import.meta.env.DEV ? ff : null);
     const stage = document.getElementById('stage')!;
     const renderer = new Renderer(stage);
     const tweens = new Tweener();

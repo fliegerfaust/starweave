@@ -1,6 +1,7 @@
 import type { Lang } from '@/i18n';
 import { chunkKeys, INDEX_KEY, pack, unpack } from './telegram-cloud';
 import { StarsPayments, apiBase } from '@/store/stars-payments';
+import { FEATURES } from './features';
 import type { Payments, Platform } from './types';
 
 /** Часть Telegram Mini Apps API, которой пользуется игра (core.telegram.org/bots/webapps). */
@@ -99,6 +100,8 @@ export class TelegramPlatform implements Platform {
   rewardedAvailable = false;
   interstitialAvailable = false;
   payments: Payments | null = null;
+  /** Всё новое 0.7.4 включено и в Telegram (решение Дениса, выпуск 0.7.8). */
+  readonly features = FEATURES;
   private app: TelegramWebApp | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
   private ads: Promise<AdsgramController | null> | null = null;
