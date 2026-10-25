@@ -51,16 +51,17 @@ interface Spot {
  * (iPhone SE, панель Telegram) пройденные шаги сворачиваются: внизу — где ты сейчас, выше —
  * только то, что впереди, до Затмения. Возвращает места узлов и точки «ты здесь».
  */
-function positions(chapter: Chapter, compact: boolean): { nodes: Spot[]; here: Spot } {
+function positions(chapter: Chapter, compact: boolean, low = false): { nodes: Spot[]; here: Spot } {
   const steps = Math.max(...chapter.nodes.map((n) => n.step));
   // На невысокой карте в начале главы нет ряда «ты здесь»: внизу сразу первый шаг, с подписями
   const start = compact && !chapter.path.length;
   const from = compact ? Math.max(chapter.path.length, 1) : 0;
-  const bottom = start ? 84 : 92;
+  // На совсем низкой карте у шагов нет подписей — нижний ряд опускается ниже
+  const bottom = start ? (low ? 88 : 84) : 92;
   // Ряды от «ты здесь» (низ) до Затмения (верх). Подписи висят под звёздами: промежуток под
   // рядом с подписями (Затмения и шаг, который выбирают сейчас) шире остальных. С двумя
   // Затмениями (TR.3) это важно: короны стоят прямо над крайними звёздами шага ниже
-  const labeled = (step: number) => step === steps || step === chapter.path.length + 1;
+  const labeled = (step: number) => step === steps || (!low && step === chapter.path.length + 1);
   const gaps = Array.from({ length: steps - from }, (_, k) => (labeled(from + k + 1) ? 1.4 : 1));
   const total = gaps.reduce((a, b) => a + b, 0);
   const yOf = (step: number) => bottom - (gaps.slice(0, step - from).reduce((a, b) => a + b, 0) * (bottom - 13)) / total;
@@ -76,7 +77,11 @@ function positions(chapter: Chapter, compact: boolean): { nodes: Spot[]; here: S
 
 /** Невысокая карта: меньше этой высоты — пройденное сворачивается, звёзды компактнее. */
 const COMPACT_MAP = 330;
-/** Совсем низкая карта (iPhone SE в Telegram): строка трофея в плашке — без правила, по касанию. */
+/**
+ * Совсем низкая карта (iPhone SE в Telegram, TR.5): плашка уступает место — без описания шага,
+ * «дальше →» значками, строка трофея без правила; на карте подписи только у Затмений (имена
+ * шагов и так в плашке).
+ */
 const TIGHT_MAP = 170;
 
 /**
@@ -257,7 +262,8 @@ export class SkyMap {
       ahead.length
         ? h('div.sm-next', null, [t('route.further'), arrow(), ...ahead.flatMap((j, k) => {
             const n = this.chapter.nodes[j]!;
-            return [k ? h('span', null, t('route.or')) : null, h('span.sm-chip', null, [n.bossId ? sigil(n.bossId, 16) : routeIcon(n.route), n.bossId ? named('boss', n.bossId).name : t(`route.${n.route}`)])];
+            const name = n.bossId ? named('boss', n.bossId).name : t(`route.${n.route}`);
+            return [k ? h('span', null, t('route.or')) : null, h('span.sm-chip', { attrs: { 'aria-label': name } }, [n.bossId ? sigil(n.bossId, 16) : routeIcon(n.route), h('span.nm', null, name)])];
           })])
         : null,
     ].filter((x): x is HTMLDivElement => !!x);
@@ -275,6 +281,7 @@ export class SkyMap {
   /** Плашка держит высоту самого большого содержимого — экран не прыгает (правило Дениса). */
   private steady(): void {
     if (this.el.classList.contains('land')) {
+      this.el.classList.remove('low');
       this.detail.style.height = '';
       return;
     }
@@ -288,11 +295,11 @@ export class SkyMap {
       }
       this.detail.style.height = `${max}px`;
     };
-    this.detail.classList.remove('tight');
+    this.el.classList.remove('low');
     measure();
-    // Карте не хватает места на три ряда с подписями — плашка уступает строкой трофея
-    if (this.run.unlocks.trophies && this.crowns.length > 1 && this.map.clientHeight < TIGHT_MAP) {
-      this.detail.classList.add('tight');
+    // Карте не хватает места на три ряда с подписями — плашка уступает
+    if (this.map.clientHeight < TIGHT_MAP) {
+      this.el.classList.add('low');
       measure();
     }
     this.detail.replaceChildren(...keep);
@@ -341,7 +348,7 @@ export class SkyMap {
   private relayout(): void {
     this.compact = this.map.clientHeight < COMPACT_MAP;
     this.map.classList.toggle('compact', this.compact);
-    ({ nodes: this.pos, here: this.herePos } = positions(this.chapter, this.compact));
+    ({ nodes: this.pos, here: this.herePos } = positions(this.chapter, this.compact, this.el.classList.contains('low')));
     this.stars.forEach((el, i) => {
       el.style.left = `${this.pos[i]!.x}%`;
       el.style.top = `${this.pos[i]!.y}%`;

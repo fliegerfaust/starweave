@@ -29,6 +29,12 @@
 .cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
 @media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+.tr5 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tr5 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr5 figure { margin: 0; display: grid; gap: 6px; }
+.tr5 img { width: 100%; height: auto; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--brass); }
+.tr5 figcaption { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.tr5 h4 { margin: 0 0 8px; font: 700 13.5px/1.3 var(--font-body); color: var(--gold-hi); text-align: center; }
 </style>
 </head>
 <body>
@@ -43,6 +49,9 @@
 
   <div class="label">Начало главы: Затмения видны заранее <small>путь ещё не выбран; в A и B касание Затмения открывает его в плашке, в C трофеи прямо на карте</small></div>
   <div class="shots" id="start"></div>
+
+  <div class="label">TR.5 · iPhone SE в Telegram: было и стало <small>320 × 568, сверху панель Telegram; карте было 98 px на три ряда</small></div>
+  <div class="tr5" id="tr5"></div>
 
   <div class="label">Чем различаются <small>одно решение игрока, три способа его показать</small></div>
   <div class="cmp" id="cmp"></div>
@@ -86,6 +95,15 @@ function render() {
 q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, id === 'final' ? name : `${id} · ${name}`)));
 render();
 
+const TR5 = [
+  ['start', 'Начало главы', 'звёзды шагов налезают друг на друга', 'у шагов нет подписей: имена в плашке строками'],
+  ['bright', 'Выбрана Яркая ночь', 'плашка высокая: описание и «дальше» в две строки', 'без описания, «дальше →» значками в одну строку'],
+  ['last', 'Выбор Затмения', 'имя наезжает на цель: «Тяготение500»', 'длинный трофей переносится, колонки не наезжают'],
+];
+q('#tr5').append(...TR5.map(([id, title, before, after]) => h('div', {}, h('h4', {}, title), h('div', { class: 'pair' },
+  h('figure', {}, h('img', { src: `shots/tr5-before-${id}.jpg`, alt: `${title}: было`, loading: 'lazy' }), h('figcaption', {}, `Было: ${before}`)),
+  h('figure', {}, h('img', { src: `shots/tr5-after-${id}.jpg`, alt: `${title}: стало`, loading: 'lazy' }), h('figcaption', {}, `Стало: ${after}`))))));
+
 q('#cmp').append(
   h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.slice(1).map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
   ...[
@@ -102,7 +120,7 @@ facts(q('#aside'), [
   ['Ничего не скачет', 'Плашка заранее держит высоту самого большого содержимого; при касании меняются только текст и кромка. На невысокой карте в начале главы нет ряда «ты здесь», под подписями корон места больше.'],
 ], [
   ['TR.3', 'Готово, вариант A: ядро, карта, тесты; ждёт твоей проверки'],
-  ['TR.5', 'iPhone SE в Telegram на ступени 6: карта тесная, было и до TR.3'],
+  ['TR.5', 'Готово: на совсем низкой карте подписи только у Затмений, плашка короче; ждёт проверки'],
   ['TR.2', 'Сцена «приручить или Знамение» готова, вариант C'],
 ]);
 ladder(q('#ladder'), 6);

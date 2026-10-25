@@ -105,8 +105,6 @@ test('карта неба: развилки без наложений, выбо�
   for (const ante of [1, 4, 8])
   // `deep` — ступень 6 с трофеями: Комета и Телескоп, два Затмения на последнем шаге (TR.3)
   for (const [deep, step] of [[false, 0], [false, 1], [true, 0], [true, 1], [true, 2]] as const) {
-    // iPhone SE в Telegram на ступени 6: карте 98 px на три ряда — отдельная задача TR.5
-    if (deep && tg && test.info().project.name === 'iphone-se') continue;
     const res = await page.evaluate(async ({ lang, tg, ante, step, deep }) => {
       const { setLang } = await import('/src/i18n/index.ts');
       const { planChapter, routeOptions } = await import('/src/core/route.ts');
@@ -139,6 +137,13 @@ test('карта неба: развилки без наложений, выбо�
         if (j <= i) return;
         if (x.left < y.right - 1 && x.right > y.left + 1 && x.top < y.bottom - 1 && x.bottom > y.top + 1) out.push(`${a} налезает на ${b}`);
       }));
+      // Строки выбора: имя, цель и награда не наезжают друг на друга (на 320 px трофей длинный)
+      for (const row of document.querySelectorAll<HTMLElement>('.sm-o')) {
+        const cells = [...row.children].slice(1).map((c) => c.getBoundingClientRect()).filter((r) => r.width);
+        cells.forEach((x, i) => cells.slice(i + 1).forEach((y) => {
+          if (x.right > y.left + 1 && y.right > x.left + 1) out.push(`в строке «${row.textContent}» наезжают колонки`);
+        }));
+      }
       const go = document.querySelector('.sm-go')!.getBoundingClientRect();
       if (go.bottom > innerHeight + 1 || go.right > innerWidth + 1) out.push('кнопка за экраном');
       const box = () => ['.sm-detail', '.sm-go', '.sm-map'].map((s) => { const r = document.querySelector(s)!.getBoundingClientRect(); return `${Math.round(r.top)},${Math.round(r.height)},${Math.round(r.width)}`; }).join(' ');
