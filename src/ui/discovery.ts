@@ -3,9 +3,10 @@ import type { ComboId } from '@/core/types';
 import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { dict, t } from '@/i18n';
 import { h } from './dom';
+import { routeIcon } from './route-icon';
 import { cardThumb } from './screens/common';
 
-type Banner = { kind: 'combo'; id: ComboId; count: number } | { kind: 'cross' };
+type Banner = { kind: 'combo'; id: ComboId; count: number } | { kind: 'cross' } | { kind: 'routes' };
 
 const queue: Banner[] = [];
 let current: HTMLElement | null = null;
@@ -14,10 +15,13 @@ let timer = 0;
 let waiters: (() => void)[] = [];
 let fakeId = -5000;
 const SHOW_MS = 2600;
+/** Открытие Развилок читают дольше: картинка и фраза. */
+const ROUTES_MS = 4600;
 const OUT_MS = 220;
 
 /**
- * «Новое созвездие!» — короткий праздник при первом сборе созвездия и первом кресте.
+ * «Новое созвездие!» — короткий праздник при первом сборе созвездия и первом кресте,
+ * и «Открыто: Развилки» (ON.1) — в первую ночь главы, с которой они открылись.
  * Не блокирует игру: плашка над небом, уходит сама или по касанию. Несколько открытий
  * за ход показываются по очереди.
  */
@@ -49,16 +53,28 @@ function next(onShow?: () => void): void {
           h('div.discovery-cards', null, COMBO_EXAMPLES[b.id].map(([rank, suit]) => cardThumb({ id: fakeId--, rank, suit }, 30))),
           h('div.discovery-desc', null, dict().comboDesc[b.id]),
         ])
-      : h('div.discovery.cross', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
-          h('div.discovery-kicker', null, t('discovery.firstKicker')),
-          h('div.discovery-name', null, t('discovery.cross')),
-          h('div.discovery-desc', null, t('discovery.crossDesc')),
-        ]);
+      : b.kind === 'routes'
+        ? h('div.discovery.routes', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+            h('div.discovery-kicker', null, t('discovery.openedKicker')),
+            h('div.discovery-name', null, t('discovery.routes')),
+            h('div.discovery-routes', null, [routePick('night'), h('span.or', null, t('route.or')), routePick('bright')]),
+            h('div.discovery-desc', null, t('discovery.routesDesc')),
+          ])
+        : h('div.discovery.cross', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+            h('div.discovery-kicker', null, t('discovery.firstKicker')),
+            h('div.discovery-name', null, t('discovery.cross')),
+            h('div.discovery-desc', null, t('discovery.crossDesc')),
+          ]);
   el.addEventListener('click', () => dismiss(onShow));
   document.getElementById('ui')!.append(el);
   current = el;
   onShow?.();
-  timer = window.setTimeout(() => dismiss(onShow), SHOW_MS);
+  timer = window.setTimeout(() => dismiss(onShow), b.kind === 'routes' ? ROUTES_MS : SHOW_MS);
+}
+
+/** Значок пути в звезде, как на карте неба, и подпись под ним. */
+function routePick(kind: 'night' | 'bright'): HTMLElement {
+  return h('div.discovery-route', null, [h('span.orb', null, routeIcon(kind)), h('span', null, t(`route.${kind}`))]);
 }
 
 function dismiss(onShow?: () => void): void {

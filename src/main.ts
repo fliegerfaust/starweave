@@ -96,10 +96,10 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
-  // Витрина ON.1: как сказать об открытии Развилок (`?routesfx=a1|a2|b|c`)
+  // ON.1: открытие Развилок (`?routesfx=open|fork`)
   if (dev && params.has('routesfx')) {
     const { showRoutesNotice } = await import('./dev/routes-notice');
-    await showRoutesNotice(app, params.get('routesfx') ?? 'a1');
+    await showRoutesNotice(app, params.get('routesfx') ?? 'open');
   }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {

@@ -335,6 +335,9 @@ export const en: Dict = {
     crossDesc: 'One card closed two lines — score doubled',
     all: 'Every constellation collected!',
     collected: 'Collected {n} of {total}',
+    openedKicker: 'Unlocked',
+    routes: 'Forks',
+    routesDesc: 'From your next run, you choose your own path across the sky map',
   },
   a11y: {
     board: 'The 4×4 sky. Keys 1–4 pick a hand card, arrows move between cells, Enter places, B burns, Esc clears the selection.',
@@ -828,6 +831,7 @@ export const en: Dict = {
     burn: 'Bad card? Drag it onto “Burn”.',
     shop: 'Buy Omens in the Observatory — they bend the scoring rules.',
     boss: 'The third night of each chapter is an Eclipse with a special rule.',
+    routes: 'New: a fork. Choose which night comes next: a regular one or a Bright one, with a higher target and an Omen as the reward.',
     gotIt: 'Got it',
   },
   help: {
