@@ -4,12 +4,30 @@
 название на горизонтальную накладывает `node scripts/pikabu-covers.mjs` шрифтом игры (Forum):
 модели картинок плохо пишут кириллицу.
 
-**Что приложить к каждому запросу как образцы стиля:**
-- `store/crazygames/art/key-16x9.webp` и `store/crazygames/art/key-1x1.webp` — наш ключевой арт;
-- `store/pikabu/screens/landscape-1-cross.jpg` — как выглядят карты и поле в игре.
+## Почему так, а не купол с телескопом
 
-**Куда положить готовое:** `store/pikabu/art/key-1x1.png` и `store/pikabu/art/key-16x9.png`
-(в самом большом размере, который даст модель), потом запустить скрипт.
+Первая версия просила купол обсерватории, телескоп на станине и сетку 4×4. Модель рисует такие
+вещи неверно: купол без опоры, телескоп сквозь стену, у сетки то 5 клеток, то 3. Поэтому новые
+промпты держатся того, что модель рисует уверенно:
+
+- **мало крупных предметов** (одна карта или четыре), без точного счёта мелких;
+- **ничего механического и архитектурного:** ни зданий, ни приборов, ни рук;
+- **простая глубина:** передний план (карты), средний (нить, искры), фон (туманность или облака);
+- **карты лицом к зрителю**, наклон не больше 10–15°, без сложной перспективы;
+- **место каждой вещи названо словами:** «в центре», «правая половина», «левые 40 %».
+
+## Как генерировать
+
+- **Размеры:** квадратную — 1024×1024; горизонтальную — 1536×1024 (16:9 GPT Image не умеет).
+  Скрипт сам обрежет её до 16:9: сверху и снизу уйдёт примерно по 6 %, поэтому ничего важного
+  у верхнего и нижнего края.
+- **Образцы стиля** — приложить к запросу:
+  - `store/pikabu/screens/landscape-2-shop.jpg` — как выглядят наши карты;
+  - `store/crazygames/art/key-16x9.webp` — наш ключевой арт: цвета, туманность, нить.
+- **По одной картинке за раз**, 3–4 попытки на промпт, выбрать лучшую.
+- **Чинить правкой, а не новым промптом:** «Keep everything exactly as is, only …» (примеры ниже).
+- **Готовое положить:** `store/pikabu/art/key-1x1.png` и `store/pikabu/art/key-16x9.png`,
+  потом запустить `node scripts/pikabu-covers.mjs`.
 
 Промпты на английском: так модель точнее держит композицию. Под каждым — что в нём по-русски.
 
@@ -17,46 +35,104 @@
 
 ## Квадратная иконка (1:1)
 
-Видна в каталоге маленькой, поэтому один крупный силуэт и никакого текста.
+Видна в каталоге маленькой: один крупный силуэт, никакого текста. Два варианта, попробовать оба.
+
+### A. «Звезда на орбите» — рекомендую
 
 ```
-Square game icon, 1:1, full-bleed, painterly digital illustration in the exact style of the attached reference images.
+Square 1:1 game icon, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
 
-Scene: the brass dome of an old astronomical observatory seen from slightly below, its shutter slit wide open onto a deep violet and indigo nebula night sky. Inside the open slit, a single large glowing playing card floats upright, a violet card with a bright four-pointed white star emblem in its center and a thin gold frame, exactly like the cards in the references. Behind it, three more cards fan out slightly: a gold card with a sun emblem, a pale-blue card with a crescent moon, a crimson card with a comet. A thin, intensely bright golden thread of light runs diagonally through all four cards, igniting them like stars of a constellation, with small golden sparks where it touches each card. A polished brass telescope at the lower edge points up at the cards.
+Subject: ONE large playing card in the exact center, facing the viewer, tilted about 8 degrees clockwise. It is a deep violet card with a thin polished gold border and slightly rounded corners. In its middle is a big glowing white four-pointed star emblem. The card face has no numbers and no letters.
 
-Lighting: warm golden glow from the cards and the thread against cool blue-violet space; soft bloom; faint constellation lines and small sharp stars in the sky.
+Around the card: one thin, very bright golden thread of light forms a single smooth elliptical orbit around the card, passing behind the card at the top and in front of it at the bottom. Three small bright golden star points sit on the orbit, evenly spaced, so the thread looks like a tiny constellation. A few tiny golden sparks drift off the thread.
 
-Composition: centered, bold and simple silhouette that stays readable when shrunk to 128 px; the hero card occupies the middle third.
+Background: deep indigo-to-violet nebula with soft clouds and small sharp white stars, brightest right behind the card, darker toward the corners.
 
-Do not include: any text, letters, logos or watermarks; card rank numbers; UI elements; frames or borders around the image; rounded corners; white or light background.
+Lighting: the card glows warm golden-white from within; golden rim light on its edges; gentle bloom. No other light sources.
+
+Composition: the card is about 55 percent of the image height; clear empty space around it; nothing touches the image edges; the silhouette reads clearly at 128 px.
+
+Avoid: buildings, domes, telescopes, machines, hands, people, any text, letters, numbers, logos, watermarks, UI, picture frames, borders, rounded image corners, white or light background.
 ```
 
-По-русски: купол обсерватории снизу, щель открыта в фиолетовую туманность. В щели крупная карта Звезды, за ней веером Солнце, Луна, Комета. Через все четыре идёт яркая золотая нить и зажигает их, как созвездие. Внизу латунный телескоп смотрит на карты. Без текста и цифр, без рамки и скруглений.
+По-русски: одна крупная карта Звезды по центру, лицом к зрителю, чуть наклонена. Вокруг неё
+одна золотая нить-орбита с тремя звёздочками, как маленькое созвездие. Фон — фиолетовая туманность.
+Без зданий, приборов, рук, текста и цифр.
+
+### B. «Четыре масти веером»
+
+```
+Square 1:1 game icon, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+
+Subject: FOUR playing cards fanned out like a hand of cards, all pivoting from one point just below the image center, facing the viewer, the fan opening upward about 50 degrees in total. From left to right: a gold card with a sun emblem, a pale-blue card with a crescent moon emblem, a deep violet card with a four-pointed white star emblem (this one slightly larger and in front), a crimson card with a comet emblem. Every card has a thin polished gold border, slightly rounded corners, and no numbers or letters.
+
+A single thin, bright golden thread of light runs in one smooth arc through the four emblems, connecting them like stars of a constellation, with small bursts of light where it touches each emblem.
+
+Background: deep indigo-to-violet nebula with soft clouds and small sharp white stars, a warm glow behind the fan, darker toward the corners.
+
+Composition: the fan fills about 65 percent of the image width, centered; clear space around it; nothing touches the image edges; reads clearly at 128 px.
+
+Avoid: hands, people, buildings, domes, telescopes, machines, any text, letters, numbers, logos, watermarks, UI, picture frames, borders, rounded image corners, white or light background.
+```
+
+По-русски: четыре карты веером из одной точки: Солнце, Луна, Звезда (впереди и чуть больше),
+Комета. Золотая нить дугой проходит через их знаки, как созвездие. Без рук и без цифр.
 
 ---
 
 ## Горизонтальная иконка (16:9)
 
-Слева пустое тёмное небо под название, справа сцена.
+Слева пустое небо под название, справа сцена. Тоже два варианта.
+
+### A. «Созвездие над облаками» — рекомендую
 
 ```
-Wide horizontal key art, 16:9, full-bleed, painterly digital illustration in the exact style of the attached reference images.
+Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
 
-Scene: the interior of an old brass astronomical observatory at night. The right half of the image shows the great dome with its shutter slit open onto a vast violet and indigo nebula, and a large polished brass telescope on a carved mount aimed at the sky. In the sky beyond the slit, a faint 4 by 4 grid of softly glowing square star cells hangs like a celestial game board. One row and one column of the grid are filled with glowing playing cards, exactly like the cards in the references: gold Sun, pale-blue Moon, violet four-pointed Star, crimson Comet. The row and the column cross at one card, and that crossing card bursts with the brightest golden light; a bright golden thread runs through the ignited row and column like constellation lines, with sparks flying.
+Scene: a calm night high above a sea of soft silver-blue clouds. The cloud sea fills the lower quarter of the image, lit from above by a gentle violet glow. Above it, a vast deep indigo and violet nebula sky with small sharp stars.
 
-Left 40 percent of the image: calm, dark, deep-blue starry nebula with only small stars, no objects, kept empty for a title that will be added later.
+Right half of the image: four playing cards float in the sky in a gentle rising arc, from lower-left to upper-right, all facing the viewer, each tilted no more than 10 degrees, evenly spaced, at the same distance from the viewer. In order: a gold card with a sun emblem, a pale-blue card with a crescent moon, a deep violet card with a four-pointed white star, a crimson card with a comet. Each card has a thin polished gold border, slightly rounded corners, and no numbers or letters. One thin, very bright golden thread of light passes through the four emblems like the lines of a constellation; the violet star card bursts with the brightest golden light, with soft sparks drifting down toward the clouds. Their warm light reflects faintly on the cloud tops below.
 
-Lighting: warm gold from the cards, the thread and the brass, against cool blue-violet space; cinematic depth, soft bloom, gentle haze inside the dome.
+Left 40 percent of the image: only calm dark starry sky above the clouds, no cards, no bright objects; kept empty for a title added later.
 
-Do not include: any text, letters, logos or watermarks; card rank numbers; UI elements; frames or borders; rounded corners; white or light background.
+Keep everything important away from the top and bottom 8 percent of the image; it will be cropped to 16:9.
+
+Avoid: buildings, domes, telescopes, machines, mountains with sharp detail, hands, people, any text, letters, numbers, logos, watermarks, UI, picture frames, borders, rounded image corners, white or light background.
 ```
 
-По-русски: внутри обсерватории, справа купол с открытой щелью и большой латунный телескоп. В небе за щелью полупрозрачная сетка 4×4, как игровое поле. Один ряд и один столбец заполнены картами наших мастей, на их пересечении самая яркая вспышка: это крест. Золотая нить проходит по ряду и столбцу, как линии созвездия. Левые 40 % пустые, там будет название.
+По-русски: ночь над морем облаков. Справа в небе четыре карты дугой снизу вверх (Солнце, Луна,
+Звезда, Комета), через их знаки идёт золотая нить, Звезда вспыхивает ярче всех, искры летят к
+облакам, свет отражается на облаках. Слева 40 % — пустое небо под название.
+
+### B. «Нить в туманности»
+
+```
+Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+
+Scene: deep space inside a glowing violet and indigo nebula, with soft clouds of colored gas and small sharp stars. A river of faint stardust flows from the lower-left to the upper-right.
+
+Right 55 percent of the image: four playing cards float at slightly different depths along the stardust river, facing the viewer, each tilted no more than 15 degrees. Two are larger and closer: a deep violet card with a four-pointed white star and a gold card with a sun. Two are smaller and farther away, slightly soft-focused: a pale-blue card with a crescent moon and a crimson card with a comet. Every card has a thin polished gold border, slightly rounded corners, and no numbers or letters. One thin, very bright golden thread of light weaves between the four cards in a smooth S-curve, touching each emblem, like a needle stitching a constellation; where it touches the violet star card, a bright burst of golden light.
+
+Left 40 percent of the image: calm, darker nebula with only small stars, no cards, no bright objects; kept empty for a title added later.
+
+Keep everything important away from the top and bottom 8 percent of the image; it will be cropped to 16:9.
+
+Avoid: buildings, domes, telescopes, machines, hands, people, any text, letters, numbers, logos, watermarks, UI, picture frames, borders, rounded image corners, white or light background.
+```
+
+По-русски: туманность, по диагонали течёт река звёздной пыли. Справа вдоль неё четыре карты на
+разной глубине: Звезда и Солнце ближе и крупнее, Луна и Комета дальше и чуть размыты. Золотая
+нить «прошивает» их плавной S-кривой, на Звезде — вспышка. Слева 40 % пустые.
 
 ---
 
-## Если модель ошиблась
+## Правки, если что-то не так
 
-- Появился текст или цифры на картах: дописать «absolutely no text or numbers anywhere».
-- Карты не похожи на наши: приложить ещё `store/pikabu/screens/landscape-2-shop.jpg` и сказать «cards must match the attached screenshots».
-- Слева тесно: «keep the entire left 40 percent empty sky».
+Писать в тот же чат поверх готовой картинки — так модель сохранит остальное.
+
+- **Цифры или буквы на картах:** `Keep everything exactly as is. Remove all numbers and letters from the cards; leave only the emblems.`
+- **Карты кривые или разной формы:** `Keep the composition. Make all cards identical flat rectangles with the same size, thin gold border and slightly rounded corners, facing the viewer.`
+- **Нить рвётся или идёт мимо знаков:** `Keep everything else. Make the golden thread one continuous smooth line that passes exactly through the center of each card emblem.`
+- **Слева тесно:** `Keep the cards where they are. Clear the entire left 40 percent: only dark starry sky there.`
+- **Знаки не похожи на наши:** приложить ещё `store/pikabu/screens/portrait-2-shop.jpg` и написать `The emblems must match the attached screenshot exactly.`
+- **Слишком тёмно на маленьком размере:** `Keep everything as is. Make the central card brighter and the background slightly darker for more contrast.`
