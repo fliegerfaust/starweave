@@ -23,7 +23,8 @@ services:
       NODE_ENV: production
       PORT: "8080"
       DB_PATH: /data/events.db
-      ALLOWED_ORIGINS: https://fliegerfaust.github.io
+      # Сайт игры (первым: сводка берёт с него карты исходников) и сборка Пикабу Игр здесь же, /pikabu/
+      ALLOWED_ORIGINS: https://fliegerfaust.github.io,https://game.denvalclass.ru
     volumes:
       - ./app:/app:ro
       - ./data:/data

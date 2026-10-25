@@ -19,6 +19,10 @@ describe('сервер: приём событий', () => {
     expect((batch as Batch).events[0]!.at).toBe(NOW - 60_000);
   });
 
+  it('принимает пачки всех площадок, включая Пикабу Игры', () => {
+    for (const p of ['web', 'yandex', 'telegram', 'crazygames', 'pikabu']) expect(typeof parseBatch(body({ p }), NOW)).toBe('object');
+  });
+
   it('отклоняет мусор и лишнее', () => {
     expect(parseBatch('not json', NOW)).toBe('bad json');
     expect(parseBatch(body({ c: 'x' }), NOW)).toBe('bad client');
