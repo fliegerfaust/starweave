@@ -26,7 +26,7 @@ const ROUTE_ICON: Record<Exclude<RouteKind, 'eclipse'>, string> = {
   telescope: '<path d="m4 14 11-6.5 2 3.4L6 17.4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m15.5 6.8 2.6-1.5 2 3.4-2.6 1.5M10.5 15.5 8 21M11.5 15l2.5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
-function routeIcon(kind: RouteKind): HTMLElement {
+export function routeIcon(kind: RouteKind): HTMLElement {
   const el = h(`span.sm-ic.k-${kind}`);
   el.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ROUTE_ICON[kind as 'night']}</svg>`;
   return el;
