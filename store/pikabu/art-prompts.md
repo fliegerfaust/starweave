@@ -21,9 +21,11 @@
 - **Размеры:** квадратную — 1024×1024; горизонтальную — 1536×1024 (16:9 GPT Image не умеет).
   Скрипт сам обрежет её до 16:9: сверху и снизу уйдёт примерно по 6 %, поэтому ничего важного
   у верхнего и нижнего края.
-- **Образцы стиля** — приложить к запросу:
-  - `store/pikabu/screens/landscape-2-shop.jpg` — как выглядят наши карты;
+- **Образцы** — приложить к каждому запросу:
+  - `store/pikabu/art-refs/cards.png` — наши четыре масти, отрисованные самой игрой, без интерфейса:
+    форма карты, золотая рамка, знак масти внизу, созвездие в углу;
   - `store/crazygames/art/key-16x9.webp` — наш ключевой арт: цвета, туманность, нить.
+  Снимки экрана с интерфейсом в образцы не класть: модель переносит в арт надписи и кнопки.
 - **По одной картинке за раз**, 3–4 попытки на промпт, выбрать лучшую.
 - **Чинить правкой, а не новым промптом:** «Keep everything exactly as is, only …» (примеры ниже).
 - **Готовое положить:** `store/pikabu/art/key-1x1.png` и `store/pikabu/art/key-16x9.png`,
@@ -40,9 +42,9 @@
 ### A. «Звезда на орбите» — рекомендую
 
 ```
-Square 1:1 game icon, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+Square 1:1 game icon, painterly digital illustration in the style of the attached references: cards exactly like the attached card reference (shape, gold border, suit emblem in the lower part, small constellation dots in the top corner), same deep violet and indigo night palette, soft painted glow.
 
-Subject: ONE large playing card in the exact center, facing the viewer, tilted about 8 degrees clockwise. It is a deep violet card with a thin polished gold border and slightly rounded corners. In its middle is a big glowing white four-pointed star emblem. The card face has no numbers and no letters.
+Subject: ONE large playing card in the exact center, facing the viewer, tilted about 8 degrees clockwise. It is a deep violet card with a thin polished gold border and slightly rounded corners. Its suit emblem is a big glowing pale-violet four-pointed star, enlarged so it sits near the middle of the card. The card face has no numbers and no letters.
 
 Around the card: one thin, very bright golden thread of light forms a single smooth elliptical orbit around the card, passing behind the card at the top and in front of it at the bottom. Three small bright golden star points sit on the orbit, evenly spaced, so the thread looks like a tiny constellation. A few tiny golden sparks drift off the thread.
 
@@ -62,7 +64,7 @@ Avoid: buildings, domes, telescopes, machines, hands, people, any text, letters,
 ### B. «Четыре масти веером»
 
 ```
-Square 1:1 game icon, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+Square 1:1 game icon, painterly digital illustration in the style of the attached references: cards exactly like the attached card reference (shape, gold border, suit emblem in the lower part, small constellation dots in the top corner), same deep violet and indigo night palette, soft painted glow.
 
 Subject: FOUR playing cards fanned out like a hand of cards, all pivoting from one point just below the image center, facing the viewer, the fan opening upward about 50 degrees in total. From left to right: a gold card with a sun emblem, a pale-blue card with a crescent moon emblem, a deep violet card with a four-pointed white star emblem (this one slightly larger and in front), a crimson card with a comet emblem. Every card has a thin polished gold border, slightly rounded corners, and no numbers or letters.
 
@@ -87,7 +89,7 @@ Avoid: hands, people, buildings, domes, telescopes, machines, any text, letters,
 ### A. «Созвездие над облаками» — рекомендую
 
 ```
-Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: cards exactly like the attached card reference (shape, gold border, suit emblem in the lower part, small constellation dots in the top corner), same deep violet and indigo night palette, soft painted glow.
 
 Scene: a calm night high above a sea of soft silver-blue clouds. The cloud sea fills the lower quarter of the image, lit from above by a gentle violet glow. Above it, a vast deep indigo and violet nebula sky with small sharp stars.
 
@@ -107,7 +109,7 @@ Avoid: buildings, domes, telescopes, machines, mountains with sharp detail, hand
 ### B. «Нить в туманности»
 
 ```
-Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: same card design, same deep violet and indigo night palette, soft painted glow.
+Wide landscape key art, 3:2 canvas, painterly digital illustration in the style of the attached references: cards exactly like the attached card reference (shape, gold border, suit emblem in the lower part, small constellation dots in the top corner), same deep violet and indigo night palette, soft painted glow.
 
 Scene: deep space inside a glowing violet and indigo nebula, with soft clouds of colored gas and small sharp stars. A river of faint stardust flows from the lower-left to the upper-right.
 
@@ -134,5 +136,5 @@ Avoid: buildings, domes, telescopes, machines, hands, people, any text, letters,
 - **Карты кривые или разной формы:** `Keep the composition. Make all cards identical flat rectangles with the same size, thin gold border and slightly rounded corners, facing the viewer.`
 - **Нить рвётся или идёт мимо знаков:** `Keep everything else. Make the golden thread one continuous smooth line that passes exactly through the center of each card emblem.`
 - **Слева тесно:** `Keep the cards where they are. Clear the entire left 40 percent: only dark starry sky there.`
-- **Знаки не похожи на наши:** приложить ещё `store/pikabu/screens/portrait-2-shop.jpg` и написать `The emblems must match the attached screenshot exactly.`
+- **Знаки или рамки не похожи на наши:** приложить `store/pikabu/art-refs/cards.png` ещё раз и написать `The cards must match the attached card reference exactly: same shapes, colors, gold borders and suit emblems.`
 - **Слишком тёмно на маленьком размере:** `Keep everything as is. Make the central card brighter and the background slightly darker for more contrast.`
