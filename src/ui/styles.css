@@ -3175,3 +3175,18 @@ canvas.gb-big.gb-a3-sigil { width: 56px !important; height: 56px !important; }
   body.landscape .modal-panel.board-modal:not(.sheet) canvas.gb-big.gb-a3-sigil { width: 72px !important; height: 72px !important; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-a3-cols p { font-size: 14px; }
 }
+
+/* Витрина TR.4: трофей главный на доске Затмения (раскладки 4, 5, 6) */
+.gb-tally h3.wild { color: var(--ink); }
+.gb-kind.gold.none { color: var(--ink-faint); }
+.gb-ecl { display: grid; gap: 3px; margin-top: 6px; padding-top: 10px; box-shadow: 0 -1px 0 var(--hair); }
+.gb-ecl b { font: 400 15px/1.15 var(--font-display); letter-spacing: 0.03em; color: var(--ink-dim); }
+.gb-ecl span { font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+.gb-board:has(.gb-bonus) { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 10px; }
+.gb-board:has(.gb-bonus) .gb-tally { justify-items: center; }
+.gb-tally p.gb-bonus { font: 600 17px/1.3 var(--font-body); color: #fff4d6; max-width: 26ch; text-wrap: balance; }
+.gb-board:has(.gb-bonus) .gb-ecl { justify-items: center; width: 100%; }
+@media (min-width: 900px) and (min-height: 561px) {
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-tally p.gb-bonus { font-size: 21px; }
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { font-size: 13px; }
+}

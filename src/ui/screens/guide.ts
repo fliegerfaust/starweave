@@ -405,6 +405,20 @@ export function showGuide(opts: GuideOptions = {}): void {
     const tro = named('trophy', id);
     const count = h(`span.n${n ? '' : '.none'}`, null, n ? tamedText(n) : c.notTamedShort);
     const v = cardView();
+    if (v === '4' || v === '5' || v === '6') {
+      // Трофей главный: что взято и какой бонус; Затмение — строкой ниже
+      const [title, , rule] = head as HTMLElement[];
+      big.classList.toggle('gold', n > 0);
+      const ecl = h('div.gb-ecl', null, [h('b', null, title!.textContent ?? ''), h('span', null, rule!.textContent ?? '')]);
+      const name = h(`h3${n ? '' : '.wild'}`, null, tro.name);
+      const label = h(`span.gb-kind.gold${n ? '' : '.none'}`, null, v === '6' ? c.trophy : [c.trophy, ' · ', n ? tamedText(n) : c.notTamedShort]);
+      if (v === '5') return [h('div.gb-stage', null, big), [name, label, h('p.gb-bonus', null, rich(tro.desc)), ecl]];
+      if (v === '6') {
+        const times = h(`div.gb-times-big${n ? '' : '.none'}`, null, n ? [h('b', null, `×${n}`), h('span', null, c.tamedWord)] : h('span', null, c.notTamedShort));
+        return [h('div.gb-stage', null, [big, times]), [name, label, h('p', null, rich(tro.desc)), ecl]];
+      }
+      return [h('div.gb-stage', null, big), [name, label, h('p', null, rich(tro.desc)), ecl]];
+    }
     if (v === '1') {
       // Знак Затмения сам золотеет, счёт — в подписи трофея
       big.classList.toggle('gold', n > 0);
