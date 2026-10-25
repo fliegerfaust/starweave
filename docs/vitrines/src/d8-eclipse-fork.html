@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Трофеи · два Затмения · Starweave 0.7</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Последний шаг: выбор Затмения <small>настоящая игра, глава с Кометой и Телескопом; выбрано «Тяготение»</small></div>
+  <div class="shots" id="last"></div>
+
+  <div class="label">Начало главы: Затмения видны заранее <small>путь ещё не выбран; в A и B касание Затмения открывает его в плашке, в C трофеи прямо на карте</small></div>
+  <div class="shots" id="start"></div>
+
+  <div class="label">Чем различаются <small>одно решение игрока, три способа его показать</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Трофеи Затмений · два Затмения на последнем шаге главы (TR.3) · 25.10.2026 · выбран A · снимки настоящей игры, ветка feature/tr-eclipse-fork</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: boss-gravity boss-fog */
+shell({ id: 'eclipse-fork', lead: 'Со ступени 6 в конце главы <b>два Затмения</b>: выбор пути становится выбором, какое правило встретить и какой трофей приручить. Карта та же, что сейчас в игре; варианты отличаются тем, <b>где</b> игрок сравнивает два Затмения.' });
+
+const VARIANTS = [
+  ['final', 'Готово: A в игре', 'Выбран <b>вариант A</b> (25.10.2026), и он уже в игре: снимки ниже из реализации, не из прототипа. У Затмений вместо золота трофей, у выбранного строка «Приручишь». Варианты A, B и C из витрины остались рядом для сравнения.'],
+  ['A', 'Строка трофея', 'Карта тихая, как сейчас. В строках выбора у Затмения вместо золота <b>трофей</b>; у выбранного под фактами строка «Приручишь» с правилом.'],
+  ['B', 'Две короны рядом', 'Когда пора выбирать Затмение, плашка становится <b>сравнением</b>: два Затмения бок о бок через «или», правило и трофей у каждого. Касание колонки или звезды выбирает.'],
+  ['C', 'Трофеи на карте', 'Под каждой короной на карте её <b>трофей золотом</b>, между коронами «или». Всю главу видно, куда ведёт путь; плашка как в A.'],
+];
+const FORMS = [['portrait', 'Телефон · 390 × 844'], ['landscape', 'Ландшафт · 844 × 390'], ['pc', 'ПК · 1280 × 800']];
+const CAPS = {
+  last: { final: 'выбрано «Тяготение»: факты и строка «Приручишь»', A: 'выбранное Затмение: факты и строка «Приручишь»', B: 'сравнение двух Затмений, выбранное в золотой кромке', C: 'трофеи под коронами, выбранное в плашке' },
+  start: { final: 'начало главы: обе короны впереди, касание любой покажет её заранее', A: 'касание Затмения впереди: плашка показывает его, кнопка ждёт выбора пути', B: 'касание Затмения впереди: «В конце главы два Затмения»', C: 'карта сама говорит, где какой трофей; плашка о первом шаге' },
+};
+let variant = ['final', 'A', 'B', 'C'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'final';
+
+function shots(el, state) {
+  const f = (form, cap, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
+    h('img', { src: `shots/fork-${variant}-${state}-${form}.jpg`, alt: `${cap}: ${variant === 'final' ? 'в игре' : `вариант ${variant}`}`, loading: 'lazy' }),
+    h('figcaption', {}, `${cap} · ${CAPS[state][variant]}`));
+  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+}
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  shots(q('#last'), 'last');
+  shots(q('#start'), 'start');
+}
+q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, id === 'final' ? name : `${id} · ${name}`)));
+render();
+
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.slice(1).map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
+  ...[
+    ['Где сравнивать', 'По очереди: касаешься одного Затмения, потом другого', 'Оба сразу в плашке, бок о бок', 'Прямо на карте, всю главу'],
+    ['Правило Затмения', 'Полностью, под именем', 'Коротко, одной-двумя строками', 'Полностью, после касания'],
+    ['Карта', 'Как сейчас, тихая', 'Как сейчас, тихая', 'Под коронами строка трофея и «или»'],
+    ['Плашка', 'Та же высота, что сейчас', 'Выше: в портрете карта чуть ниже', 'Та же высота, что сейчас'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i + 1][0] }, x)))));
+
+facts(q('#aside'), [
+  ['Во всех трёх', 'Оба Затмения видны с начала главы. Из любого узла второго шага можно пойти к любому из двух, ничего не закрывается заранее. Кнопка «Встретить Затмение» ждёт касания, сама ничего не выбирает.'],
+  ['Без трофеев', 'Если трофеи ещё не открыты (ступень 4), строки «Приручишь» нет: выбираешь только правило. В вызове дня два Затмения не появляются, там только ступени 0–2.'],
+  ['Какие Затмения', 'Второе Затмение берётся из тех, что могут выпасть в этой главе: не Затмение главы, не Затмения трёх прошлых глав и не следующей. Какая корона слева, решает сид главы. Цель и награда у обоих одинаковые: разница только в правиле и трофее. Выбранное становится Затмением главы.'],
+  ['Ничего не скачет', 'Плашка заранее держит высоту самого большого содержимого; при касании меняются только текст и кромка. На невысокой карте в начале главы нет ряда «ты здесь», под подписями корон места больше.'],
+], [
+  ['TR.3', 'Готово, вариант A: ядро, карта, тесты; ждёт твоей проверки'],
+  ['TR.5', 'iPhone SE в Telegram на ступени 6: карта тесная, было и до TR.3'],
+  ['TR.2', 'Сцена «приручить или Знамение» готова, вариант C'],
+]);
+ladder(q('#ladder'), 6);
+</script>
+</body>
+</html>

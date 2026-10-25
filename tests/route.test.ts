@@ -214,8 +214,10 @@ describe('развилки главы (RT.1)', () => {
             run.pending = [];
             leaveShop(run);
           }
-          // Затмение — третий шаг, выбирается само
-          expect(currentNode(run).route).toBe('eclipse');
+          // Затмение — третий шаг; со ступени 6 их два, и путь ждёт выбора (TR.3)
+          const crowns = routeOptions(run.chapter);
+          expect(crowns.every((j) => run.chapter.nodes[j]!.route === 'eclipse')).toBe(true);
+          if (crowns.length > 1) chooseRoute(run, crowns[1]!);
           pass(run);
           nights += 1;
           shops += 1;
@@ -226,6 +228,73 @@ describe('развилки главы (RT.1)', () => {
         }
       }
     }
+  });
+
+  it('ступень 6: два разных Затмения на последнем шаге, к каждому из любого узла второго шага (TR.3)', () => {
+    let twice = 0;
+    for (let seed = 1; seed < 40; seed++) {
+      const run = wondrous(seed);
+      for (let ante = 1; ante <= 8; ante++) {
+        const { nodes } = planChapter({ ...run, ante });
+        const crowns = nodes.flatMap((n, j) => (n.step === 3 ? [j] : []));
+        const ids = crowns.map((j) => nodes[j]!.bossId);
+        expect(ids).toContain(run.bosses[ante - 1]);
+        expect(new Set(ids).size).toBe(ids.length);
+        for (const n of nodes) if (n.step === 2) expect(n.next).toEqual(crowns);
+        if (ids.length < 2) continue;
+        twice += 1;
+        // Второе — не Затмение трёх прошлых глав и не следующей
+        const rival = ids.find((id) => id !== run.bosses[ante - 1])!;
+        expect(run.bosses.slice(Math.max(0, ante - 4), ante + 1)).not.toContain(rival);
+      }
+    }
+    expect(twice).toBeGreaterThan(200);
+  });
+
+  it('без ступени 6 и в вызове дня Затмение одно; план главы не сдвигает ГПСЧ забега (TR.3)', () => {
+    const run = forked(5);
+    expect(run.chapter.nodes.filter((n) => n.route === 'eclipse')).toHaveLength(1);
+    const rng = { ...run.rng };
+    planChapter({ ...wondrous(5), ante: 4 });
+    expect(run.rng).toEqual(rng);
+  });
+
+  it('выбранное Затмение — Затмение главы: ночь с его правилом, трофей его, путь записан (TR.3)', () => {
+    const run = wondrous(11);
+    for (let step = 0; step < 2; step++) {
+      const options = routeOptions(run.chapter);
+      chooseRoute(run, options.find((i) => !isWonder(run.chapter.nodes[i]!.route))!);
+      pass(run);
+    }
+    const crowns = routeOptions(run.chapter);
+    expect(crowns).toHaveLength(2);
+    expect(run.chapter.at).toBe(-1);
+    // Ночь не начинается, пока Затмение не выбрано
+    expect(() => startNight(run)).toThrow(RuleError);
+    const pickId = run.chapter.nodes[crowns[1]!]!.bossId!;
+    chooseRoute(run, crowns[1]!);
+    startNight(run);
+    expect(run.night!.bossId).toBe(pickId);
+    win(run);
+    collectReward(run);
+    expect(run.pending[0]).toMatchObject({ kind: 'trophy', options: [{ k: 'trophy', id: pickId }, { k: 'omen' }] });
+    run.pending = [];
+    leaveShop(run);
+    expect(run.ante).toBe(2);
+    expect(run.bosses[0]).toBe(pickId);
+    expect(run.journey![0]!.at(-1)).toMatchObject({ route: 'eclipse', col: 1, of: 2 });
+    expect(deserializeRun(serializeRun(run))).not.toBeNull();
+  });
+
+  it('бот на развилке Затмений выбирает одно из них', () => {
+    const run = wondrous(11);
+    for (let step = 0; step < 2; step++) {
+      chooseRoute(run, routeOptions(run.chapter).find((i) => !isWonder(run.chapter.nodes[i]!.route))!);
+      pass(run);
+    }
+    pickRoute(run);
+    expect(currentNode(run).route).toBe('eclipse');
+    expect(run.chapter.at).toBeGreaterThanOrEqual(0);
   });
 
   it('вызов дня: развилки есть, Кометы и Телескопа нет', () => {

@@ -499,6 +499,8 @@ export const ru = {
     bright: 'Яркая ночь',
     eclipse: 'Затмение',
     choose: 'Выбери путь',
+    chooseEclipse: 'Выбери Затмение',
+    tame: 'приручишь',
     meetEclipse: 'Встретить Затмение',
     nowChoose: 'Сейчас на выбор',
     nextStep: 'Следующий шаг',

@@ -496,6 +496,8 @@ export const en: Dict = {
     bright: 'Bright night',
     eclipse: 'Eclipse',
     choose: 'Choose a path',
+    chooseEclipse: 'Choose your Eclipse',
+    tame: 'you tame',
     meetEclipse: 'Face the Eclipse',
     nowChoose: 'Your choices',
     nextStep: 'Next step',

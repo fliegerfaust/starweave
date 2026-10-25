@@ -7,11 +7,12 @@ import { named, num, t } from '@/i18n';
 import { canvasImg, dpr, h } from '../dom';
 import { icon } from '../icons';
 import { layoutMode } from '../map-layout';
-import { button, type ModalHandle } from '../widgets';
+import { attachTooltip, button, type ModalHandle } from '../widgets';
 import { showWonder } from '../wonder';
 import { rich } from '../rich';
 import { currentChoice } from '@/core/choices';
 import { showDeck, showHelp, showRunMenu } from './common';
+import { trophyMedal, trophyTooltip } from '../hud';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 const roman = (n: number) => ROMAN[n - 1] ?? String(n);
@@ -52,22 +53,31 @@ interface Spot {
  */
 function positions(chapter: Chapter, compact: boolean): { nodes: Spot[]; here: Spot } {
   const steps = Math.max(...chapter.nodes.map((n) => n.step));
-  const from = compact ? chapter.path.length : 0;
-  // Ряды от «ты здесь» (низ) до Затмения (верх), поровну
-  const rows = steps - from + 1;
-  const yOf = (step: number) => 92 - ((step - from) * (92 - 13)) / (rows - 1);
+  // На невысокой карте в начале главы нет ряда «ты здесь»: внизу сразу первый шаг, с подписями
+  const start = compact && !chapter.path.length;
+  const from = compact ? Math.max(chapter.path.length, 1) : 0;
+  const bottom = start ? 84 : 92;
+  // Ряды от «ты здесь» (низ) до Затмения (верх). Подписи висят под звёздами: промежуток под
+  // рядом с подписями (Затмения и шаг, который выбирают сейчас) шире остальных. С двумя
+  // Затмениями (TR.3) это важно: короны стоят прямо над крайними звёздами шага ниже
+  const labeled = (step: number) => step === steps || step === chapter.path.length + 1;
+  const gaps = Array.from({ length: steps - from }, (_, k) => (labeled(from + k + 1) ? 1.4 : 1));
+  const total = gaps.reduce((a, b) => a + b, 0);
+  const yOf = (step: number) => bottom - (gaps.slice(0, step - from).reduce((a, b) => a + b, 0) * (bottom - 13)) / total;
   const last = chapter.path.at(-1);
   const nodes = chapter.nodes.map((n, i): Spot => {
-    if (compact && n.step <= from) return i === last ? { x: 50, y: 92 } : { x: 50, y: 92, hidden: true };
+    if (compact && !start && n.step <= from) return i === last ? { x: 50, y: 92 } : { x: 50, y: 92, hidden: true };
     const row = chapter.nodes.flatMap((m, j) => (m.step === n.step ? [j] : []));
     const k = row.indexOf(i);
     return { x: row.length === 1 ? 50 : 22 + (56 * k) / (row.length - 1), y: yOf(n.step) };
   });
-  return { nodes, here: { x: 50, y: 92, hidden: compact && last !== undefined } };
+  return { nodes, here: { x: 50, y: 92, hidden: compact } };
 }
 
 /** Невысокая карта: меньше этой высоты — пройденное сворачивается, звёзды компактнее. */
 const COMPACT_MAP = 330;
+/** Совсем низкая карта (iPhone SE в Telegram): строка трофея в плашке — без правила, по касанию. */
+const TIGHT_MAP = 170;
 
 /**
  * «Карта неба» (RT.2, выбор Дениса 22.10.2026, витрина d8-route-screen) — экран главы с
@@ -99,6 +109,10 @@ export class SkyMap {
   private group: SVGGElement | null = null;
   private wonder: ModalHandle | null = null;
   private readonly title: HTMLElement;
+  /** Затмения главы; на последнем шаге их может быть два (TR.3). */
+  private readonly crowns: number[];
+  /** Затмение, на которое смотрят заранее, пока до него не дошли. */
+  private look: number | null = null;
 
   constructor(
     private readonly app: App,
@@ -127,6 +141,7 @@ export class SkyMap {
     const here = h('span.sm-star.here', { style: { left: '50%', top: '92%' } }, h('span.sm-orb'));
     this.here = here;
     this.stars = chapter.nodes.map((node, i) => this.star(node, i));
+    this.crowns = chapter.nodes.flatMap((n, j) => (n.bossId ? [j] : []));
     this.map = h('div.sm-map', null, [this.edges, here, ...this.stars]);
 
     this.detail = h('div.sm-detail', { attrs: { 'aria-live': 'polite' } });
@@ -204,17 +219,21 @@ export class SkyMap {
 
   /** Что ждёт: цель (у Яркой — ×1.35). Что даст: золото, Знамение. Что потом: Обсерватория или следующая глава. */
   private nodes(i: number | null): HTMLElement[] {
+    // Два Затмения (TR.3): у каждого вместо золота — трофей, у выбранного — строка «Приручишь»
+    const tame = this.run.unlocks.trophies && this.crowns.length > 1;
     if (i === null) {
       const open = this.peek ? routeOptions(this.chapter) : this.options();
       return [
-        h('div.sm-cap', null, t(this.chapter.path.length ? 'route.nextStep' : 'route.nowChoose')),
+        h('div.sm-cap', null, t(open.filter((j) => this.plans[j]!.bossId).length > 1 ? 'route.chooseEclipse' : this.chapter.path.length ? 'route.nextStep' : 'route.nowChoose')),
         h('div.sm-opts', null, open.map((j) => {
           const p = this.plans[j]!;
           return h('div.sm-o', null, [
             p.bossId ? sigil(p.bossId, 18) : routeIcon(p.route),
             h('b', null, p.bossId ? named('boss', p.bossId).name : t(`route.${p.route}`)),
             isWonder(p.route) ? h('span.t.no', null, t('route.noNight')) : h('span.t', null, num(p.target)),
-            h('span.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
+            p.bossId && tame
+              ? h('span.g.tro', null, [trophyMedal(p.bossId, 16), named('trophy', p.bossId).name])
+              : h('span.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` · ${t('route.omen')}` : '']),
           ]);
         })),
       ];
@@ -234,6 +253,7 @@ export class SkyMap {
         cell('gives', h('b.g', null, isWonder(p.route) ? t(`route.yields.${p.route}`) : [`+${p.reward} `, coin(), p.route === 'bright' ? ` + ${t('route.omen')}` : ''])),
         cell('then', h('b', null, boss ? (last ? t('route.victory') : t('map.chapter', { n: roman(this.ante + 1) })) : isWonder(p.route) ? t('route.straightOn') : t('route.shop'))),
       ]),
+      boss && tame ? this.tame(boss) : null,
       ahead.length
         ? h('div.sm-next', null, [t('route.further'), arrow(), ...ahead.flatMap((j, k) => {
             const n = this.chapter.nodes[j]!;
@@ -243,6 +263,15 @@ export class SkyMap {
     ].filter((x): x is HTMLDivElement => !!x);
   }
 
+  /** Строка трофея под Затмением: что приручишь, если победишь (TR.3). */
+  private tame(boss: string): HTMLElement {
+    const tro = named('trophy', boss);
+    const row = h('div.sm-tro-row', null, [trophyMedal(boss, 26), h('div', null, [h('small', null, t('route.tame')), h('b', null, tro.name), h('span.d', null, rich(tro.desc))])]);
+    attachTooltip(row, () => trophyTooltip(boss));
+    return row;
+  }
+
+
   /** Плашка держит высоту самого большого содержимого — экран не прыгает (правило Дениса). */
   private steady(): void {
     if (this.el.classList.contains('land')) {
@@ -250,14 +279,23 @@ export class SkyMap {
       return;
     }
     const keep = [...this.detail.childNodes];
-    this.detail.style.height = 'auto';
-    let max = 0;
-    for (const i of [null, ...this.chapter.nodes.map((_, j) => j)]) {
-      this.detail.replaceChildren(h('div.sm-body', null, this.nodes(i)));
-      max = Math.max(max, this.detail.scrollHeight);
+    const measure = () => {
+      this.detail.style.height = 'auto';
+      let max = 0;
+      for (const i of [null, ...this.chapter.nodes.map((_, j) => j)]) {
+        this.detail.replaceChildren(h('div.sm-body', null, this.nodes(i)));
+        max = Math.max(max, this.detail.scrollHeight);
+      }
+      this.detail.style.height = `${max}px`;
+    };
+    this.detail.classList.remove('tight');
+    measure();
+    // Карте не хватает места на три ряда с подписями — плашка уступает строкой трофея
+    if (this.run.unlocks.trophies && this.crowns.length > 1 && this.map.clientHeight < TIGHT_MAP) {
+      this.detail.classList.add('tight');
+      measure();
     }
     this.detail.replaceChildren(...keep);
-    this.detail.style.height = `${max}px`;
   }
 
   /**
@@ -279,7 +317,16 @@ export class SkyMap {
   }
 
   private select(i: number): void {
-    if (this.busy || !this.options().includes(i) || this.sel === i) return;
+    if (this.busy || this.sel === i) return;
+    if (!this.options().includes(i)) {
+      // Затмение впереди можно рассмотреть заранее: выбор пути — выбор, какое встретить (TR.3)
+      if (this.crowns.length < 2 || !this.chapter.nodes[i]!.bossId || this.look === i) return;
+      this.look = i;
+      this.fill(i);
+      this.paint();
+      return;
+    }
+    this.look = null;
     this.sel = i;
     const p = this.plans[i]!;
     (this.go as HTMLButtonElement).disabled = false;
@@ -379,7 +426,8 @@ export class SkyMap {
       el.classList.toggle('sel', this.sel === i);
       el.classList.toggle('after', after.includes(i));
       el.classList.toggle('away', away);
-      el.disabled = !isOpen || this.peek;
+      el.classList.toggle('look', this.look === i);
+      el.disabled = (!isOpen && !(this.crowns.length > 1 && n.bossId)) || this.peek;
     });
     if (!this.group) return;
     const from = this.from();
