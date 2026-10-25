@@ -103,19 +103,23 @@ test('карта неба: развилки без наложений, выбо�
   for (const lang of ['ru', 'en'])
   for (const tg of isMobile ? [false, true] : [false])
   for (const ante of [1, 4, 8])
-  for (const step of [0, 1]) {
-    const res = await page.evaluate(async ({ lang, tg, ante, step }) => {
+  // `deep` — ступень 6 с трофеями: Комета и Телескоп, два Затмения на последнем шаге (TR.3)
+  for (const [deep, step] of [[false, 0], [false, 1], [true, 0], [true, 1], [true, 2]] as const) {
+    // iPhone SE в Telegram на ступени 6: карте 98 px на три ряда — отдельная задача TR.5
+    if (deep && tg && test.info().project.name === 'iphone-se') continue;
+    const res = await page.evaluate(async ({ lang, tg, ante, step, deep }) => {
       const { setLang } = await import('/src/i18n/index.ts');
       const { planChapter, routeOptions } = await import('/src/core/route.ts');
       setLang(lang as 'ru' | 'en');
-      type Run = { ante: number; phase: string; chapter: { at: number; path: number[]; nodes: unknown[] }; unlocks: { routes: boolean } };
+      type Run = { ante: number; phase: string; chapter: { at: number; path: number[]; nodes: { next: number[] }[] }; unlocks: { routes: boolean; wonders: boolean; trophies: boolean } };
       const app = (window as unknown as { starweave: { run: Run; router: { route(): Promise<void> } } }).starweave;
       const run = app.run;
       Object.assign(run, { ante, phase: 'map' });
-      run.unlocks.routes = true;
+      Object.assign(run.unlocks, { routes: true, wonders: deep, trophies: deep });
       run.chapter = planChapter(run as never) as never;
       if (step) {
-        run.chapter.path = [routeOptions(run.chapter as never)[0]!];
+        const first = routeOptions(run.chapter as never)[0]!;
+        run.chapter.path = step === 2 ? [first, run.chapter.nodes[first]!.next[0]!] : [first];
         run.chapter.at = -1;
       }
       const top = innerWidth > innerHeight ? 50 : innerHeight < 700 ? 66 : 105;
@@ -139,19 +143,20 @@ test('карта неба: развилки без наложений, выбо�
       if (go.bottom > innerHeight + 1 || go.right > innerWidth + 1) out.push('кнопка за экраном');
       const box = () => ['.sm-detail', '.sm-go', '.sm-map'].map((s) => { const r = document.querySelector(s)!.getBoundingClientRect(); return `${Math.round(r.top)},${Math.round(r.height)},${Math.round(r.width)}`; }).join(' ');
       const boxes = [box()];
-      for (const st of map.querySelectorAll<HTMLElement>('.sm-star.open')) {
+      // Затмения впереди тоже касаются: плашка показывает их заранее (TR.3)
+      for (const st of map.querySelectorAll<HTMLElement>('.sm-star.open, .sm-star.boss:not(:disabled)')) {
         st.click();
         await new Promise((r) => setTimeout(r, 260));
         boxes.push(box());
       }
       return { out, boxes };
-    }, { lang, tg, ante, step });
+    }, { lang, tg, ante, step, deep });
     const audit = ((await page.evaluate(FIT_AUDIT)) as string[]).filter((p) => !p.includes('canvas'));
-    const tag = `${lang} гл.${ante} шаг ${step + 1}${tg ? ' Telegram' : ''}`;
+    const tag = `${lang} гл.${ante} шаг ${step + 1}${deep ? ' ступень 6' : ''}${tg ? ' Telegram' : ''}`;
     if (res.out.length) failures.push(`${tag}: ${res.out.slice(0, 3).join('; ')}`);
     if (new Set(res.boxes).size > 1) failures.push(`${tag}: выбор сдвигает экран ${[...new Set(res.boxes)].join(' | ')}`);
     if (audit.length) failures.push(`${tag}: ${audit.slice(0, 2).join('; ')}`);
-    if (lang === 'ru' && !tg && ante === 4) await page.screenshot({ path: `e2e-results/${test.info().project.name}/sky-map-${step + 1}.png` });
+    if (lang === 'ru' && !tg && ante === 4) await page.screenshot({ path: `e2e-results/${test.info().project.name}/sky-map-${step + 1}${deep ? '-deep' : ''}.png` });
   }
   expect(failures, failures.slice(0, 10).join('\n')).toEqual([]);
   expect(errors).toEqual([]);
