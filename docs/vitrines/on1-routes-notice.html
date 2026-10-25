@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Открытие Развилок · Starweave 0.7.6</title>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #eae6ff; --ink-dim: #a5a0cf; --gold: #f6c25b; --gold-hi: #ffe6a8; --gold-rgb: 246 194 91;
+  --font-display: 'Forum', 'Times New Roman', serif; --font-body: 'Manrope', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(120% 60% at 50% 0%, #191641 0%, #0c0d2c 38%, #05061a 100%) fixed, #05061a; color: var(--ink); font: 400 15px/1.55 var(--font-body); }
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font: 400 34px/1.1 var(--font-display); letter-spacing: 0.06em; color: #fff6e0; margin: 0 0 10px; }
+h2 { font: 400 26px/1.15 var(--font-display); letter-spacing: 0.05em; color: var(--gold-hi); margin: 48px 0 6px; }
+h3 { font: 700 17px/1.3 var(--font-body); color: #fff6e0; margin: 28px 0 4px; }
+h3 .tag { display: inline-block; margin-right: 8px; padding: 2px 9px; border-radius: 999px; background: rgb(var(--gold-rgb) / 0.14); color: var(--gold-hi); font-size: 13px; }
+p { margin: 0 0 8px; color: var(--ink-dim); max-width: 760px; }
+p b { color: var(--ink); }
+.lead { font-size: 16px; color: var(--ink); }
+.rec { color: var(--gold-hi); font-weight: 700; }
+.forms { display: grid; grid-template-columns: 220px 1fr; gap: 14px; align-items: start; margin-top: 12px; }
+.forms .side { display: grid; gap: 14px; }
+figure { margin: 0; }
+figure img { width: 100%; height: auto; display: block; border-radius: 12px; box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.22), 0 14px 32px -12px rgb(0 0 0 / 0.8); }
+figcaption { margin-top: 6px; font-size: 12.5px; color: var(--ink-dim); }
+@media (max-width: 760px) { .forms { grid-template-columns: 1fr; } .forms .portrait { max-width: 300px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Открытие Развилок</h1>
+  <p class="lead">Развилки открываются, когда игрок дошёл до третьей главы, и работают со следующего забега. Сейчас игра об этом молчит. Есть два момента, где можно сказать: когда открылось и когда игрок впервые видит развилку на карте неба. Для каждого момента выбери вариант. Можно взять оба момента, можно один.</p>
+  <p>Снимки сделаны в настоящей игре: телефон, ландшафт телефона и ПК.</p>
+
+  <h2>Момент 1. Открылось</h2>
+  <p>Игрок впервые дошёл до третьей главы. При старте первой ночи главы игра говорит, что в следующем забеге его ждёт новое.</p>
+
+  <h3><span class="tag">A1</span>Праздник, как «Новое созвездие!» <span class="rec">· рекомендую</span></h3>
+  <p>Лента над небом в том же стиле, что открытие созвездия: «Открыто. Развилки», два значка пути и одна фраза. Игру не останавливает, уходит сама через пару секунд или по касанию. Картинка сразу показывает, что будет выбор из двух путей.</p>
+  <div class="forms">
+    <div class="side">
+      <figure class="portrait"><img src="shots/on1-a1-portrait.jpg" alt=""><figcaption>Телефон</figcaption></figure>
+    </div>
+    <div class="side">
+      <figure><img src="shots/on1-a1-landscape.jpg" alt=""><figcaption>Ландшафт. В реализации сдвину ленту на поле, чтобы не задевала панель счёта</figcaption></figure>
+      <figure><img src="shots/on1-a1-pc.jpg" alt=""><figcaption>ПК</figcaption></figure>
+    </div>
+  </div>
+
+  <h3><span class="tag">A2</span>Короткое сообщение</h3>
+  <p>Обычное всплывающее сообщение игры одной строкой. Тише, но его легко пропустить, и картинки нет.</p>
+  <div class="forms">
+    <div class="side">
+      <figure class="portrait"><img src="shots/on1-a2-portrait.jpg" alt=""><figcaption>Телефон</figcaption></figure>
+    </div>
+    <div class="side">
+      <figure><img src="shots/on1-a2-landscape.jpg" alt=""><figcaption>Ландшафт</figcaption></figure>
+      <figure><img src="shots/on1-a2-pc.jpg" alt=""><figcaption>ПК</figcaption></figure>
+    </div>
+  </div>
+
+  <h2>Момент 2. Первая развилка на карте</h2>
+  <p>Следующий забег: карта неба впервые показывает выбор. Один раз за всё время.</p>
+
+  <h3><span class="tag">B</span>Окно на карте неба</h3>
+  <p>Окно во весь экран, как у Кометы и Телескопа: название лентой, два пути с объяснением и кнопка «Выбрать путь». Объясняет понятнее всего, но останавливает игрока и закрывает саму карту.</p>
+  <div class="forms">
+    <div class="side">
+      <figure class="portrait"><img src="shots/on1-b-portrait.jpg" alt=""><figcaption>Телефон</figcaption></figure>
+    </div>
+    <div class="side">
+      <figure><img src="shots/on1-b-landscape.jpg" alt=""><figcaption>Ландшафт</figcaption></figure>
+      <figure><img src="shots/on1-b-pc.jpg" alt=""><figcaption>ПК</figcaption></figure>
+    </div>
+  </div>
+
+  <h3><span class="tag">C</span>Подсказка у развилки <span class="rec">· рекомендую</span></h3>
+  <p>Подсказка из первых забегов: плашка с «Понятно» и золотая рамка вокруг двух звёзд, между которыми выбирать. Экран не темнеет, карта видна целиком, игрок сразу понимает, куда нажимать.</p>
+  <div class="forms">
+    <div class="side">
+      <figure class="portrait"><img src="shots/on1-c-portrait.jpg" alt=""><figcaption>Телефон</figcaption></figure>
+    </div>
+    <div class="side">
+      <figure><img src="shots/on1-c-landscape.jpg" alt=""><figcaption>Ландшафт. В реализации плашка встанет так, чтобы не закрывать панель выбора</figcaption></figure>
+      <figure><img src="shots/on1-c-pc.jpg" alt=""><figcaption>ПК</figcaption></figure>
+    </div>
+  </div>
+
+  <h2>Что рекомендую</h2>
+  <p><b>A1 + C.</b> В момент открытия игрок получает маленький праздник и знает, чего ждать. В следующем забеге подсказка показывает выбор прямо на карте, не останавливая игру. Обе подачи уже есть в игре для других открытий, так что выглядит родным.</p>
+</main>
+</body>
+</html>
