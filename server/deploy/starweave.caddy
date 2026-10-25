@@ -13,10 +13,34 @@ game.denvalclass.ru {
 
 	header {
 		X-Content-Type-Options "nosniff"
-		Referrer-Policy "no-referrer"
 		Strict-Transport-Security "max-age=31536000;"
 		-Server
 	}
 
-	reverse_proxy starweave-api:8080
+	# Сборка Пикабу Игр (PK.10): площадка не хостит игры, она открывает эту страницу у себя во фрейме.
+	# /pikabu/ — выпуск (кладётся только из тега), /pikabu-test/ — для тестового окружения Студии.
+	# Файлы лежат в томе Caddy рядом с sites/ (/data/pikabu…), кладёт их server/deploy/deploy-pikabu.sh
+	redir /pikabu /pikabu/
+	redir /pikabu-test /pikabu-test/
+	@pikabu path_regexp pk ^/(pikabu|pikabu-test)/
+	@pikabuAssets path_regexp ^/(pikabu|pikabu-test)/assets/
+	# Имена файлов в assets/ с хэшем — их можно держать долго; index.html — всегда свежий
+	header @pikabu {
+		Cache-Control "no-cache"
+		# SDK Пикабу во фрейме может сверять источник страницы — отдаём его, а не прячем
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	header @pikabuAssets Cache-Control "public, max-age=31536000, immutable"
+	# Сервер (события, сводка, оплата) источник не раскрывает
+	@api not path_regexp ^/(pikabu|pikabu-test)(/|$)
+	header @api Referrer-Policy "no-referrer"
+	handle @pikabu {
+		uri strip_prefix /{re.pk.1}
+		root * /data/{re.pk.1}
+		file_server
+	}
+
+	handle {
+		reverse_proxy starweave-api:8080
+	}
 }
