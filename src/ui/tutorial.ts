@@ -141,13 +141,15 @@ export function layoutCoach(): void {
     else if (target && hud && target.y < hud.y + hud.h) top = Math.max(hud.y + hud.h + 6, d.board.y + 4);
     else top = Math.max(safeInset('top') + 4, hud ? hud.y + hud.h - h : 8);
   } else if (step === 'routes' && target) {
-    // Развилка: плашка посередине карты неба (на ПК и в ландшафте карта не по центру окна),
-    // над звёздами, а нет места — под ними; панель выбора справа она не закрывает
-    const map = box('.sm-map');
-    if (map) {
-      el.style.width = `${Math.round(Math.min(360, map.w - 16))}px`;
-      el.style.left = `${Math.round(map.x + map.w / 2)}px`;
-    }
+    // Развилка: плашка по центру над её звёздами (на ПК и в ландшафте карта не посередине
+    // окна), а нет места сверху — под ними. Панель выбора сбоку она не закрывает
+    const side = box('.sm-side');
+    const right = side && side.x > target.x + target.w ? side.x - 12 : vw - 8;
+    const w = Math.min(360, vw - 32, right - 8);
+    const cx = Math.min(Math.max(target.x + target.w / 2, 8 + w / 2), right - w / 2);
+    el.style.width = `${Math.round(w)}px`;
+    el.style.left = `${Math.round(cx)}px`;
+    el.style.transform = 'translateX(-50%)';
     const head = box('.map-top');
     const lo = (head ? head.y + head.h : safeInset('top')) + 8;
     const above = target.y - el.offsetHeight - 18;

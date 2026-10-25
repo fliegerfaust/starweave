@@ -1744,8 +1744,9 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .discovery-desc { font-size: 13px; color: #c9c3ea; }
 .discovery.cross .discovery-name { font-size: 34px; color: var(--gold); }
 /* Открытие Развилок (ON.1): два значка пути, как звёзды на карте неба */
-.discovery-routes { display: flex; align-items: center; gap: 14px; }
-.discovery-routes .or { font-size: 12px; color: #9f98c8; }
+/* Колонки одной ширины: подписи разной длины не сдвигают значки и «или» с середины */
+.discovery-routes { display: grid; grid-template-columns: 92px auto 92px; align-items: start; column-gap: 6px; }
+.discovery-routes .or { display: grid; place-items: center; height: 34px; font-size: 12px; color: #9f98c8; }
 .discovery-route { display: grid; justify-items: center; gap: 5px; font: 600 12px/1 var(--font-body); color: #e8e2ff; }
 .discovery-route .orb { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, rgb(40 36 90), rgb(12 10 34)); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.7), 0 0 12px rgb(var(--gold-rgb) / 0.3); }
 .discovery-route .sm-ic { width: 20px; height: 20px; }
@@ -1831,7 +1832,7 @@ body.pc-wide:is(:has(.calc.show), :has(.coach:not(.out))) .hud-combos { opacity:
 /* В обучении колонка — пузыря подсказки: созвездия не показываем */
 .hud-combos.off { display: none !important; }
 /* Подсказки забега и пузырь обучения — под табло, по его ширине; текст растёт вместе с ним */
-body.pc-wide.landscape .coach:not([data-step="shop"], [data-step="boss"]) {
+body.pc-wide.landscape .coach:not([data-step="shop"], [data-step="boss"], [data-step="routes"]) {
   left: calc(var(--hud-left) * var(--ui-k, 1));
   width: calc(324px * var(--ui-k, 1));
   bottom: calc((var(--actions-bottom) + 58px) * var(--ui-k, 1));
@@ -1849,8 +1850,8 @@ body.pc-wide .tut-actions .tut-next { font-size: calc(14.5px * var(--ui-k, 1)); 
 .hud-combo i.m { color: #ff6b8b; }
 /* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
 body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
-/* Вне ночи в ландшафте и на ПК плашка — по центру (Обсерватория, карта главы) */
-body.landscape .coach:is([data-step="shop"], [data-step="boss"]) { left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); }
+/* Вне ночи в ландшафте и на ПК плашка — по центру (Обсерватория, карта главы, развилка) */
+body.landscape .coach:is([data-step="shop"], [data-step="boss"], [data-step="routes"]) { left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); }
 @media (max-height: 520px) {
   .btn { min-height: 40px; }
 }
