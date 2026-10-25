@@ -43,6 +43,11 @@ export interface Platform {
   showRewarded(): Promise<boolean>;
   /** Язык, который определила площадка. */
   language(): Lang | null;
+  /**
+   * Облако площадки привязано к аккаунту и главнее браузера: при запуске игра берёт его, даже
+   * если на устройстве есть свои сохранения (Пикабу). Иначе облако — только запасная копия.
+   */
+  readonly cloudFirst?: boolean;
   cloudLoad(): Promise<Record<string, string> | null>;
   cloudSave(data: Record<string, string>): Promise<void>;
   /** Площадка просит паузу (реклама, сворачивание) и разрешает продолжить. */
