@@ -6,7 +6,8 @@ import type { GameEvent, RunState } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { NightScene } from '@/game/night/scene';
 import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from '@/game/challenge';
-import { COLLECTIBLE_COMBOS, dailyNumber } from '@/meta/profile';
+import { ROUTES_UNLOCK } from '@/core/content/pools';
+import { COLLECTIBLE_COMBOS, dailyNumber, isUnlocked } from '@/meta/profile';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
@@ -102,6 +103,19 @@ export class NightScreen implements Screen {
     }
     coach(this.app, 'place');
     coach(this.app, 'target');
+    this.routesOpened();
+  }
+
+  /**
+   * ON.1: Развилки открылись (дошёл до 3-й главы), а в этом забеге их ещё нет — в первую ночь
+   * главы праздник открытия: со следующего забега путь выбираешь сам. Один раз за всё время.
+   */
+  private routesOpened(): void {
+    const p = this.app.profile;
+    if (this.run.unlocks.routes || !isUnlocked(ROUTES_UNLOCK, p) || p.tutorial.includes('routesOpened') || p.tutorial.includes('routes')) return;
+    p.tutorial.push('routesOpened');
+    this.app.runs.persistProfile();
+    announceDiscovery([{ kind: 'routes' }], () => this.app.svc.audio.win());
   }
 
   /** «?»: посреди ночи нужнее всего созвездия; подпись о глифе ведёт в справочник. */

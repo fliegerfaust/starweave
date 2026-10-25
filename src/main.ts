@@ -96,6 +96,11 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
+  // ON.1: открытие Развилок (`?routesfx=open|fork`)
+  if (dev && params.has('routesfx')) {
+    const { showRoutesNotice } = await import('./dev/routes-notice');
+    await showRoutesNotice(app, params.get('routesfx') ?? 'open');
+  }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {
     const seen = ['void', 'eclipse-sun', 'eclipse-moon', 'eclipse-star', 'fog', 'drought', 'shortNight', 'silence', 'gravity', 'judge', 'wane'];
