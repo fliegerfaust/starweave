@@ -17,3 +17,4 @@ store/clips
 # Impeccable: кэш выпавших «миров» при подборе направления — не исходник
 .impeccable/questions/
 dist-crazygames
+dist-pikabu
