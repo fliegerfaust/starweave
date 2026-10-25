@@ -104,6 +104,8 @@ export class PikabuPlatform implements Platform {
   payments: Payments | null = null;
   /** Всё новое 0.7.4 включено (решение Дениса для Пикабу). */
   readonly features = FEATURES;
+  /** Сохранения игрока хранит Пикабу у аккаунта: после входа на новом устройстве главнее они. */
+  readonly cloudFirst = true;
   private sdk: PkbSDK | null = null;
   private pauseListeners: ((paused: boolean) => void)[] = [];
 

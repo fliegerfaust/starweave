@@ -10,6 +10,7 @@ import { Tweener } from '@/engine/tween';
 import { setLang } from '@/i18n';
 import { loadProfile, type Profile } from '@/meta/profile';
 import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settings';
+import { restoreFromCloud } from '@/meta/cloud-restore';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
 import { setUiSound } from '@/ui/widgets';
@@ -200,14 +201,6 @@ export class App {
     if (langChanged) clearSigilCache();
     this.money.applyCosmetics();
   }
-}
-
-/** Восстанавливает сохранения из облака площадки, если на устройстве их нет. */
-async function restoreFromCloud(platform: Platform): Promise<void> {
-  if (storage.get(KEYS.profile)) return;
-  const data = await platform.cloudLoad().catch(() => null);
-  if (!data) return;
-  for (const [key, value] of Object.entries(data)) if (typeof value === 'string') storage.set(key, value);
 }
 
 export async function startGame(platform: Platform): Promise<App> {
