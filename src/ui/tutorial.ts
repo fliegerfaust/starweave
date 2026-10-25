@@ -3,7 +3,7 @@ import { saveProfile } from '@/meta/profile';
 import { t } from '@/i18n';
 import { h } from './dom';
 
-export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss';
+export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes';
 
 const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
@@ -38,6 +38,18 @@ const box = (sel: string): Box | null => {
   return r.width ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
 };
 
+/** Общая рамка нескольких элементов: звёзды развилки обводятся одной рамкой с подписями. */
+const unionBox = (sel: string): Box | null => {
+  const rs = [...document.querySelectorAll(sel)].map((el) => el.getBoundingClientRect()).filter((r) => r.width);
+  if (!rs.length) return null;
+  const x = Math.min(...rs.map((r) => r.left));
+  const y = Math.min(...rs.map((r) => r.top));
+  // Подпись под звездой висит ниже её кружка — рамка захватывает и её
+  const lbl = [...document.querySelectorAll(`${sel} .sm-lbl`)].map((el) => el.getBoundingClientRect().bottom);
+  const bottom = Math.max(...rs.map((r) => r.bottom), ...lbl);
+  return { x, y, w: Math.max(...rs.map((r) => r.right)) - x, h: bottom - y };
+};
+
 /** Цель подсказки: о чём она говорит — то и обводим рамкой, к тому ведём нить. */
 function targetOf(step: TutorialStep): Box | null {
   const d = dock?.();
@@ -50,6 +62,7 @@ function targetOf(step: TutorialStep): Box | null {
     case 'burn': return box('.burn-btn');
     case 'shop': return box('.owned-omens');
     case 'boss': return box('.map-node.eclipse .map-star') ?? box('.map-node.eclipse');
+    case 'routes': return unionBox('.sm-star.open');
   }
 }
 
@@ -60,7 +73,9 @@ function targetOf(step: TutorialStep): Box | null {
  * Пока открыто окно, подсказки не показываются: окно важнее.
  */
 export function coach(app: App, step: TutorialStep): void {
-  if (app.run?.tutorial || app.profile.tutorialFinished || app.profile.tutorial.includes(step) || app.profile.runs >= 3 || current?.dataset.step === step) return;
+  // Развилки (ON.1) открываются на 3-й главе — подсказка о них не только для первых забегов
+  const firstRuns = step !== 'routes';
+  if (app.run?.tutorial || (firstRuns && (app.profile.tutorialFinished || app.profile.runs >= 3)) || app.profile.tutorial.includes(step) || current?.dataset.step === step) return;
   if (document.querySelector('.modal-backdrop')) return;
   // Тост ночи («Первая ночь…») посередине экрана: плашка ждёт, пока он уйдёт, — вместе
   // они ложились друг на друга и тост закрывал «Понятно» (CQ.2)
@@ -85,6 +100,11 @@ export function coach(app: App, step: TutorialStep): void {
   thread.setAttribute('aria-hidden', 'true');
   document.getElementById('ui')!.append(ring, thread, el);
   current = el;
+  // Развилку игрок может выбрать, не нажав «Понятно», — подсказка всё равно была показана
+  if (step === 'routes') {
+    app.profile.tutorial.push(step);
+    saveProfile(app.profile);
+  }
   layoutCoach();
   // Экран мог ещё раскладываться (шрифты, карта главы) — уточняем место чуть позже
   setTimeout(layoutCoach, 450);
@@ -105,6 +125,7 @@ export function layoutCoach(): void {
   el.style.top = '';
   el.style.bottom = '';
   el.style.left = '';
+  el.style.width = '';
   el.style.transform = '';
   const h = el.offsetHeight;
   const hit = (top: number) => !!target && top < target.y + target.h + 6 && top + h > target.y - 6;
@@ -119,6 +140,20 @@ export function layoutCoach(): void {
     if (gap >= d.boardBottom + 4 && !hit(gap)) top = gap;
     else if (target && hud && target.y < hud.y + hud.h) top = Math.max(hud.y + hud.h + 6, d.board.y + 4);
     else top = Math.max(safeInset('top') + 4, hud ? hud.y + hud.h - h : 8);
+  } else if (step === 'routes' && target) {
+    // Развилка: плашка по центру над её звёздами (на ПК и в ландшафте карта не посередине
+    // окна), а нет места сверху — под ними. Панель выбора сбоку она не закрывает
+    const side = box('.sm-side');
+    const right = side && side.x > target.x + target.w ? side.x - 12 : vw - 8;
+    const w = Math.min(360, vw - 32, right - 8);
+    const cx = Math.min(Math.max(target.x + target.w / 2, 8 + w / 2), right - w / 2);
+    el.style.width = `${Math.round(w)}px`;
+    el.style.left = `${Math.round(cx)}px`;
+    el.style.transform = 'translateX(-50%)';
+    const head = box('.map-top');
+    const lo = (head ? head.y + head.h : safeInset('top')) + 8;
+    const above = target.y - el.offsetHeight - 18;
+    top = above >= lo ? above : target.y + target.h + 18;
   } else {
     // Обсерватория и карта главы: подальше от цели — сверху под шапкой или снизу над кнопками
     const head = box('.shop-top, .map-top');
