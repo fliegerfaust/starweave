@@ -323,8 +323,12 @@ export class RunController {
   shopAction(cmd: Command): boolean {
     const run = this.run;
     if (!run) return false;
+    // Трофей, а не парное Знамение: приручение — в коллекцию (TR.4)
+    const choice = currentChoice(run);
+    const offer = cmd.c === 'choose' && choice?.kind === 'trophy' ? choice.options[cmd.index] : undefined;
     try {
       apply(run, cmd);
+      if (offer?.k === 'trophy') this.progress({ e: 'tamed', bossId: offer.id });
       this.save();
       return true;
     } catch (e) {

@@ -96,11 +96,8 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
-  // Витрина TR.4: коллекция трофеев во Справочнике (`collection=A|B|C`, доска A — `A1|A2|A3`)
+  // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {
-    const coll = params.get('collection') || 'A';
-    document.body.dataset.coll = coll[0]!;
-    if (coll[1]) document.body.dataset.card = coll[1];
     const seen = ['void', 'eclipse-sun', 'eclipse-moon', 'eclipse-star', 'fog', 'drought', 'shortNight', 'silence', 'gravity', 'judge', 'wane'];
     Object.assign(app.profile, {
       tutorialDone: true, tutorialFinished: true, runs: 23, wins: 3, bestAnte: 8, eclipses: 31,
