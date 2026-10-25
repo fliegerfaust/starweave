@@ -14,6 +14,8 @@
 | | обложка 800×470 | `yandex/cover-800x470-ru.png`, `-en.png` |
 | | скриншоты | `screens/ru/*`, `screens/en/*` |
 | Telegram Mini App | картинка 640×360 | `telegram/app-640x360-ru.png`, `-en.png` |
+| Пикабу Игры | иконки 1024×1024 и 1920×1080 | `pikabu/icon-*.png` (`node scripts/pikabu-covers.mjs`, арт — `pikabu/art/`, промпты — `pikabu/art-prompts.md`) |
+| | скриншоты 1920×1080 и 1080×1920 с заголовками | `pikabu/screens/*.jpg` (`node scripts/pikabu-screens.mjs <адрес dev-сервера>`) |
 | CrazyGames | обложки 1920×1080, 800×1200, 800×800 | `crazygames/cover-*.png` (`node scripts/crazygames-covers.mjs`, арт — `crazygames/art/`) |
 | | видео 16:9 и 2:3 без звука | `crazygames/video-*.mp4` (`scripts/crazygames-video.mjs`), тексты — `crazygames/listing.md` |
 | Google Play / RuStore | баннер 1024×500 | `google-play/feature-1024x500-ru.png`, `-en.png` |
