@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Трофеи · сцена · Starweave 0.7</title>
+<!--KIT-->
+<style>
+/* Язык движения: transform и opacity, торможение без отскока; одно авторское движение на вариант */
+:root { --ease: cubic-bezier(0.16, 1, 0.3, 1); --k: 1; --gold-sig: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08); }
+::selection { background: rgb(var(--gold-rgb) / 0.35); color: #fff6e0; }
+
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 18px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible, .chk input:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.seg.small button { min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+.toggles { display: flex; justify-content: center; gap: 2px 6px; flex-wrap: wrap; }
+.chk { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 8px; color: var(--ink-dim); font: 600 13px/1 var(--font-body); cursor: pointer; }
+.chk input { appearance: none; width: 34px; height: 20px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.9); position: relative; cursor: pointer; transition: background 0.2s; }
+.chk input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink-faint); transition: transform 0.25s var(--ease), background 0.2s; }
+.chk input:checked { background: rgb(var(--gold-rgb) / 0.22); }
+.chk input:checked::after { transform: translateX(14px); background: var(--gold); }
+
+/* Три формы: рамка — настоящий размер устройства, уменьшенный под ширину страницы */
+.devices { display: grid; gap: 26px; align-items: start; }
+@media (min-width: 1060px) { .devices .pair { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 26px; align-items: start; } }
+.devices .pair { display: grid; gap: 26px; }
+.dev { display: grid; gap: 10px; min-width: 0; }
+.dev h3 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.dev h3 small { font: 600 12px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.dev .again { justify-self: center; }
+.fit { position: relative; width: 100%; }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.frame.stage { max-width: none; min-height: 0; margin: 0; border-radius: 28px; clip-path: inset(0 round 28px); }
+.scr { position: absolute; inset: 0; display: grid; }
+.portrait .scr { padding: 46px 16px 20px; }
+.landscape .scr { padding: 14px 52px 14px; }
+.desk .scr { padding: 20px 28px; zoom: 1.4; }
+
+/* ── Медаль Затмения: жемчужная корона → золотая оправа ── */
+.medal { position: relative; width: var(--m); height: var(--m); flex: none; }
+.medal .side { position: absolute; inset: 0; display: grid; place-items: center; }
+.medal .k-sig { width: calc(var(--m) * 0.85) !important; height: calc(var(--m) * 0.85) !important; }
+.medal .crown { position: absolute; inset: calc(var(--m) * -0.05); width: calc(var(--m) * 1.1); height: calc(var(--m) * 1.1); overflow: visible; }
+.medal .gold .k-sig, .gold-sig { filter: var(--gold-sig); }
+.medal .gold::before { content: ''; position: absolute; inset: calc(var(--m) * 0.04); border-radius: 50%; box-shadow: 0 0 0 2px rgb(255 230 168 / 0.9), 0 0 0 6px rgb(var(--gold-rgb) / 0.22); }
+.medal .glow { position: absolute; inset: -40%; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.45), rgb(var(--gold-rgb) / 0.1) 55%, transparent); opacity: 0; pointer-events: none; }
+.medal.lit .glow { opacity: 1; transition: opacity calc(0.6s * var(--k)) var(--ease); }
+.gold-sig { border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.85); }
+
+/* Правило: было (перечёркнуто) → стало (золотом) — объяснение, прожитое за ночь */
+.turn { display: grid; gap: 4px; text-align: center; justify-items: center; }
+.turn .was { color: var(--ink-faint); font: 600 13px/1.35 var(--font-body); text-decoration: line-through; text-decoration-color: rgb(165 160 207 / 0.55); text-wrap: balance; }
+.turn .now { color: var(--gold-hi); font: 700 15px/1.35 var(--font-body); text-wrap: balance; max-width: 300px; }
+.turn .now .n { color: var(--mult); }
+
+/* Варианты строками (A): знак, имя, правило; выбранный — латунная кромка */
+.opts { display: grid; gap: 4px; }
+.opt { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: 16px; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit;
+  transition: box-shadow calc(0.22s * var(--k)) var(--ease), background calc(0.22s * var(--k)); }
+.opt:hover:not(:disabled) { background: rgb(14 12 34 / 0.45); }
+.opt:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+.opt.on { background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.08), transparent 70%), rgb(14 12 34 / 0.72); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.opt:disabled { cursor: not-allowed; opacity: 0.5; }
+.opt b { display: block; font: 700 14.5px/1.2 var(--font-body); color: var(--ink); }
+.opt.on b { color: var(--gold-hi); }
+.opt small { display: block; margin-top: 3px; font: 600 12.5px/1.35 var(--font-body); color: var(--ink-dim); }
+.opt small em { font-style: normal; color: var(--ink-faint); }
+.c-mult { color: var(--mult); } .c-light { color: var(--light); } .c-gold { color: var(--gold-hi); }
+
+/* Замена трофея: нынешний — маленьким знаком, строкой; при выборе гаснет */
+.replace { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 28px; font: 600 12.5px/1.3 var(--font-body); color: var(--ink-dim); transition: opacity calc(0.25s * var(--k)); }
+.replace .k-sig { width: 24px !important; height: 24px !important; }
+.replace b { color: var(--ink); font-weight: 700; }
+.replace.off { opacity: 0; }
+.replace.gone .k-sig { animation: fadeAway calc(0.5s * var(--k)) var(--ease) forwards; }
+@keyframes fadeAway { to { opacity: 0; transform: scale(0.6); } }
+
+.foot-btns { display: grid; gap: 8px; }
+.landscape .foot-btns, .desk .foot-btns { grid-auto-flow: column; justify-content: center; }
+.landscape .btn, .desk .btn { padding-left: 28px; padding-right: 28px; }
+
+/* ── A · Переворот медали ── */
+.va { grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 14px; }
+.va .hero { display: grid; justify-items: center; gap: 14px; align-content: center; }
+.va .mid { display: grid; align-content: center; gap: 10px; }
+.landscape .va { grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 32px; row-gap: 10px; }
+.landscape .va .head { grid-column: 1 / -1; }
+.landscape .va .hero { grid-row: 2 / 4; }
+.landscape .va .mid { grid-column: 2; }
+.landscape .va .foot-btns { grid-column: 2; }
+.desk .va { width: 760px; justify-self: center; align-content: center; grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 44px; row-gap: 22px; }
+.desk .va .head { grid-column: 1 / -1; }
+.desk .va .foot-btns { grid-column: 2; justify-content: start; }
+
+/* ── B · В итогах ── */
+.vb { grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 12px; }
+.vb .tame { align-content: center; }
+.foot-btns { align-self: end; }
+.rows { display: grid; }
+.rows .r { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 2px; font: 600 14px/1.2 var(--font-body); color: var(--ink-dim); }
+.rows .r + .r { box-shadow: 0 -1px 0 var(--line); }
+.rows .r b { font: 800 16px/1 var(--font-body); color: var(--gold-hi); font-variant-numeric: tabular-nums; }
+.rows .r.total { box-shadow: 0 -1px 0 var(--brass); color: var(--ink); }
+.rows .r.total b { font-size: 20px; }
+.brass-label { display: flex; align-items: center; gap: 12px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.brass-label::before, .brass-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--brass)); }
+.brass-label::after { background: linear-gradient(90deg, var(--brass), transparent); }
+.medals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: center; }
+.mcard { display: grid; justify-items: center; align-content: start; gap: 8px; padding: 14px 8px 12px; border: 0; border-radius: 18px; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer;
+  transition: box-shadow calc(0.22s * var(--k)) var(--ease), background calc(0.22s * var(--k)); }
+.mcard:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+.mcard.on { background: radial-gradient(100% 90% at 50% 0%, rgb(var(--gold-rgb) / 0.1), transparent 70%), rgb(14 12 34 / 0.72); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.mcard:disabled { opacity: 0.5; cursor: not-allowed; }
+.mcard .k-sig { width: 64px !important; height: 64px !important; }
+.mcard b { font: 700 14px/1.2 var(--font-body); color: var(--ink); text-wrap: balance; }
+.mcard.on b { color: var(--gold-hi); }
+.mcard small { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.mcard .kind { font: 800 10.5px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.landscape .vb { grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 32px; row-gap: 10px; }
+.landscape .vb .head { grid-column: 1 / -1; }
+.landscape .vb .rows { grid-row: 2; align-self: center; }
+.landscape .vb .tame { grid-column: 2; grid-row: 2; display: grid; gap: 10px; align-content: center; }
+.landscape .vb .foot-btns { grid-column: 2; }
+.vb .tame { display: grid; gap: 12px; }
+.desk .vb { width: 520px; justify-self: center; align-content: center; grid-template-rows: none; gap: 16px; }
+
+/* ── C · Небо сдаётся: на самом небе ночи ── */
+.vc { grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px; }
+.hud { display: grid; gap: 8px; padding: 10px 12px; border-radius: 18px; background: rgb(10 9 30 / 0.72); box-shadow: inset 0 0 0 1px rgb(232 228 244 / 0.42), 0 0 22px -6px rgb(232 228 244 / 0.35); }
+.hud.tamed { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.32); transition: box-shadow calc(0.8s * var(--k)) var(--ease); }
+.hud .line1 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.hud .line1 span { font: 400 12px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.hud .line1 b { font: 800 20px/1 var(--font-body); color: #fff6e0; font-variant-numeric: tabular-nums; }
+.hud .rule { display: flex; align-items: center; gap: 8px; min-height: 28px; font: 600 12.5px/1.3 var(--font-body); color: var(--pearl); }
+.hud .rule .k-sig { width: 26px !important; height: 26px !important; }
+.belt { display: flex; align-items: center; gap: 6px; }
+.belt .k-sig { width: 34px !important; height: 34px !important; }
+.belt .slot { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.22); flex: none; }
+.belt .sep { width: 1px; align-self: stretch; margin: 2px 3px; background: var(--hair); }
+.belt .tslot { width: 34px; height: 34px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4); flex: none; position: relative; }
+.belt .tslot .k-sig { filter: var(--gold-sig); border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.9), 0 0 12px rgb(var(--gold-rgb) / 0.55); }
+.belt .what { margin-left: auto; text-align: right; font: 600 11.5px/1.25 var(--font-body); color: var(--ink-dim); max-width: 130px; }
+.belt .what b { display: block; color: var(--gold-hi); font-weight: 700; }
+.field { position: relative; display: grid; place-items: center; min-height: 0; }
+.grid4 { display: grid; grid-template-columns: repeat(4, var(--c)); gap: 6px; transition: opacity calc(0.7s * var(--k)) var(--ease), filter calc(0.7s * var(--k)); }
+.grid4 .cell { width: var(--c); height: calc(var(--c) / 0.7); border-radius: 9px; box-shadow: inset 0 0 0 1px rgb(234 230 255 / 0.08); display: grid; place-items: center; }
+.vc.yield .grid4 { opacity: 0.14; filter: blur(1.5px); }
+.split2 { position: absolute; inset: 0; margin: 0 auto; max-width: 560px; display: grid; align-content: center; justify-items: center; gap: 14px; pointer-events: none; }
+.split2 .mcard { pointer-events: auto; opacity: 0; }
+/* Явно: выбрать одно из двух — табличка над медальонами и «или» между ними */
+.pick-head { display: grid; justify-items: center; gap: 6px; text-align: center; opacity: 0; }
+.pick-head b { font: 400 22px/1.05 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; text-transform: uppercase; color: #fff6e0; text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.45); }
+.pick-head small { font: 600 13px/1.35 var(--font-body); color: var(--ink-dim); text-wrap: balance; max-width: 280px; }
+.pick-head i { display: block; width: 160px; height: 1px; margin-top: 2px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.8), transparent); }
+.pair2 { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; width: 100%; }
+.or { display: grid; justify-items: center; gap: 8px; opacity: 0; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; padding-left: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.or::before, .or::after { content: ''; width: 1px; height: 30px; background: linear-gradient(180deg, transparent, var(--brass)); }
+.or::after { background: linear-gradient(180deg, var(--brass), transparent); }
+.desk .pick-head b { font-size: 24px; }
+.vc .bottom { display: grid; gap: 8px; }
+.hand { display: flex; justify-content: center; gap: 8px; transition: opacity calc(0.4s * var(--k)); }
+.vc.yield .hand { opacity: 0; pointer-events: none; height: 0; overflow: hidden; }
+.vc .choose { display: none; }
+.vc.yield .choose { display: grid; gap: 8px; }
+.landscape .vc { grid-template-columns: 330px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: 30px; }
+.landscape .vc .left { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; min-height: 0; }
+.landscape .vc .field { grid-row: 1; grid-column: 2; }
+.landscape .vc .split2 { inset: 0 -10px; gap: 6px; }
+.landscape .pick-head b { font-size: 18px; } .landscape .pick-head small { font-size: 12px; } .landscape .pick-head i { display: none; }
+.landscape .split2 .mcard { padding: 8px 6px; gap: 5px; } .landscape .split2 .mcard .k-sig { width: 52px !important; height: 52px !important; }
+.landscape .or::before, .landscape .or::after { height: 18px; }
+.desk .vc { width: 860px; justify-self: center; grid-template-columns: 320px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); column-gap: 40px; }
+.desk .vc .left { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; min-height: 0; }
+.desk .vc .field { grid-column: 2; }
+.vc .left { align-content: center; grid-template-rows: auto auto !important; gap: 22px !important; }
+
+/* Итог: лента «Приручено», знак в раме */
+.after { display: grid; align-content: center; justify-items: center; gap: 16px; text-align: center; }
+.after .hud { width: min(100%, 380px); text-align: left; }
+.flyer { position: absolute; z-index: 50; pointer-events: none; }
+.toast-layer { z-index: 60; }
+.bump { animation: bump calc(0.5s * var(--k)) var(--ease); }
+@keyframes bump { 35% { transform: scale(1.25); } }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <div class="seg small" id="bossSeg"></div>
+    <div class="toggles">
+      <label class="chk"><input type="checkbox" id="tOld"> трофей уже есть</label>
+      <label class="chk"><input type="checkbox" id="tFull"> Знамениям нет места</label>
+      <label class="chk"><input type="checkbox" id="tSlow"> замедлить ×4</label>
+    </div>
+  </div>
+  <div class="devices" id="devices"></div>
+
+  <div class="label">Сцена C в игре <small>после «Забрать награду» на небе ночи: «Выбери одно», «или» между медальонами, знак летит в раму</small></div>
+  <div class="shots">
+    <figure class="shot tall"><img src="shots/trophy-scene-portrait.jpg" alt="Телефон: сцена выбора на небе ночи, табличка «Выбери одно», трофей и Знамение через «или»" loading="lazy"><figcaption>Телефон · трофей уже есть: строка «Заменит трофей «Полнолуние»»</figcaption></figure>
+    <div class="shots-col">
+      <figure class="shot"><img src="shots/trophy-scene-landscape.jpg" alt="Ландшафт: сцена выбора справа, рама и кнопка слева" loading="lazy"><figcaption>Ландшафт · кнопка на месте кнопок ночи, под рамой</figcaption></figure>
+      <figure class="shot"><img src="shots/trophy-scene-pc.jpg" alt="ПК: сцена выбора над небом" loading="lazy"><figcaption>ПК · широкая раскладка</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="label">В настоящей игре <small>трофей в раме ночи и «Ясное небо»: две верхние карты колоды на кнопке колоды</small></div>
+  <div class="shots">
+    <figure class="shot tall"><img src="shots/trophy-frame-portrait.jpg" alt="Телефон: трофей «Ясное небо» в раме после Знамений, на кнопке колоды две открытые карты" loading="lazy"><figcaption>Телефон · трофей за линией после Знамений; на «Колоде» 3 Звезды придёт следующей, 4 Солнца за ней</figcaption></figure>
+    <div class="shots-col">
+      <figure class="shot"><img src="shots/trophy-frame-landscape.jpg" alt="Ландшафт: ночь Затмения «Тяготение», трофей в раме" loading="lazy"><figcaption>Ландшафт · ночь Затмения: правило жемчугом, трофей золотом</figcaption></figure>
+      <figure class="shot"><img src="shots/trophy-frame-pc.jpg" alt="ПК: рама ночи с трофеем, карты колоды на кнопке" loading="lazy"><figcaption>ПК · широкая раскладка</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="label">Чем различаются <small>одно и то же решение, три способа показать</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Трофеи Затмений · сцена выбора (TR.2) · 25.10.2026 · сигилы, Знамения и карты — арт игры</p>
+</div>
+<!--KITJS-->
+<script>
+/* art: nebula-6 boss-gravity boss-eclipse-sun boss-judge boss-fog boss-wane
+   omen-pillar omen-sunWorship omen-scatterbrain omen-nightOwl omen-stardust omen-ladder omen-horizon */
+shell({ id: 'trophy-scene', lead: 'Сцена после победы над Затмением: <b>приручить</b> его (правило, мешавшее всю ночь, теперь работает на тебя) или взять парное Знамение. <b>Выбран вариант C «Небо сдаётся»</b> (25.10): над медальонами табличка «Выбери одно», между ними «или». A и B оставлены для сравнения.' });
+
+/* ── Данные: те же тексты, что в игре (src/i18n/ru.ts, таблица trophy) ── */
+const T = {
+  gravity: { name: 'Столп притяжения', rule: 'Вспыхнувший столбец: <span class="c-mult">×2</span> к множителю', omen: 'pillar', chapter: 'III' },
+  'eclipse-sun': { name: 'Солнце в короне', rule: 'Карты Солнца засчитываются <span class="c-gold">дважды</span>', omen: 'sunWorship', chapter: 'II' },
+  judge: { name: 'Помилование', rule: 'Россыпь считается <span class="c-gold">Парой</span>', omen: 'scatterbrain', chapter: 'IV' },
+  fog: { name: 'Ясное небо', rule: 'Видны <span class="c-gold">две</span> верхние карты колоды', omen: 'nightOwl', chapter: 'II' },
+};
+const OLD = { id: 'wane', name: 'Полнолуние' };
+const VARIANTS = [['A', 'Переворот медали'], ['B', 'В итогах'], ['C', 'Небо сдаётся']];
+const FORMS = [['portrait', 'Телефон', '390 × 844', 390, 844], ['landscape', 'Ландшафт', '844 × 390', 844, 390], ['desk', 'ПК · Steam', '1280 × 800', 1280, 800]];
+let variant = ['A', 'B', 'C'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'C', bossId = 'gravity', hasOld = false, full = false, k = 1;
+const ms = (n) => (REDUCED ? 0 : n * k);
+// Тексты интерфейса без длинных тире (правило Дениса); остальное — как в игре
+BOSS_RU.gravity[1] = 'Ряды не вспыхивают, только столбцы';
+const rule = (id) => `${BOSS_RU[id][1]}`;
+
+/* ── Пульт ── */
+const segBtns = (el, items, get, set) => {
+  el.replaceChildren(...items.map(([id, name]) => h('button', { 'aria-pressed': String(id === get()), onclick: () => { set(id); [...el.children].forEach((b, i) => b.setAttribute('aria-pressed', String(items[i][0] === id))); remountAll(); } }, name)));
+};
+segBtns(q('#seg'), VARIANTS.map(([id, n]) => [id, `${id} · ${n}`]), () => variant, (v) => (variant = v));
+segBtns(q('#bossSeg'), Object.keys(T).map((id) => [id, BOSS_RU[id][0]]), () => bossId, (v) => (bossId = v));
+q('#tOld').onchange = (e) => { hasOld = e.target.checked; remountAll(); };
+q('#tFull').onchange = (e) => { full = e.target.checked; remountAll(); };
+q('#tSlow').onchange = (e) => { k = e.target.checked ? 4 : 1; document.documentElement.style.setProperty('--k', k); };
+
+/* ── Части сцены ── */
+function crownSvg() {
+  let d = '';
+  for (let i = 0; i < 24; i++) { const a = (i / 24) * PI * 2, r = i % 2 ? 2.2 : 3.2; d += `<circle class="pearl" cx="${72 + cos(a) * 66}" cy="${72 + sin(a) * 66}" r="${r}" fill="#efeaff" opacity="${i % 2 ? 0.55 : 0.9}" style="transform-box: fill-box; transform-origin: center"/>`; }
+  const el = svg(d, 144, 144);
+  el.classList.add('crown');
+  return el;
+}
+function medal(id, size) {
+  const front = h('div', { class: 'side pearl' }, crownSvg(), boss(id, size));
+  const back = h('div', { class: 'side gold' }, boss(id, size));
+  back.style.visibility = 'hidden';
+  const el = h('div', { class: 'medal', style: { '--m': size + 'px' } }, h('div', { class: 'glow' }), front, back);
+  el.style.setProperty('--m', size + 'px');
+  return { el, front, back };
+}
+/** Авторское движение: жемчуг короны разлетается, сигил через ребро становится золотым. */
+async function tame(m) {
+  const pearls = qa('.pearl', m.front);
+  pearls.forEach((p, i) => {
+    const a = (i / pearls.length) * PI * 2;
+    p.animate([{ transform: 'translate(0,0)', opacity: p.getAttribute('opacity') }, { transform: `translate(${cos(a) * 26}px, ${sin(a) * 26}px) scale(0.4)`, opacity: 0 }], { duration: ms(620), delay: ms((i % 6) * 18), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' });
+  });
+  await wait(ms(240));
+  await m.el.animate([{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: ms(240), easing: 'cubic-bezier(0.5, 0, 0.75, 0)', fill: 'forwards' }).finished;
+  m.front.style.visibility = 'hidden'; m.back.style.visibility = '';
+  m.el.classList.add('lit');
+  await m.el.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0)' }], { duration: ms(360), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }).finished;
+}
+const turn = (id) => h('div', { class: 'turn' }, h('div', { class: 'was' }, rule(id)), h('div', { class: 'now', html: `${T[id].name}: ${T[id].rule}` }));
+const replaceLine = () => (hasOld ? h('div', { class: 'replace' }, sig(`boss-${OLD.id}`, 24), h('span', {}, 'Заменит трофей ', h('b', {}, `«${OLD.name}»`))) : null);
+const goldSig = (id, s) => h('img', { class: 'k-sig gold-sig', src: ART['boss-' + id], width: s, height: s, alt: '', style: { width: s + 'px', height: s + 'px' } });
+const omenName = (id) => OMEN_RU[id][0];
+
+/** Рама следующей ночи: Знамения, волосяная линия, трофей. Пустой слот — куда прилетит знак. */
+function hud(sc, opt = {}) {
+  const omens = ['stardust', 'ladder', 'horizon', ...(full ? ['nightOwl', 'sunWorship'].filter((o) => o !== T[bossId].omen) : [])].slice(0, full ? 5 : 3);
+  if (opt.omenTaken) omens.push(T[bossId].omen);
+  const belt = h('div', { class: 'belt' }, ...omens.map((o) => omen(o, 34)), ...Array.from({ length: Math.max(0, 5 - omens.length) }, () => h('div', { class: 'slot' })),
+    h('div', { class: 'sep' }), h('div', { class: 'tslot' }, opt.trophy ? sig(`boss-${opt.trophy}`, 34) : null));
+  if (opt.what) belt.append(h('div', { class: 'what', html: opt.what }));
+  return h('div', { class: 'hud' + (opt.tamedFrame ? ' tamed' : '') },
+    h('div', { class: 'line1' }, h('span', {}, opt.title ?? `Глава ${T[bossId].chapter} · Затмение`), h('b', {}, opt.score ?? '4 870 / 4 200')),
+    opt.ruleLine ? h('div', { class: 'rule' }, h('span', { class: 'rsig' }, boss(bossId, 26)), BOSS_RU[bossId][1]) : null,
+    belt);
+}
+
+/** Знак летит из `from` в `to` внутри уменьшенной рамки (координаты делим на масштаб). */
+async function fly(sc, node, from, to, size) {
+  const fr = sc.frame.getBoundingClientRect(), a = from.getBoundingClientRect(), b = to.getBoundingClientRect(), s = sc.scale();
+  const el = node.cloneNode(true);
+  el.classList.add('flyer');
+  const x0 = (a.left - fr.left) / s, y0 = (a.top - fr.top) / s, w0 = a.width / s;
+  Object.assign(el.style, { left: x0 + 'px', top: y0 + 'px', width: w0 + 'px', height: w0 + 'px' });
+  sc.frame.append(el);
+  from.style.visibility = 'hidden';
+  const dx = (b.left - fr.left) / s + b.width / s / 2 - (x0 + w0 / 2), dy = (b.top - fr.top) / s + b.height / s / 2 - (y0 + w0 / 2), k2 = (b.width / s) / w0;
+  await el.animate([{ transform: 'none' }, { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - 50}px) scale(${(1 + k2) / 2})`, offset: 0.45 }, { transform: `translate(${dx}px, ${dy}px) scale(${k2})` }], { duration: ms(760), easing: 'cubic-bezier(0.45, 0, 0.2, 1)', fill: 'forwards' }).finished;
+  el.remove();
+}
+
+/* ── Варианты: одна функция на вариант, раскладку формы делает CSS ── */
+const SCENES = { A: sceneA, B: sceneB, C: sceneC };
+
+function options(sc, pick, onPick) {
+  const t = T[bossId];
+  const row = (kind, icon, title, desc, disabled) => h('button', { class: 'opt' + (pick === kind ? ' on' : ''), disabled, onclick: () => onPick(kind) }, icon, h('span', {}, h('b', {}, title), h('small', { html: desc })));
+  return h('div', { class: 'opts' },
+    row('trophy', goldSig(bossId, 46), `Приручить: «${t.name}»`, `${t.rule}<br><em>трофей до конца забега, слот Знамения не занимает</em>`),
+    row('omen', omen(t.omen, 46), `Знамение «${omenName(t.omen)}»`, full ? '<em>Все 5 мест Знамений заняты</em>' : OMEN_RU[t.omen][1], full));
+}
+
+function sceneA(sc) {
+  let pick = 'trophy';
+  const size = sc.mode === 'landscape' ? 128 : sc.mode === 'desk' ? 168 : 168;
+  const m = medal(bossId, size);
+  const go = h('button', { class: 'btn btn-primary' }, 'Приручить');
+  const mid = h('div', { class: 'mid' });
+  const repl = replaceLine();
+  const draw = () => {
+    mid.replaceChildren(options(sc, pick, (p) => { pick = p; go.textContent = p === 'trophy' ? 'Приручить' : 'Взять Знамение'; repl?.classList.toggle('off', p !== 'trophy'); draw(); }), ...(repl ? [repl] : []));
+  };
+  draw();
+  const root = h('div', { class: 'scr va' },
+    h('div', { class: 'stage-head head' }, h('div', { class: 'ribbon pop' }, h('b', {}, 'Затмение пройдено'), h('small', {}, `${BOSS_RU[bossId][0]} побеждено. Приручишь его?`))),
+    h('div', { class: 'hero' }, m.el, turn(bossId)), mid, h('div', { class: 'foot-btns' }, go));
+  go.onclick = async () => {
+    go.disabled = true;
+    if (pick === 'trophy') {
+      repl?.classList.add('gone');
+      await tame(m);
+      await wait(ms(380));
+    }
+    finish(sc, pick, pick === 'trophy' ? m.back.querySelector('.k-sig') : mid.querySelector('.opt:nth-child(2) .k-sig'));
+  };
+  return root;
+}
+
+function sceneB(sc) {
+  let pick = 'trophy';
+  const t = T[bossId];
+  const total = h('b', {}, '+0');
+  const pickCard = (kind, icon, kindLbl, title, desc, disabled) => h('button', { class: 'mcard' + (pick === kind ? ' on' : ''), disabled, onclick: () => { pick = kind; refresh(); } }, h('span', { class: 'kind' }, kindLbl), icon, h('b', {}, title), h('small', { html: desc }));
+  const medals = h('div', { class: 'medals' });
+  const repl = replaceLine();
+  const go = h('button', { class: 'btn btn-primary' }, 'Приручить и дальше');
+  const refresh = () => {
+    medals.replaceChildren(pickCard('trophy', goldSig(bossId, 64), 'трофей', t.name, t.rule), pickCard('omen', omen(t.omen, 64), 'Знамение', omenName(t.omen), full ? 'Все 5 мест заняты' : OMEN_RU[t.omen][1], full));
+    go.textContent = pick === 'trophy' ? 'Приручить и дальше' : 'Взять Знамение и дальше';
+    repl?.classList.toggle('off', pick !== 'trophy');
+  };
+  refresh();
+  const rows = h('div', { class: 'rows' },
+    h('div', { class: 'r' }, 'Набрано', h('b', {}, '4 870 из 4 200')),
+    h('div', { class: 'r' }, 'За ночь', h('b', {}, '+5')),
+    h('div', { class: 'r' }, 'Оставшиеся ходы', h('b', {}, '+2')),
+    h('div', { class: 'r total' }, 'Итого', total));
+  const root = h('div', { class: 'scr vb' },
+    h('div', { class: 'stage-head head' }, h('div', { class: 'ribbon pop' }, h('b', {}, 'Затмение пройдено'), h('small', {}, `Глава ${t.chapter} · ${BOSS_RU[bossId][0]} побеждено`))),
+    rows,
+    h('div', { class: 'tame' }, h('div', { class: 'brass-label' }, 'Приручить Затмение?'), medals, ...(repl ? [repl] : [])),
+    h('div', { class: 'foot-btns' }, go));
+  setTimeout(() => countUp(total, 0, 7, ms(700) || 1, (n) => '+' + n), ms(500));
+  go.onclick = () => { go.disabled = true; repl?.classList.add('gone'); finish(sc, pick, medals.querySelector('.mcard.on .k-sig')); };
+  return root;
+}
+
+function sceneC(sc) {
+  let pick = null;
+  const t = T[bossId];
+  const c = sc.mode === 'portrait' ? 64 : sc.mode === 'landscape' ? 50 : 60;
+  const layout = { 1: 'moon-6', 2: 'star-9', 5: 'sun-3', 6: 'sun-7', 9: 'comet-2', 10: 'moon-4', 13: 'star-5', 14: 'sun-8', 3: 'comet-8' };
+  const cells = Array.from({ length: 16 }, (_, i) => h('div', { class: 'cell' }, layout[i] ? card({ suit: layout[i].split('-')[0], rank: +layout[i].split('-')[1] }, c) : null));
+  const grid = h('div', { class: 'grid4', style: { '--c': c + 'px' } }, ...cells);
+  grid.style.setProperty('--c', c + 'px');
+  const frameHud = hud(sc, { ruleLine: true });
+  const hand = h('div', { class: 'hand' }, ...['moon-7', 'sun-2', 'comet-5', 'star-3'].map((x) => card({ suit: x.split('-')[0], rank: +x.split('-')[1] }, sc.mode === 'portrait' ? 58 : 46)));
+  const split = h('div', { class: 'split2' });
+  const field = h('div', { class: 'field' }, grid, split);
+  const go = h('button', { class: 'btn btn-primary', disabled: true }, 'Выбери одно');
+  const note = h('div', { class: 'stage-note' }, 'Последний ход сыгран. Затмение сдаётся');
+  const repl = replaceLine();
+  const choose = h('div', { class: 'choose' }, ...(repl ? [repl] : []), h('div', { class: 'foot-btns' }, go));
+  const bottom = h('div', { class: 'bottom' }, note, hand, choose);
+  const isWide = sc.mode !== 'portrait';
+  const root = h('div', { class: 'scr vc' }, ...(isWide ? [h('div', { class: 'left' }, frameHud, bottom), field] : [frameHud, field, bottom]));
+  const mk = (kind, icon, kindLbl, title, desc, disabled) => h('button', { class: 'mcard', disabled, onclick: () => { pick = kind; qa('.mcard', split).forEach((b) => b.classList.toggle('on', b.dataset.k === kind)); go.disabled = false; go.textContent = kind === 'trophy' ? 'Приручить' : 'Взять Знамение'; repl?.classList.toggle('off', kind !== 'trophy'); }, 'data-k': kind }, h('span', { class: 'kind' }, kindLbl), icon, h('b', {}, title), h('small', { html: desc }));
+  (async () => {
+    await wait(ms(900));
+    root.classList.add('yield');
+    note.textContent = `${BOSS_RU[bossId][0]} побеждено`;
+    // Сигил спускается из рамы в центр неба
+    const rsig = q('.rsig .k-sig', frameHud);
+    const m = medal(bossId, isWide && sc.mode === 'desk' ? 150 : 116);
+    m.el.style.position = 'absolute';
+    field.append(m.el);
+    const fr = sc.frame.getBoundingClientRect(), s = sc.scale(), a = rsig.getBoundingClientRect(), b = m.el.getBoundingClientRect();
+    const dx = (a.left + a.width / 2 - (b.left + b.width / 2)) / s, dy = (a.top + a.height / 2 - (b.top + b.height / 2)) / s;
+    rsig.style.opacity = '0.3';
+    await m.el.animate([{ transform: `translate(${dx}px, ${dy}px) scale(0.22)`, opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: ms(720), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }).finished;
+    await tame(m);
+    await wait(ms(200));
+    // Раскалывается на два: трофей золотом влево, Знамение вправо
+    split.replaceChildren(
+      h('div', { class: 'pick-head' }, h('b', {}, 'Выбери одно'), h('small', {}, 'Приручи Затмение или возьми его Знамение'), h('i')),
+      h('div', { class: 'pair2' },
+        mk('trophy', goldSig(bossId, 64), 'трофей', t.name, t.rule),
+        h('span', { class: 'or' }, 'или'),
+        mk('omen', omen(t.omen, 64), 'Знамение', omenName(t.omen), full ? 'Все 5 мест заняты' : OMEN_RU[t.omen][1], full)));
+    m.el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.7)' }], { duration: ms(320), easing: 'ease-in', fill: 'forwards' });
+    qa('.pick-head, .or', split).forEach((el) => el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: ms(520), delay: ms(260), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }));
+    qa('.mcard', split).forEach((el, i) => el.animate([{ opacity: 0, transform: `translateX(${i ? -60 : 60}px) scale(0.8)` }, { opacity: 1, transform: 'none' }], { duration: ms(560), delay: ms(120), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }));
+  })();
+  go.onclick = async () => {
+    if (!pick) return;
+    go.disabled = true;
+    repl?.classList.add('gone');
+    const from = q(`.mcard[data-k="${pick}"] .k-sig`, split);
+    const target = pick === 'trophy' ? q('.tslot', frameHud) : q('.belt .slot', frameHud);
+    if (target) await fly(sc, from, from, target);
+    if (pick === 'trophy') { target.replaceChildren(sig(`boss-${bossId}`, 34)); frameHud.classList.add('tamed'); q('.rule', frameHud).replaceChildren(goldSig(bossId, 26), h('span', { class: 'c-gold' }, `Трофей: ${T[bossId].name}`)); }
+    else if (target) target.replaceWith(omen(t.omen, 34));
+    q('.toast-layer', sc.frame)?.remove();
+    ribbon(sc.frame, pick === 'trophy' ? 'Приручено' : 'Знамение взято', pick === 'trophy' ? T[bossId].name : omenName(t.omen), 1800);
+    await wait(ms(1400));
+    after(sc, pick);
+  };
+  return root;
+}
+
+/** A и B: знак улетает в раму следующей ночи. */
+async function finish(sc, pick, from) {
+  const frameNext = hud(sc, { title: `Глава ${['I', 'II', 'III', 'IV', 'V'][['I', 'II', 'III', 'IV'].indexOf(T[bossId].chapter) + 1]} · Сумерки`, score: '0 / 5 300', trophy: null, what: pick === 'trophy' ? `<b>${T[bossId].name}</b>трофей до конца забега` : `<b>${omenName(T[bossId].omen)}</b>новое Знамение` });
+  frameNext.classList.add('rise');
+  const holder = h('div', { class: 'after-hud', style: { position: 'absolute', left: '50%', bottom: sc.mode === 'landscape' ? '14px' : '24px', transform: 'translateX(-50%)', width: 'min(92%, 380px)' } }, frameNext);
+  sc.frame.append(holder);
+  await wait(ms(380));
+  const target = pick === 'trophy' ? q('.tslot', frameNext) : q('.belt .slot', frameNext);
+  if (from && target) await fly(sc, from, from, target);
+  if (pick === 'trophy') target.replaceChildren(sig(`boss-${bossId}`, 34));
+  else if (target) target.replaceWith(omen(T[bossId].omen, 34));
+  ribbon(sc.frame, pick === 'trophy' ? 'Приручено' : 'Знамение взято', pick === 'trophy' ? T[bossId].name : omenName(T[bossId].omen), 1600);
+  await wait(ms(1300));
+  holder.remove();
+  after(sc, pick);
+}
+
+function after(sc, pick) {
+  const t = T[bossId];
+  sc.scr.replaceWith(sc.scr = h('div', { class: 'scr after rise' },
+    h('div', { class: 'plate-title' }, pick === 'trophy' ? 'Затмение приручено' : 'Знамение взято'),
+    h('div', { class: 'sill', style: { width: '220px', margin: '0' } }),
+    hud(sc, { title: 'Следующая ночь', score: '0 / 5 300', trophy: pick === 'trophy' ? bossId : null, omenTaken: pick === 'omen', what: pick === 'trophy' ? `<b>${t.name}</b>трофей` : `<b>${omenName(t.omen)}</b>Знамение` }),
+    h('button', { class: 'btn btn-secondary', onclick: () => sc.mount() }, 'Сыграть сцену ещё раз')));
+}
+
+/* ── Рамки устройств ── */
+const screens = [];
+function mountDevice(host, [mode, title, size, W, H]) {
+  const fit = h('div', { class: 'fit' });
+  const dev = h('div', { class: 'dev' }, h('h3', {}, title, h('small', {}, size)), fit);
+  host.append(dev);
+  const frame = h('div', { class: 'frame ' + mode });
+  frame.style.width = W + 'px'; frame.style.height = H + 'px';
+  fit.append(frame);
+  sky(frame, 6);
+  const sc = { mode, frame, scr: null, scale: () => Math.min(1, fit.clientWidth / W) };
+  const fitScale = () => { const s = sc.scale(); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; };
+  new ResizeObserver(fitScale).observe(fit);
+  fitScale();
+  sc.mount = () => {
+    qa('.after-hud, .flyer, .toast-layer', frame).forEach((x) => x.remove());
+    const next = SCENES[variant](sc);
+    if (sc.scr) sc.scr.replaceWith(next); else frame.append(next);
+    sc.scr = next;
+  };
+  screens.push(sc);
+  sc.mount();
+}
+const devs = q('#devices');
+const pair = h('div', { class: 'pair' });
+devs.append(pair);
+mountDevice(pair, FORMS[0]);
+mountDevice(pair, FORMS[1]);
+mountDevice(devs, FORMS[2]);
+function remountAll() { screens.forEach((s) => s.mount()); }
+// Шрифты догрузились — переносы могли измениться, сцену собираем заново
+document.fonts?.ready.then(remountAll);
+
+/* ── Сравнение и суть ── */
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
+  ...[
+    ['Где', 'Своя сцена по небу после «Ночь пройдена», до дара', 'В самом окне итогов Затмения, под наградой', 'На небе ночи: поле гаснет, выбор прямо на нём'],
+    ['Авторский момент', 'Медаль крупно: жемчуг разлетается, сигил переворачивается в золото', 'Нет переворота: два медальона рядом, итоги набегают', 'Сигил спускается из рамы, становится золотым и раскалывается на два'],
+    ['Понятно новичку', 'Правило «было → стало» под медалью, строки с полным текстом', 'Коротко: имя и правило под каждым медальоном', 'Видно, куда уйдёт выбор: слот трофея в раме рядом'],
+    ['Цена', 'Ещё одна сцена между ночью и Обсерваторией', 'Окно итогов становится выше и плотнее', 'Самая сложная анимация, но меньше всего экранов'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][0] }, x)))));
+
+facts(q('#aside'), [
+  ['Во всех трёх', 'Выбор не делается за игрока: в A и B сразу выбран трофей (он сильнее), в C до касания ничего не выбрано. Главная кнопка называет действие: «Приручить» или «Взять Знамение».'],
+  ['Замена', 'Слот трофея один. Если трофей уже есть, под выбором строка «Заменит трофей «Полнолуние»» с его знаком; при выборе трофея старый гаснет. Включи «трофей уже есть».'],
+  ['Нет места', 'Если все 5 мест Знамений заняты, Знамение видно, но взять нельзя, строка объясняет почему. Трофей место Знамения не занимает. Включи «Знамениям нет места».'],
+  ['Рама ночи', 'Трофей стоит после Знамений, за волосяной линией, в золотой оправе; касание открывает его правило. «Ясное небо»: две верхние карты колоды прямо на кнопке «Колода», та, что придёт следующей, справа и крупнее. Это уже в игре, кадры ниже.'],
+  ['Ничего не скачет', 'Строки и медальоны одной высоты при любом выборе, место под замену держится заранее, меняется только кромка и текст кнопки.'],
+], [
+  ['TR.2', 'Сцена после Затмения — после твоего выбора варианта; трофей в раме ночи'],
+  ['TR.1', 'Ядро готово (feature/tr-core): 13 трофеев, слот, выбор в очереди'],
+]);
+ladder(q('#ladder'), 4);
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import { forgetClientId, track } from '@/analytics';
+import { currentChoice } from '@/core/choices';
 import { RuleError } from '@/core/errors';
 import { apply, newLoggedRun, type Command } from '@/core/commands';
 import { GIFT_GOLD_CAP, canDoubleReward, canRevive } from '@/core/run';
@@ -266,17 +267,24 @@ export class RunController {
     }
   }
 
-  collectReward(): void {
-    this.guarded(() => this.doCollectReward());
+  /** `stay` — экран ночи ещё сыграет сцену трофея (TR.2) и сам уйдёт в Обсерваторию. */
+  collectReward(stay = false): void {
+    this.guarded(() => this.doCollectReward(stay));
   }
 
-  private doCollectReward(): void {
+  private doCollectReward(stay: boolean): void {
     const run = this.run!;
     // Короткое обучение кончается на награде первой ночи: она уходит в первый забег
     if (run.tutorial && this.shortTutorial) return this.finishTutorial();
     apply(run, { c: 'collectReward' });
     if (run.tutorial) run.shop = tutorialShop();
     this.save();
+    if (stay && currentChoice(run)?.kind === 'trophy') return;
+    this.route();
+  }
+
+  /** Сцена трофея сыграна — в Обсерваторию (там дар ночи и лавка). */
+  afterTrophy(): void {
     this.route();
   }
 

@@ -83,6 +83,23 @@ async function boot(): Promise<void> {
     app.run!.chapter = planChapter(app.run!);
     await app.router.route();
   }
+  // Ночь Затмения выиграна, награда на экране: «Забрать» откроет сцену трофея (TR.2)
+  if (dev && params.has('trophy')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const [{ planChapter }, { startNight }, { createOmen }] = await Promise.all([import('./core/route'), import('./core/night'), import('./core/omen-instance')]);
+    Object.assign(run.unlocks, { routes: false, trophies: true });
+    if (params.get('trophy')) run.trophies = [params.get('trophy')!];
+    for (const id of ['stardust', 'highNoon', 'horizon']) run.omens.push(createOmen(run, id));
+    run.bosses[0] = 'gravity';
+    run.chapter = { ...planChapter(run), at: 2 };
+    startNight(run);
+    Object.assign(run.night!, { result: 'won', score: run.night!.target + 600 });
+    run.phase = 'reward';
+    run.reward = { base: 5, moves: 2, burns: 0, interest: 1, total: 8 };
+    await app.router.route();
+  }
 }
 
 void boot();

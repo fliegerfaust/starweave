@@ -16,6 +16,7 @@ import { bonusLine } from '../bonus';
 import { icon } from '../icons';
 import { showChoice } from '../choice';
 import { showGift } from '../gift';
+import { showTrophyScene } from '../trophy-scene';
 import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
@@ -376,6 +377,24 @@ export class ShopScreen implements Screen {
    */
   private showPack(): void {
     const choice = currentChoice(this.run);
+    if (choice?.kind === 'trophy') {
+      // Обычно выбор после Затмения играется на небе ночи; сюда попадаем, если забег
+      // закрыли посреди него — та же сцена, но по центру экрана и без полёта в раму
+      if (document.querySelector('.trophy-scene')) return;
+      showTrophyScene(this.run, choice, {
+        field: null,
+        foot: null,
+        root: null,
+        from: null,
+        take: (index) => this.app.runs.shopAction({ c: 'choose', index }),
+        landing: () => null,
+        done: () => {
+          this.render();
+          if (currentChoice(this.run)) this.showPack();
+        },
+      });
+      return;
+    }
     if (choice?.kind === 'gift') {
       // Экран Обсерватории пересобрали поверх открытого дара — второй дар не открываем
       // (закрывающийся дар не в счёт: за ним может стоять следующий выбор)
