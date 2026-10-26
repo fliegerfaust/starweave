@@ -136,8 +136,12 @@ export function showGuide(opts: GuideOptions = {}): void {
   }
   const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
   // Коллекция: выбранное Знамение, Затмение или миф — крупно на доске
+  // Находка с главной (CL.1): `myth-lyra`, `omen-stardust`, `boss-fog`, `legend-noon`
+  const findFocus = focus?.match(/^(myth|omen|boss|legend)-(.+)$/);
+  if (findFocus && opts.profile) tab = 'collection';
   let pick: { kind: 'omen' | 'boss' | 'myth' | 'legend'; id: string } | null =
-    focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id }
+    findFocus && opts.profile ? { kind: findFocus[1] as 'omen' | 'boss' | 'myth' | 'legend', id: findFocus[2]! }
+    : focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id }
     : focus === 'legends' ? { kind: 'legend', id: (LEGENDS.find((x) => !opts.profile!.seenOmens.includes(x.id)) ?? LEGENDS[0]!).id }
     : null;
   track('guide_open', { focus: focus ?? tab });
@@ -614,5 +618,5 @@ export function showGuide(opts: GuideOptions = {}): void {
   const m = modal(body, { title: g.title, className: 'board-modal guide-modal', sheet: opts.sheet, headExtra: tabsBar, onClose: () => timers.forEach(clearTimeout) });
   render();
   // Фокус на строке из подсказки — она видна в списке
-  if (focus) requestAnimationFrame(() => body.querySelector('.gb-row.on')?.scrollIntoView({ block: 'nearest' }));
+  if (focus) requestAnimationFrame(() => body.querySelector('.gb-row.on, .gb-sigils .on')?.scrollIntoView({ block: 'nearest' }));
 }

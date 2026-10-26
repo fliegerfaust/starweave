@@ -37,6 +37,15 @@ export const ru = {
     },
     /** Подпись созвездия в щели купола на главной. */
     skyName: 'На небе: {name}',
+    /** Вход в Коллекцию с главной (CL.1): счёт — всё, что уже открыто на лестнице игрока. */
+    collection: 'Коллекция',
+    collectionOpen: 'Открыть коллекцию: найдено {n} из {total}',
+    foundOf: '{n} из {total}',
+    shelf: 'Найдено {n} из {total}',
+    ownSky: 'Твоё небо',
+    ownMyths: 'Твоё небо · мифов {n} из {total}',
+    ownMyth: 'Твой миф: {name}',
+    rooms: { sky: 'Небо', collection: 'Коллекция', atlas: 'Атлас' } as Record<string, string>,
   },
   /** Настоящие созвездия, которые проступают в щели купола на главной. */
   constellation: {

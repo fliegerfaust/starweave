@@ -825,6 +825,91 @@ body {
 
 .icon { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
+/* ─── Вход в Коллекцию с главной (витрина CL.1, `?menuvar=`) ─────────── */
+/* a — третья лёгкая кнопка: счёт тише слова, цифры не прыгают */
+.menu-count { font: 700 12px/1 var(--font-body); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+/* b — «Твоё небо»: мифы игрока золотом, имя чуть выше, под ним — счёт каталога */
+.dome-scope.own-sky { --own-b: calc(clamp(34px, 10.4vw, 46px) * 0.9 + 6px); }
+.own-sky .dome-figure { cursor: pointer; }
+.own-sky .dome-name { margin-bottom: 30px; }
+.own-sky .dome-figure { height: calc(100% - var(--slit-w) * 0.2 - 16% - 34px); }
+.dome-figure.own line { stroke: rgb(var(--gold-rgb) / 0.9); stroke-width: 0.6; }
+.dome-figure.own circle { fill: #ffe6a8; }
+.dome-own {
+  position: absolute;
+  left: 50%;
+  bottom: var(--own-b);
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 6px 0 12px;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: 700 12.5px/1 var(--font-body);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.dome-own .icon { width: 14px; height: 14px; }
+.dome-own:hover { color: #ffe6a8; }
+/* c — полка находок: знаки без плашки, самая новая светится, счёт строкой */
+.menu-shelf {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 4px 6px 4px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink-dim);
+  font: 600 13.5px/1.2 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.menu-shelf:hover { background: rgb(var(--violet-rgb) / 0.08); color: var(--ink); }
+.shelf-marks { display: flex; align-items: center; gap: 6px; }
+.shelf-mark { display: block; opacity: 0.85; }
+.shelf-mark.fresh { opacity: 1; filter: drop-shadow(0 0 6px rgb(var(--gold-rgb) / 0.75)); }
+.shelf-text { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+.shelf-text .icon { width: 14px; height: 14px; color: var(--gold); }
+/* d — три комнаты: под волосяной линией, текущая — золотом с чертой сверху */
+.menu-rooms {
+  display: flex;
+  justify-content: center;
+  width: min(400px, calc(100vw - 40px));
+  margin-top: 14px;
+  box-shadow: 0 -1px 0 var(--hair);
+}
+.menu-room {
+  position: relative;
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 54px;
+  padding: 9px 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink-dim);
+  font: 700 11px/1 var(--font-body);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.menu-room .icon { width: 20px; height: 20px; }
+.menu-room:hover { color: var(--ink); }
+.menu-room.here { color: #ffe6a8; cursor: default; }
+.menu-room.here .icon { color: var(--gold); }
+.menu-room.here::before { content: ''; position: absolute; top: -1px; left: 30%; right: 30%; height: 2px; border-radius: 1px; background: var(--gold); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.7); }
+
 
 /* Невысокие экраны: щель ниже, слоган прячется — пульт влезает без прокрутки */
 @media (max-height: 720px) {
@@ -842,6 +927,9 @@ body {
   .tagline { font-size: 16px; }
   .menu-buttons { width: min(520px, 100%); padding-top: 28px; }
   .menu-buttons .menu-primary { width: calc(var(--slit-px, 300px) + 24px); }
+  .dome-scope.own-sky { --own-b: calc(clamp(54px, 5vw, 76px) * 0.9 + 8px); }
+  .menu-rooms { width: auto; margin-top: 28px; }
+  .menu-room { flex: none; width: 112px; }
 }
 /* Телефон в ландшафте: щель узкая и низкая, название в одну строку */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
@@ -856,6 +944,13 @@ body {
   .menu-buttons { display: grid; grid-template-columns: auto auto; justify-content: center; justify-items: center; align-items: center; width: 100%; gap: 8px 12px; padding-top: 12px; }
   .menu-buttons .menu-primary { grid-column: 1 / -1; width: min(320px, 100%); min-height: 48px; }
   .menu-handle { grid-column: 1 / -1; padding-top: 4px; }
+  .dome-scope.own-sky { --own-b: calc(clamp(28px, 5vw, 40px) * 0.9 + 4px); }
+  /* Щель низкая: имя мифа уступает место счёту, фигура над ним */
+  .own-sky .dome-name { display: none; }
+  .own-sky .dome-figure { top: calc(var(--slit-w) * 0.16); height: calc(100% - var(--slit-w) * 0.16 - var(--own-b) - 38px); }
+  .menu-shelf { margin-top: 6px; min-height: 36px; }
+  .menu-rooms { width: auto; }
+  .menu-room { flex: none; width: 104px; min-height: 46px; padding-top: 6px; }
 }
 
 /* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */

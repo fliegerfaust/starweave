@@ -1,10 +1,14 @@
 import { SKY_FIGURES, shuffledFigures, starRadius, type SkyFigure } from '@/art/constellations';
+import { bossSigil, omenSigil } from '@/art/sigil';
+import { mythDef, mythEdges } from '@/core/content/myths';
+import { collectionTally, type Find } from '@/meta/collection';
 import { SKY_LIST } from '@/core/content/skies';
 import type { App, Screen } from '@/game/app';
 import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
 import { dict, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
-import { h } from '../dom';
+import { canvasImg, dpr, h } from '../dom';
+import { mythFigure } from '../myth-figure';
 import { icon, type IconName } from '../icons';
 import { button, modal } from '../widgets';
 import { cardThumb, confirmNewRun, showHelp, showSettings } from './common';
@@ -49,6 +53,34 @@ export function skyFan(skyId: string, w: number, locked = false): HTMLElement {
   ]);
 }
 
+/**
+ * Витрина CL.1: как с главной попасть в Коллекцию — `?menuvar=a|b|c|d`, только в разработке.
+ * a — третья лёгкая кнопка, b — купол показывает находки игрока, c — полка последних находок,
+ * d — три комнаты внизу главной.
+ */
+type Entry = 'a' | 'b' | 'c' | 'd';
+const ENTRY: Entry | null = import.meta.env.DEV ? ((['a', 'b', 'c', 'd'] as const).find((v) => v === new URLSearchParams(location.search).get('menuvar')) ?? null) : null;
+
+/** Миф каталога как фигура для щели купола: клетки неба 4×4 — в кадр 0…100. */
+function mythSkyFigure(id: string): SkyFigure {
+  const def = mythDef(id);
+  const rows = def.cells.map(([y]) => y);
+  const cols = def.cells.map(([, x]) => x);
+  const dy = (3 - Math.max(...rows) - Math.min(...rows)) / 2;
+  const dx = (3 - Math.max(...cols) - Math.min(...cols)) / 2;
+  return {
+    id,
+    stars: def.cells.map(([y, x]) => [4 + (x + dx + 0.5) * 23, 4 + (y + dy + 0.5) * 23, 1.5]),
+    lines: mythEdges(def).map(([a, b]) => [a, b]),
+  };
+}
+
+/** Знак находки: медаль Знамения или Затмения, рисунок мифа золотом. */
+function findMark(f: Find, size: number): HTMLElement {
+  if (f.kind === 'myth') return mythFigure(f.id, size, true);
+  return canvasImg(f.kind === 'boss' ? bossSigil(f.id, size, dpr()) : omenSigil(f.id, size, dpr()), size);
+}
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** Смена созвездия в щели, мс. */
 const FIGURE_MS = 9000;
@@ -74,6 +106,9 @@ export class MenuScreen implements Screen {
   private resize: ResizeObserver | null = null;
   private queue: SkyFigure[] = [];
   private figure: SkyFigure | null = null;
+  /** Вариант b: в щели — мифы игрока, а не созвездия неба. */
+  private own = false;
+  private ownCaption: HTMLElement | null = null;
   /** Без движения: «Меньше движения» или автотест/снимок витрины — купол открыт, созвездие нарисовано сразу. */
   private still = false;
 
@@ -93,6 +128,7 @@ export class MenuScreen implements Screen {
     this.figureSvg.setAttribute('aria-hidden', 'true');
     this.figureName = h('div.dome-name', { attrs: { 'aria-live': 'polite' } });
     this.scope = h('div.dome-scope', null, [this.figureSvg, this.figureName]);
+    if (ENTRY === 'b') this.mountOwnSky();
     this.plate = h('header.menu-plate');
     this.nav = h('nav.menu-buttons', { attrs: { 'aria-label': t('game.title') } });
     this.foot = h('div.menu-foot');
@@ -175,10 +211,11 @@ export class MenuScreen implements Screen {
   /** Следующее созвездие: звёзды проступают, тянутся линии, затем подпись. */
   private nextFigure(): void {
     // Снимки витрин и автотесты всегда видят одну и ту же Большую Медведицу
-    if (!this.queue.length) this.queue = navigator.webdriver ? [...SKY_FIGURES] : shuffledFigures(Math.random, this.figure ?? undefined);
+    if (!this.queue.length) this.queue = this.own ? this.ownFigures() : navigator.webdriver ? [...SKY_FIGURES] : shuffledFigures(Math.random, this.figure ?? undefined);
     const fig = this.queue.shift()!;
     this.figure = fig;
     const svg = this.figureSvg;
+    svg.classList.toggle('own', this.own);
     svg.classList.remove('fade');
     svg.replaceChildren();
     fig.lines.forEach(([a, b], i) => {
@@ -200,10 +237,10 @@ export class MenuScreen implements Screen {
       c.style.animationDelay = `${i * 0.12}s`;
       svg.append(c);
     });
-    const name = dict().constellation[fig.id] ?? fig.id;
+    const name = this.figureLabel(fig.id);
     this.figureName.classList.remove('on');
     this.figureName.textContent = name;
-    this.figureName.setAttribute('aria-label', t('menu.skyName', { name }));
+    this.figureName.setAttribute('aria-label', this.own ? t('menu.ownMyth', { name }) : t('menu.skyName', { name }));
     const calm = this.still;
     this.later(() => this.figureName.classList.add('on'), calm ? 0 : 900 + fig.lines.length * 220);
     if (calm) return;
@@ -212,6 +249,42 @@ export class MenuScreen implements Screen {
       this.figureName.classList.remove('on');
       this.later(() => this.nextFigure(), 950);
     }, FIGURE_MS);
+  }
+
+  private figureLabel(id: string): string {
+    return (this.own ? (dict().myth as Record<string, string>)[id] : dict().constellation[id]) ?? id;
+  }
+
+  /** Найденные мифы — новые первыми. */
+  private ownFigures(): SkyFigure[] {
+    return [...(collectionTally(this.app.profile).myths?.found ?? [])].reverse().map(mythSkyFigure);
+  }
+
+  /**
+   * Вариант b «Твоё небо»: телескоп смотрит на находки игрока. В щели золотом рисуются его
+   * мифы, под именем — счёт каталога; касание щели открывает Коллекцию на этом мифе.
+   * Мифов ещё нет — в щели прежнее небо, а подпись ведёт в Коллекцию со счётом находок.
+   */
+  private mountOwnSky(): void {
+    this.own = !!collectionTally(this.app.profile).myths?.found.length;
+    const caption = h('button.dome-own', { type: 'button' });
+    this.ownCaption = caption;
+    this.scope.classList.add('own-sky');
+    this.scope.append(caption);
+    const open = () => {
+      this.app.svc.audio.click();
+      this.openCollection(this.own && this.figure ? `myth-${this.figure.id}` : undefined);
+    };
+    caption.addEventListener('click', (e) => {
+      e.stopPropagation();
+      open();
+    });
+    this.figureSvg.addEventListener('click', open);
+  }
+
+  private openCollection(focus?: string): void {
+    const app = this.app;
+    showHelp({ tab: 'collection', found: app.profile.combosFound, profile: app.profile, ...(focus ? { focus } : {}) });
   }
 
   /** Открыли игру по ссылке друга: показать его итог и предложить тот же расклад. */
@@ -264,7 +337,7 @@ export class MenuScreen implements Screen {
       h('p.tagline', null, t('game.tagline')),
     );
     if (this.figure) {
-      const name = dict().constellation[this.figure.id] ?? this.figure.id;
+      const name = this.figureLabel(this.figure.id);
       this.figureName.textContent = name;
       this.figureName.setAttribute('aria-label', t('menu.skyName', { name }));
     }
@@ -295,17 +368,72 @@ export class MenuScreen implements Screen {
       });
       return b;
     };
+    const tally = ENTRY ? collectionTally(app.profile) : null;
+    const countLabel = tally ? t('menu.collectionOpen', { n: tally.found, total: tally.total }) : '';
+    let collectionLite: HTMLElement | null = null;
+    if (ENTRY === 'a' && tally) {
+      collectionLite = lite('codex', t('menu.collection'), () => this.openCollection(), { title: countLabel });
+      collectionLite.setAttribute('aria-label', countLabel);
+      collectionLite.append(h('small.menu-count', null, t('menu.foundOf', { n: tally.found, total: tally.total })));
+    }
     const pair = h('div.menu-pair', null, [
       primaryKind !== 'newRun' ? lite('play', t('menu.newRun'), newRun) : null,
       lite('daily', dailyDone ? t('menu.dailyDone') : t('menu.daily'), daily, { disabled: dailyDone, title: `№ ${dailyNumber()} · ${humanDate(todayKey())}` }),
+      collectionLite,
     ]);
     const handle = h('button.menu-handle', { type: 'button', attrs: { 'aria-haspopup': 'dialog', 'aria-label': t('menu.libraryOpen') } }, t('menu.library'));
     handle.addEventListener('click', () => {
       app.svc.audio.click();
       this.openLibrary();
     });
-    this.nav.replaceChildren(primary, atlas, pair, handle);
-    this.foot.replaceChildren(...[this.homeHint()].filter((x): x is HTMLElement => !!x));
+    // В «Трёх комнатах» атлас и библиотека — в нижнем ряду, на пульте только игра
+    this.nav.replaceChildren(...(ENTRY === 'd' ? [primary, pair] : [primary, atlas, pair, handle]));
+    this.foot.replaceChildren(...[ENTRY === 'd' ? this.rooms() : null, this.homeHint()].filter((x): x is HTMLElement => !!x));
+    this.plate.querySelector('.menu-shelf')?.remove();
+    if (ENTRY === 'c' && tally) this.plate.append(this.shelf(tally.recent, tally.found, tally.total));
+    if (this.ownCaption && tally) {
+      const myths = tally.myths;
+      this.ownCaption.replaceChildren(this.own && myths ? t('menu.ownMyths', { n: myths.found.length, total: myths.total }) : `${t('menu.collection')} · ${t('menu.foundOf', { n: tally.found, total: tally.total })}`, icon('chevron'));
+      this.ownCaption.setAttribute('aria-label', countLabel);
+    }
+  }
+
+  /**
+   * Вариант c «Полка находок»: под названием — знаки последних находок и общий счёт.
+   * Строка целиком — кнопка в Коллекцию; самая новая находка светится золотом.
+   */
+  private shelf(recent: Find[], found: number, total: number): HTMLElement {
+    const marks = recent.slice(0, 5).map((f, i) => h(`span.shelf-mark${i === 0 ? '.fresh' : ''}`, null, findMark(f, 26)));
+    const b = h('button.menu-shelf', { type: 'button', attrs: { 'aria-label': t('menu.collectionOpen', { n: found, total }) } }, [
+      marks.length ? h('span.shelf-marks', { attrs: { 'aria-hidden': 'true' } }, marks) : null,
+      h('span.shelf-text', null, [t('menu.shelf', { n: found, total }), icon('chevron')]),
+    ]);
+    b.addEventListener('click', () => {
+      this.app.svc.audio.click();
+      const first = recent[0];
+      this.openCollection(first ? `${first.kind}-${first.id}` : undefined);
+    });
+    return b;
+  }
+
+  /** Вариант d «Три комнаты»: Небо (здесь), Коллекция и Атлас внизу главной; рядом — Библиотека. */
+  private rooms(): HTMLElement {
+    const app = this.app;
+    const names = dict().menu.rooms;
+    const room = (name: IconName, label: string, here: boolean, run?: () => void) => {
+      const b = h(`button.menu-room${here ? '.here' : ''}`, { type: 'button', attrs: here ? { 'aria-current': 'page' } : {} }, [icon(name), h('span', null, label)]);
+      if (run) b.addEventListener('click', () => {
+        app.svc.audio.click();
+        run();
+      });
+      return b;
+    };
+    return h('nav.menu-rooms', { attrs: { 'aria-label': t('game.title') } }, [
+      room('midnight', names.sky!, true),
+      room('codex', names.collection!, false, () => this.openCollection()),
+      room('astrolabe', names.atlas!, false, () => void app.router.goAtlas('menu')),
+      room('guide', t('menu.library'), false, () => this.openLibrary()),
+    ]);
   }
 
   /**
