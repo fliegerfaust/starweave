@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Знамения мифов · Starweave 0.7</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(4, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+.tr5 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tr5 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr5 figure { margin: 0; display: grid; gap: 6px; }
+.tr5 img { width: 100%; height: auto; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--brass); }
+.tr5 figcaption { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.tr5 h4 { margin: 0 0 8px; font: 700 13.5px/1.3 var(--font-body); color: var(--gold-hi); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label" id="lab1"></div>
+  <div class="shots" id="a"></div>
+  <div class="label" id="lab2"></div>
+  <div class="shots" id="b"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Мифы неба · три Знамения про мифы (MY.5) · 26.10.2026 · снимки настоящей игры, ветка feature/myths-core · числа черновые, баланс по боту следующим шагом · <a href="d8-myths-catalog.html">каталог</a> · <a href="d8-myths-sky.html">подсказка</a></p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'myths', lead: 'Три Знамения строят забег вокруг мифов. Они приходят в Обсерваторию только в забеге, где мифы открыты: новичку и в вызове дня их нет. Каждое меняет игру по-своему: <b>Астролог</b> растит множитель, <b>Звездочёт</b> раньше показывает фигуру, <b>Легенда</b> оставляет её на небе.' });
+
+const OMENS = [
+  ['astrologer', 'Астролог', 'Необычное · 7 золота', 'Каждый миф получает <b>+2 к множителю</b> и ещё +1 за каждый миф, уже сложенный в этом забеге. Чем больше мифов, тем он сильнее.',
+    ['Знамение в Справочнике', 'omen-astrologer', 'Астролог в «Коллекции»: значок и описание'],
+    ['Подсчёт мифа', 'myth-legend-count', 'Кассиопея: 4 звезды по 10 и ранги = 63 света; ×3 мифа и +5 Астролога (уже 3 мифа) = 504']],
+  ['stargazer', 'Звездочёт', 'Обычное · 5 золота', 'Небо подсказывает миф, когда ему не хватает <b>двух звёзд</b>, а не одной: фигуру видно на ход раньше. Каждый миф получает +30 света.',
+    ['Знамение в Справочнике', 'omen-stargazer', 'Звездочёт в «Коллекции»'],
+    ['Подсказка за две звезды', 'myth-twostars', 'Кассиопее не хватает двух Лун, обе в руке: рамки и рисунок фигуры в обеих клетках']],
+  ['legend', 'Легенда', 'Редкое · 9 золота', 'Миф <b>не гасит свои карты</b>: фигура остаётся на небе, и её карты могут дальше закрывать линии. Плата: сложенный миф занимает клетки.',
+    ['Знамение в Справочнике', 'omen-legend', 'Легенда в «Коллекции»'],
+    ['Карты остаются', 'myth-legend-stays', 'После подсчёта Кассиопея на месте; гаснут только линии']],
+];
+const FORMS = [['portrait', 'Телефон · 393 × 852'], ['landscape', 'Ландшафт · 915 × 412'], ['pc', 'ПК · 1366 × 768']];
+let cur = OMENS.findIndex(([id]) => id === location.hash.slice(1));
+if (cur < 0) cur = 0;
+
+function shots(el, file, cap) {
+  const f = (form, size, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
+    h('img', { src: `shots/${file}-${form}.jpg`, alt: `${size}: ${cap}`, loading: 'lazy' }),
+    h('figcaption', {}, `${size} · ${cap}`));
+  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+}
+function render() {
+  const [id, , kind, lead, one, two] = OMENS[cur];
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === id)));
+  q('#vlead').innerHTML = `<b>${kind}.</b> ${lead}`;
+  q('#lab1').replaceChildren(one[0], h('small', {}, one[2]));
+  shots(q('#a'), one[1], one[2]);
+  q('#lab2').replaceChildren(two[0], h('small', {}, two[2]));
+  shots(q('#b'), two[1], two[2]);
+}
+q('#seg').append(...OMENS.map(([id, name], i) => h('button', { type: 'button', 'data-v': id, onclick: () => { cur = i; history.replaceState(null, '', `#${id}`); render(); } }, name)));
+render();
+
+facts(q('#aside'), [
+  ['Когда приходят', 'Со ступени «Мифы» и только в забеге, где мифы открыты. В обучении и вызове дня их нет, лавка без мифов бросает кости так же, как раньше.'],
+  ['Сборки', 'Астролог — ставка на много мифов за забег. Звездочёт — помощник: фигуру видно раньше, легче её достроить. Легенда — риск: фигура остаётся и копит карты для линий, но занимает небо.'],
+  ['Числа', 'Черновые: +2 и +1 за миф у Астролога, +30 света у Звездочёта. Баланс по боту — следующий шаг, после него числа могут сдвинуться.'],
+], [
+  ['MY.1–MY.4', 'Готово: фигуры, счёт, подсказка D, каталог сеткой'],
+  ['MY.5', 'Готово в коде: три Знамения, подсказка за две звезды; тесты'],
+  ['Дальше', 'Баланс по боту, затем Резонанс'],
+]);
+ladder(q('#ladder'), 5);
+</script>
+</body>
+</html>
