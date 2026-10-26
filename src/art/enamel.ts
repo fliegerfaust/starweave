@@ -1,5 +1,6 @@
 import type { ComboId, Suit } from '@/core/types';
 import type { OmenKind, Rarity } from '@/core/content/omens';
+import { RESONANCES } from '@/core/content/resonance';
 import { roundRect } from './glyphs';
 
 /**
@@ -130,6 +131,12 @@ const MOTIF: Record<string, (s: number) => Part[]> = {
   collapsar: (s) => [{ s: line(Array.from({ length: 64 }, (_, i) => { const a = i * 0.25, r = s * 1.02 * (1 - i / 64); return [cos(a) * r, sin(a) * r]; })), w: s * 0.1 }, { f: circ(0, 0, s * 0.12) }],
   corona: (s) => [{ f: sunRays(0, 0, s * 1.06) + circ(0, 0, s * 0.42), rule: 'evenodd' }],
   doubleStar: (s) => [{ f: sparkle(-s * 0.32, -s * 0.26, s * 0.66) }, { c: sparkle(s * 0.36, s * 0.32, s * 0.54), w: s * 0.14 }, { f: sparkle(s * 0.36, s * 0.32, s * 0.54) }],
+  // Астролябия: кольцо, ось и звезда на ней
+  astrologer: (s) => [{ s: circ(0, 0, s * 0.82), w: s * 0.1 }, { s: ell(0, 0, s * 0.82, s * 0.3), w: s * 0.07, tr: 'rotate(-28)' }, { s: line([[-s * 0.95, s * 0.5], [s * 0.95, -s * 0.5]]), w: s * 0.08 }, { f: sparkle(s * 0.42, -s * 0.22, s * 0.4) }],
+  // Подзорная труба на звезду
+  stargazer: (s) => [{ f: shape([[-s * 0.92, s * 0.5], [s * 0.2, -s * 0.12], [s * 0.36, s * 0.16], [-s * 0.76, s * 0.78]]) }, { s: line([[-s * 0.3, s * 0.42], [-s * 0.5, s * 0.98]]) + line([[-s * 0.3, s * 0.42], [-s * 0.02, s * 0.98]]), w: s * 0.08 }, { f: sparkle(s * 0.66, -s * 0.62, s * 0.38) }],
+  // «W» Кассиопеи золотом: фигура мифа, которая не гаснет
+  legend: (s) => { const p = [[-0.9, -0.42], [-0.45, 0.42], [0, -0.2], [0.45, 0.42], [0.9, -0.42]].map(([x, y]) => [x! * s, y! * s]); return [{ s: line(p), w: s * 0.1 }, { f: p.map(([x, y], i) => (i === 2 ? sparkle(x!, y!, s * 0.36) : circ(x!, y!, s * 0.15))).join('') }]; },
 };
 const BOSS_MOTIF: Record<string, (s: number) => Part[]> = {
   void: (s) => [{ f: rect(-s * 0.85, -s * 0.85, s * 0.78, s * 0.78) + rect(s * 0.07, s * 0.07, s * 0.78, s * 0.78) }, { s: rect(s * 0.07, -s * 0.85, s * 0.78, s * 0.78) + rect(-s * 0.85, s * 0.07, s * 0.78, s * 0.78), w: s * 0.07, o: 0.5 }],
@@ -192,6 +199,7 @@ const OMEN_FAM: Record<string, string> = {
   supernovaSeed: 'lapis', constellationMap: 'lapis',
   horizon: 'malachite', pillar: 'malachite', crossroads: 'malachite', diagonalSight: 'malachite', cornerstone: 'malachite',
   shortcut: 'malachite', prismLens: 'malachite', doubleStar: 'malachite',
+  astrologer: 'star', stargazer: 'lapis', legend: 'gold',
   abacus: 'silver', momentum: 'silver', patientSky: 'silver', nightOwl: 'silver', wideSky: 'silver', echoChamber: 'silver', glassCannon: 'silver',
   miser: 'gold', tithe: 'gold', hoarder: 'gold', alchemist: 'gold', corona: 'gold',
   evenKeel: 'wine', oddity: 'wine', gambler: 'wine',
@@ -308,11 +316,14 @@ function stage(ctx: Ctx, size: number): void {
 // ─── Знамение ────────────────────────────────────────────────────────────────
 
 export function drawEnamelOmen(ctx: Ctx, id: string, rarity: Rarity, kind: OmenKind, size: number): void {
-  const f = FAM[OMEN_FAM[id] ?? 'lapis']!;
+  // Легендарное Резонанса (RS.1): эмаль двух цветов пары сходится в шве, в сердце — восьмилучевая звезда
+  const pair = RESONANCES.find((r) => r.id === id)?.pair;
+  const f = FAM[OMEN_FAM[pair?.[0] ?? id] ?? 'lapis']!;
+  const f2 = pair ? FAM[OMEN_FAM[pair[1]] ?? 'lapis']! : f;
   const small = size < 40;
   const rare = rarity === 3;
   const s = 23.5;
-  const parts = MOTIF[id]?.(s) ?? [{ f: sparkle(0, 0, s, 4, 0.28) }];
+  const parts = pair ? [{ f: sparkle(0, 0, s * 1.05, 8, 0.3) }] : MOTIF[id]?.(s) ?? [{ f: sparkle(0, 0, s, 4, 0.28) }];
   const er = small ? 40 : 41;
   ctx.save();
   stage(ctx, size);
@@ -333,6 +344,16 @@ export function drawEnamelOmen(ctx: Ctx, id: string, rarity: Rarity, kind: OmenK
   ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.4, 0, 0, -er * 0.4, er * 1.56), [[0, mix(f.base, '#ffffff', 0.08)], [0.5, mix(f.base, f.deep, 0.5)], [1, f.deep]]);
   circle(ctx, er);
   ctx.fill();
+  if (pair && ctx.createConicGradient) {
+    ctx.fillStyle = stops(ctx.createConicGradient(-PI / 2, 0, 0), [[0, f.base], [0.5, f2.base], [1, f.base]]);
+    ctx.globalAlpha = 0.85;
+    circle(ctx, er);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.3, 0, 0, 0, er), [[0, 'rgba(255,255,255,0.16)'], [0.55, 'rgba(10,8,30,0.12)'], [1, 'rgba(10,8,30,0.6)']]);
+    circle(ctx, er);
+    ctx.fill();
+  }
   if (!small) {
     // Гильоше — тонкие лучи по эмали
     ctx.strokeStyle = f.hi;

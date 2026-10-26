@@ -1,6 +1,9 @@
 import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
+import { mythDef, mythEdges } from '@/core/content/myths';
 import { buildLines, closingLines } from '@/core/grid';
+import { nearMyths } from '@/core/myths';
+import { mythHintLayer, type MythHintState } from './figures';
 import { t } from '@/i18n';
 import { previewPlacement, type PlacementPreview } from './preview';
 import type { CellState, NightScene } from './scene';
@@ -27,7 +30,34 @@ export class Forecast {
   private forecastState = '';
   private forecastSeed = 0;
 
+  /** Подсказка мифа, которому не хватает одной звезды (MY.3). */
+  private mythHint: MythHintState = { cells: [], edges: [], missing: [], alpha: 0 };
+  private mythHintEntity: number | null = null;
+  /** Клетки, которые ждёт подсказанный миф: подпись линии в них не рисуется. */
+  private mythCells = new Set<number>();
+
   constructor(private readonly scene: NightScene) {}
+
+  /** Карта легла — подсказка мифа гаснет до конца подсчёта. */
+  hideMythHint(): void {
+    void this.scene.svc.tweens.to(this.mythHint, { alpha: 0 }, { duration: 0.15 });
+  }
+
+  /** Миф, который закроет карта из руки: фигура без одной звезды. В «Тумане» ранги скрыты — подсказки нет. */
+  private refreshMythHint(): void {
+    const { run, night: n } = this.scene;
+    const near = run.unlocks.myths && !run.tutorial && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand, n.rules.mythHint ?? 1)[0] : undefined;
+    if (this.mythHintEntity === null || !this.scene.world.isAlive(this.mythHintEntity)) {
+      this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHint, () => this.scene.layout);
+    }
+    this.mythCells = new Set(near?.missing ?? []);
+    if (near) {
+      this.mythHint.cells = near.cells;
+      this.mythHint.edges = mythEdges(mythDef(near.myth));
+      this.mythHint.missing = near.missing;
+    }
+    void this.scene.svc.tweens.to(this.mythHint, { alpha: near ? 1 : 0 }, { duration: 0.3 });
+  }
 
   /** Выбор карты сменился — превью наведения считается заново. */
   resetPlacement(): void {
@@ -64,10 +94,13 @@ export class Forecast {
   refreshClosers(): void {
     const n = this.scene.night;
     const lines = buildLines(n.rules);
+    // Миф первым: клетку, которую ждёт миф, показывает его подсказка, без рамки и подписи линии
+    this.refreshMythHint();
     this.scene.cells.forEach((state, cell) => {
       const closes = closingLines(lines, n.grid, n.sealed, cell).length;
       state.closes = closes;
-      void this.scene.svc.tweens.to(state, { closesAnim: closes > 0 && !this.off ? 1 : 0 }, { duration: 0.3 });
+      const shown = closes > 0 && !this.off && !this.mythCells.has(cell);
+      void this.scene.svc.tweens.to(state, { closesAnim: shown ? 1 : 0 }, { duration: 0.3 });
     });
     this.refreshForecast();
   }
@@ -101,7 +134,7 @@ export class Forecast {
       state.forecastPicked = picked !== null;
       state.forecastWeak = false;
       state.forecastCard = null;
-      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing' || this.off) continue;
+      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing' || this.off || this.mythCells.has(cell)) continue;
       const indices = picked !== null ? [picked] : n.hand.map((_, i) => i);
       let best: PlacementPreview | null = null;
       let bestIndex = -1;

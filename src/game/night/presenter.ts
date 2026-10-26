@@ -1,7 +1,8 @@
 import { bodyColor } from '@/art/bodies';
 import { SUIT_COLORS, UI } from '@/art/palette';
 import { assertNever } from '@/core/errors';
-import type { GameEvent, LineScore, PlacementScore, ScoreStep, Suit } from '@/core/types';
+import { mythDef, mythEdges } from '@/core/content/myths';
+import type { GameEvent, LineScore, MythScore, PlacementScore, ScoreStep, Suit } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import { dict, named, num, t } from '@/i18n';
 import { toast } from '@/ui/widgets';
@@ -13,6 +14,8 @@ import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
 type Pt = { x: number; y: number };
+
+const mythName = (id: string): string => (dict().myth as Record<string, string>)[id] ?? id;
 
 /**
  * Превращает события ядра в анимации. Каждый обработчик ждёт своей анимации,
@@ -371,6 +374,11 @@ export class Presenter {
    */
   private async onIgnite(score: PlacementScore, scoreAfter: number): Promise<void> {
     const lineFx: FigureFx[] = [];
+    // Миф — до линий: фигура видна целиком, пока линии её не погасили
+    for (const myth of score.myths) {
+      lineFx.push(...(await this.igniteMyth(myth)));
+      await this.countMyth(myth);
+    }
     for (const line of score.lines) {
       lineFx.push(await this.igniteLine(line, score.lines.length));
       await this.countLine(line);
@@ -423,6 +431,78 @@ export class Presenter {
     return fx;
   }
 
+  /** Центр фигуры мифа — среднее центров её карт. */
+  private cellsCenter(cells: readonly number[]): Pt {
+    const pts = cells.map((c) => this.cellPos(c));
+    return { x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length };
+  }
+
+  /**
+   * Миф загорается (MY.3): все рёбра фигуры прорисовываются разом золотом, звёзды вспыхивают
+   * по порядку фигуры, лента с именем мифа и строкой легенды. Сильнее линии: миф редкий.
+   */
+  private async igniteMyth(myth: MythScore): Promise<FigureFx[]> {
+    const hud = this.scene.hud;
+    const pts = myth.cells.map((c) => this.cellPos(c));
+    const center = this.cellsCenter(myth.cells);
+    const fxs = mythEdges(mythDef(myth.myth)).map(([a, b]) => {
+      const fx = drawFigure(this.world, [pts[a]!, pts[b]!], UI.gold);
+      this.fx.push(fx.entity);
+      return fx;
+    });
+    this.audio.ignite(2);
+    const drawDur = 0.6 / this.speed;
+    const drawn = Promise.all(fxs.map((fx) => this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'outQuad' })));
+    myth.cells.forEach((cell, i) => {
+      void this.tweens.wait((drawDur * i) / Math.max(1, myth.cells.length - 1)).then(() => this.igniteCard(cell));
+    });
+    await drawn;
+    for (const fx of fxs) fx.state.breathe = true;
+    const { board } = this.scene.layout;
+    const reach = Math.hypot(board.w, board.h) * 0.85;
+    shockwave(this.world, center, reach, UI.gold, 0.8 / this.speed);
+    shockwave(this.world, center, reach * 0.6, 'rgba(255,236,190,0.8)', 0.6 / this.speed, 0.1 / this.speed);
+    flash(this.world, '255,226,160', 0.36, 0.5);
+    shake(this.world, 0.3);
+    this.scene.svc.haptics.play('cross');
+    hud.showRibbon(mythName(myth.myth), (dict().mythDesc as Record<string, string>)[myth.myth] ?? '', center.y);
+    await this.wait(this.flare ? 0.8 : 1.1);
+    hud.hideRibbon();
+    for (const cell of myth.cells) {
+      const e = this.cardEntityAt(cell);
+      if (e !== undefined) void this.tweens.to(this.world.req(e, CardView), { glow: 0.45 }, { duration: 0.6 / this.speed });
+    }
+    return fxs;
+  }
+
+  /** Формула мифа: звёзды фигуры, ранги карт, итог мифа. */
+  private async countMyth(myth: MythScore): Promise<void> {
+    const scene = this.scene;
+    const hud = scene.hud;
+    const center = this.cellsCenter(myth.cells);
+    const base = myth.steps[0]!;
+    const name = mythName(myth.myth);
+    hud.showCalcNamed(name, base.lightAfter, base.multAfter);
+    const topRow = myth.cells.some((c) => c < scene.night.rules.gridSize);
+    hud.placeCalc(topRow ? scene.cellRect(myth.cells[0]!).y : null);
+    hud.setCaption(t('calc.myth', { name, light: num(base.lightAfter), mult: fmtX(base.multAfter) }));
+    await this.wait(0.35 * this.pace);
+    const steps = myth.steps.slice(1);
+    const stepDelay = Math.min(0.34, Math.max(0.14, 0.34 - steps.length * 0.01)) * this.pace;
+    const seenCells = new Set<number>();
+    this.moteTime = Math.min(0.16, stepDelay * 0.85);
+    for (let i = 0; i < steps.length; i++) {
+      await this.showStep(steps[i]!, i, seenCells);
+      await this.wait(Math.max(0.04, stepDelay * this.stepPause - this.moteTime));
+    }
+    hud.setCalcTotal(myth.total);
+    hud.setCaption(t('calc.lineTotal', { light: num(myth.light), mult: fmtX(myth.mult), total: num(myth.total) }));
+    this.replaceHudLabel(floatText(this.world, center.x, center.y + 4, num(myth.total), { size: Math.round(Math.min(56, Math.max(38, scene.layout.cardH * 0.5))), color: UI.gold, life: 1.2, rise: 30, punch: true }));
+    this.scene.svc.haptics.play('countMult');
+    this.audio.count(steps.length + 4, 'light');
+    await this.wait(0.4 * this.pace);
+  }
+
   /** Формула линии: база созвездия, шаги карт, глифов и Знамений, итог линии. */
   private async countLine(line: LineScore): Promise<void> {
     const scene = this.scene;
@@ -470,7 +550,7 @@ export class Presenter {
   private async countMove(score: PlacementScore): Promise<void> {
     const scene = this.scene;
     const hud = scene.hud;
-    const sum = score.lines.reduce((s, l) => s + l.total, 0);
+    const sum = score.lines.reduce((s, l) => s + l.total, 0) + score.myths.reduce((s, m) => s + m.total, 0);
     if (score.steps.length > 0) {
       hud.setCalcLabel(score.lines.length >= 2 ? t('night.cross') : t('night.score'));
       hud.setCalcMode('move');
@@ -509,21 +589,22 @@ export class Presenter {
     const hud = scene.hud;
     const target = scene.night.target;
     const board = scene.layout.board;
-    if (score.lines.length > 1 || score.xMult !== 1) {
+    const formations = score.lines.length + score.myths.length;
+    if (formations > 1 || score.xMult !== 1) {
       // Итог встаёт на место метки «Цепь ×2» в центре неба, а не поверх неё
       this.replaceHudLabel(floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true }));
     }
     // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
     hud.hideCalc();
     await this.tweens.wait(0.2); // панель растворяется 0,18 с — огоньки летят уже по чистому небу
-    await this.flyToScore(score.lines.flatMap((l) => l.cells));
+    await this.flyToScore([...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)]);
     hud.setScore(scoreAfter, target);
     const power = Math.min(1, score.total / target);
     this.audio.impact(power);
     shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
     this.scene.svc.haptics.play(score.lines.length > 1 ? 'cross' : power > 0.5 ? 'heavy' : 'ignite');
     if (power >= 0.35 || score.lines.length > 1) flash(this.world, score.lines.length > 1 ? '255,214,140' : '200,230,255', 0.25 + power * 0.35);
-    for (const line of score.lines) {
+    for (const line of [...score.lines, ...score.myths]) {
       for (const cell of line.cells) {
         const p = this.cellPos(cell);
         const e = this.cardEntityAt(cell);
@@ -574,6 +655,7 @@ export class Presenter {
         return t('calc.trophy', { name: named('trophy', src.trophyId).name, effect });
       case 'combo':
       case 'chain':
+      case 'myth':
         return effect;
     }
   }
