@@ -3,7 +3,7 @@ import { SUIT_COLORS, rgba } from '@/art/palette';
 import { mythDef, mythEdges } from '@/core/content/myths';
 import { buildLines, closingLines } from '@/core/grid';
 import { nearMyths } from '@/core/myths';
-import { mythHintLayer, type MythHintState, type MythHintStyle } from './figures';
+import { mythHintLayer, type MythHintState } from './figures';
 import { t } from '@/i18n';
 import { previewPlacement, type PlacementPreview } from './preview';
 import type { CellState, NightScene } from './scene';
@@ -36,12 +36,6 @@ export class Forecast {
 
   constructor(private readonly scene: NightScene) {}
 
-  /** Вид подсказки мифа: пока Денис выбирает, в разработке — `?mythHint=dashes|stars|silhouette|combo`. */
-  private get mythHintStyle(): MythHintStyle {
-    const asked = import.meta.env.DEV ? new URLSearchParams(location.search).get('mythHint') : null;
-    return asked === 'stars' || asked === 'silhouette' || asked === 'combo' ? asked : 'dashes';
-  }
-
   /** Карта легла — подсказка мифа гаснет до конца подсчёта. */
   hideMythHint(): void {
     void this.scene.svc.tweens.to(this.mythHint, { alpha: 0 }, { duration: 0.15 });
@@ -52,7 +46,7 @@ export class Forecast {
     const { run, night: n } = this.scene;
     const near = run.unlocks.myths && !run.tutorial && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand)[0] : undefined;
     if (this.mythHintEntity === null || !this.scene.world.isAlive(this.mythHintEntity)) {
-      this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHintStyle, this.mythHint, () => this.scene.layout);
+      this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHint, () => this.scene.layout);
     }
     if (near) {
       this.mythHint.cells = near.cells;

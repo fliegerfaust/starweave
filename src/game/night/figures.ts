@@ -64,14 +64,6 @@ export function drawFigure(world: GameWorld, pts: readonly Pt[], color: string):
   return { state, entity: e };
 }
 
-/**
- * Как небо подсказывает миф, которому не хватает одной звезды (MY.3, витрина вариантов):
- * `dashes` — пунктир фигуры и пунктирная клетка, `stars` — звёздочки на картах фигуры и
- * свечение клетки, `silhouette` — маленький рисунок фигуры в пустой клетке, `combo` — пунктир
- * фигуры по небу и её рисунок в пустой клетке.
- */
-export type MythHintStyle = 'dashes' | 'stars' | 'silhouette' | 'combo';
-
 export interface MythHintState {
   /** Клетки фигуры в её порядке и рёбра по их индексам; пусто — подсказки нет. */
   cells: number[];
@@ -87,13 +79,17 @@ interface HintLayout {
   cardH: number;
 }
 
-/** Слой подсказки мифа: рисует по текущей раскладке неба, ничего не держит сам. */
-export function mythHintLayer(world: GameWorld, style: MythHintStyle, state: MythHintState, layout: () => HintLayout): Entity {
+/**
+ * Слой подсказки мифа, которому не хватает одной звезды (MY.3): золотой пунктир фигуры по небу
+ * обрывается на рамке пустой клетки, внутри клетки — рисунок фигуры с пульсирующей недостающей
+ * звездой. Рисует по текущей раскладке неба, ничего не держит сам.
+ */
+export function mythHintLayer(world: GameWorld, state: MythHintState, layout: () => HintLayout): Entity {
   const e = world.create();
   world.add(e, Transform, transform(0, 0));
   world.add(e, Drawable, {
-    // Пунктир и силуэт — под картами (видны в просветах и в пустой клетке), звёздочки — на картах
-    layer: style === 'stars' ? Layer.Effects : Layer.Board,
+    // Под картами: пунктир виден в просветах и не закрывает ранги
+    layer: Layer.Board,
     z: 1000,
     visible: true,
     draw: (ctx) => {
@@ -102,53 +98,33 @@ export function mythHintLayer(world: GameWorld, style: MythHintStyle, state: Myt
       const pts = state.cells.map((c) => cells[c]!);
       const miss = cells[state.missing]!;
       const pulse = 0.75 + 0.25 * Math.sin(world.res.time * 3);
+      const frame = [miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const;
       ctx.save();
-      ctx.globalAlpha = state.alpha;
       ctx.strokeStyle = '#f6c25b';
       ctx.fillStyle = '#f6c25b';
       ctx.lineCap = 'round';
-      if (style === 'dashes' || style === 'combo') {
-        ctx.setLineDash([6, 7]);
-        ctx.lineDashOffset = -world.res.time * 14;
-        ctx.lineWidth = 2.5;
-        ctx.globalAlpha = state.alpha * 0.9;
-        const frame = [miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const;
-        if (style === 'combo') {
-          // Пунктир обрывается на рамке: внутри клетки только рисунок фигуры
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(-1e5, -1e5, 2e5, 2e5);
-          ctx.rect(...frame);
-          ctx.clip('evenodd');
-        }
-        ctx.beginPath();
-        for (const [a, b] of state.edges) {
-          ctx.moveTo(pts[a]!.x, pts[a]!.y);
-          ctx.lineTo(pts[b]!.x, pts[b]!.y);
-        }
-        ctx.stroke();
-        if (style === 'combo') ctx.restore();
-        // В «combo» рамка тише: внутри клетки главный — рисунок фигуры
-        ctx.globalAlpha = state.alpha * pulse * (style === 'combo' ? 0.55 : 1);
-        ctx.strokeRect(...frame);
-        ctx.setLineDash([]);
-        if (style === 'combo') drawSilhouette(ctx, state, pts, miss, cardW * 0.66, cardH * 0.6, cardW, pulse);
-      } else if (style === 'stars') {
-        state.cells.forEach((c, i) => {
-          if (c === state.missing) return;
-          const p = cells[c]!;
-          const tw = 0.6 + 0.4 * Math.sin(world.res.time * 4 + i * 1.3);
-          star4(ctx, p.x + cardW * 0.42, p.y - cardH * 0.42, Math.max(8, cardW * 0.16) * (0.8 + 0.2 * tw), state.alpha * (0.7 + 0.3 * tw));
-        });
-        const g = ctx.createRadialGradient(miss.x, miss.y, 0, miss.x, miss.y, cardW * 0.55);
-        g.addColorStop(0, `rgba(246,194,91,${0.55 * pulse})`);
-        g.addColorStop(1, 'rgba(246,194,91,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(miss.x - cardW, miss.y - cardH, cardW * 2, cardH * 2);
-        star4(ctx, miss.x, miss.y, Math.max(12, cardW * 0.22) * pulse, state.alpha);
-      } else {
-        drawSilhouette(ctx, state, pts, miss, cardW * 0.78, cardH * 0.7, cardW, pulse);
+      ctx.setLineDash([6, 7]);
+      ctx.lineDashOffset = -world.res.time * 14;
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = state.alpha * 0.9;
+      // Пунктир обрывается на рамке: внутри клетки только рисунок фигуры
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-1e5, -1e5, 2e5, 2e5);
+      ctx.rect(...frame);
+      ctx.clip('evenodd');
+      ctx.beginPath();
+      for (const [a, b] of state.edges) {
+        ctx.moveTo(pts[a]!.x, pts[a]!.y);
+        ctx.lineTo(pts[b]!.x, pts[b]!.y);
       }
+      ctx.stroke();
+      ctx.restore();
+      // Рамка тише пунктира: в клетке главный — рисунок
+      ctx.globalAlpha = state.alpha * pulse * 0.55;
+      ctx.strokeRect(...frame);
+      ctx.setLineDash([]);
+      drawSilhouette(ctx, state, pts, miss, cardW * 0.66, cardH * 0.6, cardW, pulse);
       ctx.restore();
     },
   });
@@ -178,20 +154,4 @@ function drawSilhouette(ctx: CanvasRenderingContext2D, state: MythHintState, pts
     ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);
     ctx.fill();
   });
-}
-
-/** Четырёхлучевая звёздочка. */
-function star4(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = '#ffe6a8';
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const a = (i * Math.PI) / 4 - Math.PI / 2;
-    const rr = i % 2 === 0 ? r : r * 0.28;
-    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
 }
