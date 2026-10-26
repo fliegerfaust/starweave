@@ -43,13 +43,13 @@ export const en: Dict = {
     ownMyths: 'Your sky · {n} of {total} myths',
     ownMyth: 'Your myth: {name}',
     rooms: { sky: 'Sky', collection: 'Collection', atlas: 'Atlas' } as Record<string, string>,
-    shelfNew: { one: '{n} new find', other: '{n} new finds' } as Record<string, string>,
+    shelfNew: { one: '{n} new find', few: '{n} new finds', many: '{n} new finds', other: '{n} new finds' } as Record<string, string>,
     shelfSections: { myths: 'Myths', omens: 'Omens', legends: 'Legendary', bosses: 'Eclipses', skies: 'Skies' } as Record<string, string>,
     shelfNext: {
-      myths: { one: '{n} more constellation to unlock Myths', other: '{n} more constellations to unlock Myths' },
-      trophies: { one: 'Beat {n} more eclipse to unlock trophies', other: 'Beat {n} more eclipses to unlock trophies' },
-      resonance: { one: 'Meet {n} more omen to unlock Resonance', other: 'Meet {n} more omens to unlock Resonance' },
-      myth: { one: '{n} more myth hides in the sky', other: '{n} more myths hide in the sky' },
+      myths: { one: '{n} more constellation to unlock Myths', few: '{n} more constellations to unlock Myths', many: '{n} more constellations to unlock Myths', other: '{n} more constellations to unlock Myths' },
+      trophies: { one: 'Beat {n} more eclipse to unlock trophies', few: 'Beat {n} more eclipses to unlock trophies', many: 'Beat {n} more eclipses to unlock trophies', other: 'Beat {n} more eclipses to unlock trophies' },
+      resonance: { one: 'Meet {n} more omen to unlock Resonance', few: 'Meet {n} more omens to unlock Resonance', many: 'Meet {n} more omens to unlock Resonance', other: 'Meet {n} more omens to unlock Resonance' },
+      myth: { one: '{n} more myth hides in the sky', few: '{n} more myths hide in the sky', many: '{n} more myths hide in the sky', other: '{n} more myths hide in the sky' },
     } as Record<string, Record<string, string>>,
   },
   constellation: {
