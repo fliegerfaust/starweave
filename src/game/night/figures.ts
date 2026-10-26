@@ -63,3 +63,118 @@ export function drawFigure(world: GameWorld, pts: readonly Pt[], color: string):
   });
   return { state, entity: e };
 }
+
+/**
+ * Как небо подсказывает миф, которому не хватает одной звезды (MY.3, витрина вариантов):
+ * `dashes` — пунктир фигуры и пунктирная клетка, `stars` — звёздочки на картах фигуры и
+ * свечение клетки, `silhouette` — маленький рисунок фигуры в пустой клетке.
+ */
+export type MythHintStyle = 'dashes' | 'stars' | 'silhouette';
+
+export interface MythHintState {
+  /** Клетки фигуры в её порядке и рёбра по их индексам; пусто — подсказки нет. */
+  cells: number[];
+  edges: readonly (readonly [number, number])[];
+  /** Клетка, которой не хватает. */
+  missing: number;
+  alpha: number;
+}
+
+interface HintLayout {
+  cells: readonly Pt[];
+  cardW: number;
+  cardH: number;
+}
+
+/** Слой подсказки мифа: рисует по текущей раскладке неба, ничего не держит сам. */
+export function mythHintLayer(world: GameWorld, style: MythHintStyle, state: MythHintState, layout: () => HintLayout): Entity {
+  const e = world.create();
+  world.add(e, Transform, transform(0, 0));
+  world.add(e, Drawable, {
+    // Пунктир и силуэт — под картами (видны в просветах и в пустой клетке), звёздочки — на картах
+    layer: style === 'stars' ? Layer.Effects : Layer.Board,
+    z: 1000,
+    visible: true,
+    draw: (ctx) => {
+      if (state.alpha <= 0.01 || state.cells.length === 0) return;
+      const { cells, cardW, cardH } = layout();
+      const pts = state.cells.map((c) => cells[c]!);
+      const miss = cells[state.missing]!;
+      const pulse = 0.75 + 0.25 * Math.sin(world.res.time * 3);
+      ctx.save();
+      ctx.globalAlpha = state.alpha;
+      ctx.strokeStyle = '#f6c25b';
+      ctx.fillStyle = '#f6c25b';
+      ctx.lineCap = 'round';
+      if (style === 'dashes') {
+        ctx.setLineDash([6, 7]);
+        ctx.lineDashOffset = -world.res.time * 14;
+        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = state.alpha * 0.9;
+        ctx.beginPath();
+        for (const [a, b] of state.edges) {
+          ctx.moveTo(pts[a]!.x, pts[a]!.y);
+          ctx.lineTo(pts[b]!.x, pts[b]!.y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = state.alpha * pulse;
+        ctx.strokeRect(miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84);
+      } else if (style === 'stars') {
+        state.cells.forEach((c, i) => {
+          if (c === state.missing) return;
+          const p = cells[c]!;
+          const tw = 0.6 + 0.4 * Math.sin(world.res.time * 4 + i * 1.3);
+          star4(ctx, p.x + cardW * 0.42, p.y - cardH * 0.42, Math.max(8, cardW * 0.16) * (0.8 + 0.2 * tw), state.alpha * (0.7 + 0.3 * tw));
+        });
+        const g = ctx.createRadialGradient(miss.x, miss.y, 0, miss.x, miss.y, cardW * 0.55);
+        g.addColorStop(0, `rgba(246,194,91,${0.55 * pulse})`);
+        g.addColorStop(1, 'rgba(246,194,91,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(miss.x - cardW, miss.y - cardH, cardW * 2, cardH * 2);
+        star4(ctx, miss.x, miss.y, Math.max(12, cardW * 0.22) * pulse, state.alpha);
+      } else {
+        // Рисунок фигуры, вписанный в пустую клетку; её звезда — крупнее и пульсирует
+        const xs = pts.map((p) => p.x);
+        const ys = pts.map((p) => p.y);
+        const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+        const k = Math.min((cardW * 0.78) / Math.max(1, x1 - x0), (cardH * 0.7) / Math.max(1, y1 - y0));
+        const map = (p: Pt): Pt => ({ x: miss.x + (p.x - (x0 + x1) / 2) * k, y: miss.y + (p.y - (y0 + y1) / 2) * k });
+        const mini = pts.map(map);
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = state.alpha * 0.9;
+        ctx.beginPath();
+        for (const [a, b] of state.edges) {
+          ctx.moveTo(mini[a]!.x, mini[a]!.y);
+          ctx.lineTo(mini[b]!.x, mini[b]!.y);
+        }
+        ctx.stroke();
+        state.cells.forEach((c, i) => {
+          const p = mini[i]!;
+          const own = c === state.missing;
+          ctx.globalAlpha = state.alpha * (own ? pulse : 0.85);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      ctx.restore();
+    },
+  });
+  return e;
+}
+
+/** Четырёхлучевая звёздочка. */
+function star4(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#ffe6a8';
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 - Math.PI / 2;
+    const rr = i % 2 === 0 ? r : r * 0.28;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}

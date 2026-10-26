@@ -386,7 +386,12 @@ export class Hud {
   }
 
   showCalc(combo: ComboId, light: number, mult: number): void {
-    this.calcCombo.textContent = t(`combo.${combo}`);
+    this.showCalcNamed(t(`combo.${combo}`), light, mult);
+  }
+
+  /** Формула формации с готовым названием: созвездие линии или миф (MY.3). */
+  showCalcNamed(name: string, light: number, mult: number): void {
+    this.calcCombo.textContent = name;
     this.setCalcMode('line');
     this.calcTotal.textContent = '?';
     this.calcTotal.classList.remove('done');
