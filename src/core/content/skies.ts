@@ -15,6 +15,8 @@ export type Unlock =
   | { kind: 'eclipses'; count: number }
   /** Найдено разных созвездий (линий) за всё время. */
   | { kind: 'combos'; count: number }
+  /** Увидено разных Знамений за всё время (ступень «Резонанс»). */
+  | { kind: 'omensSeen'; count: number }
   /** Входит в «Звёздный атлас» — открывается покупкой, а не достижением. */
   | { kind: 'atlas' };
 

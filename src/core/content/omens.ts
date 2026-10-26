@@ -6,6 +6,7 @@ import { isCorner } from '../grid';
 import { chance, pick } from '../rng';
 import { COMBO_IDS, GLYPHS, type ComboId, type Suit } from '../types';
 import { MYTHS_UNLOCK } from './myths';
+import { RESONANCE_UNLOCK, RESONANCES } from './resonance';
 import { registry } from './registry';
 
 export type Rarity = 1 | 2 | 3;
@@ -28,6 +29,8 @@ export interface OmenDef extends EffectHooks {
   unlock?: Unlock;
   /** Про мифы (MY.5): в Обсерватории только в забеге, где мифы открыты. */
   myths?: true;
+  /** Легендарное Резонанса (RS.1): из чего слито. Не продаётся и не выпадает — только слиянием. */
+  pair?: readonly [string, string];
 }
 
 const strength = (combo: ComboId) => COMBO_IDS.indexOf(combo);
@@ -461,7 +464,95 @@ export const OMEN_LIST: OmenDef[] = [
       return ctx.myth ? 'stays' : undefined;
     },
   },
+
+  // ── Легендарные Резонанса (RS.1): только слиянием пары, в лавку не попадают ──────
+  ...legendaries(),
 ];
+
+/** Легендарные Знамения: свойства обоих в паре, сильнее каждого; цена — для продажи. */
+function legendaries(): OmenDef[] {
+  const pairOf = (id: string) => RESONANCES.find((r) => r.id === id)!.pair;
+  const legend = (id: string, kind: OmenKind, hooks: Omit<OmenDef, 'id' | 'rarity' | 'price' | 'kind'>): OmenDef => ({ id, rarity: 3, price: 14, kind, unlock: RESONANCE_UNLOCK, pair: pairOf(id), ...hooks });
+  return [
+    legend('noon', 'xmult', {
+      onCardScored(ctx) {
+        const sun = cardSuits(ctx.card).includes('sun');
+        const high = ctx.card.rank >= 7;
+        if (sun && high) {
+          ctx.mult(6);
+          ctx.xMult(1.5);
+        } else if (sun) ctx.mult(3);
+        else if (high) ctx.mult(2);
+      },
+    }),
+    legend('starKnot', 'xmult', {
+      modifyRules(rules) {
+        rules.chainBonus += 1;
+      },
+      onPlacementScored(ctx) {
+        if (ctx.lines.length >= 2) ctx.xMult(4);
+      },
+    }),
+    legend('midnightOwl', 'xmult', {
+      onLineScored(ctx) {
+        if (ctx.night.movesLeft > 0) ctx.mult(ctx.night.movesLeft);
+      },
+      onPlacementScored(ctx) {
+        if (ctx.lastMove) ctx.xMult(3);
+        else if (ctx.night.movesLeft <= 2) ctx.xMult(2);
+      },
+    }),
+    legend('springTide', 'light', {
+      onCardScored(ctx) {
+        if (cardSuits(ctx.card).includes('moon') || ctx.card.rank <= 3) ctx.light(40);
+      },
+    }),
+    legend('milkyWay', 'xmult', {
+      modifyRules(rules) {
+        rules.straightGaps += 1;
+      },
+      onLineScored(ctx) {
+        if (COMBO_FAMILY.runs.includes(ctx.combo)) {
+          ctx.mult(10);
+          ctx.xMult(2);
+        }
+      },
+    }),
+    legend('pureSpectrum', 'mult', {
+      modifyRules(rules) {
+        rules.flushSlack += 1;
+      },
+      onLineScored(ctx) {
+        if (COMBO_FAMILY.flushes.includes(ctx.combo)) ctx.mult(15);
+      },
+    }),
+    legend('wildfire', 'mult', {
+      initialData: () => ({ burns: 0 }),
+      vars: (d) => ({ x: (d.burns ?? 0) * 5 }),
+      modifyRules(rules) {
+        rules.burns += 2;
+      },
+      onNightStart(ctx) {
+        ctx.data.burns = 0;
+      },
+      onBurn(ctx) {
+        ctx.data.burns = (ctx.data.burns ?? 0) + 1;
+      },
+      onLineScored(ctx) {
+        if (ctx.data.burns) ctx.mult(ctx.data.burns * 5);
+      },
+    }),
+    legend('treasury', 'mult', {
+      modifyRules(rules) {
+        rules.interestCap += 10;
+      },
+      onLineScored(ctx) {
+        const bonus = Math.floor(ctx.run.gold / 2);
+        if (bonus > 0) ctx.mult(bonus);
+      },
+    }),
+  ];
+}
 
 export const OMENS: Record<string, OmenDef> = registry(OMEN_LIST);
 

@@ -1,5 +1,6 @@
 import type { ComboId, Suit } from '@/core/types';
 import type { OmenKind, Rarity } from '@/core/content/omens';
+import { RESONANCES } from '@/core/content/resonance';
 import { roundRect } from './glyphs';
 
 /**
@@ -315,11 +316,14 @@ function stage(ctx: Ctx, size: number): void {
 // ─── Знамение ────────────────────────────────────────────────────────────────
 
 export function drawEnamelOmen(ctx: Ctx, id: string, rarity: Rarity, kind: OmenKind, size: number): void {
-  const f = FAM[OMEN_FAM[id] ?? 'lapis']!;
+  // Легендарное Резонанса (RS.1): эмаль двух цветов пары сходится в шве, в сердце — восьмилучевая звезда
+  const pair = RESONANCES.find((r) => r.id === id)?.pair;
+  const f = FAM[OMEN_FAM[pair?.[0] ?? id] ?? 'lapis']!;
+  const f2 = pair ? FAM[OMEN_FAM[pair[1]] ?? 'lapis']! : f;
   const small = size < 40;
   const rare = rarity === 3;
   const s = 23.5;
-  const parts = MOTIF[id]?.(s) ?? [{ f: sparkle(0, 0, s, 4, 0.28) }];
+  const parts = pair ? [{ f: sparkle(0, 0, s * 1.05, 8, 0.3) }] : MOTIF[id]?.(s) ?? [{ f: sparkle(0, 0, s, 4, 0.28) }];
   const er = small ? 40 : 41;
   ctx.save();
   stage(ctx, size);
@@ -340,6 +344,16 @@ export function drawEnamelOmen(ctx: Ctx, id: string, rarity: Rarity, kind: OmenK
   ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.4, 0, 0, -er * 0.4, er * 1.56), [[0, mix(f.base, '#ffffff', 0.08)], [0.5, mix(f.base, f.deep, 0.5)], [1, f.deep]]);
   circle(ctx, er);
   ctx.fill();
+  if (pair && ctx.createConicGradient) {
+    ctx.fillStyle = stops(ctx.createConicGradient(-PI / 2, 0, 0), [[0, f.base], [0.5, f2.base], [1, f.base]]);
+    ctx.globalAlpha = 0.85;
+    circle(ctx, er);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.3, 0, 0, 0, er), [[0, 'rgba(255,255,255,0.16)'], [0.55, 'rgba(10,8,30,0.12)'], [1, 'rgba(10,8,30,0.6)']]);
+    circle(ctx, er);
+    ctx.fill();
+  }
   if (!small) {
     // Гильоше — тонкие лучи по эмали
     ctx.strokeStyle = f.hi;

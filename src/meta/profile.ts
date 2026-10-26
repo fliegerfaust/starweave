@@ -198,6 +198,8 @@ export function isUnlocked(unlock: Unlock, p: Profile, owned: ReadonlySet<string
       return p.runs >= unlock.runs;
     case 'eclipses':
       return (p.eclipses ?? 0) >= unlock.count;
+    case 'omensSeen':
+      return p.seenOmens.length >= unlock.count;
     case 'combos':
       return (p.combosFound?.length ?? 0) >= unlock.count;
   }

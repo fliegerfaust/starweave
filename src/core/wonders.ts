@@ -67,7 +67,7 @@ function cometCandidates(run: RunState): CometTrade[] {
   const deck = run.deck;
   const owned = new Set(run.omens.map((o) => o.id));
   const free = run.omens.length < omenSlots(run);
-  const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && (!o.myths || run.unlocks.myths) && !owned.has(o.id));
+  const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && (!o.myths || run.unlocks.myths) && !o.pair && !owned.has(o.id));
   if (free && pool.length && run.gold >= COMET_PRICE.omen) out.push({ e: 'goldForOmen', gold: COMET_PRICE.omen, omen: pick(run.rng, pool).id });
   const plains = deck.filter(plain);
   if (plains.length >= 2 && deck.length > MIN_DECK_SIZE) {

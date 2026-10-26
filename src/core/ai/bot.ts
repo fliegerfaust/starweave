@@ -1,7 +1,10 @@
 import { comboFeatures } from '../combos';
 import { activeCells, buildLines } from '../grid';
+import { nearMyths } from '../myths';
+import { mythDef } from '../content/myths';
 import { burnCard, placeCard, startNight } from '../night';
-import { buyItem, buyOmen, omenSlots } from '../shop';
+import { buyItem, buyOmen, fuseOmens, moveOmen, omenSlots, resonanceAt } from '../shop';
+import { resonanceOf } from '../content/resonance';
 import { omenDef } from '../content/omens';
 import { choose, currentChoice, skipChoice } from '../choices';
 import { chooseRoute, currentNode, isWonder, routeOptions, visitWonder } from '../route';
@@ -12,6 +15,8 @@ import type { BodyId, Card, Glyph, NightState, RunState } from '../types';
 
 /** Вес точки креста в оценке позиции (подобран симуляцией). */
 export const CROSS_WEIGHT = Number(globalThis.process?.env?.CROSS_WEIGHT ?? 60);
+/** Вес мифа, которому не хватает одной звезды, за каждую звезду фигуры ×множитель (MY.6, подобран симом). */
+export const MYTH_WEIGHT = Number(globalThis.process?.env?.MYTH_WEIGHT ?? 6);
 /** Сколько лучших ходов просматривать на ход вперёд. */
 export const LOOKAHEAD = Number(globalThis.process?.env?.LOOKAHEAD ?? 6);
 
@@ -62,13 +67,33 @@ function positionalValue(night: NightState, cell: number): number {
   return value;
 }
 
+/**
+ * Мифы на подходе: фигура без одной-двух звёзд, которую закроют карты руки, — будущая вспышка.
+ * Чем крупнее фигура и её множитель, тем ценнее; без двух звёзд — вдвое дешевле.
+ */
+function mythValue(night: NightState): number {
+  let value = 0;
+  const seen = new Set<string>();
+  for (const near of nearMyths(night.grid, night.sealed, night.rules.gridSize, night.hand, 2)) {
+    const key = [...near.cells].sort((a, b) => a - b).join();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const def = mythDef(near.myth);
+    value += (MYTH_WEIGHT * near.cells.length * def.x) / near.missing.length;
+  }
+  return value;
+}
+
 /** Оценка одного хода: очки сразу + потенциал позиции. */
 function evaluate(run: RunState, handIndex: number, cell: number): { value: number; sim: RunState } {
   const sim = structuredClone(run);
   const events = placeCard(sim, handIndex, cell);
   const ignite = events.find((e) => e.t === 'ignite');
   let value = ignite && ignite.t === 'ignite' ? ignite.score.total : 0;
-  if (sim.night && sim.phase === 'night') value += positionalValue(sim.night, cell) * (1 + run.ante * 0.5);
+  if (sim.night && sim.phase === 'night') {
+    value += positionalValue(sim.night, cell) * (1 + run.ante * 0.5);
+    if (run.unlocks.myths && !run.tutorial) value += mythValue(sim.night) * (1 + run.ante * 0.5);
+  }
   return { value, sim };
 }
 
@@ -226,7 +251,33 @@ export function trophyGreedy(run: RunState): void {
 }
 
 /** Простая политика Обсерватории: трофей, дар ночи, Знамение Яркой ночи, Знамения по редкости, затем Звёздные карты. */
+/**
+ * Резонанс (RS.1): обе половины пары есть — ставит их рядом и сливает в легендарное.
+ * Порядок остальных Знамений не трогает.
+ */
+export function fuseGreedy(run: RunState): void {
+  if (!run.unlocks.resonance) return;
+  for (let guard = 0; guard < 8; guard++) {
+    let at = resonanceAt(run);
+    if (at < 0) {
+      // Пара есть, но не рядом: вторую половину — к первой
+      const ids = run.omens.map((o) => o.id);
+      const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
+      if (i < 0) return;
+      const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
+      moveOmen(run, j, i + 1);
+      at = resonanceAt(run);
+      if (at < 0) return;
+    }
+    fuseOmens(run, at);
+  }
+}
+
 export function shopGreedy(run: RunState): void {
+  // Сначала вторая половина пары, которой уже владеем, потом по редкости
+  const owned = run.omens.map((o) => o.id);
+  const rank = (item: { kind: string; omenId?: string }) =>
+    item.kind !== 'omen' ? 0 : -(omenDef(item.omenId!).rarity + (run.unlocks.resonance && owned.some((id) => resonanceOf(id, item.omenId!)) ? 10 : 0));
   trophyGreedy(run);
   giftGreedy(run);
   omenPickGreedy(run);
@@ -235,14 +286,11 @@ export function shopGreedy(run: RunState): void {
   const omens = shop.omens
     .map((item, slot) => ({ item, slot }))
     .filter(({ item }) => item.kind === 'omen' && !item.sold)
-    .sort((a, b) => {
-      const ra = a.item.kind === 'omen' ? omenDef(a.item.omenId).rarity : 0;
-      const rb = b.item.kind === 'omen' ? omenDef(b.item.omenId).rarity : 0;
-      return rb - ra;
-    });
+    .sort((a, b) => rank(a.item) - rank(b.item));
   for (const { item, slot } of omens) {
     if (run.gold >= item.price && run.omens.length < omenSlots(run)) buyOmen(run, slot);
   }
+  fuseGreedy(run);
   shop.items.forEach((item, slot) => {
     if (item.kind === 'chart' && !item.sold && run.gold - item.price >= 2) buyItem(run, slot);
   });

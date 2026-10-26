@@ -3,7 +3,7 @@ import { burnCard, placeCard, startNight } from './night';
 import { collectReward, continueEndless, doubleReward, leaveShop, newRun, reviveNight, type NewRunOptions } from './run';
 import { choose, skipChoice } from './choices';
 import { chooseRoute, visitWonder } from './route';
-import { banishCard, buyItem, buyOmen, buyPack, moveOmen, reroll, sellOmen } from './shop';
+import { banishCard, buyItem, buyOmen, buyPack, fuseOmens, moveOmen, reroll, sellOmen } from './shop';
 import type { GameEvent, RunState } from './types';
 
 /**
@@ -29,6 +29,8 @@ export type Command =
   | { c: 'buyOmen'; slot: number }
   | { c: 'sellOmen'; uid: number }
   | { c: 'moveOmen'; from: number; to: number }
+  /** Резонанс: слить пару Знамений с места `at` и соседнего (RS.1). */
+  | { c: 'fuse'; at: number }
   | { c: 'buyItem'; slot: number; targets?: number[] }
   | { c: 'buyPack'; slot: number }
   /** Взять вариант текущего выбора из очереди (пакет, дар ночи; позже трофей, Комета). */
@@ -105,6 +107,9 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
       return [];
     case 'moveOmen':
       moveOmen(run, cmd.from, cmd.to);
+      return [];
+    case 'fuse':
+      fuseOmens(run, cmd.at);
       return [];
     case 'buyItem':
       buyItem(run, cmd.slot, cmd.targets);

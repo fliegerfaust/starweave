@@ -936,6 +936,37 @@ body {
 .owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .owned-omen.reorder-dragging { z-index: 10; transition: none; filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.6)); }
 .owned-omen.reorder-dragging .omen-slot { cursor: grabbing; }
+/* Резонанс (RS.2): пара рядом светится, между медалями — золотая нить */
+.owned-omens { position: relative; }
+.owned-omen.res .omen-slot { filter: drop-shadow(0 0 8px rgb(var(--gold-rgb) / 0.75)); animation: res-hum 1.6s ease-in-out infinite; }
+@keyframes res-hum { 50% { filter: drop-shadow(0 0 14px rgb(var(--gold-rgb) / 0.95)); } }
+.res-thread { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.res-thread path { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-dasharray: 4 4; stroke-linecap: round; animation: res-thread 1s linear infinite; filter: drop-shadow(0 0 4px rgb(var(--gold-rgb) / 0.8)); }
+@keyframes res-thread { to { stroke-dashoffset: -8; } }
+.res-line { display: flex; align-items: center; gap: 12px; margin-top: 8px; font: 600 13px/1.35 var(--font-body); color: var(--gold-hi, #ffe6a8); }
+.res-line > span { flex: 1; min-width: 0; text-wrap: pretty; }
+.res-line .res-go { flex: none; }
+.res-hint { color: var(--gold-hi, #ffe6a8); }
+/* Сцена слияния */
+.res-scene { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: rgb(6 5 20 / 0); transition: background 0.35s ease; pointer-events: auto; }
+.res-stack { display: grid; justify-items: center; gap: 18px; margin-top: -6vh; }
+.res-slot { position: relative; width: 120px; height: 120px; }
+@media (orientation: landscape) and (max-height: 560px) { .res-stack { grid-auto-flow: column; align-items: center; gap: 28px; margin-top: 0; } .res-text { justify-items: start; text-align: left; } }
+.res-scene.on { background: rgb(6 5 20 / 0.82); }
+.res-scene.out { animation: fade-out 0.22s ease forwards; }
+.res-fly { position: fixed; width: 72px; height: 72px; margin: -36px 0 0 -36px; transform: scale(0.67); transition: left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; }
+.res-fly.up { transform: scale(1); }
+.res-scene.hum .res-fly { animation: res-shiver 0.12s linear infinite; filter: drop-shadow(0 0 16px rgb(var(--gold-rgb) / 0.9)); }
+@keyframes res-shiver { 50% { translate: 0 -1.5px; } }
+.res-fly.merge { transition-duration: 0.28s; transform: scale(0.4); opacity: 0; }
+.res-burst { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff6e0; box-shadow: 0 0 60px 30px rgb(var(--gold-rgb) / 0.8); animation: res-burst 0.7s ease-out forwards; }
+@keyframes res-burst { from { transform: scale(0.2); opacity: 1; } to { transform: scale(18); opacity: 0; } }
+.res-medal { position: absolute; inset: 0; animation: res-medal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; filter: drop-shadow(0 0 22px rgb(var(--gold-rgb) / 0.7)); }
+@keyframes res-medal { from { transform: scale(0.3) rotate(-40deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.res-text { width: min(340px, calc(100vw - 32px)); display: grid; justify-items: center; gap: 10px; text-align: center; min-height: 190px; align-content: start; }
+.res-text:not(:empty) > * { animation: fade-in 0.4s 0.15s ease both; }
+.res-from { display: flex; align-items: center; gap: 6px; font: 600 12px/1 var(--font-body); color: var(--ink-faint); }
+html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none; transition: none; }
 .owned-omen.reorder-target::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px var(--gold), 0 0 14px rgb(var(--gold-rgb) / 0.5); }
 .reorder-active .owned-omen:not(.reorder-dragging) { opacity: 0.85; }
 .shop .hint { margin: 0; font: 500 12.5px/1.4 var(--font-body); color: var(--ink-faint); text-wrap: pretty; }
@@ -970,7 +1001,7 @@ body {
 .shop.short .shop-body { gap: 12px; }
 .shop.short .shop-goods { gap: 12px; }
 .shop.short .ware { padding: 8px 2px; }
-.shop.short .shop-owned .hint:not(.order-warn) { display: none; }
+.shop.short .shop-owned .hint:not(.order-warn):not(.res-hint) { display: none; }
 .shop.short .shop-top { padding-bottom: 7px; }
 
 /* Лист своего Знамения: знак и бонус строкой, «Продать» и «Оставить» — поровну на всю ширину */
@@ -2759,6 +2790,7 @@ html.calm .gb-sky i .card-thumb, html.calm .gb-slots span, html.calm .gb-flip > 
 }
 .modal-head:not(.bare)::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; background: linear-gradient(180deg, rgb(var(--panel-head-rgb)), rgb(var(--panel-head-rgb) / 0)); pointer-events: none; }
 .modal-head .modal-title { margin: 0; }
+.modal-panel .modal-head .modal-title.long { font-size: 17px; letter-spacing: 0.06em; padding-left: 0.06em; overflow-wrap: anywhere; }
 /* Шапка листа — цветом самого латунного листа, без полосы старого цвета */
 .modal-panel.sheet .modal-head { background: #15123d; border-radius: 24px 24px 0 0; }
 .modal-panel.sheet .modal-head:not(.bare)::after { background: linear-gradient(180deg, #15123d, rgb(21 18 61 / 0)); }

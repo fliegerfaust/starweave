@@ -26,12 +26,14 @@ export interface MythDef {
 }
 
 /** Свет мифа за каждую звезду фигуры, к рангам карт. */
-export const MYTH_STAR_LIGHT = 10;
+export const MYTH_STAR_LIGHT = Number(globalThis.process?.env?.MYTH_LIGHT ?? 10);
 
 /** Ступень «Мифы»: найти 6 разных созвездий. */
 export const MYTHS_UNLOCK: Unlock = { kind: 'combos', count: 6 };
 
-export const MYTHS: readonly MythDef[] = [
+const TUNE = globalThis.process?.env?.MYTH_XS?.split(',').map(Number);
+
+export const MYTHS: readonly MythDef[] = (<MythDef[]>[
   { id: 'cassiopeia', cells: [[0, 0], [1, 1], [0, 2], [1, 3]], cond: 'suit', x: 3 },
   { id: 'pleiades', cells: [[0, 0], [0, 1], [1, 1], [1, 0]], loop: true, cond: 'rainbow', x: 2 },
   { id: 'corona', cells: [[1, 0], [0, 1], [0, 2], [1, 3]], cond: 'arc', x: 3 },
@@ -44,7 +46,7 @@ export const MYTHS: readonly MythDef[] = [
   { id: 'orion', cells: [[0, 0], [0, 3], [1, 1], [1, 2], [3, 0], [3, 3]], edges: [[0, 2], [1, 3], [2, 3], [2, 4], [3, 5]], cond: 'high', x: 5 },
   { id: 'scorpius', cells: [[0, 0], [1, 0], [2, 0], [3, 1], [2, 2], [1, 2]], cond: 'any', x: 4 },
   { id: 'triangulum', cells: [[0, 0], [2, 0], [1, 2]], loop: true, cond: 'same', x: 2 },
-];
+]).map((m, i) => (TUNE?.[i] ? { ...m, x: TUNE[i]! } : m));
 
 export function mythDef(id: string): MythDef {
   const def = MYTHS.find((m) => m.id === id);

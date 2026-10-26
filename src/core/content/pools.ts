@@ -3,6 +3,7 @@ import { OMEN_LIST } from './omens';
 import { RITUAL_LIST } from './rituals';
 import type { Unlock } from './skies';
 import { MYTHS_UNLOCK } from './myths';
+import { RESONANCE_UNLOCK } from './resonance';
 import { TROPHY_UNLOCK } from './trophies';
 
 /**
@@ -26,6 +27,8 @@ export interface Unlocks {
   trophies: boolean;
   /** Мифические созвездия на небе (ступень 5). */
   myths: boolean;
+  /** Резонанс: пары Знамений сливаются в легендарное (ступень 8). */
+  resonance: boolean;
 }
 
 /** Контент с правилом открытия. Без `unlock` — открыт с первого забега. */
@@ -74,6 +77,7 @@ export function contentPools(open: (unlock: Unlock) => boolean, shared = false):
     wonders: !shared && open(WONDERS_UNLOCK),
     trophies: !shared && open(TROPHY_UNLOCK),
     myths: !shared && open(MYTHS_UNLOCK),
+    resonance: !shared && open(RESONANCE_UNLOCK),
     bodies: BODY_IDS.filter((b) => open(BODY_UNLOCKS[b])),
   };
 }
