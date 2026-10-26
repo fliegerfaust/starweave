@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Резонанс в Обсерватории · Starweave 0.7</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(2, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+.tr5 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tr5 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr5 figure { margin: 0; display: grid; gap: 6px; }
+.tr5 img { width: 100%; height: auto; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--brass); }
+.tr5 figcaption { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.tr5 h4 { margin: 0 0 8px; font: 700 13.5px/1.3 var(--font-body); color: var(--gold-hi); text-align: center; }
+.pairs { display: grid; gap: 4px; }
+.pairs div { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); gap: 12px; padding: 7px 0; font-size: 13.5px; line-height: 1.4; color: var(--ink-dim); box-shadow: 0 -1px 0 var(--hair); }
+.pairs b { color: var(--gold-hi); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Пара стоит рядом <small>настоящая игра, Обсерватория 4-й главы: Солнцепоклонник и Зенит в ряду своих Знамений</small></div>
+  <div class="shots" id="row"></div>
+
+  <div class="label">Слияние <small>одинаково в обоих вариантах: экран гаснет, медали слетаются, дрожат и сливаются вспышкой</small></div>
+  <div class="shots" id="hum"></div>
+  <div class="shots" id="final"></div>
+
+  <div class="label">После слияния <small>легендарное занимает одно место — в ряду освободился слот</small></div>
+  <div class="shots" id="after"></div>
+
+  <div class="label">Пара врозь <small>оба Знамения есть, но не рядом — строка-совет под рядом</small></div>
+  <div class="shots" id="apart"></div>
+
+  <div class="label">Чем различаются <small>одно слияние, два места для кнопки</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="label">Восемь пар <small>легендарное сильнее обоих и занимает одно место; числа черновые</small></div>
+  <div class="pairs" id="pairs"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Резонанс · слияние в Обсерватории (RS.1, RS.2) · 26.10.2026 · снимки настоящей игры, ветка feature/myths-core · выбирает Денис · замысел: <a href="d8-resonance.html">первая витрина</a></p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'resonance', lead: 'Два Знамения одной темы, поставленные в ряду <b>рядом</b>, начинают звучать вместе: медали светятся, между ними бежит золотая нить. В Обсерватории их можно <b>слить</b> в одно легендарное: оно сильнее обоих и занимает одно место. Купить легендарное нельзя, его находят.' });
+
+const VARIANTS = [
+  ['A', 'Строка «Слить»', 'Под рядом Знамений строка: «<b>Солнцепоклонник и Зенит звучат вместе: сольются в Полдень</b>» и кнопка «Слить». Видно сразу, ничего не надо искать.'],
+  ['B', 'В листе Знамения', 'Под рядом только совет «Нажми на любое из них». Кнопка «<b>Слить в Полдень</b>» — в листе Знамения, вместо «Оставить». Экран тише, но слияние на касание дальше.'],
+];
+const FORMS = [['portrait', 'Телефон · 393 × 852'], ['landscape', 'Ландшафт · 915 × 412'], ['pc', 'ПК · 1366 × 768']];
+let variant = ['A', 'B'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'A';
+
+function shots(el, file, cap) {
+  const f = (form, size, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
+    h('img', { src: `shots/${file}-${form}.jpg`, alt: `${size}: ${cap}`, loading: 'lazy' }),
+    h('figcaption', {}, `${size} · ${cap}`));
+  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+}
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  if (variant === 'A') shots(q('#row'), 'res-row', 'вариант A: нить между медалями и строка «Слить»');
+  else shots(q('#row'), 'res-sheet', 'вариант B: касание медали — лист с «Слить в Полдень»');
+}
+q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${id} · ${name}`)));
+render();
+shots(q('#hum'), 'res-hum', 'медали встали рядом и дрожат, звуча вместе');
+shots(q('#final'), 'res-final', 'легендарное «Полдень»: лента «Резонанс», бонус строкой, из чего слито');
+shots(q('#after'), 'res-after', 'в ряду Полдень, место пятого Знамения свободно');
+shots(q('#apart'), 'res-apart', '«Солнцепоклонник и Зенит звучат вместе. Поставь их рядом»');
+
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
+  ...[
+    ['Где кнопка', 'Под рядом Знамений, сразу видна', 'В листе Знамения, по касанию медали'],
+    ['Касаний до сцены', 'Одно', 'Два'],
+    ['Шум на экране', 'Строка с кнопкой, пока пара рядом', 'Только строка-совет'],
+    ['Похоже на', 'Совет о порядке Знамений', 'Продажу Знамения'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][0] }, x)))));
+
+const PAIRS = [
+  ['Солнцепоклонник + Зенит', 'Полдень', 'Карты Солнца 7–9: +6 к множителю и ×1.5; другие Солнца +3, другие 7–9 +2'],
+  ['Перекрёсток + Двойная звезда', 'Звёздный узел', 'Крест: +1 к множителю креста и ×4 к итогу хода'],
+  ['Сова + Терпеливое небо', 'Полуночная сова', 'Линии: + множитель по оставшимся ходам; последние 3 хода ×2, последний ×3'],
+  ['Лунный прилив + Отлив', 'Весенний прилив', 'Каждая карта Луны или ранга 1–3: +40 света'],
+  ['Звёздная лестница + Короткий путь', 'Млечный путь', 'В стрите один пропуск; любой стрит +10 к множителю и ×2'],
+  ['Монохром + Линза', 'Чистый спектр', 'Флешу хватает на карту меньше; любой флеш +15 к множителю'],
+  ['Костёр + Тлеющий уголь', 'Пожар', '+2 сжигания; +5 к множителю за каждое сжигание ночи'],
+  ['Скопидом + Скупец', 'Сокровищница', '+1 к множителю за каждые 2 золота; предел процентов +10'],
+];
+q('#pairs').append(...PAIRS.map(([pair, name, ef]) => h('div', {}, h('span', {}, pair, ' = ', h('b', {}, name)), h('span', {}, ef))));
+
+facts(q('#aside'), [
+  ['Когда', 'Ступень «Резонанс»: встретить 25 разных Знамений. Сливать можно только в Обсерватории. В вызове дня Резонанса нет.'],
+  ['Почему находка', 'Легендарных нет в лавке и в пакетах. Нигде не написано заранее, что сольётся: пара узнаётся, когда встанет рядом (или по совету, если обе половины уже есть).'],
+  ['Порядок', 'Слияние — на место левой медали, правое место освобождается. Нить видна, пока пара рядом: перетащил прочь — нить пропала.'],
+  ['Бот', 'Бот ставит половины рядом и сливает; вторую половину пары покупает первой. Баланс по симу — после выбора варианта.'],
+], [
+  ['RS.1', 'Готово: 8 пар, 8 легендарных, слияние и журнал команд; тесты'],
+  ['RS.2', 'Витрина: нить, строка или лист, сцена слияния'],
+  ['RS.3', 'Коллекция: силуэт легендарного и «половинка» пары'],
+]);
+ladder(q('#ladder'), 8);
+</script>
+</body>
+</html>

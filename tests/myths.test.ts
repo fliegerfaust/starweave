@@ -114,9 +114,9 @@ describe('Миф в ходе ночи (MY.2)', () => {
     const ignite = events.find((e) => e.t === 'ignite');
     expect(ignite?.t === 'ignite' && ignite.score.lines).toEqual([]);
     const myth = ignite?.t === 'ignite' ? ignite.score.myths[0]! : null;
-    // 4 звезды × 10 и ранги 2 + 5 + 7 + 9, множитель Кассиопеи ×3
-    expect(myth).toMatchObject({ myth: 'cassiopeia', cells: [0, 5, 2, 7], light: 63, mult: 3, total: 189 });
-    expect(run.night!.score - before).toBe(189);
+    // 4 звезды × 4 и ранги 2 + 5 + 7 + 9, множитель Кассиопеи ×2
+    expect(myth).toMatchObject({ myth: 'cassiopeia', cells: [0, 5, 2, 7], light: 39, mult: 2, total: 78 });
+    expect(run.night!.score - before).toBe(78);
     for (const cell of [0, 5, 2, 7]) expect(run.night!.grid[cell]).toBeNull();
   });
 
@@ -179,12 +179,12 @@ describe('Знамения про мифы (MY.5)', () => {
   it('Астролог: +2 к множителю мифа и +1 за каждый уже сложенный миф', () => {
     const run = ready(['astrologer']);
     run.night!.target = 1e6;
-    // 63 света, ×3 Кассиопеи и +2 Астролога
-    expect(myth(run)).toMatchObject({ light: 63, mult: 5, total: 315 });
+    // 39 света, ×2 Кассиопеи и +2 Астролога
+    expect(myth(run)).toMatchObject({ light: 39, mult: 4, total: 156 });
     expect(run.omens[0]!.data.myths).toBe(1);
     setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
     setHand(run, '9m 1s 1c');
-    expect(myth(run)).toMatchObject({ mult: 6 });
+    expect(myth(run)).toMatchObject({ mult: 5 });
   });
 
   it('Звездочёт: +30 света мифу и подсказка за две звезды', () => {
@@ -197,7 +197,7 @@ describe('Знамения про мифы (MY.5)', () => {
     expect(nearMyths(grid, open, N, cards('7m 9s'), 2).find((m) => m.myth === 'cassiopeia' && m.cells.join() === '0,5,2,7')).toBeUndefined();
     // Без Звездочёта — только за одну
     expect(nearMyths(grid, open, N, cards('7m 9m')).find((m) => m.myth === 'cassiopeia')).toBeUndefined();
-    expect(myth(run)).toMatchObject({ light: 93, total: 279 });
+    expect(myth(run)).toMatchObject({ light: 69, total: 138 });
   });
 
   it('Легенда: карты мифа остаются на небе, карты линии гаснут', () => {

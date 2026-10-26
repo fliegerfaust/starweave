@@ -25,28 +25,26 @@ export interface MythDef {
   x: number;
 }
 
-/** Свет мифа за каждую звезду фигуры, к рангам карт. */
-export const MYTH_STAR_LIGHT = Number(globalThis.process?.env?.MYTH_LIGHT ?? 10);
+/** Свет мифа за каждую звезду фигуры, к рангам карт (MY.6: подобрано симом — мифы дают боту ~+0.8 главы). */
+export const MYTH_STAR_LIGHT = 4;
 
 /** Ступень «Мифы»: найти 6 разных созвездий. */
 export const MYTHS_UNLOCK: Unlock = { kind: 'combos', count: 6 };
 
-const TUNE = globalThis.process?.env?.MYTH_XS?.split(',').map(Number);
-
-export const MYTHS: readonly MythDef[] = (<MythDef[]>[
-  { id: 'cassiopeia', cells: [[0, 0], [1, 1], [0, 2], [1, 3]], cond: 'suit', x: 3 },
+export const MYTHS: readonly MythDef[] = [
+  { id: 'cassiopeia', cells: [[0, 0], [1, 1], [0, 2], [1, 3]], cond: 'suit', x: 2 },
   { id: 'pleiades', cells: [[0, 0], [0, 1], [1, 1], [1, 0]], loop: true, cond: 'rainbow', x: 2 },
-  { id: 'corona', cells: [[1, 0], [0, 1], [0, 2], [1, 3]], cond: 'arc', x: 3 },
-  { id: 'cygnus', cells: [[0, 1], [1, 1], [2, 1], [3, 1], [1, 0], [1, 2]], edges: [[0, 1], [1, 2], [2, 3], [4, 1], [1, 5]], cond: 'any', x: 4 },
-  { id: 'sagitta', cells: [[0, 0], [1, 1], [2, 2], [3, 3]], cond: 'any', x: 2 },
-  { id: 'gemini', cells: [[0, 0], [1, 0], [2, 0], [0, 2], [1, 2], [2, 2]], edges: [[0, 1], [1, 2], [3, 4], [4, 5], [0, 3]], cond: 'twins', x: 4 },
-  { id: 'ursa', cells: [[3, 0], [2, 0], [2, 1], [3, 1], [1, 2], [0, 3]], edges: [[0, 1], [1, 2], [2, 3], [3, 0], [2, 4], [4, 5]], cond: 'any', x: 4 },
-  { id: 'lyra', cells: [[0, 1], [1, 1], [1, 2], [2, 1], [2, 2]], edges: [[0, 1], [1, 2], [1, 3], [3, 4], [4, 2]], cond: 'suit', x: 3 },
-  { id: 'delphinus', cells: [[0, 1], [1, 0], [2, 1], [1, 2], [3, 2]], edges: [[0, 1], [1, 2], [2, 3], [3, 0], [2, 4]], cond: 'any', x: 3 },
-  { id: 'orion', cells: [[0, 0], [0, 3], [1, 1], [1, 2], [3, 0], [3, 3]], edges: [[0, 2], [1, 3], [2, 3], [2, 4], [3, 5]], cond: 'high', x: 5 },
-  { id: 'scorpius', cells: [[0, 0], [1, 0], [2, 0], [3, 1], [2, 2], [1, 2]], cond: 'any', x: 4 },
+  { id: 'corona', cells: [[1, 0], [0, 1], [0, 2], [1, 3]], cond: 'arc', x: 2 },
+  { id: 'cygnus', cells: [[0, 1], [1, 1], [2, 1], [3, 1], [1, 0], [1, 2]], edges: [[0, 1], [1, 2], [2, 3], [4, 1], [1, 5]], cond: 'any', x: 2 },
+  { id: 'sagitta', cells: [[0, 0], [1, 1], [2, 2], [3, 3]], cond: 'any', x: 1 },
+  { id: 'gemini', cells: [[0, 0], [1, 0], [2, 0], [0, 2], [1, 2], [2, 2]], edges: [[0, 1], [1, 2], [3, 4], [4, 5], [0, 3]], cond: 'twins', x: 3 },
+  { id: 'ursa', cells: [[3, 0], [2, 0], [2, 1], [3, 1], [1, 2], [0, 3]], edges: [[0, 1], [1, 2], [2, 3], [3, 0], [2, 4], [4, 5]], cond: 'any', x: 2 },
+  { id: 'lyra', cells: [[0, 1], [1, 1], [1, 2], [2, 1], [2, 2]], edges: [[0, 1], [1, 2], [1, 3], [3, 4], [4, 2]], cond: 'suit', x: 2 },
+  { id: 'delphinus', cells: [[0, 1], [1, 0], [2, 1], [1, 2], [3, 2]], edges: [[0, 1], [1, 2], [2, 3], [3, 0], [2, 4]], cond: 'any', x: 1 },
+  { id: 'orion', cells: [[0, 0], [0, 3], [1, 1], [1, 2], [3, 0], [3, 3]], edges: [[0, 2], [1, 3], [2, 3], [2, 4], [3, 5]], cond: 'high', x: 3 },
+  { id: 'scorpius', cells: [[0, 0], [1, 0], [2, 0], [3, 1], [2, 2], [1, 2]], cond: 'any', x: 2 },
   { id: 'triangulum', cells: [[0, 0], [2, 0], [1, 2]], loop: true, cond: 'same', x: 2 },
-]).map((m, i) => (TUNE?.[i] ? { ...m, x: TUNE[i]! } : m));
+];
 
 export function mythDef(id: string): MythDef {
   const def = MYTHS.find((m) => m.id === id);
