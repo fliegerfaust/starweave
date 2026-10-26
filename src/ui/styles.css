@@ -3189,3 +3189,16 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { font-size: 13px; }
 }
 
+
+/* Легендарные Резонанса в Коллекции (RS.3): формула пары — половинки и легендарное */
+.gb-formula { display: flex; align-items: center; gap: 6px; }
+.gb-formula canvas.unknown, .gb-legends canvas.unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
+.gb-plus { font: 600 15px/1 var(--font-body); color: var(--ink-faint); }
+.gb-sigils.gb-legends.formulas, body.landscape .modal-panel.board-modal:not(.sheet) .gb-sigils.gb-legends.formulas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* На широкой доске восемь легендарных — одной строкой */
+@media (min-width: 900px) and (min-height: 561px) {
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-legends:not(.formulas) { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+}
+.gb-legends.formulas button { aspect-ratio: auto; padding: 6px 4px; }
+.gb-legends.formulas .gb-formula, .gb-legends.formulas button { display: flex; justify-content: center; align-items: center; gap: 4px; }
+.gb-legends.formulas .gb-plus { font-size: 12px; }

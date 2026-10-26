@@ -393,6 +393,11 @@ export const ru = {
     mythKind: 'миф · ×{x}',
     unknownMyth: 'Неизвестный миф',
     unknownMythDesc: 'Сложи эту фигуру из карт на небе. Когда ей не хватит одной звезды, небо подскажет клетку.',
+    legends: 'Резонанс',
+    legend: 'легендарное',
+    unknownLegend: 'Ещё не слито',
+    unknownLegendDesc: 'Поставь рядом в Обсерватории {a} и {b}, и они сольются в одно.',
+    unknownHalf: 'неизвестное Знамение',
   },
   settings: {
     title: 'Настройки',

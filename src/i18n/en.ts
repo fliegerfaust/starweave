@@ -390,6 +390,11 @@ export const en: Dict = {
     mythKind: 'myth · ×{x}',
     unknownMyth: 'Unknown myth',
     unknownMythDesc: 'Build this figure from cards in the sky. When it is one star short, the sky will point to the cell.',
+    legends: 'Resonance',
+    legend: 'legendary',
+    unknownLegend: 'Not fused yet',
+    unknownLegendDesc: 'Put {a} and {b} side by side in the Observatory and they fuse into one.',
+    unknownHalf: 'an unknown omen',
   },
   settings: {
     title: 'Settings',
