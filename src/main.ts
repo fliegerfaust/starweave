@@ -96,7 +96,7 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
-  // RS.2: Обсерватория с парой Знамений — Резонанс (`?resonance`; `=apart` — пара врозь, `&fuse=sheet` — вариант B)
+  // RS.2: Обсерватория с парой Знамений — Резонанс (`?resonance`; `=apart` — пара врозь)
   if (dev && params.has('resonance')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
     app.runs.startRun('classic', false, 0, 4242);

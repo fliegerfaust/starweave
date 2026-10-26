@@ -304,10 +304,8 @@ export const en: Dict = {
   resonance: {
     title: 'Resonance',
     ready: '“{a}” and “{b}” resonate: they will fuse into “{c}”.',
-    tapToFuse: 'Tap either of them.',
     apart: '“{a}” and “{b}” resonate. Put them side by side.',
     fuse: 'Fuse',
-    fuseInto: 'Fuse into “{c}”',
     from: 'freed a slot',
     next: 'Continue',
   },

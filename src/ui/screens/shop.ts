@@ -279,7 +279,6 @@ export class ShopScreen implements Screen {
         owned.append(svg);
       });
       const text = t('resonance.ready', { a: named('omen', a.id).name, b: named('omen', b.id).name, c: named('omen', res.id).name });
-      if (this.fuseInSheet) return h('p.hint.res-hint', null, `${text} ${t('resonance.tapToFuse')}`);
       return h('div.res-line', null, [
         h('span', null, text),
         button(t('resonance.fuse'), () => this.fuse(at), { className: 'res-go' }),
@@ -290,11 +289,6 @@ export class ShopScreen implements Screen {
     if (i < 0) return null;
     const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
     return h('p.hint.res-hint', null, t('resonance.apart', { a: named('omen', ids[i]!).name, b: named('omen', ids[j]!).name }));
-  }
-
-  /** Витрина RS.2: «Слить» в листе Знамения, а не строкой под рядом; в разработке — `?fuse=sheet`. */
-  private get fuseInSheet(): boolean {
-    return import.meta.env.DEV && new URLSearchParams(location.search).get('fuse') === 'sheet';
   }
 
   /** Слияние пары с места `at`: сцена Резонанса, слияние в забеге, когда медали встретились. */
@@ -316,9 +310,6 @@ export class ShopScreen implements Screen {
     const def = omenDef(o.id);
     const { name, desc } = named('omen', o.id, def.vars?.(o.data ?? {}) ?? {});
     const price = sellPrice(o.id);
-    const at = resonanceAt(this.run);
-    const index = this.run.omens.indexOf(o);
-    const fuseHere = this.fuseInSheet && at >= 0 && (index === at || index === at + 1);
     const m = modal(
       [
         h('div.owned-sheet', null, [canvasImg(omenSigil(o.id, 64, dpr()), 64), bonusLine(desc)]),
@@ -332,12 +323,7 @@ export class ShopScreen implements Screen {
             'danger',
             { yes: t('shop.sell', { n: price }), no: t('shop.keep') },
           ), { variant: 'secondary' }),
-          fuseHere
-            ? button(t('resonance.fuseInto', { c: named('omen', resonanceOf(this.run.omens[at]!.id, this.run.omens[at + 1]!.id)!.id).name }), () => {
-                m.close();
-                this.fuse(at);
-              }, { className: 'res-go' })
-            : button(t('shop.keep'), () => m.close()),
+          button(t('shop.keep'), () => m.close()),
         ]),
       ],
       { title: name, sheet: true, className: 'owned-omen-sheet' },
