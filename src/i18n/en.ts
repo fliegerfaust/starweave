@@ -382,7 +382,6 @@ export const en: Dict = {
     mythKind: 'myth · ×{x}',
     unknownMyth: 'Unknown myth',
     unknownMythDesc: 'Build this figure from cards in the sky. When it is one star short, the sky will point to the cell.',
-    unknownMythShort: 'The figure is visible, the legend opens when found',
   },
   settings: {
     title: 'Settings',

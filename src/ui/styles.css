@@ -2695,10 +2695,6 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .gb-sigils button.on { background: rgb(var(--gold-rgb) / 0.08); box-shadow: inset 0 0 0 1.5px rgb(var(--gold-rgb) / 0.6); }
 /* Силуэт неизвестного мифа рисуется сам — без общего затемнения значков */
 .gb-myths button.unknown canvas { filter: none; opacity: 1; }
-.gb-mythrow { grid-template-columns: 38px minmax(0, 1fr) auto; }
-.gb-mythrow > canvas { display: block; }
-.gb-mythrow .gb-x { font: 700 13px/1 var(--font-body); color: #ff8fa6; }
-.gb-mythrow.miss .gb-x { color: var(--ink-faint); }
 
 /* Пять вкладок (с «Коллекцией») на телефоне — плотнее и поровну, все на виду */
 @media (max-width: 480px) {

@@ -378,8 +378,6 @@ export function showGuide(opts: GuideOptions = {}): void {
   const mythsOpen = () => isUnlocked(MYTHS_UNLOCK, opts.profile!);
   const mythFound = (id: string) => opts.profile!.mythsFound?.includes(id) ?? false;
   const mythName = (id: string) => (dict().myth as Record<string, string>)[id] ?? id;
-  /** Витрина MY.4: список каталога сеткой рисунков (A) или строками (B), в разработке — `?catalog=rows`. */
-  const catalogRows = import.meta.env.DEV && new URLSearchParams(location.search).get('catalog') === 'rows';
   /** Найденный миф — рисунок золотом, имя, множитель и легенда; неизвестный — силуэт фигуры. */
   const mythBoard = (id: string): [HTMLElement, Child[]] => {
     const found = mythFound(id);
@@ -391,23 +389,16 @@ export function showGuide(opts: GuideOptions = {}): void {
       : [h('h3', null, c.unknownMyth), h('span.gb-kind', null, format(c.mythKind, { x })), h('p', null, c.unknownMythDesc)]];
   };
   const mythList = (): HTMLElement[] => {
-    const el = h(catalogRows ? 'div.gb-list' : 'div.gb-sigils.gb-myths');
+    const el = h('div.gb-sigils.gb-myths');
     for (const m of MYTHS) {
       const found = mythFound(m.id);
       const on = pick?.kind === 'myth' && pick.id === m.id;
-      const label = found ? mythName(m.id) : c.unknownMyth;
-      const b = catalogRows
-        ? h(`button.gb-row.gb-mythrow${on ? '.on' : ''}${found ? '' : '.miss'}`, { type: 'button', attrs: { 'aria-pressed': String(on) } }, [
-            mythFigure(m.id, 38, found),
-            h('span.gb-text', null, [h('b', null, label), h('small', null, found ? (dict().mythDesc as Record<string, string>)[m.id] ?? '' : c.unknownMythShort)]),
-            h('span.gb-x', null, `×${m.x}`),
-          ])
-        : h(`button${found ? '' : '.unknown'}${on ? '.on' : ''}`, { type: 'button', attrs: { 'aria-pressed': String(on), 'aria-label': label } }, mythFigure(m.id, 40, found));
+      const b = h(`button${found ? '' : '.unknown'}${on ? '.on' : ''}`, { type: 'button', attrs: { 'aria-pressed': String(on), 'aria-label': found ? mythName(m.id) : c.unknownMyth } }, mythFigure(m.id, 40, found));
       b.addEventListener('click', (e) => {
         if (on) return;
         pick = { kind: 'myth', id: m.id };
         render();
-        if (e.detail === 0) body.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus({ preventScroll: true });
+        if (e.detail === 0) body.querySelector<HTMLElement>('.gb-myths .on')?.focus({ preventScroll: true });
       });
       el.append(b);
     }
