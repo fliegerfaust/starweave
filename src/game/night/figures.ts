@@ -67,9 +67,10 @@ export function drawFigure(world: GameWorld, pts: readonly Pt[], color: string):
 /**
  * Как небо подсказывает миф, которому не хватает одной звезды (MY.3, витрина вариантов):
  * `dashes` — пунктир фигуры и пунктирная клетка, `stars` — звёздочки на картах фигуры и
- * свечение клетки, `silhouette` — маленький рисунок фигуры в пустой клетке.
+ * свечение клетки, `silhouette` — маленький рисунок фигуры в пустой клетке, `combo` — пунктир
+ * фигуры по небу и её рисунок в пустой клетке.
  */
-export type MythHintStyle = 'dashes' | 'stars' | 'silhouette';
+export type MythHintStyle = 'dashes' | 'stars' | 'silhouette' | 'combo';
 
 export interface MythHintState {
   /** Клетки фигуры в её порядке и рёбра по их индексам; пусто — подсказки нет. */
@@ -106,19 +107,32 @@ export function mythHintLayer(world: GameWorld, style: MythHintStyle, state: Myt
       ctx.strokeStyle = '#f6c25b';
       ctx.fillStyle = '#f6c25b';
       ctx.lineCap = 'round';
-      if (style === 'dashes') {
+      if (style === 'dashes' || style === 'combo') {
         ctx.setLineDash([6, 7]);
         ctx.lineDashOffset = -world.res.time * 14;
         ctx.lineWidth = 2.5;
         ctx.globalAlpha = state.alpha * 0.9;
+        const frame = [miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const;
+        if (style === 'combo') {
+          // Пунктир обрывается на рамке: внутри клетки только рисунок фигуры
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(-1e5, -1e5, 2e5, 2e5);
+          ctx.rect(...frame);
+          ctx.clip('evenodd');
+        }
         ctx.beginPath();
         for (const [a, b] of state.edges) {
           ctx.moveTo(pts[a]!.x, pts[a]!.y);
           ctx.lineTo(pts[b]!.x, pts[b]!.y);
         }
         ctx.stroke();
-        ctx.globalAlpha = state.alpha * pulse;
-        ctx.strokeRect(miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84);
+        if (style === 'combo') ctx.restore();
+        // В «combo» рамка тише: внутри клетки главный — рисунок фигуры
+        ctx.globalAlpha = state.alpha * pulse * (style === 'combo' ? 0.55 : 1);
+        ctx.strokeRect(...frame);
+        ctx.setLineDash([]);
+        if (style === 'combo') drawSilhouette(ctx, state, pts, miss, cardW * 0.66, cardH * 0.6, cardW, pulse);
       } else if (style === 'stars') {
         state.cells.forEach((c, i) => {
           if (c === state.missing) return;
@@ -133,34 +147,37 @@ export function mythHintLayer(world: GameWorld, style: MythHintStyle, state: Myt
         ctx.fillRect(miss.x - cardW, miss.y - cardH, cardW * 2, cardH * 2);
         star4(ctx, miss.x, miss.y, Math.max(12, cardW * 0.22) * pulse, state.alpha);
       } else {
-        // Рисунок фигуры, вписанный в пустую клетку; её звезда — крупнее и пульсирует
-        const xs = pts.map((p) => p.x);
-        const ys = pts.map((p) => p.y);
-        const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-        const k = Math.min((cardW * 0.78) / Math.max(1, x1 - x0), (cardH * 0.7) / Math.max(1, y1 - y0));
-        const map = (p: Pt): Pt => ({ x: miss.x + (p.x - (x0 + x1) / 2) * k, y: miss.y + (p.y - (y0 + y1) / 2) * k });
-        const mini = pts.map(map);
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = state.alpha * 0.9;
-        ctx.beginPath();
-        for (const [a, b] of state.edges) {
-          ctx.moveTo(mini[a]!.x, mini[a]!.y);
-          ctx.lineTo(mini[b]!.x, mini[b]!.y);
-        }
-        ctx.stroke();
-        state.cells.forEach((c, i) => {
-          const p = mini[i]!;
-          const own = c === state.missing;
-          ctx.globalAlpha = state.alpha * (own ? pulse : 0.85);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);
-          ctx.fill();
-        });
+        drawSilhouette(ctx, state, pts, miss, cardW * 0.78, cardH * 0.7, cardW, pulse);
       }
       ctx.restore();
     },
   });
   return e;
+}
+
+/** Рисунок фигуры, вписанный в пустую клетку (`w×h`); её звезда — крупнее и пульсирует. */
+function drawSilhouette(ctx: CanvasRenderingContext2D, state: MythHintState, pts: readonly Pt[], miss: Pt, w: number, h: number, cardW: number, pulse: number): void {
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const k = Math.min(w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0));
+  const mini = pts.map((p) => ({ x: miss.x + (p.x - (x0 + x1) / 2) * k, y: miss.y + (p.y - (y0 + y1) / 2) * k }));
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = state.alpha * 0.9;
+  ctx.beginPath();
+  for (const [a, b] of state.edges) {
+    ctx.moveTo(mini[a]!.x, mini[a]!.y);
+    ctx.lineTo(mini[b]!.x, mini[b]!.y);
+  }
+  ctx.stroke();
+  state.cells.forEach((c, i) => {
+    const p = mini[i]!;
+    const own = c === state.missing;
+    ctx.globalAlpha = state.alpha * (own ? pulse : 0.85);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);
+    ctx.fill();
+  });
 }
 
 /** Четырёхлучевая звёздочка. */

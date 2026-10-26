@@ -226,7 +226,7 @@ b, strong { font-weight: 700; }
 .shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
 
 .cmp { display: grid; }
-.cmp .r { display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(4, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
 .cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
 .cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
 .cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
@@ -253,7 +253,7 @@ b, strong { font-weight: 700; }
   <div class="shots" id="ribbon"></div>
   <div class="shots" id="count"></div>
 
-  <div class="label">Чем различаются <small>одна подсказка, три способа её показать</small></div>
+  <div class="label">Чем различаются <small>одна подсказка, четыре способа её показать</small></div>
   <div class="cmp" id="cmp"></div>
 
   <div class="split">
@@ -627,10 +627,11 @@ const VARIANTS = [
   ['A', 'Пунктир', 'Между картами фигуры бежит <b>золотой пунктир</b>, пустая клетка обведена пунктирной рамкой. Видно и фигуру, и куда класть. Пунктир лежит под картами: ранги не закрыты.'],
   ['B', 'Звёзды', 'На уголке каждой карты фигуры мерцает <b>звёздочка</b>, в пустой клетке светится звезда. Тише всех: фигуру не видно, видно только, какие карты в ней и где недостающая.'],
   ['C', 'Силуэт', 'В пустой клетке <b>маленький рисунок фигуры</b>, недостающая звезда в нём пульсирует. Карты фигуры не тронуты; рисунок говорит, какой миф ждёт.'],
+  ['D', 'Пунктир + силуэт', 'Пунктир A ведёт от карт фигуры к пустой клетке и <b>обрывается на её рамке</b>, а внутри клетки рисунок фигуры из C с пульсирующей звездой. По небу видно, какие карты в фигуре, в клетке видно, какой миф ждёт.'],
 ];
 const FORMS = [['portrait', 'Телефон · 393 × 852'], ['landscape', 'Ландшафт · 915 × 412'], ['pc', 'ПК · 1366 × 768']];
-let variant = ['A', 'B', 'C'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'A';
-const STYLE = { A: 'dashes', B: 'stars', C: 'silhouette' };
+let variant = ['A', 'B', 'C', 'D'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'D';
+const STYLE = { A: 'dashes', B: 'stars', C: 'silhouette', D: 'combo' };
 
 function shots(el, file, cap) {
   const f = (form, size, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
@@ -651,10 +652,10 @@ shots(q('#count'), 'myth-flash-count', 'подсчёт: 4 звезды по 10 �
 q('#cmp').append(
   h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
   ...[
-    ['Видно фигуру', 'Да, всю', 'Нет, только карты', 'Да, маленьким рисунком'],
-    ['Куда класть', 'Пунктирная рамка', 'Светящаяся звезда', 'Рисунок в самой клетке'],
-    ['Шум на небе', 'Больше всех: линии между картами', 'Меньше всех', 'Только одна клетка'],
-    ['Рядом с подписью «Россыпь»', 'Не мешает: разные клетки', 'Не мешает', 'Если миф и линия ждут одну клетку, рисунок и подпись делят её'],
+    ['Видно фигуру', 'Да, всю', 'Нет, только карты', 'Да, маленьким рисунком', 'Да, и на небе, и рисунком'],
+    ['Куда класть', 'Пунктирная рамка', 'Светящаяся звезда', 'Рисунок в самой клетке', 'Рамка с рисунком внутри'],
+    ['Шум на небе', 'Больше всех: линии между картами', 'Меньше всех', 'Только одна клетка', 'Как у A, рамка тише'],
+    ['Рядом с подписью «Россыпь»', 'Не мешает: разные клетки', 'Не мешает', 'Если миф и линия ждут одну клетку, рисунок и подпись делят её', 'Как у C'],
   ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][0] }, x)))));
 
 facts(q('#aside'), [
@@ -665,7 +666,7 @@ facts(q('#aside'), [
 ], [
   ['MY.1', 'Готово: 12 фигур, сдвиги и зеркало, условия; тесты'],
   ['MY.2', 'Готово: свой счёт, карты гаснут, ступень открытия; тесты'],
-  ['MY.3', 'Витрина: ждёт выбора варианта подсказки'],
+  ['MY.3', 'Витрина: ждёт выбора варианта подсказки, D — пунктир и силуэт вместе'],
   ['MY.4', 'Звёздный каталог и сцена «Новый миф» — после выбора'],
   ['MY.5', 'Три Знамения: Астролог, Звездочёт, Легенда'],
 ]);

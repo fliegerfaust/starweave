@@ -36,10 +36,10 @@ export class Forecast {
 
   constructor(private readonly scene: NightScene) {}
 
-  /** Вид подсказки мифа: пока Денис выбирает, в разработке — `?mythHint=dashes|stars|silhouette`. */
+  /** Вид подсказки мифа: пока Денис выбирает, в разработке — `?mythHint=dashes|stars|silhouette|combo`. */
   private get mythHintStyle(): MythHintStyle {
     const asked = import.meta.env.DEV ? new URLSearchParams(location.search).get('mythHint') : null;
-    return asked === 'stars' || asked === 'silhouette' ? asked : 'dashes';
+    return asked === 'stars' || asked === 'silhouette' || asked === 'combo' ? asked : 'dashes';
   }
 
   /** Карта легла — подсказка мифа гаснет до конца подсчёта. */
