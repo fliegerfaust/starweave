@@ -1,11 +1,15 @@
 import { SKY_FIGURES, shuffledFigures, starRadius, type SkyFigure } from '@/art/constellations';
 import { bossSigil, omenSigil } from '@/art/sigil';
 import { mythDef, mythEdges } from '@/core/content/myths';
-import { collectionTally, type Find } from '@/meta/collection';
+import { MYTHS } from '@/core/content/myths';
+import { BOSS_LIST } from '@/core/content/bosses';
+import { OMEN_LIST } from '@/core/content/omens';
+import { collectionTally, type CollectionTally, type Find } from '@/meta/collection';
+import { storage } from '@/meta/storage';
 import { SKY_LIST } from '@/core/content/skies';
 import type { App, Screen } from '@/game/app';
 import { dailyNumber, dailyTaken, isUnlocked, todayKey } from '@/meta/profile';
-import { dict, named, num, t } from '@/i18n';
+import { dict, format, getLang, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { canvasImg, dpr, h } from '../dom';
 import { mythFigure } from '../myth-figure';
@@ -61,6 +65,13 @@ export function skyFan(skyId: string, w: number, locked = false): HTMLElement {
 type Entry = 'a' | 'b' | 'c' | 'd';
 const ENTRY: Entry | null = import.meta.env.DEV ? ((['a', 'b', 'c', 'd'] as const).find((v) => v === new URLSearchParams(location.search).get('menuvar')) ?? null) : null;
 
+/** Полка находок (вариант c): 1 — что нового, 2 — по разделам, 3 — следующее открытие; без номера — первая витрина. */
+const SHELF: '1' | '2' | '3' | null = ENTRY === 'c' ? ((['1', '2', '3'] as const).find((v) => v === new URLSearchParams(location.search).get('shelf')) ?? null) : null;
+/** Что игрок уже видел в Коллекции — от этого «новые находки» на полке 1. */
+const SHELF_SEEN = 'starweave.shelf.v1';
+const findKey = (f: Find) => `${f.kind}-${f.id}`;
+const plural = (forms: Record<string, string>, n: number) => format(forms[new Intl.PluralRules(getLang()).select(n)] ?? forms.other!, { n });
+
 /** Миф каталога как фигура для щели купола: клетки неба 4×4 — в кадр 0…100. */
 function mythSkyFigure(id: string): SkyFigure {
   const def = mythDef(id);
@@ -76,9 +87,11 @@ function mythSkyFigure(id: string): SkyFigure {
 }
 
 /** Знак находки: медаль Знамения или Затмения, рисунок мифа золотом. */
-function findMark(f: Find, size: number): HTMLElement {
-  if (f.kind === 'myth') return mythFigure(f.id, size, true);
-  return canvasImg(f.kind === 'boss' ? bossSigil(f.id, size, dpr()) : omenSigil(f.id, size, dpr()), size);
+function findMark(f: Find, size: number, found = true): HTMLElement {
+  if (f.kind === 'myth') return mythFigure(f.id, size, found);
+  const el = canvasImg(f.kind === 'boss' ? bossSigil(f.id, size, dpr()) : omenSigil(f.id, size, dpr()), size);
+  if (!found) el.classList.add('unknown');
+  return el;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -390,7 +403,9 @@ export class MenuScreen implements Screen {
     this.nav.replaceChildren(...(ENTRY === 'd' ? [primary, pair] : [primary, atlas, pair, handle]));
     this.foot.replaceChildren(...[ENTRY === 'd' ? this.rooms() : null, this.homeHint()].filter((x): x is HTMLElement => !!x));
     this.plate.querySelector('.menu-shelf')?.remove();
-    if (ENTRY === 'c' && tally) this.plate.append(this.shelf(tally.recent, tally.found, tally.total));
+    if (ENTRY === 'c' && tally) {
+      this.plate.append(SHELF === '1' ? this.shelfNew(tally) : SHELF === '2' ? this.shelfSections(tally) : SHELF === '3' ? this.shelfNext(tally) : this.shelf(tally.recent, tally.found, tally.total));
+    }
     if (this.ownCaption && tally) {
       const myths = tally.myths;
       this.ownCaption.replaceChildren(this.own && myths ? t('menu.ownMyths', { n: myths.found.length, total: myths.total }) : `${t('menu.collection')} · ${t('menu.foundOf', { n: tally.found, total: tally.total })}`, icon('chevron'));
@@ -413,6 +428,101 @@ export class MenuScreen implements Screen {
       const first = recent[0];
       this.openCollection(first ? `${first.kind}-${first.id}` : undefined);
     });
+    return b;
+  }
+
+  /** Открыть Коллекцию с полки: всё на полке становится увиденным. */
+  private openFromShelf(tally: CollectionTally, focus?: string): void {
+    this.app.svc.audio.click();
+    storage.set(SHELF_SEEN, JSON.stringify(this.allFinds(tally).map(findKey)));
+    this.openCollection(focus);
+    this.render();
+  }
+
+  private allFinds(tally: CollectionTally): Find[] {
+    const p = this.app.profile;
+    const kinds = tally.shelves.map((s) => s.id);
+    return [
+      ...(kinds.includes('myths') ? (p.mythsFound ?? []).map((id) => ({ kind: 'myth' as const, id })) : []),
+      ...p.seenOmens.map((id) => ({ kind: OMEN_LIST.find((o) => o.id === id)?.pair ? 'legend' as const : 'omen' as const, id })),
+      ...p.seenBosses.map((id) => ({ kind: 'boss' as const, id })),
+    ];
+  }
+
+  /**
+   * Полка 1 «Что нового»: находки, которых игрок ещё не видел в Коллекции, — первыми и
+   * со светом; уже увиденные тише. Подпись говорит, сколько нового; после просмотра
+   * Коллекции полка успокаивается до счёта.
+   */
+  private shelfNew(tally: CollectionTally): HTMLElement {
+    let seen: string[] | null = null;
+    try {
+      seen = JSON.parse(storage.get(SHELF_SEEN) ?? 'null') as string[] | null;
+    } catch {
+      seen = null;
+    }
+    // Первый показ полки: новым считаем две последние находки, а не всю коллекцию
+    const fresh = seen ? tally.recent.filter((f) => !seen!.includes(findKey(f))) : tally.recent.slice(0, 2);
+    const rest = tally.recent.filter((f) => !fresh.includes(f));
+    const marks = [...fresh, ...rest].slice(0, 5).map((f) => h(`span.shelf-mark${fresh.includes(f) ? '.fresh.glint' : '.old'}`, null, findMark(f, 26)));
+    const text = fresh.length
+      ? [h('span.shelf-lines', null, [h('b.shelf-new', null, plural(dict().menu.shelfNew, fresh.length)), h('span.shelf-dim', null, t('menu.shelf', { n: tally.found, total: tally.total }))])]
+      : [t('menu.shelf', { n: tally.found, total: tally.total })];
+    const b = h('button.menu-shelf.v1', { type: 'button', attrs: { 'aria-label': t('menu.collectionOpen', { n: tally.found, total: tally.total }) } }, [
+      marks.length ? h('span.shelf-marks', { attrs: { 'aria-hidden': 'true' } }, marks) : null,
+      h('span.shelf-text', null, [...text, icon('chevron')]),
+    ]);
+    b.addEventListener('click', () => this.openFromShelf(tally, fresh[0] ? findKey(fresh[0]) : undefined));
+    return b;
+  }
+
+  /**
+   * Полка 2 «По разделам»: каждый раздел Коллекции — своим знаком и счётом под ним.
+   * Видно, из чего Коллекция состоит и где пусто; касание раздела открывает его.
+   */
+  private shelfSections(tally: CollectionTally): HTMLElement {
+    const names = dict().menu.shelfSections;
+    const row = h('div.menu-shelf.v2', { attrs: { role: 'group', 'aria-label': t('menu.collection') } });
+    for (const s of tally.shelves) {
+      const mark = s.id === 'skies' ? skyFan(this.app.profile.unlockedSkies.at(-1) ?? 'classic', 13)
+        : s.last ? findMark(s.last, 26)
+        : findMark(s.id === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id } : s.id === 'bosses' ? { kind: 'boss', id: BOSS_LIST[0]!.id } : { kind: 'omen', id: OMEN_LIST[0]!.id }, 26, false);
+      const focus = s.id === 'myths' ? (s.last ? findKey(s.last) : 'myths') : s.id === 'legends' ? 'legends' : s.last ? findKey(s.last) : undefined;
+      const b = h(`button.shelf-sec${s.found ? '' : '.empty'}`, { type: 'button', attrs: { 'aria-label': `${names[s.id]}: ${t('menu.foundOf', { n: s.found, total: s.total })}` } }, [
+        h('span.shelf-sec-mark', { attrs: { 'aria-hidden': 'true' } }, mark),
+        h('span.shelf-sec-n', null, [h('b', null, String(s.found)), `/${s.total}`]),
+      ]);
+      b.addEventListener('click', () => this.openFromShelf(tally, focus));
+      row.append(b);
+    }
+    return row;
+  }
+
+  /**
+   * Полка 3 «Следующее открытие»: последние находки и счёт с тонкой шкалой, а под ними —
+   * силуэт того, что откроется дальше, и сколько до него осталось. Полка зовёт вперёд.
+   */
+  private shelfNext(tally: CollectionTally): HTMLElement {
+    const next = tally.next;
+    const nf = dict().menu.shelfNext;
+    const silhouette = !next ? null
+      : next.kind === 'myth' ? findMark({ kind: 'myth', id: next.id }, 20, false)
+      : next.id === 'myths' ? findMark({ kind: 'myth', id: MYTHS[0]!.id }, 20, false)
+      : next.id === 'trophies' ? findMark({ kind: 'boss', id: BOSS_LIST[0]!.id }, 20, false)
+      : findMark({ kind: 'legend', id: OMEN_LIST.find((o) => o.pair)!.id }, 20, false);
+    const hint = next ? plural(nf[next.kind === 'myth' ? 'myth' : next.id]!, next.left) : null;
+    const pct = tally.total ? Math.round((tally.found / tally.total) * 100) : 0;
+    const marks = tally.recent.slice(0, 3).map((f, i) => h(`span.shelf-mark${i === 0 ? '.fresh' : ''}`, null, findMark(f, 26)));
+    const b = h('button.menu-shelf.v3', { type: 'button', attrs: { 'aria-label': [t('menu.collectionOpen', { n: tally.found, total: tally.total }), hint].filter(Boolean).join('. ') } }, [
+      h('span.shelf-top', null, [
+        marks.length ? h('span.shelf-marks', { attrs: { 'aria-hidden': 'true' } }, marks) : null,
+        h('span.shelf-text', null, [t('menu.shelf', { n: tally.found, total: tally.total }), icon('chevron')]),
+      ]),
+      h('span.shelf-bar', { style: `--p: ${pct}%`, attrs: { 'aria-hidden': 'true' } }),
+      hint ? h('span.shelf-next', null, [silhouette ? h('span.shelf-ghost', { attrs: { 'aria-hidden': 'true' } }, silhouette) : null, hint]) : null,
+    ]);
+    const focus = !next ? undefined : next.kind === 'myth' ? `myth-${next.id}` : next.id === 'myths' ? undefined : next.id === 'resonance' ? 'legends' : undefined;
+    b.addEventListener('click', () => this.openFromShelf(tally, focus));
     return b;
   }
 

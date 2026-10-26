@@ -131,6 +131,8 @@ async function boot(): Promise<void> {
           mythsFound: ['cassiopeia', 'cygnus', 'lyra'], unlockedSkies: ['classic', 'twins', 'wanderer'],
         });
     app.runs.persistProfile();
+    // Полка «Что нового» каждый раз начинает с непросмотренных находок
+    localStorage.removeItem('starweave.shelf.v1');
     await app.router.goMenu();
   }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями

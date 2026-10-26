@@ -43,6 +43,14 @@ export const en: Dict = {
     ownMyths: 'Your sky · {n} of {total} myths',
     ownMyth: 'Your myth: {name}',
     rooms: { sky: 'Sky', collection: 'Collection', atlas: 'Atlas' } as Record<string, string>,
+    shelfNew: { one: '{n} new find', other: '{n} new finds' } as Record<string, string>,
+    shelfSections: { myths: 'Myths', omens: 'Omens', legends: 'Legendary', bosses: 'Eclipses', skies: 'Skies' } as Record<string, string>,
+    shelfNext: {
+      myths: { one: '{n} more constellation to unlock Myths', other: '{n} more constellations to unlock Myths' },
+      trophies: { one: 'Beat {n} more eclipse to unlock trophies', other: 'Beat {n} more eclipses to unlock trophies' },
+      resonance: { one: 'Meet {n} more omen to unlock Resonance', other: 'Meet {n} more omens to unlock Resonance' },
+      myth: { one: '{n} more myth hides in the sky', other: '{n} more myths hide in the sky' },
+    } as Record<string, Record<string, string>>,
   },
   constellation: {
     ursaMajor: 'Ursa Major',
