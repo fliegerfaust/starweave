@@ -31,7 +31,7 @@ export class Forecast {
   private forecastSeed = 0;
 
   /** Подсказка мифа, которому не хватает одной звезды (MY.3). */
-  private mythHint: MythHintState = { cells: [], edges: [], missing: 0, alpha: 0 };
+  private mythHint: MythHintState = { cells: [], edges: [], missing: [], alpha: 0 };
   private mythHintEntity: number | null = null;
 
   constructor(private readonly scene: NightScene) {}
@@ -44,14 +44,14 @@ export class Forecast {
   /** Миф, который закроет карта из руки: фигура без одной звезды. В «Тумане» ранги скрыты — подсказки нет. */
   private refreshMythHint(): void {
     const { run, night: n } = this.scene;
-    const near = run.unlocks.myths && !run.tutorial && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand)[0] : undefined;
+    const near = run.unlocks.myths && !run.tutorial && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand, n.rules.mythHint ?? 1)[0] : undefined;
     if (this.mythHintEntity === null || !this.scene.world.isAlive(this.mythHintEntity)) {
       this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHint, () => this.scene.layout);
     }
     if (near) {
       this.mythHint.cells = near.cells;
       this.mythHint.edges = mythEdges(mythDef(near.myth));
-      this.mythHint.missing = near.cell;
+      this.mythHint.missing = near.missing;
     }
     void this.scene.svc.tweens.to(this.mythHint, { alpha: near ? 1 : 0 }, { duration: 0.3 });
   }

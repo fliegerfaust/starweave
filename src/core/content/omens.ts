@@ -5,6 +5,7 @@ import { cardSuits } from '../deck';
 import { isCorner } from '../grid';
 import { chance, pick } from '../rng';
 import { COMBO_IDS, GLYPHS, type ComboId, type Suit } from '../types';
+import { MYTHS_UNLOCK } from './myths';
 import { registry } from './registry';
 
 export type Rarity = 1 | 2 | 3;
@@ -25,6 +26,8 @@ export interface OmenDef extends EffectHooks {
   tags?: { suit?: Suit; combo?: ComboId };
   /** Как открыть (TD.8); без него — открыто сразу. Небосвод 0.7 раздаст это поле. */
   unlock?: Unlock;
+  /** Про мифы (MY.5): в Обсерватории только в забеге, где мифы открыты. */
+  myths?: true;
 }
 
 const strength = (combo: ComboId) => COMBO_IDS.indexOf(combo);
@@ -413,6 +416,49 @@ export const OMEN_LIST: OmenDef[] = [
     kind: 'xmult',
     onPlacementScored(ctx) {
       if (ctx.lines.length >= 2) ctx.xMult(2);
+    },
+  },
+
+  // ── Мифы (MY.5): в конце списка, чтобы броски лавки без мифов не сдвинулись ─────
+  {
+    id: 'astrologer',
+    rarity: 2,
+    price: 7,
+    kind: 'mult',
+    myths: true,
+    unlock: MYTHS_UNLOCK,
+    initialData: () => ({ myths: 0 }),
+    vars: (d) => ({ x: 2 + (d.myths ?? 0) }),
+    onMythScored(ctx) {
+      ctx.mult(2 + (ctx.data.myths ?? 0));
+    },
+    onIgnite(ctx) {
+      ctx.data.myths = (ctx.data.myths ?? 0) + ctx.myths.length;
+    },
+  },
+  {
+    id: 'stargazer',
+    rarity: 1,
+    price: 5,
+    kind: 'rule',
+    myths: true,
+    unlock: MYTHS_UNLOCK,
+    modifyRules(rules) {
+      rules.mythHint = 2;
+    },
+    onMythScored(ctx) {
+      ctx.light(30);
+    },
+  },
+  {
+    id: 'legend',
+    rarity: 3,
+    price: 9,
+    kind: 'rule',
+    myths: true,
+    unlock: MYTHS_UNLOCK,
+    cellFate(ctx) {
+      return ctx.myth ? 'stays' : undefined;
     },
   },
 ];

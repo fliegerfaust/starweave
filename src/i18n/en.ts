@@ -688,6 +688,9 @@ export const en: Dict = {
     collapsar: ['Collapsar', 'Multiplier grows by ×0.05 per constellation this run (now multiplier ×{x})'],
     corona: ['Corona', 'During an Eclipse: multiplier ×2.5'],
     doubleStar: ['Double Star', 'Cross or more lines: ×2 move total'],
+    astrologer: ['Astrologer', 'Each myth: +2 multiplier and +1 more per myth this run (now +{x})'],
+    stargazer: ['Stargazer', 'The sky hints a myth that is two stars short. Each myth: +30 light'],
+    legend: ['Legend', 'Myths do not fade their cards: they stay in the sky'],
   },
   boss: {
     void: ['The Void', 'Two sky cells are sealed'],

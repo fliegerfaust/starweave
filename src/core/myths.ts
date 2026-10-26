@@ -99,24 +99,33 @@ export function completedMyths(grid: readonly (Card | null)[], sealed: readonly 
 }
 
 /**
- * Мифы, которым не хватает одной карты, и клетка для неё (подсказка силуэтом, MY.3). `fits` —
- * карты, которыми можно закрыть фигуру (обычно рука); без подходящей карты подсказки нет.
+ * Мифы, которым не хватает одной карты (а со Звездочётом, `depth` 2, — и двух), и пустые клетки
+ * фигуры (подсказка на небе, MY.3). `fits` — карты, которыми можно закрыть фигуру (обычно рука):
+ * на каждую пустую клетку — своя карта, без подходящих подсказки нет. Ближние мифы — первыми.
  */
 export function nearMyths(
   grid: readonly (Card | null)[],
   sealed: readonly boolean[],
   n: number,
   fits: readonly Card[],
-): (MythPlacement & { cell: number })[] {
-  const out: (MythPlacement & { cell: number })[] = [];
+  depth = 1,
+): (MythPlacement & { missing: number[] })[] {
+  const out: (MythPlacement & { missing: number[] })[] = [];
   for (const def of MYTHS) {
     for (const cells of mythPlacements(def, n)) {
       if (cells.some((c) => sealed[c])) continue;
-      const empty = cells.filter((c) => !grid[c]);
-      if (empty.length !== 1) continue;
-      const cell = empty[0]!;
-      if (fits.some((card) => mythHolds(def, cells.map((c) => (c === cell ? card : grid[c]!))))) out.push({ myth: def.id, cells, cell });
+      const missing = cells.filter((c) => !grid[c]);
+      if (missing.length === 0 || missing.length > depth) continue;
+      if (fill(def, cells, grid, missing, fits)) out.push({ myth: def.id, cells, missing });
     }
   }
-  return out;
+  return out.sort((a, b) => a.missing.length - b.missing.length);
+}
+
+/** Есть ли разные карты из `fits` на все пустые клетки, с которыми условие мифа выполнено. */
+function fill(def: MythDef, cells: number[], grid: readonly (Card | null)[], missing: number[], fits: readonly Card[], used: number[] = []): boolean {
+  if (used.length === missing.length) {
+    return mythHolds(def, cells.map((c) => (missing.includes(c) ? fits[used[missing.indexOf(c)]!]! : grid[c]!)));
+  }
+  return fits.some((_, i) => !used.includes(i) && fill(def, cells, grid, missing, fits, [...used, i]));
 }

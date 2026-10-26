@@ -68,8 +68,8 @@ export interface MythHintState {
   /** Клетки фигуры в её порядке и рёбра по их индексам; пусто — подсказки нет. */
   cells: number[];
   edges: readonly (readonly [number, number])[];
-  /** Клетка, которой не хватает. */
-  missing: number;
+  /** Клетки, которых не хватает (две — со Звездочётом). */
+  missing: number[];
   alpha: number;
 }
 
@@ -96,9 +96,9 @@ export function mythHintLayer(world: GameWorld, state: MythHintState, layout: ()
       if (state.alpha <= 0.01 || state.cells.length === 0) return;
       const { cells, cardW, cardH } = layout();
       const pts = state.cells.map((c) => cells[c]!);
-      const miss = cells[state.missing]!;
+      const misses = state.missing.map((c) => cells[c]!);
       const pulse = 0.75 + 0.25 * Math.sin(world.res.time * 3);
-      const frame = [miss.x - cardW * 0.42, miss.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const;
+      const frames = misses.map((m) => [m.x - cardW * 0.42, m.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const);
       ctx.save();
       ctx.strokeStyle = '#f6c25b';
       ctx.fillStyle = '#f6c25b';
@@ -111,7 +111,7 @@ export function mythHintLayer(world: GameWorld, state: MythHintState, layout: ()
       ctx.save();
       ctx.beginPath();
       ctx.rect(-1e5, -1e5, 2e5, 2e5);
-      ctx.rect(...frame);
+      for (const f of frames) ctx.rect(...f);
       ctx.clip('evenodd');
       ctx.beginPath();
       for (const [a, b] of state.edges) {
@@ -122,9 +122,9 @@ export function mythHintLayer(world: GameWorld, state: MythHintState, layout: ()
       ctx.restore();
       // Рамка тише пунктира: в клетке главный — рисунок
       ctx.globalAlpha = state.alpha * pulse * 0.55;
-      ctx.strokeRect(...frame);
+      for (const f of frames) ctx.strokeRect(...f);
       ctx.setLineDash([]);
-      drawSilhouette(ctx, state, pts, miss, cardW * 0.66, cardH * 0.6, cardW, pulse);
+      for (const m of misses) drawSilhouette(ctx, state, pts, m, cardW * 0.66, cardH * 0.6, cardW, pulse);
       ctx.restore();
     },
   });
@@ -148,7 +148,7 @@ function drawSilhouette(ctx: CanvasRenderingContext2D, state: MythHintState, pts
   ctx.stroke();
   state.cells.forEach((c, i) => {
     const p = mini[i]!;
-    const own = c === state.missing;
+    const own = state.missing.includes(c);
     ctx.globalAlpha = state.alpha * (own ? pulse : 0.85);
     ctx.beginPath();
     ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);

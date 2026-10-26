@@ -4,6 +4,7 @@ import { completedMyths, mythHolds, mythPlacements, nearMyths } from '../src/cor
 import type { Card } from '../src/core/types';
 import { placeCard, previewTurn } from '../src/core/night';
 import { emptyProfile, sanitizeProfile } from '../src/meta/profile';
+import { generateShop } from '../src/core/shop';
 import { recordEvent } from '../src/meta/progress';
 import { c, cards, nightRun, setGrid, setHand } from './helpers';
 
@@ -88,7 +89,7 @@ describe('Мифы на небе (MY.1)', () => {
 
   it('подсказка: фигуре не хватает одной карты, и в руке есть подходящая', () => {
     const grid = lay({ 0: '2m', 5: '5m', 2: '7m' });
-    expect(nearMyths(grid, open, N, cards('9m')).find((m) => m.myth === 'cassiopeia')).toEqual({ myth: 'cassiopeia', cells: [0, 5, 2, 7], cell: 7 });
+    expect(nearMyths(grid, open, N, cards('9m')).find((m) => m.myth === 'cassiopeia')).toEqual({ myth: 'cassiopeia', cells: [0, 5, 2, 7], missing: [7] });
     expect(nearMyths(grid, open, N, cards('9s')).find((m) => m.myth === 'cassiopeia')).toBeUndefined();
   });
 });
@@ -155,5 +156,68 @@ describe('Звёздный каталог (MY.4)', () => {
   it('профиль хранит только известные мифы, без повторов', () => {
     const p = sanitizeProfile({ ...emptyProfile(), mythsFound: ['orion', 'nope', 'orion', 'lyra'] });
     expect(p.mythsFound).toEqual(['orion', 'lyra']);
+  });
+});
+
+describe('Знамения про мифы (MY.5)', () => {
+  const ready = (omens: string[]) => {
+    const run = nightRun({ omens });
+    run.unlocks.myths = true;
+    const night = run.night!;
+    night.sealed = night.sealed.map(() => false);
+    night.grid = night.grid.map(() => null);
+    night.rules.debuffSuit = null;
+    setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
+    setHand(run, '9m 1s 1c');
+    return run;
+  };
+  const myth = (run: ReturnType<typeof ready>) => {
+    const e = placeCard(run, 0, 7).find((x) => x.t === 'ignite');
+    return e?.t === 'ignite' ? e.score.myths[0]! : null;
+  };
+
+  it('Астролог: +2 к множителю мифа и +1 за каждый уже сложенный миф', () => {
+    const run = ready(['astrologer']);
+    run.night!.target = 1e6;
+    // 63 света, ×3 Кассиопеи и +2 Астролога
+    expect(myth(run)).toMatchObject({ light: 63, mult: 5, total: 315 });
+    expect(run.omens[0]!.data.myths).toBe(1);
+    setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
+    setHand(run, '9m 1s 1c');
+    expect(myth(run)).toMatchObject({ mult: 6 });
+  });
+
+  it('Звездочёт: +30 света мифу и подсказка за две звезды', () => {
+    const run = ready(['stargazer']);
+    expect(run.night!.rules.mythHint).toBe(2);
+    const grid = lay({ 0: '2m', 5: '5m' });
+    // Двух Лун из руки хватит на обе пустые клетки Кассиопеи
+    expect(nearMyths(grid, open, N, cards('7m 9m'), 2).find((m) => m.myth === 'cassiopeia')?.missing).toEqual([2, 7]);
+    // Одной Луны на две клетки мало
+    expect(nearMyths(grid, open, N, cards('7m 9s'), 2).find((m) => m.myth === 'cassiopeia' && m.cells.join() === '0,5,2,7')).toBeUndefined();
+    // Без Звездочёта — только за одну
+    expect(nearMyths(grid, open, N, cards('7m 9m')).find((m) => m.myth === 'cassiopeia')).toBeUndefined();
+    expect(myth(run)).toMatchObject({ light: 93, total: 279 });
+  });
+
+  it('Легенда: карты мифа остаются на небе, карты линии гаснут', () => {
+    const run = ready(['legend']);
+    placeCard(run, 0, 7);
+    for (const cell of [0, 5, 2, 7]) expect(run.night!.grid[cell]).not.toBeNull();
+  });
+
+  it('в лавке только в забеге, где мифы открыты', () => {
+    const ids = ['astrologer', 'stargazer', 'legend'];
+    const seen = (myths: boolean) => {
+      const out = new Set<string>();
+      for (let seed = 1; seed <= 60; seed++) {
+        const run = nightRun({ seed });
+        run.unlocks.myths = myths;
+        for (const o of generateShop(run).omens) if (o.kind === 'omen') out.add(o.omenId);
+      }
+      return ids.filter((id) => out.has(id));
+    };
+    expect(seen(false)).toEqual([]);
+    expect(seen(true).length).toBeGreaterThan(0);
   });
 });

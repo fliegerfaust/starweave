@@ -210,7 +210,7 @@ const scoring: Stage = (turn) => {
     if (run.gold !== before) events.push({ t: 'gold', amount: run.gold - before, goldAfter: run.gold });
   }
   for (const fx of effects) {
-    fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, total: score.total });
+    fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, myths: score.myths, total: score.total });
   }
   chargePulsars(night, lines, events);
   for (const omen of run.omens) events.push({ t: 'omenChanged', uid: omen.uid });
@@ -238,8 +238,9 @@ function cellFate(turn: Turn, card: Card, cell: number): CellFate {
   const { run, night } = turn;
   const own = traitOf(card)?.fate;
   if (own) return own;
+  const myth = turn.score!.myths.some((m) => m.cells.includes(cell));
   for (const fx of turn.effects) {
-    const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell });
+    const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell, myth });
     if (fate) return fate;
   }
   return turn.score!.shattered.includes(card.id) ? 'shattered' : 'fades';

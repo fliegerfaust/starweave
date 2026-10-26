@@ -105,13 +105,17 @@ function scoreLine(
  * Миф как формация (MY.2): база — свет за каждую звезду, множитель — множитель мифа, к ним
  * ранги карт. Карты под пятном Затмения света не дают, как и в линии.
  */
-function scoreMyth(night: NightState, found: MythPlacement): MythScore {
+function scoreMyth(run: RunState, night: NightState, found: MythPlacement, effects: ActiveEffect[], rng: RngState): MythScore {
   const def = mythDef(found.myth);
   const tally = new Tally();
   tally.push({ kind: 'myth', myth: def.id }, { light: MYTH_STAR_LIGHT * found.cells.length, mult: def.x });
   for (const cell of found.cells) {
     const card = night.grid[cell] as Card;
     if (!isDebuffed(card, night)) tally.push({ kind: 'card', cell, cardId: card.id }, { light: card.rank });
+  }
+  const cards = found.cells.map((cell) => night.grid[cell] as Card);
+  for (const fx of effects) {
+    fx.hooks.onMythScored?.({ run, night, rules: night.rules, rng, data: fx.data, myth: def.id, cells: found.cells, cards, ...tally.contrib(fx.source) });
   }
   const light = Math.max(0, tally.light);
   const mult = Math.max(0, tally.mult);
@@ -132,7 +136,7 @@ export function scorePlacement(run: RunState, night: NightState, lines: Line[], 
   const shattered = new Set<number>();
   const rolled = new Set<number>();
   const scored = lines.map((line) => scoreLine(run, night, line, effects, rng, shattered, rolled));
-  const myths = found.map((m) => scoreMyth(night, m));
+  const myths = found.map((m) => scoreMyth(run, night, m, effects, rng));
 
   const steps: ScoreStep[] = [];
   const sum = scored.reduce((s, l) => s + l.total, 0) + myths.reduce((s, m) => s + m.total, 0);

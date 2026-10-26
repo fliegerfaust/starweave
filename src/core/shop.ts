@@ -12,7 +12,7 @@ import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type 
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
   for (let i = 0; i < count; i++) {
-    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && !exclude.has(o.id));
+    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && (!o.myths || run.unlocks.myths) && !exclude.has(o.id));
     if (!pool.length) break;
     const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
     exclude.add(def.id);
