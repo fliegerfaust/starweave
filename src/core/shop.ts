@@ -10,12 +10,16 @@ import { offer } from './choices';
 import { createOmen } from './omen-instance';
 import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type ShopItem, type ShopState } from './types';
 
+/** Вторая половина пары, которой игрок уже владеет, выпадает чаще (RS.1, баланс по симу): Резонанс находится. */
+const RESONANCE_CALL = 3;
+const calls = (run: RunState, id: string) => run.unlocks.resonance && run.omens.some((o) => !!resonanceOf(o.id, id));
+
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
   for (let i = 0; i < count; i++) {
     const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && (!o.myths || run.unlocks.myths) && !o.pair && !exclude.has(o.id));
     if (!pool.length) break;
-    const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
+    const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity] * (calls(run, o.id) ? RESONANCE_CALL : 1));
     exclude.add(def.id);
     items.push({ kind: 'omen', omenId: def.id, price: stakePrice(run, def.price), sold: false });
   }

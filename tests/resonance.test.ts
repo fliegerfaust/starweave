@@ -32,6 +32,19 @@ describe('Резонанс (RS.1)', () => {
     expect(resonanceOf('highNoon', 'moonTide')).toBeUndefined();
   });
 
+  it('вторая половина пары, которой владеешь, выпадает в лавке чаще', () => {
+    const seen = (resonance: boolean) => {
+      let n = 0;
+      for (let seed = 1; seed <= 300; seed++) {
+        const run = newRun({ seed, unlocks: { ...LINEAR, resonance } });
+        run.omens.push(createOmen(run, 'sunWorship'));
+        if (generateShop(run).omens.some((i) => i.kind === 'omen' && i.omenId === 'highNoon')) n++;
+      }
+      return n;
+    };
+    expect(seen(true)).toBeGreaterThan(seen(false) * 1.8);
+  });
+
   it('пара рядом сливается: одно место вместо двух', () => {
     const run = shopRun(['stardust', 'sunWorship', 'highNoon', 'nightOwl']);
     expect(resonanceAt(run)).toBe(1);

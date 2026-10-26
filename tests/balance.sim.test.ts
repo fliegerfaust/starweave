@@ -13,7 +13,7 @@ import { omenDef } from '../src/core/content/omens';
  * `SIM_ROUTE=night|bright|comet|telescope` — на развилке всегда этот путь, если он есть (RT.6:
  * сравнить пути по силе и экономике); без него — как решает бот.
  * `SIM_MYTHS=0` — без мифов (MY.6: сравнить), по умолчанию мифы открыты.
- * `SIM_RESONANCE=0` — без Резонанса (RS.1: сравнить), по умолчанию открыт.
+ * `SIM_RESONANCE=0` — без Резонанса (RS.1: сравнить), по умолчанию открыт; `SIM_FUSE=0` — пары собирает, но не сливает.
  */
 describe.skipIf(!process.env.SIM)('баланс', () => {
   it('кривая целей', () => {
@@ -32,7 +32,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
     // Мифы (MY.6): сколько за забег, какие, доля в очках ночей
     const myths = { count: [] as number[], ids: {} as Record<string, number>, light: 0, total: 0 };
     // Резонанс (RS.1): сколько слияний за забег, какие легендарные, в какой главе
-    const fused = { count: [] as number[], ids: {} as Record<string, number>, ante: [] as number[] };
+    const fused = { count: [] as number[], ids: {} as Record<string, number>, wins: {} as Record<string, number>, ante: [] as number[] };
     const econ = { nights: [] as number[], shops: [] as number[], wonders: { take: 0, skip: 0 }, earned: [] as number[], ante: [] as number[] };
     const walkTo = (run: ReturnType<typeof newRun>) => {
       while (run.phase === 'map') {
@@ -93,7 +93,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
             giftGreedy(run);
             gifts[run.gold > gold ? 'skip' : 'take'] += 1;
           }
-          shopGreedy(run);
+          shopGreedy(run, process.env.SIM_FUSE !== '0');
           for (const o of run.omens) {
             if (!omenDef(o.id).pair || legends.has(o.uid)) continue;
             legends.add(o.uid);
@@ -110,6 +110,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
       econ.shops.push(shops);
       econ.earned.push(run.stats.goldEarned);
       econ.ante.push(Math.min(run.ante, 8));
+      for (const o of run.omens) if (omenDef(o.id).pair && run.phase === 'victory') fused.wins[o.id] = (fused.wins[o.id] ?? 0) + 1;
       if (run.phase === 'victory') deaths.victory = (deaths.victory ?? 0) + 1;
     }
     const rows = Object.entries(ratios).map(([key, list]) => {
@@ -124,7 +125,7 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
     const avg = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)).toFixed(1);
     const econLine = `путь: ${prefer ?? 'бот'} · ночей ${avg(econ.nights)} · лавок ${avg(econ.shops)} · шагов без ночи взято ${econ.wonders.take}, мимо ${econ.wonders.skip} · золота за забег ${avg(econ.earned)} · глава ${avg(econ.ante)}`;
     const mythLine = `мифы: ${avg(myths.count)} за забег · доля в очках ходов со вспышкой ${Math.round((myths.light / Math.max(1, myths.total)) * 100)}% · ${Object.entries(myths.ids).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n}`).join(', ')}`;
-    const fuseLine = `резонанс: ${avg(fused.count)} за забег · в забегах со слиянием ${fused.count.filter(Boolean).length}/${runs} · глава ${avg(fused.ante)} · ${Object.entries(fused.ids).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n}`).join(', ')}`;
+    const fuseLine = `резонанс: ${avg(fused.count)} за забег · в забегах со слиянием ${fused.count.filter(Boolean).length}/${runs} · глава ${avg(fused.ante)} · ${Object.entries(fused.ids).sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n} (побед ${fused.wins[id] ?? 0})`).join(', ')}`;
     console.log(['', `глубина: ${depth}`, ...rows, giftLine, econLine, mythLine, fuseLine, `побед: ${deaths.victory ?? 0}/${runs}`].join('\n'));
   }, 600_000);
 });

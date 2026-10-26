@@ -3,7 +3,7 @@ import { activeCells, buildLines } from '../grid';
 import { nearMyths } from '../myths';
 import { mythDef } from '../content/myths';
 import { burnCard, placeCard, startNight } from '../night';
-import { buyItem, buyOmen, fuseOmens, moveOmen, omenSlots, resonanceAt } from '../shop';
+import { buyItem, buyOmen, fuseOmens, moveOmen, omenSlots, resonanceAt, sellOmen, sellPrice } from '../shop';
 import { resonanceOf } from '../content/resonance';
 import { omenDef } from '../content/omens';
 import { choose, currentChoice, skipChoice } from '../choices';
@@ -273,7 +273,8 @@ export function fuseGreedy(run: RunState): void {
   }
 }
 
-export function shopGreedy(run: RunState): void {
+/** `fuse: false` — пары собирает, но не сливает (сим RS.1: сравнить легендарное с двумя половинами). */
+export function shopGreedy(run: RunState, fuse = true): void {
   // Сначала вторая половина пары, которой уже владеем, потом по редкости
   const owned = run.omens.map((o) => o.id);
   const rank = (item: { kind: string; omenId?: string }) =>
@@ -288,9 +289,17 @@ export function shopGreedy(run: RunState): void {
     .filter(({ item }) => item.kind === 'omen' && !item.sold)
     .sort((a, b) => rank(a.item) - rank(b.item));
   for (const { item, slot } of omens) {
+    // Места заняты, а в лавке вторая половина пары — продаёт самое простое Знамение не из пары
+    const half = run.unlocks.resonance && item.kind === 'omen' && owned.some((id) => resonanceOf(id, item.omenId));
+    if (half && run.omens.length >= omenSlots(run)) {
+      const spare = run.omens
+        .filter((o) => !omenDef(o.id).pair && !run.omens.some((x) => resonanceOf(x.id, o.id)))
+        .sort((a, b) => omenDef(a.id).rarity - omenDef(b.id).rarity)[0];
+      if (spare && run.gold + sellPrice(spare.id) >= item.price) sellOmen(run, spare.uid);
+    }
     if (run.gold >= item.price && run.omens.length < omenSlots(run)) buyOmen(run, slot);
   }
-  fuseGreedy(run);
+  if (fuse) fuseGreedy(run);
   shop.items.forEach((item, slot) => {
     if (item.kind === 'chart' && !item.sold && run.gold - item.price >= 2) buyItem(run, slot);
   });

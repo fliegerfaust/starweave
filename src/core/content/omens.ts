@@ -490,7 +490,7 @@ function legendaries(): OmenDef[] {
         rules.chainBonus += 1;
       },
       onPlacementScored(ctx) {
-        if (ctx.lines.length >= 2) ctx.xMult(4);
+        if (ctx.lines.length >= 2) ctx.xMult(3);
       },
     }),
     legend('midnightOwl', 'xmult', {
@@ -498,13 +498,13 @@ function legendaries(): OmenDef[] {
         if (ctx.night.movesLeft > 0) ctx.mult(ctx.night.movesLeft);
       },
       onPlacementScored(ctx) {
-        if (ctx.lastMove) ctx.xMult(3);
-        else if (ctx.night.movesLeft <= 2) ctx.xMult(2);
+        if (ctx.lastMove) ctx.xMult(2);
+        else if (ctx.night.movesLeft <= 2) ctx.xMult(1.5);
       },
     }),
     legend('springTide', 'light', {
       onCardScored(ctx) {
-        if (cardSuits(ctx.card).includes('moon') || ctx.card.rank <= 3) ctx.light(40);
+        if (cardSuits(ctx.card).includes('moon') || ctx.card.rank <= 3) ctx.light(30);
       },
     }),
     legend('milkyWay', 'xmult', {
@@ -513,8 +513,8 @@ function legendaries(): OmenDef[] {
       },
       onLineScored(ctx) {
         if (COMBO_FAMILY.runs.includes(ctx.combo)) {
-          ctx.mult(10);
-          ctx.xMult(2);
+          ctx.mult(8);
+          ctx.xMult(1.5);
         }
       },
     }),
@@ -523,7 +523,7 @@ function legendaries(): OmenDef[] {
         rules.flushSlack += 1;
       },
       onLineScored(ctx) {
-        if (COMBO_FAMILY.flushes.includes(ctx.combo)) ctx.mult(15);
+        if (COMBO_FAMILY.flushes.includes(ctx.combo)) ctx.mult(10);
       },
     }),
     legend('wildfire', 'mult', {
@@ -544,10 +544,10 @@ function legendaries(): OmenDef[] {
     }),
     legend('treasury', 'mult', {
       modifyRules(rules) {
-        rules.interestCap += 10;
+        rules.interestCap += 3;
       },
       onLineScored(ctx) {
-        const bonus = Math.floor(ctx.run.gold / 2);
+        const bonus = Math.floor(ctx.run.gold / 5);
         if (bonus > 0) ctx.mult(bonus);
       },
     }),
