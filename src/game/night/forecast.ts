@@ -33,6 +33,8 @@ export class Forecast {
   /** Подсказка мифа, которому не хватает одной звезды (MY.3). */
   private mythHint: MythHintState = { cells: [], edges: [], missing: [], alpha: 0 };
   private mythHintEntity: number | null = null;
+  /** Клетки, которые ждёт подсказанный миф: подпись линии в них не рисуется. */
+  private mythCells = new Set<number>();
 
   constructor(private readonly scene: NightScene) {}
 
@@ -48,6 +50,7 @@ export class Forecast {
     if (this.mythHintEntity === null || !this.scene.world.isAlive(this.mythHintEntity)) {
       this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHint, () => this.scene.layout);
     }
+    this.mythCells = new Set(near?.missing ?? []);
     if (near) {
       this.mythHint.cells = near.cells;
       this.mythHint.edges = mythEdges(mythDef(near.myth));
@@ -91,13 +94,15 @@ export class Forecast {
   refreshClosers(): void {
     const n = this.scene.night;
     const lines = buildLines(n.rules);
+    // Миф первым: клетку, которую ждёт миф, показывает его подсказка, без рамки и подписи линии
+    this.refreshMythHint();
     this.scene.cells.forEach((state, cell) => {
       const closes = closingLines(lines, n.grid, n.sealed, cell).length;
       state.closes = closes;
-      void this.scene.svc.tweens.to(state, { closesAnim: closes > 0 && !this.off ? 1 : 0 }, { duration: 0.3 });
+      const shown = closes > 0 && !this.off && !this.mythCells.has(cell);
+      void this.scene.svc.tweens.to(state, { closesAnim: shown ? 1 : 0 }, { duration: 0.3 });
     });
     this.refreshForecast();
-    this.refreshMythHint();
   }
 
   /** Прогнозы клеток на текущее состояние ночи: выбор карты не пересчитывает их заново. */
@@ -129,7 +134,7 @@ export class Forecast {
       state.forecastPicked = picked !== null;
       state.forecastWeak = false;
       state.forecastCard = null;
-      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing' || this.off) continue;
+      if (state.closes === 0 || n.rules.hideRanks || n.result !== 'playing' || this.off || this.mythCells.has(cell)) continue;
       const indices = picked !== null ? [picked] : n.hand.map((_, i) => i);
       let best: PlacementPreview | null = null;
       let bestIndex = -1;
