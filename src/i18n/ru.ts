@@ -335,6 +335,7 @@ export const ru = {
   },
   discovery: {
     newCombo: 'Новое созвездие · {n} из {total}',
+    newMyth: 'Новый миф · {n} из {total}',
     firstKicker: 'Впервые',
     cross: 'Крест!',
     crossDesc: 'Одна карта закрыла две линии — очки удвоены',
@@ -379,6 +380,12 @@ export const ru = {
     tamedShort: 'приручено {n}',
     tamedN: { one: 'Приручён {n} раз', few: 'Приручён {n} раза', many: 'Приручён {n} раз', other: 'Приручён {n} раза' } as Record<string, string>,
     notTamed: 'ещё не приручён',
+    myths: 'Звёздный каталог',
+    foundN: 'найдено {n} из {total}',
+    mythKind: 'миф · ×{x}',
+    unknownMyth: 'Неизвестный миф',
+    unknownMythDesc: 'Сложи эту фигуру из карт на небе. Когда ей не хватит одной звезды, небо подскажет клетку.',
+    unknownMythShort: 'Фигура видна, легенда откроется находкой',
   },
   settings: {
     title: 'Настройки',

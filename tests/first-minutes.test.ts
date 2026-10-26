@@ -64,9 +64,9 @@ describe('щедрая первая ночь', () => {
 describe('коллекция созвездий', () => {
   it('новое — один раз, Россыпь не считается, первый крест отдельно', () => {
     const p = emptyProfile();
-    expect(recordDiscoveries(p, ['scatter'], 1)).toEqual({ combos: [], cross: false });
-    expect(recordDiscoveries(p, ['flush', 'pair'], 2)).toEqual({ combos: ['flush', 'pair'], cross: true });
-    expect(recordDiscoveries(p, ['pair', 'pair', 'triple'], 2)).toEqual({ combos: ['triple'], cross: false });
+    expect(recordDiscoveries(p, ['scatter'], 1)).toEqual({ combos: [], cross: false, myths: [] });
+    expect(recordDiscoveries(p, ['flush', 'pair'], 2)).toEqual({ combos: ['flush', 'pair'], cross: true, myths: [] });
+    expect(recordDiscoveries(p, ['pair', 'pair', 'triple'], 2)).toEqual({ combos: ['triple'], cross: false, myths: [] });
     expect(p.combosFound).toEqual(['flush', 'pair', 'triple']);
     expect(COLLECTIBLE_COMBOS).toHaveLength(10);
   });

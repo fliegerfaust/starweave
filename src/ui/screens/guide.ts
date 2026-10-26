@@ -4,6 +4,7 @@ import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type
 import { BODY_UNLOCKS } from '@/core/content/pools';
 import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
 import { BOSS_LIST } from '@/core/content/bosses';
+import { MYTHS, MYTHS_UNLOCK } from '@/core/content/myths';
 import { OMEN_LIST } from '@/core/content/omens';
 import { SKY_LIST } from '@/core/content/skies';
 import { TROPHY_UNLOCK } from '@/core/content/trophies';
@@ -16,6 +17,7 @@ import { icon } from '../icons';
 import { modal } from '../widgets';
 import { rich } from '../rich';
 import { cardThumb } from './common';
+import { mythFigure } from '../myth-figure';
 
 /*
  * «Живая доска» (RD.7, выбор Дениса): сверху — небо 4×4 или сцена термина, ниже — список.
@@ -124,10 +126,11 @@ export function showGuide(opts: GuideOptions = {}): void {
     else if (focus in STEP_OF) { tab = 'night'; step = STEP_OF[focus]!; auto = false; }
     else if ((COMBO_IDS as readonly string[]).includes(focus)) { tab = 'combos'; combo = focus as ComboId; }
     else if (focus === 'collection' && opts.profile) tab = 'collection';
+    else if (focus === 'myths' && opts.profile) tab = 'collection';
   }
   const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
-  // Коллекция: выбранное Знамение или Затмение — крупно на доске
-  let pick: { kind: 'omen' | 'boss'; id: string } | null = null;
+  // Коллекция: выбранное Знамение, Затмение или миф — крупно на доске
+  let pick: { kind: 'omen' | 'boss' | 'myth'; id: string } | null = focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id } : null;
   track('guide_open', { focus: focus ?? tab });
   const g = dict().guide;
   const levelOf = (id: ComboId) => opts.levels?.[id] ?? 1;
@@ -358,6 +361,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       const omen = OMEN_LIST.find((x) => p.seenOmens.includes(x.id)) ?? OMEN_LIST[0]!;
       pick = { kind: 'omen', id: omen.id };
     }
+    if (pick.kind === 'myth') return mythBoard(pick.id);
     const known = (pick.kind === 'omen' ? p.seenOmens : p.seenBosses).includes(pick.id);
     const big = collSigil(pick.kind, pick.id, 72);
     big.classList.add('gb-big');
@@ -369,6 +373,46 @@ export function showGuide(opts: GuideOptions = {}): void {
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
       : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
     return [h('div.gb-stage', null, big), tally];
+  };
+  // ─── Звёздный каталог (MY.4): виден со ступени «Мифы» ───────────────────
+  const mythsOpen = () => isUnlocked(MYTHS_UNLOCK, opts.profile!);
+  const mythFound = (id: string) => opts.profile!.mythsFound?.includes(id) ?? false;
+  const mythName = (id: string) => (dict().myth as Record<string, string>)[id] ?? id;
+  /** Витрина MY.4: список каталога сеткой рисунков (A) или строками (B), в разработке — `?catalog=rows`. */
+  const catalogRows = import.meta.env.DEV && new URLSearchParams(location.search).get('catalog') === 'rows';
+  /** Найденный миф — рисунок золотом, имя, множитель и легенда; неизвестный — силуэт фигуры. */
+  const mythBoard = (id: string): [HTMLElement, Child[]] => {
+    const found = mythFound(id);
+    const big = mythFigure(id, 104, found);
+    big.classList.add('gb-myth');
+    const x = MYTHS.find((m) => m.id === id)!.x;
+    return [h('div.gb-stage', null, big), found
+      ? [h('h3', null, mythName(id)), h('span.gb-kind.gold', null, format(c.mythKind, { x })), h('p', null, (dict().mythDesc as Record<string, string>)[id] ?? '')]
+      : [h('h3', null, c.unknownMyth), h('span.gb-kind', null, format(c.mythKind, { x })), h('p', null, c.unknownMythDesc)]];
+  };
+  const mythList = (): HTMLElement[] => {
+    const el = h(catalogRows ? 'div.gb-list' : 'div.gb-sigils.gb-myths');
+    for (const m of MYTHS) {
+      const found = mythFound(m.id);
+      const on = pick?.kind === 'myth' && pick.id === m.id;
+      const label = found ? mythName(m.id) : c.unknownMyth;
+      const b = catalogRows
+        ? h(`button.gb-row.gb-mythrow${on ? '.on' : ''}${found ? '' : '.miss'}`, { type: 'button', attrs: { 'aria-pressed': String(on) } }, [
+            mythFigure(m.id, 38, found),
+            h('span.gb-text', null, [h('b', null, label), h('small', null, found ? (dict().mythDesc as Record<string, string>)[m.id] ?? '' : c.unknownMythShort)]),
+            h('span.gb-x', null, `×${m.x}`),
+          ])
+        : h(`button${found ? '' : '.unknown'}${on ? '.on' : ''}`, { type: 'button', attrs: { 'aria-pressed': String(on), 'aria-label': label } }, mythFigure(m.id, 40, found));
+      b.addEventListener('click', (e) => {
+        if (on) return;
+        pick = { kind: 'myth', id: m.id };
+        render();
+        if (e.detail === 0) body.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus({ preventScroll: true });
+      });
+      el.append(b);
+    }
+    const n = MYTHS.filter((m) => mythFound(m.id)).length;
+    return [section(c.myths, format(c.foundN, { n, total: MYTHS.length })), el];
   };
   // ─── Трофеи Затмений (TR.4, вариант A4 Дениса): видны со ступени трофеев ──
   const trophiesOpen = () => isUnlocked(TROPHY_UNLOCK, opts.profile!);
@@ -429,7 +473,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       skies.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
     }
     const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
-    return [...grid('omen'), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+    return [...(mythsOpen() ? mythList() : []), ...grid('omen'), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
@@ -457,7 +501,11 @@ export function showGuide(opts: GuideOptions = {}): void {
         : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
         : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
         : tab === 'glyphs' ? [...GLYPHS.map((id) => () => { glyph = id; showBody = false; }), ...openBodies.map((id) => () => { bodyId = id; showBody = true; })]
-        : [...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }), ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; })];
+        : [
+            ...OMEN_LIST.map((x) => () => { pick = { kind: 'omen', id: x.id }; }),
+            ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; }),
+            ...(mythsOpen() ? MYTHS.map((x) => () => { pick = { kind: 'myth', id: x.id }; }) : []),
+          ];
       const live = [...board.childNodes];
       max = board.offsetHeight;
       for (const apply of variants) {

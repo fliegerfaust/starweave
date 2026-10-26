@@ -102,7 +102,11 @@ export async function runDemo(app: App, name: string): Promise<void> {
   run.chapter.at = 1;
   run.gold = 23;
   run.omens = OMENS.map((id) => createOmen(run, id));
-  if (sc.myths) run.unlocks.myths = true;
+  if (sc.myths) {
+    run.unlocks.myths = true;
+    // Четыре мифа уже в каталоге: Кассиопея — пятая, «Новый миф · 5 из 12»
+    app.profile.mythsFound = ['pleiades', 'sagitta', 'triangulum', 'cygnus'];
+  }
   app.runs.beginNight();
   const night = run.night!;
   if (sc.myths) night.sealed = night.sealed.map(() => false);

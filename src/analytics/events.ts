@@ -26,6 +26,7 @@ export interface EventMap {
   run_start: { sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean; gift?: boolean; replay?: boolean; challenge?: boolean };
   night_start: { ante: number; night: string; boss: string; gentle?: boolean };
   combo_found: { combo: string; count: number; ante: number };
+  myth_found: { myth: string; count: number; ante: number };
   night_end: {
     ante: number;
     night: string;

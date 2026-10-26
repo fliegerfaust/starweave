@@ -332,6 +332,7 @@ export const en: Dict = {
   },
   discovery: {
     newCombo: 'New constellation · {n} of {total}',
+    newMyth: 'New myth · {n} of {total}',
     firstKicker: 'First time',
     cross: 'Cross!',
     crossDesc: 'One card closed two lines — score doubled',
@@ -376,6 +377,12 @@ export const en: Dict = {
     tamedShort: '{n} tamed',
     tamedN: { one: 'Tamed {n} time', few: 'Tamed {n} times', many: 'Tamed {n} times', other: 'Tamed {n} times' } as Record<string, string>,
     notTamed: 'not tamed yet',
+    myths: 'Star Catalog',
+    foundN: '{n} of {total} found',
+    mythKind: 'myth · ×{x}',
+    unknownMyth: 'Unknown myth',
+    unknownMythDesc: 'Build this figure from cards in the sky. When it is one star short, the sky will point to the cell.',
+    unknownMythShort: 'The figure is visible, the legend opens when found',
   },
   settings: {
     title: 'Settings',

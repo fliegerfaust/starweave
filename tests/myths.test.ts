@@ -3,6 +3,8 @@ import { MYTHS, mythDef, mythEdges } from '../src/core/content/myths';
 import { completedMyths, mythHolds, mythPlacements, nearMyths } from '../src/core/myths';
 import type { Card } from '../src/core/types';
 import { placeCard, previewTurn } from '../src/core/night';
+import { emptyProfile, sanitizeProfile } from '../src/meta/profile';
+import { recordEvent } from '../src/meta/progress';
 import { c, cards, nightRun, setGrid, setHand } from './helpers';
 
 const N = 4;
@@ -127,5 +129,31 @@ describe('Миф в ходе ночи (MY.2)', () => {
     const events = placeCard(run, 0, 7);
     expect(events.some((e) => e.t === 'ignite')).toBe(false);
     expect(run.night!.grid[7]).not.toBeNull();
+  });
+});
+
+describe('Звёздный каталог (MY.4)', () => {
+  it('первый миф записывается в каталог и приходит находкой, второй раз — нет', () => {
+    const p = emptyProfile();
+    const run = nightRun();
+    run.unlocks.myths = true;
+    const night = run.night!;
+    night.sealed = night.sealed.map(() => false);
+    night.grid = night.grid.map(() => null);
+    night.rules.debuffSuit = null;
+    setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
+    setHand(run, '9m 1s 1c');
+    const r = recordEvent(p, run, { e: 'turn', events: placeCard(run, 0, 7) });
+    expect(r.discovery?.myths).toEqual(['cassiopeia']);
+    expect(p.mythsFound).toEqual(['cassiopeia']);
+    setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
+    setHand(run, '9m 1s 1c');
+    expect(recordEvent(p, run, { e: 'turn', events: placeCard(run, 0, 7) }).discovery?.myths ?? []).toEqual([]);
+    expect(p.mythsFound).toEqual(['cassiopeia']);
+  });
+
+  it('профиль хранит только известные мифы, без повторов', () => {
+    const p = sanitizeProfile({ ...emptyProfile(), mythsFound: ['orion', 'nope', 'orion', 'lyra'] });
+    expect(p.mythsFound).toEqual(['orion', 'lyra']);
   });
 });
