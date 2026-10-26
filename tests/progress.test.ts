@@ -18,7 +18,7 @@ describe('прогресс из одного места (TD.8)', () => {
     setGrid(run, { 0: '3s', 1: '3m', 2: '7t' });
     setHand(run, '9c');
     const r = recordEvent(p, run, { e: 'turn', events: placeCard(run, 0, 3) });
-    expect(r.discovery).toEqual({ combos: ['pair'], cross: false });
+    expect(r.discovery).toEqual({ combos: ['pair'], cross: false, myths: [] });
     expect(p.combosFound).toEqual(['pair']);
     expect(recordEvent(p, run, { e: 'turn', events: [] }).discovery).toBeNull();
   });

@@ -9,6 +9,7 @@ import { shuffle, weightedPick } from './rng';
 import { currentNode, isWonder, planNight } from './route';
 import { activeEffects, type ActiveEffect } from './effect-sources';
 import { scorePlacement } from './scoring';
+import { completedMyths, type MythPlacement } from './myths';
 import { COMBO_IDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
 
 import { RuleError } from './errors';
@@ -137,8 +138,9 @@ interface Turn {
   card: Card;
   effects: ActiveEffect[];
   events: GameEvent[];
-  /** Вспыхнувшие формации хода; пока это линии. */
+  /** Вспыхнувшие формации хода: линии и мифы (MY.2). */
   lines: Line[];
+  myths: MythPlacement[];
   score: PlacementScore | null;
 }
 
@@ -178,20 +180,21 @@ const placed: Stage = (turn) => {
   for (const fx of turn.effects) fx.hooks.onPlaced?.({ ...baseCtx(run, night, fx.data), card, cell });
 };
 
-/** Формации: какие линии через клетку заполнены. */
+/** Формации: какие линии через клетку заполнены и какие мифы сложились (когда открыты). */
 const formations: Stage = (turn) => {
-  const { night, cell } = turn;
+  const { run, night, cell } = turn;
   turn.lines = ignitedLines(buildLines(night.rules), night.grid, night.sealed, cell);
+  turn.myths = run.unlocks.myths && !run.tutorial ? completedMyths(night.grid, night.sealed, cell, night.rules.gridSize) : [];
 };
 
 /** Подсчёт: свет, золото и счётчики Знамений; без вспышки — тихий ход. */
 const scoring: Stage = (turn) => {
-  const { run, night, lines, events, effects } = turn;
-  if (lines.length === 0) {
+  const { run, night, lines, myths, events, effects } = turn;
+  if (lines.length === 0 && myths.length === 0) {
     for (const fx of effects) fx.hooks.onQuietPlacement?.(baseCtx(run, night, fx.data));
     return;
   }
-  const score = scorePlacement(run, night, lines, run.rng);
+  const score = scorePlacement(run, night, lines, run.rng, myths);
   turn.score = score;
   night.score += score.total;
   night.ignitions += 1;
@@ -207,7 +210,7 @@ const scoring: Stage = (turn) => {
     if (run.gold !== before) events.push({ t: 'gold', amount: run.gold - before, goldAfter: run.gold });
   }
   for (const fx of effects) {
-    fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, total: score.total });
+    fx.hooks.onIgnite?.({ ...baseCtx(run, night, fx.data), lines: score.lines, myths: score.myths, total: score.total });
   }
   chargePulsars(night, lines, events);
   for (const omen of run.omens) events.push({ t: 'omenChanged', uid: omen.uid });
@@ -235,8 +238,9 @@ function cellFate(turn: Turn, card: Card, cell: number): CellFate {
   const { run, night } = turn;
   const own = traitOf(card)?.fate;
   if (own) return own;
+  const myth = turn.score!.myths.some((m) => m.cells.includes(cell));
   for (const fx of turn.effects) {
-    const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell });
+    const fate = fx.hooks.cellFate?.({ ...baseCtx(run, night, fx.data), card, cell, myth });
     if (fate) return fate;
   }
   return turn.score!.shattered.includes(card.id) ? 'shattered' : 'fades';
@@ -247,7 +251,7 @@ const settleCells: Stage = (turn) => {
   const { run, night, score, events } = turn;
   if (!score) return;
   const cleared: number[] = [];
-  for (const c of new Set(score.lines.flatMap((l) => l.cells))) {
+  for (const c of new Set([...score.lines.flatMap((l) => l.cells), ...score.myths.flatMap((m) => m.cells)])) {
     const placedCard = night.grid[c]!;
     const fate = cellFate(turn, placedCard, c);
     if (fate === 'stays') {
@@ -295,7 +299,7 @@ export function previewTurn(run: RunState, handIndex: number, cell: number, seed
   if (handIndex < 0 || handIndex >= night.hand.length || cell < 0 || cell >= night.grid.length || night.grid[cell] || night.sealed[cell]) return null;
   const sim: RunState = { ...run, night: structuredClone(night), omens: structuredClone(run.omens), rng: { s: seed }, stats: { ...run.stats } };
   const simNight = sim.night!;
-  const turn: Turn = { run: sim, night: simNight, handIndex, cell, card: simNight.hand[handIndex]!, effects: activeEffects(sim, simNight), events: [], lines: [], score: null };
+  const turn: Turn = { run: sim, night: simNight, handIndex, cell, card: simNight.hand[handIndex]!, effects: activeEffects(sim, simNight), events: [], lines: [], myths: [], score: null };
   for (const stage of PREVIEW_STAGES) stage(turn);
   return turn.score;
 }
@@ -307,7 +311,7 @@ export function placeCard(run: RunState, handIndex: number, cell: number): GameE
   if (cell < 0 || cell >= night.grid.length || night.grid[cell] || night.sealed[cell]) {
     throw new RuleError('cellTaken');
   }
-  const turn: Turn = { run, night, handIndex, cell, card: night.hand[handIndex]!, effects: activeEffects(run, night), events: [], lines: [], score: null };
+  const turn: Turn = { run, night, handIndex, cell, card: night.hand[handIndex]!, effects: activeEffects(run, night), events: [], lines: [], myths: [], score: null };
   for (const stage of PLACE_STAGES) stage(turn);
   return turn.events;
 }

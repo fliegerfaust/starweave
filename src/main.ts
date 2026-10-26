@@ -96,6 +96,21 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
+  // RS.2: Обсерватория с парой Знамений — Резонанс (`?resonance`; `=apart` — пара врозь)
+  if (dev && params.has('resonance')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const [{ createOmen }, { generateShop }] = await Promise.all([import('./core/omen-instance'), import('./core/shop')]);
+    run.unlocks.resonance = true;
+    run.ante = 4;
+    run.gold = 18;
+    const ids = params.get('resonance') === 'apart' ? ['sunWorship', 'stardust', 'highNoon', 'nightOwl'] : ['stardust', 'sunWorship', 'highNoon', 'nightOwl'];
+    run.omens = ids.map((id) => createOmen(run, id));
+    run.phase = 'shop';
+    run.shop = generateShop(run);
+    await app.router.route();
+  }
   // ON.1: открытие Развилок (`?routesfx=open|fork`)
   if (dev && params.has('routesfx')) {
     const { showRoutesNotice } = await import('./dev/routes-notice');
@@ -110,7 +125,11 @@ async function boot(): Promise<void> {
     });
     const [{ showHelp }, { OMEN_LIST }] = await Promise.all([import('./ui/screens/common'), import('./core/content/omens')]);
     app.profile.seenOmens = OMEN_LIST.slice(0, 26).map((o) => o.id);
-    showHelp({ tab: 'collection', profile: app.profile });
+    // RS.3 (`?collection=resonance`): два легендарных слиты, у остальных видна часть половинок
+    const legends = params.get('collection') === 'resonance';
+    if (legends) app.profile.seenOmens.push('sunWorship', 'highNoon', 'noon', 'pyre', 'ember', 'wildfire', 'nightOwl', 'moonTide', 'hoarder', 'miser');
+    app.profile.seenOmens = [...new Set(app.profile.seenOmens)];
+    showHelp({ tab: 'collection', profile: app.profile, focus: legends ? 'legends' : undefined });
   }
   // Ночь Затмения выиграна, награда на экране: «Забрать» откроет сцену трофея (TR.2)
   if (dev && params.has('trophy')) {

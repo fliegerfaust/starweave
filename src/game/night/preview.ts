@@ -3,7 +3,7 @@ import type { ComboId, RunState } from '@/core/types';
 
 export interface PlacementPreview {
   lines: { combo: ComboId; total: number; kind: 'row' | 'col' | 'diag' }[];
-  /** Клетки линий, которые вспыхнут. */
+  /** Клетки линий и мифов, которые вспыхнут. */
   cells: number[];
   total: number;
 }
@@ -18,7 +18,7 @@ export function previewPlacement(run: RunState, handIndex: number, cell: number,
   if (!score) return null;
   return {
     lines: score.lines.map((l) => ({ combo: l.combo, total: l.total, kind: l.line.kind })),
-    cells: [...new Set(score.lines.flatMap((l) => l.line.cells))],
+    cells: [...new Set([...score.lines.flatMap((l) => l.line.cells), ...score.myths.flatMap((m) => m.cells)])],
     total: score.total,
   };
 }

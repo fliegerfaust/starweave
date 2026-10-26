@@ -1,5 +1,5 @@
 import type { RngState } from './rng';
-import type { Card, ComboId, Line, LineScore, NightState, Rules, RunState } from './types';
+import type { Card, ComboId, Line, LineScore, MythScore, NightState, Rules, RunState } from './types';
 
 /**
  * Общий интерфейс эффектов: его реализуют Знамения и Затмения. Хук объявляется только
@@ -21,6 +21,8 @@ export interface EffectHooks {
   retriggers?(ctx: CardCtx): number;
   /** Все карты линии засчитаны. */
   onLineScored?(ctx: LineCtx): void;
+  /** Миф засчитан: база и ранги карт фигуры (MY.5). */
+  onMythScored?(ctx: MythCtx): void;
   /** Все линии хода засчитаны, перед итоговым умножением. */
   onPlacementScored?(ctx: PlacementCtx): void;
   /** После хода со вспышкой — для счётчиков. */
@@ -42,6 +44,8 @@ export type CellFate = 'fades' | 'stays' | 'shattered' | 'consumed';
 export interface PlacedCtx extends BaseCtx {
   card: Card;
   cell: number;
+  /** Клетка в мифе этого хода (для `cellFate`). */
+  myth?: boolean;
 }
 
 export interface BaseCtx {
@@ -75,6 +79,13 @@ export interface CardCtx extends BaseCtx, Contrib, LineInfo {
 
 export interface LineCtx extends BaseCtx, Contrib, LineInfo {}
 
+/** Миф хода: его клетки и карты в порядке фигуры. */
+export interface MythCtx extends BaseCtx, Contrib {
+  myth: string;
+  cells: number[];
+  cards: Card[];
+}
+
 /** Карта с чертой засчитывается: вклад черты подписывается в подсчёте её глифом. */
 export interface TraitCtx extends Contrib {
   card: Card;
@@ -91,6 +102,7 @@ export interface PlacementCtx extends BaseCtx {
 
 export interface IgniteCtx extends BaseCtx {
   lines: LineScore[];
+  myths: MythScore[];
   total: number;
 }
 

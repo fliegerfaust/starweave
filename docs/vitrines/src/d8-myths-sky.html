@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мифы на небе · Starweave 0.7</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.shots { display: grid; gap: 18px; align-items: start; }
+@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
+.shots-col { display: grid; gap: 18px; }
+.shot { margin: 0; display: grid; gap: 8px; }
+.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
+.shot.tall img { max-width: 300px; justify-self: center; }
+.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(4, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+.tr5 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tr5 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr5 figure { margin: 0; display: grid; gap: 6px; }
+.tr5 img { width: 100%; height: auto; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--brass); }
+.tr5 figcaption { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.tr5 h4 { margin: 0 0 8px; font: 700 13.5px/1.3 var(--font-body); color: var(--gold-hi); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Подсказка: мифу не хватает одной звезды <small>настоящая игра, 3-я глава; Кассиопее из Лун не хватает девятки, она в руке</small></div>
+  <div class="shots" id="hint"></div>
+
+  <div class="label">Миф вспыхивает <small>одинаково во всех вариантах: девятка Луны легла в клетку, «W» загорается золотом</small></div>
+  <div class="shots" id="ribbon"></div>
+  <div class="shots" id="count"></div>
+
+  <div class="label">Чем различаются <small>одна подсказка, четыре способа её показать</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+    <div id="ladder"></div>
+  </div>
+  <p class="foot">Витрина 0.7 · Мифы неба · подсказка и вспышка на небе (MY.3) · 26.10.2026 · снимки настоящей игры, ветка feature/myths-core · выбран вариант D</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'myths', lead: 'Карты на небе складываются в фигуру настоящего созвездия, и она <b>вспыхивает целиком</b>: свой счёт рядом с линиями, карты гаснут, как у линии. Случайно мифы почти не складываются, поэтому небо <b>подсказывает</b> фигуру, которой не хватает одной звезды. Варианты отличаются тем, как выглядит эта подсказка.' });
+
+const VARIANTS = [
+  ['A', 'Пунктир', 'Между картами фигуры бежит <b>золотой пунктир</b>, пустая клетка обведена пунктирной рамкой. Видно и фигуру, и куда класть. Пунктир лежит под картами: ранги не закрыты.'],
+  ['B', 'Звёзды', 'На уголке каждой карты фигуры мерцает <b>звёздочка</b>, в пустой клетке светится звезда. Тише всех: фигуру не видно, видно только, какие карты в ней и где недостающая.'],
+  ['C', 'Силуэт', 'В пустой клетке <b>маленький рисунок фигуры</b>, недостающая звезда в нём пульсирует. Карты фигуры не тронуты; рисунок говорит, какой миф ждёт.'],
+  ['D', 'Пунктир + силуэт', 'Пунктир A ведёт от карт фигуры к пустой клетке и <b>обрывается на её рамке</b>, а внутри клетки рисунок фигуры из C с пульсирующей звездой. По небу видно, какие карты в фигуре, в клетке видно, какой миф ждёт.'],
+];
+const FORMS = [['portrait', 'Телефон · 393 × 852'], ['landscape', 'Ландшафт · 915 × 412'], ['pc', 'ПК · 1366 × 768']];
+let variant = ['A', 'B', 'C', 'D'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'D';
+const STYLE = { A: 'dashes', B: 'stars', C: 'silhouette', D: 'combo' };
+
+function shots(el, file, cap) {
+  const f = (form, size, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
+    h('img', { src: `shots/${file}-${form}.jpg`, alt: `${size}: ${cap}`, loading: 'lazy' }),
+    h('figcaption', {}, `${size} · ${cap}`));
+  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+}
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  shots(q('#hint'), `myth-hint-${STYLE[variant]}`, `вариант ${variant}: ${VARIANTS.find(([id]) => id === variant)[1].toLowerCase()}`);
+}
+q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${id} · ${name}`)));
+render();
+shots(q('#ribbon'), 'myth-flash-ribbon', '«W» горит золотом, подсчёт идёт по звёздам фигуры');
+shots(q('#count'), 'myth-flash-count', 'подсчёт: 4 звезды по 4 и ранги = 39 света, ×2 Кассиопеи = 78');
+
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
+  ...[
+    ['Видно фигуру', 'Да, всю', 'Нет, только карты', 'Да, маленьким рисунком', 'Да, и на небе, и рисунком'],
+    ['Куда класть', 'Пунктирная рамка', 'Светящаяся звезда', 'Рисунок в самой клетке', 'Рамка с рисунком внутри'],
+    ['Шум на небе', 'Больше всех: линии между картами', 'Меньше всех', 'Только одна клетка', 'Как у A, рамка тише'],
+    ['Рядом с подписью «Россыпь»', 'Не мешает: разные клетки', 'Не мешает', 'Если миф и линия ждут одну клетку, рисунок и подпись делят её', 'Как у C'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][0] }, x)))));
+
+facts(q('#aside'), [
+  ['Правило', 'Фигура ищется на всём небе со сдвигами и зеркалом. У мифа своё условие: одна масть, все масти, ранги дугой, одинаковые ранги, ранги от 6 или без условия. Миф гасит свои карты, как линия; Знамение «Легенда» оставит их на небе (решено 26.10).'],
+  ['Счёт', '4 света за каждую звезду фигуры и ранги карт, умножить на множитель мифа (×1 – ×3). Миф считается до линий, крест линий умножает и его. Числа подобраны симом 26.10: с мифами бот доходит на 0,8 главы дальше.'],
+  ['Как часто', 'Бот, который играет только на линии: за 300 ночей ни одного мифа. Бот, который строит фигуры нарочно: мифы в 129 ночах из 200, около трёх за ночь. Поэтому без подсказки миф не найти.'],
+  ['Когда открываются', 'Ступень 5: найти 6 разных созвездий. В обучении, в «Тумане» (ранги скрыты) и в вызове дня подсказки и мифов нет.'],
+], [
+  ['MY.1', 'Готово: 12 фигур, сдвиги и зеркало, условия; тесты'],
+  ['MY.2', 'Готово: свой счёт, карты гаснут, ступень открытия; тесты'],
+  ['MY.3', 'Готово: подсказка D, пунктир и силуэт вместе (выбрано 26.10)'],
+  ['MY.4', 'Звёздный каталог и сцена «Новый миф»: витрина'],
+  ['MY.5', 'Три Знамения: Астролог, Звездочёт, Легенда'],
+]);
+ladder(q('#ladder'), 5);
+</script>
+</body>
+</html>
