@@ -387,7 +387,7 @@ export function showGuide(opts: GuideOptions = {}): void {
   // ─── Легендарные Резонанса (RS.3): видны со ступени «Резонанс» ──────────
   const resonanceOpen = () => isUnlocked(RESONANCE_UNLOCK, opts.profile!);
   const seenOmen = (id: string) => opts.profile!.seenOmens.includes(id);
-  /** Формула пары: половинки и легендарное; неувиденное — силуэтом. */
+  /** Пара на доске: половинки и легендарное; неувиденное — силуэтом. */
   const formula = (id: string, half: number, size: number) => {
     const [a, b] = LEGENDS.find((x) => x.id === id)!.pair!;
     const sig = (x: string, n: number) => {
@@ -411,17 +411,15 @@ export function showGuide(opts: GuideOptions = {}): void {
       ? [h('h3', null, named('omen', id).name), h(`span.gb-kind.${kind}`, null, `${c.legend} · ${c.kinds[kind] ?? ''}`), h('p', null, rich(effect(named('omen', id).desc)))]
       : [h('h3', null, c.unknownLegend), h('span.gb-kind', null, c.legend), h('p', null, rich(format(c.unknownLegendDesc, { a: nameOf(a), b: nameOf(b) })))]];
   };
-  /** Вариант витрины RS.3: `?coll=b` — пары формулами, иначе (A) — значки сеткой. */
-  const formulaList = import.meta.env.DEV && new URLSearchParams(location.search).get('coll') === 'b';
   const legendList = (): HTMLElement[] => {
-    const el = h(formulaList ? 'div.gb-sigils.gb-legends.formulas' : 'div.gb-sigils.gb-legends');
+    const el = h('div.gb-sigils.gb-legends');
     for (const x of LEGENDS) {
       const found = seenOmen(x.id);
       const on = pick?.kind === 'legend' && pick.id === x.id;
-      const b = h(`button${found || formulaList ? '' : '.unknown'}${on ? '.on' : ''}`, {
+      const b = h(`button${found ? '' : '.unknown'}${on ? '.on' : ''}`, {
         type: 'button',
         attrs: { 'aria-pressed': String(on), 'aria-label': found ? named('omen', x.id).name : c.unknownLegend },
-      }, formulaList ? formula(x.id, 26, 34) : collSigil('omen', x.id, 40));
+      }, collSigil('omen', x.id, 40));
       b.addEventListener('click', (e) => {
         if (on) return;
         pick = { kind: 'legend', id: x.id };
