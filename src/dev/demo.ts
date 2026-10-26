@@ -29,6 +29,11 @@ interface Scenario {
   hold?: number;
   /** Без подписей прогноза — ответ не виден заранее. */
   noForecast?: boolean;
+  /** Мифы открыты, печатей нет (витрина MY.3). */
+  myths?: boolean;
+  /** Свои Знамения вместо обычных и их счётчики (витрина MY.5). */
+  omens?: string[];
+  omenData?: Record<string, Record<string, number>>;
 }
 
 const OMENS = ['starlight', 'supernovaSeed', 'crossroads', 'doubleStar', 'glassCannon'];
@@ -44,7 +49,25 @@ const CROSS_SKY: [string, number][] = [
   ['1s', 12], ['4c', 15],
 ];
 
+/** Кассиопея из Лун ждёт девятку Луны в клетке 7; рядом карты, которые линий не закрывают. */
+const MYTH_SKY: [string, number][] = [['2m', 0], ['5m', 5], ['7m', 2], ['4s', 12], ['8t', 14], ['3c', 10]];
+
 const SCENARIOS: Record<string, Scenario> = {
+  /** Подсказка мифа: фигуре не хватает одной звезды, хода нет (витрина MY.3). */
+  mythHint: { sky: MYTH_SKY, moves: [], extra: ['9m', '1s', '6c'], score: 1200, target: 6000, movesLeft: 8, think: 0, hold: 600000, myths: true },
+  /** Миф складывается: девятка Луны закрывает Кассиопею. */
+  myth: { sky: MYTH_SKY, moves: [['9m', 7]], extra: ['1s', '6c'], score: 1200, target: 6000, movesLeft: 8, think: 1200, myths: true },
+  /** Звездочёт: Кассиопее не хватает двух Лун, обе в руке — небо подсказывает две клетки (MY.5). */
+  mythTwoStars: {
+    sky: [['2m', 0], ['5m', 5], ['4s', 12], ['8t', 14], ['3c', 11]], moves: [], extra: ['7m', '9m', '1s'],
+    score: 1200, target: 6000, movesLeft: 8, think: 0, hold: 600000, myths: true,
+    omens: ['stargazer', 'starlight', 'crossroads', 'doubleStar', 'glassCannon'],
+  },
+  /** Легенда и Астролог: Кассиопея складывается, её карты остаются на небе (MY.5). */
+  mythLegend: {
+    sky: MYTH_SKY, moves: [['9m', 7]], extra: ['1s', '6c'], score: 1200, target: 60000, movesLeft: 8, think: 1200, myths: true,
+    omens: ['astrologer', 'legend', 'starlight', 'crossroads', 'doubleStar'], omenData: { astrologer: { myths: 3 } },
+  },
   /** Превью бота: Каскад, подготовка и крест «Флеш + Тройка» — победа. */
   '': {
     sky: [['4s', 12], ['5m', 13], ['6t', 14], ['2t', 0], ['5t', 1], ['9s', 7], ['9m', 11]],
@@ -92,9 +115,19 @@ export async function runDemo(app: App, name: string): Promise<void> {
   run.ante = 3;
   run.chapter.at = 1;
   run.gold = 23;
-  run.omens = OMENS.map((id) => createOmen(run, id));
+  run.omens = (sc.omens ?? OMENS).map((id) => {
+    const omen = createOmen(run, id);
+    Object.assign(omen.data, sc.omenData?.[id]);
+    return omen;
+  });
+  if (sc.myths) {
+    run.unlocks.myths = true;
+    // Четыре мифа уже в каталоге: Кассиопея — пятая, «Новый миф · 5 из 12»
+    app.profile.mythsFound = ['pleiades', 'sagitta', 'triangulum', 'cygnus'];
+  }
   app.runs.beginNight();
   const night = run.night!;
+  if (sc.myths) night.sealed = night.sealed.map(() => false);
   const used = new Set<number>();
   const take = (code: string): Card => {
     const card = run.deck.find((c) => !used.has(c.id) && cardCode(c) === code);

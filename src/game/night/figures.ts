@@ -63,3 +63,95 @@ export function drawFigure(world: GameWorld, pts: readonly Pt[], color: string):
   });
   return { state, entity: e };
 }
+
+export interface MythHintState {
+  /** Клетки фигуры в её порядке и рёбра по их индексам; пусто — подсказки нет. */
+  cells: number[];
+  edges: readonly (readonly [number, number])[];
+  /** Клетки, которых не хватает (две — со Звездочётом). */
+  missing: number[];
+  alpha: number;
+}
+
+interface HintLayout {
+  cells: readonly Pt[];
+  cardW: number;
+  cardH: number;
+}
+
+/**
+ * Слой подсказки мифа, которому не хватает одной звезды (MY.3): золотой пунктир фигуры по небу
+ * обрывается на рамке пустой клетки, внутри клетки — рисунок фигуры с пульсирующей недостающей
+ * звездой. Рисует по текущей раскладке неба, ничего не держит сам.
+ */
+export function mythHintLayer(world: GameWorld, state: MythHintState, layout: () => HintLayout): Entity {
+  const e = world.create();
+  world.add(e, Transform, transform(0, 0));
+  world.add(e, Drawable, {
+    // Под картами: пунктир виден в просветах и не закрывает ранги
+    layer: Layer.Board,
+    z: 1000,
+    visible: true,
+    draw: (ctx) => {
+      if (state.alpha <= 0.01 || state.cells.length === 0) return;
+      const { cells, cardW, cardH } = layout();
+      const pts = state.cells.map((c) => cells[c]!);
+      const misses = state.missing.map((c) => cells[c]!);
+      const pulse = 0.75 + 0.25 * Math.sin(world.res.time * 3);
+      const frames = misses.map((m) => [m.x - cardW * 0.42, m.y - cardH * 0.42, cardW * 0.84, cardH * 0.84] as const);
+      ctx.save();
+      ctx.strokeStyle = '#f6c25b';
+      ctx.fillStyle = '#f6c25b';
+      ctx.lineCap = 'round';
+      ctx.setLineDash([6, 7]);
+      ctx.lineDashOffset = -world.res.time * 14;
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = state.alpha * 0.9;
+      // Пунктир обрывается на рамке: внутри клетки только рисунок фигуры
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-1e5, -1e5, 2e5, 2e5);
+      for (const f of frames) ctx.rect(...f);
+      ctx.clip('evenodd');
+      ctx.beginPath();
+      for (const [a, b] of state.edges) {
+        ctx.moveTo(pts[a]!.x, pts[a]!.y);
+        ctx.lineTo(pts[b]!.x, pts[b]!.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+      // Рамка тише пунктира: в клетке главный — рисунок
+      ctx.globalAlpha = state.alpha * pulse * 0.55;
+      for (const f of frames) ctx.strokeRect(...f);
+      ctx.setLineDash([]);
+      for (const m of misses) drawSilhouette(ctx, state, pts, m, cardW * 0.66, cardH * 0.6, cardW, pulse);
+      ctx.restore();
+    },
+  });
+  return e;
+}
+
+/** Рисунок фигуры, вписанный в пустую клетку (`w×h`); её звезда — крупнее и пульсирует. */
+function drawSilhouette(ctx: CanvasRenderingContext2D, state: MythHintState, pts: readonly Pt[], miss: Pt, w: number, h: number, cardW: number, pulse: number): void {
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const k = Math.min(w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0));
+  const mini = pts.map((p) => ({ x: miss.x + (p.x - (x0 + x1) / 2) * k, y: miss.y + (p.y - (y0 + y1) / 2) * k }));
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = state.alpha * 0.9;
+  ctx.beginPath();
+  for (const [a, b] of state.edges) {
+    ctx.moveTo(mini[a]!.x, mini[a]!.y);
+    ctx.lineTo(mini[b]!.x, mini[b]!.y);
+  }
+  ctx.stroke();
+  state.cells.forEach((c, i) => {
+    const p = mini[i]!;
+    const own = state.missing.includes(c);
+    ctx.globalAlpha = state.alpha * (own ? pulse : 0.85);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, own ? Math.max(5, cardW * 0.08) * pulse : Math.max(3, cardW * 0.045), 0, Math.PI * 2);
+    ctx.fill();
+  });
+}

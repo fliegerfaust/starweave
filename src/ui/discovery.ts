@@ -1,12 +1,14 @@
 import { COMBO_EXAMPLES } from '@/core/content/combos';
+import { MYTHS } from '@/core/content/myths';
 import type { ComboId } from '@/core/types';
 import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { dict, t } from '@/i18n';
 import { h } from './dom';
+import { mythFigure } from './myth-figure';
 import { routeIcon } from './route-icon';
 import { cardThumb } from './screens/common';
 
-type Banner = { kind: 'combo'; id: ComboId; count: number } | { kind: 'cross' } | { kind: 'routes' };
+type Banner = { kind: 'combo'; id: ComboId; count: number } | { kind: 'myth'; id: string; count: number } | { kind: 'cross' } | { kind: 'routes' };
 
 const queue: Banner[] = [];
 let current: HTMLElement | null = null;
@@ -15,12 +17,15 @@ let timer = 0;
 let waiters: (() => void)[] = [];
 let fakeId = -5000;
 const SHOW_MS = 2600;
+/** Новый миф — рисунок и строка легенды, читают чуть дольше созвездия. */
+const MYTH_MS = 3400;
 /** Открытие Развилок читают дольше: картинка и фраза. */
 const ROUTES_MS = 4600;
 const OUT_MS = 220;
 
 /**
  * «Новое созвездие!» — короткий праздник при первом сборе созвездия и первом кресте,
+ * «Новый миф · N из 12» (MY.4) — при первой находке мифа,
  * и «Открыто: Развилки» (ON.1) — в первую ночь главы, с которой они открылись.
  * Не блокирует игру: плашка над небом, уходит сама или по касанию. Несколько открытий
  * за ход показываются по очереди.
@@ -53,6 +58,13 @@ function next(onShow?: () => void): void {
           h('div.discovery-cards', null, COMBO_EXAMPLES[b.id].map(([rank, suit]) => cardThumb({ id: fakeId--, rank, suit }, 30))),
           h('div.discovery-desc', null, dict().comboDesc[b.id]),
         ])
+      : b.kind === 'myth'
+        ? h('div.discovery.myth', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
+            h('div.discovery-kicker', null, t('discovery.newMyth', { n: b.count, total: MYTHS.length })),
+            h('div.discovery-name', null, (dict().myth as Record<string, string>)[b.id] ?? b.id),
+            h('div.discovery-figure', null, mythFigure(b.id, 76, true)),
+            h('div.discovery-desc', null, (dict().mythDesc as Record<string, string>)[b.id] ?? ''),
+          ])
       : b.kind === 'routes'
         ? h('div.discovery.routes', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
             h('div.discovery-kicker', null, t('discovery.openedKicker')),
@@ -69,7 +81,7 @@ function next(onShow?: () => void): void {
   document.getElementById('ui')!.append(el);
   current = el;
   onShow?.();
-  timer = window.setTimeout(() => dismiss(onShow), b.kind === 'routes' ? ROUTES_MS : SHOW_MS);
+  timer = window.setTimeout(() => dismiss(onShow), b.kind === 'routes' ? ROUTES_MS : b.kind === 'myth' ? MYTH_MS : SHOW_MS);
 }
 
 /** Значок пути в звезде, как на карте неба, и подпись под ним. */

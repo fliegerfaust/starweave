@@ -240,6 +240,7 @@ export class NightScene {
       c.forecastCard = null;
       c.closesAnim = 0;
     }
+    this.forecast.hideMythHint();
     for (const c of this.cells) void this.svc.tweens.to(c, { avail: 0, ignite: 0 }, { duration: 0.15 });
     await this.presenter.play(events, dragged);
     this.forecast.refreshClosers();

@@ -6,7 +6,8 @@ import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
 import { currentChoice, type Choice } from '@/core/choices';
 import type { Command } from '@/core/commands';
-import { banishServicePrice, omenSlots, ritualMaxTargets, sellPrice } from '@/core/shop';
+import { banishServicePrice, omenSlots, resonanceAt, ritualMaxTargets, sellPrice } from '@/core/shop';
+import { resonanceOf } from '@/core/content/resonance';
 import type { Card, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
 import { track } from '@/analytics';
@@ -17,6 +18,7 @@ import { icon } from '../icons';
 import { showChoice } from '../choice';
 import { showGift } from '../gift';
 import { showTrophyScene } from '../trophy-scene';
+import { playResonance } from '../resonance-scene';
 import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
@@ -128,9 +130,12 @@ export class ShopScreen implements Screen {
     });
     for (let i = run.omens.length; i < slots; i++) owned.append(h('div.owned-omen.empty', null, h('div.omen-slot.empty')));
     makeReorderable(owned, '.owned-omen:not(.empty)', (from, to) => this.act({ c: 'moveOmen', from, to }, 'click'), () => hideTooltip());
-    const ownedHint = misordered
+    // Резонанс (RS.2): пара рядом — между медалями нить и строка «Слить»; пара врозь — совет
+    const resAt = resonanceAt(run);
+    const resHint = this.resonanceHint(owned, resAt);
+    const ownedHint = resHint ?? (misordered
       ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
-      : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint'));
+      : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint')));
 
     // После последней ночи финального созвездия впереди победа, а не карта
     const canPeek = hasNextNight(run);
@@ -237,6 +242,65 @@ export class ShopScreen implements Screen {
             ariaLabel: t('shop.buyLabel', { name: info.name, n: item.price }),
           }),
     ]);
+  }
+
+  /**
+   * Резонанс в ряду своих Знамений: пара рядом — медали светятся, между ними нить, ниже
+   * строка «A + B → легендарное» и «Слить» (вариант A) или совет коснуться медали (вариант B).
+   * Пара врозь — совет поставить рядом. Ничего нет — `null`, остаётся обычная подсказка.
+   */
+  private resonanceHint(owned: HTMLElement, at: number): HTMLElement | null {
+    const run = this.run;
+    if (!run.unlocks.resonance) return null;
+    if (at >= 0) {
+      const a = run.omens[at]!;
+      const b = run.omens[at + 1]!;
+      const res = resonanceOf(a.id, b.id)!;
+      const chips = owned.querySelectorAll<HTMLElement>('.owned-omen');
+      chips[at]?.classList.add('res');
+      chips[at + 1]?.classList.add('res');
+      // Нить — дугой над промежутком между медалями, когда ряд уже разложен
+      requestAnimationFrame(() => {
+        const l = chips[at]?.getBoundingClientRect();
+        const r = chips[at + 1]?.getBoundingClientRect();
+        const box = owned.getBoundingClientRect();
+        if (!l || !r || !owned.isConnected) return;
+        const x1 = l.right - box.left - 6;
+        const x2 = r.left - box.left + 6;
+        const y = l.top - box.top + l.height / 2;
+        const ns = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('class', 'res-thread');
+        svg.setAttribute('width', String(box.width));
+        svg.setAttribute('height', String(box.height));
+        const path = document.createElementNS(ns, 'path');
+        path.setAttribute('d', `M${x1} ${y}Q${(x1 + x2) / 2} ${y - 14} ${x2} ${y}`);
+        svg.append(path);
+        owned.append(svg);
+      });
+      const text = t('resonance.ready', { a: named('omen', a.id).name, b: named('omen', b.id).name, c: named('omen', res.id).name });
+      return h('div.res-line', null, [
+        h('span', null, text),
+        button(t('resonance.fuse'), () => this.fuse(at), { className: 'res-go' }),
+      ]);
+    }
+    const ids = run.omens.map((o) => o.id);
+    const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
+    if (i < 0) return null;
+    const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
+    return h('p.hint.res-hint', null, t('resonance.apart', { a: named('omen', ids[i]!).name, b: named('omen', ids[j]!).name }));
+  }
+
+  /** Слияние пары с места `at`: сцена Резонанса, слияние в забеге, когда медали встретились. */
+  private fuse(at: number): void {
+    const run = this.run;
+    const a = run.omens[at];
+    const b = run.omens[at + 1];
+    const res = a && b ? resonanceOf(a.id, b.id) : undefined;
+    if (!res) return;
+    const chips = this.el.querySelectorAll<HTMLElement>('.owned-omen');
+    track('resonance_fuse', { id: res.id, ante: run.ante });
+    void playResonance(a!.id, b!.id, res.id, [chips[at] ?? null, chips[at + 1] ?? null], () => this.act({ c: 'fuse', at }, 'click'));
   }
 
   /** Своё Знамение: лист с бонусом и продажей (продажа — с подтверждением). */

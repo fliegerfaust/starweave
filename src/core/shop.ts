@@ -1,4 +1,5 @@
 import { BANISH_SERVICE_PRICE, CHART_PRICE, PACK_OPTIONS, PACK_PRICE, RARITY_WEIGHT, REROLL_BASE, SHOP_ITEM_SLOTS, SHOP_OMEN_SLOTS, SHOP_PACK_SLOTS } from './content/balance';
+import { resonanceOf } from './content/resonance';
 import { OMEN_LIST, omenDef } from './content/omens';
 import { MIN_DECK_SIZE, RITUAL_LIST, ritualDef } from './content/rituals';
 import { stakePrice } from './content/stakes';
@@ -9,12 +10,16 @@ import { offer } from './choices';
 import { createOmen } from './omen-instance';
 import { COMBO_IDS, type Card, type ComboId, type PackKind, type RunState, type ShopItem, type ShopState } from './types';
 
+/** Вторая половина пары, которой игрок уже владеет, выпадает чаще (RS.1, баланс по симу): Резонанс находится. */
+const RESONANCE_CALL = 3;
+const calls = (run: RunState, id: string) => run.unlocks.resonance && run.omens.some((o) => !!resonanceOf(o.id, id));
+
 function rollOmens(run: RunState, count: number, exclude: Set<string>): ShopItem[] {
   const items: ShopItem[] = [];
   for (let i = 0; i < count; i++) {
-    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && !exclude.has(o.id));
+    const pool = OMEN_LIST.filter((o) => run.unlocks.omens.includes(o.id) && (!o.myths || run.unlocks.myths) && !o.pair && !exclude.has(o.id));
     if (!pool.length) break;
-    const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity]);
+    const def = weightedPick(run.rng, pool, (o) => RARITY_WEIGHT[o.rarity] * (calls(run, o.id) ? RESONANCE_CALL : 1));
     exclude.add(def.id);
     items.push({ kind: 'omen', omenId: def.id, price: stakePrice(run, def.price), sold: false });
   }
@@ -153,6 +158,25 @@ export function sellOmen(run: RunState, uid: number): void {
   if (index < 0) throw new RuleError('noOmen');
   run.gold += sellPrice(run.omens[index]!.id);
   run.omens.splice(index, 1);
+}
+
+/**
+ * Резонанс (RS.1): первое место ряда, где пара Знамений стоит рядом, — с него и следующего
+ * они сольются. Нет пары или ступень не открыта — `-1`.
+ */
+export function resonanceAt(run: RunState): number {
+  if (!run.unlocks.resonance) return -1;
+  return run.omens.findIndex((o, i) => i + 1 < run.omens.length && !!resonanceOf(o.id, run.omens[i + 1]!.id));
+}
+
+/** Сливает пару с места `index` и соседнего в легендарное; второе место освобождается. */
+export function fuseOmens(run: RunState, index: number): void {
+  requireShop(run);
+  const a = run.omens[index];
+  const b = run.omens[index + 1];
+  const res = run.unlocks.resonance && a && b ? resonanceOf(a.id, b.id) : undefined;
+  if (!res) throw new RuleError('noOmen');
+  run.omens.splice(index, 2, createOmen(run, res.id));
 }
 
 /** Меняет местами Знамения — порядок влияет на подсчёт. */

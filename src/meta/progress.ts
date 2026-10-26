@@ -1,6 +1,6 @@
 import { contentPools, type Unlocks } from '@/core/content/pools';
 import type { GameEvent, RunState } from '@/core/types';
-import { isUnlocked, markDailyStarted, markOmensSeen, markSeen, markTamed, recordDiscoveries, recordProgress, recordRunEnd, unrecordRunEnd, type Discovery, type Profile } from './profile';
+import { isUnlocked, markDailyStarted, markOmensSeen, markSeen, markTamed, recordDiscoveries, recordMyths, recordProgress, recordRunEnd, unrecordRunEnd, type Discovery, type Profile } from './profile';
 
 /**
  * Что случилось в забеге и важно профилю (TD.8). Всё, что открывает небеса, Знамения в
@@ -46,7 +46,7 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
       markSeen(p, run);
       return { ...nothing(), changed: true };
     case 'turn': {
-      const found: Discovery = { combos: [], cross: false };
+      const found: Discovery = { combos: [], cross: false, myths: [] };
       // Побеждённое Затмение — к ступени «Небесные тела»
       const eclipse = !!run.night?.bossId && ev.events.some((e) => e.t === 'nightWon');
       if (eclipse) p.eclipses = (p.eclipses ?? 0) + 1;
@@ -55,8 +55,9 @@ export function recordEvent(p: Profile, run: RunState, ev: ProgressEvent): Progr
         const d = recordDiscoveries(p, e.score.lines.map((l) => l.combo), e.score.lines.length);
         found.combos.push(...d.combos);
         found.cross ||= d.cross;
+        found.myths.push(...recordMyths(p, e.score.myths.map((m) => m.myth)));
       }
-      const any = found.combos.length > 0 || found.cross;
+      const any = found.combos.length > 0 || found.cross || found.myths.length > 0;
       return { skies: [], discovery: any ? found : null, changed: any || eclipse };
     }
     case 'omensShown':

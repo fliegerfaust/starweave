@@ -148,6 +148,9 @@ export function modal(
     if (e.target === backdrop && dismissable) close();
   });
   root.append(backdrop);
+  // Длинное имя одним словом («Солнцепоклонник») не влезает между краем и крестиком — мельче
+  const title = head?.querySelector<HTMLElement>('.modal-title');
+  if (title && title.scrollWidth > title.clientWidth + 1) title.classList.add('long');
   panel.focus({ preventScroll: true });
   document.dispatchEvent(new Event('starweave:modal'));
   return { el: panel, close };

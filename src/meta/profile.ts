@@ -1,4 +1,5 @@
 import { SKY_LIST, type Unlock } from '@/core/content/skies';
+import { MYTHS } from '@/core/content/myths';
 import { MAX_STAKE } from '@/core/content/stakes';
 import { hashSeed } from '@/core/rng';
 import type { TutorialGift } from '@/core/run';
@@ -41,6 +42,8 @@ export interface Profile {
   tutorialFinished?: boolean;
   /** Коллекция: созвездия, которые игрок хоть раз собрал (кроме Россыпи). */
   combosFound?: ComboId[];
+  /** Звёздный каталог (MY.4): найденные мифы в порядке находки. */
+  mythsFound?: string[];
   /** Первый крест уже был. */
   crossFound?: boolean;
   /** Сколько Затмений побеждено за всё время — ступень «Небесные тела» (GF.3). */
@@ -127,6 +130,8 @@ export function sanitizeProfile(p: Raw): Profile {
   if (p.tutorialFinished === true) out.tutorialFinished = true;
   const combos = strs(p.combosFound).filter((id): id is ComboId => (COMBO_IDS as readonly string[]).includes(id));
   if (combos.length) out.combosFound = combos;
+  const myths = strs(p.mythsFound).filter((id) => MYTHS.some((m) => m.id === id));
+  if (myths.length) out.mythsFound = [...new Set(myths)];
   if (p.crossFound === true) out.crossFound = true;
   if (num(p.eclipses, 0) > 0) out.eclipses = num(p.eclipses, 0);
   if (isObj(p.tamed)) {
@@ -193,6 +198,10 @@ export function isUnlocked(unlock: Unlock, p: Profile, owned: ReadonlySet<string
       return p.runs >= unlock.runs;
     case 'eclipses':
       return (p.eclipses ?? 0) >= unlock.count;
+    case 'omensSeen':
+      return p.seenOmens.length >= unlock.count;
+    case 'combos':
+      return (p.combosFound?.length ?? 0) >= unlock.count;
   }
 }
 
@@ -235,10 +244,11 @@ export function markOmensSeen(p: Profile, ids: string[]): boolean {
 /** Созвездия коллекции — все, кроме Россыпи («ничего не совпало» нечего собирать). */
 export const COLLECTIBLE_COMBOS: readonly ComboId[] = COMBO_IDS.filter((id) => id !== 'scatter');
 
-/** Что впервые случилось за ход: новые созвездия коллекции и первый крест. */
+/** Что впервые случилось за ход: новые созвездия коллекции, первый крест, новые мифы каталога. */
 export interface Discovery {
   combos: ComboId[];
   cross: boolean;
+  myths: string[];
 }
 
 /** Записывает вспыхнувшие созвездия в коллекцию; возвращает то, что открыто впервые. */
@@ -251,7 +261,15 @@ export function recordDiscoveries(p: Profile, combos: readonly ComboId[], lines:
   found.push(...fresh);
   const cross = lines >= 2 && !p.crossFound;
   if (cross) p.crossFound = true;
-  return { combos: fresh, cross };
+  return { combos: fresh, cross, myths: [] };
+}
+
+/** Записывает сложившиеся мифы в Звёздный каталог; возвращает впервые найденные. */
+export function recordMyths(p: Profile, myths: readonly string[]): string[] {
+  const found = (p.mythsFound ??= []);
+  const fresh = [...new Set(myths)].filter((id) => !found.includes(id));
+  found.push(...fresh);
+  return fresh;
 }
 
 /** Итог забега в профиль. Возвращает открытые небеса. */

@@ -194,6 +194,11 @@ export class NightScreen implements Screen {
       banners.push({ kind: 'combo', id, count });
       track('combo_found', { combo: id, count, ante: this.run.ante });
     }
+    for (const id of found.myths) {
+      const count = (p.mythsFound?.length ?? 0) - found.myths.length + found.myths.indexOf(id) + 1;
+      banners.push({ kind: 'myth', id, count });
+      track('myth_found', { myth: id, count, ante: this.run.ante });
+    }
     if (found.cross) {
       banners.push({ kind: 'cross' });
       track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
