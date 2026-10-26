@@ -15,13 +15,109 @@
 .vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
 .vlead b { color: var(--gold-hi); }
 
-.shots { display: grid; gap: 18px; align-items: start; }
-@media (min-width: 900px) { .shots { grid-template-columns: 300px minmax(0, 1fr); } }
-.shots-col { display: grid; gap: 18px; }
-.shot { margin: 0; display: grid; gap: 8px; }
-.shot img { width: 100%; height: auto; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass), 0 24px 50px -24px rgb(0 0 0 / 0.8); background: var(--night-0); }
-.shot.tall img { max-width: 300px; justify-self: center; }
-.shot figcaption { font: 600 12.5px/1.4 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.devices { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 1100px) { .devices.top { grid-template-columns: 393px minmax(0, 1fr); } }
+.dev { display: grid; gap: 10px; min-width: 0; }
+.dev h3 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.dev h3 small { font: 600 12px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.dev .again { justify-self: center; }
+.fit { position: relative; width: 100%; }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.frame.stage { max-width: none; min-height: 0; margin: 0; border-radius: 28px; clip-path: inset(0 round 28px); }
+.scr { position: absolute; inset: 0; display: grid; text-align: left; }
+.coin { flex: none; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.55); vertical-align: -2px; }
+.m { color: var(--mult); font-weight: 800; } .l { color: var(--light); font-weight: 800; }
+
+/* ── Обсерватория — как в игре ── */
+.top { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.menu { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--brass); color: var(--gold); }
+.menu i { width: 16px; height: 1.6px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; border-radius: 1px; }
+.ttl { text-align: center; font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); }
+.purse { justify-self: end; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair); font: 800 15px/1 var(--font-body); color: var(--gold-hi); }
+.cap { font: 800 10.5px/1 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+.list { display: grid; gap: 8px; }
+.ware { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 14px; background: rgb(12 10 32 / 0.75); box-shadow: inset 0 0 0 1px var(--hair); }
+.ware .t { min-width: 0; }
+.ware .nm { display: block; font: 700 14.5px/1.25 var(--font-body); color: var(--ink); }
+.ware .ds { display: block; margin-top: 3px; font: 600 12.5px/1.45 var(--font-body); color: var(--ink-dim); }
+.price { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; padding: 0 12px; border-radius: 999px; font: 800 14px/1 var(--font-body); color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+
+/* Свои Знамения: ряд медалей, пара рядом звучит — нить бежит между ними */
+.owned { display: grid; gap: 8px; }
+.row { position: relative; display: flex; gap: 10px; }
+.slot { position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--hair); cursor: pointer; transition: transform 0.25s var(--ease); }
+.slot:hover { transform: translateY(-2px); }
+.slot.empty { box-shadow: inset 0 0 0 1px rgb(170 160 255 / 0.25); cursor: default; }
+.slot.res { filter: drop-shadow(0 0 8px rgb(var(--gold-rgb) / 0.75)); animation: res-hum 1.6s ease-in-out infinite; }
+@keyframes res-hum { 50% { filter: drop-shadow(0 0 14px rgb(var(--gold-rgb) / 0.95)); } }
+.slot.born { animation: born 0.7s var(--ease) both; }
+@keyframes born { from { transform: scale(0.4); filter: drop-shadow(0 0 22px rgb(var(--gold-rgb) / 1)); } to { transform: none; } }
+.thread { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.thread path { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-dasharray: 4 4; stroke-linecap: round; animation: thread 1s linear infinite; filter: drop-shadow(0 0 4px rgb(var(--gold-rgb) / 0.8)); }
+@keyframes thread { to { stroke-dashoffset: -8; } }
+.resline { display: flex; align-items: center; gap: 12px; min-height: 40px; font: 600 13px/1.35 var(--font-body); color: var(--gold-hi); }
+.resline > span { flex: 1; min-width: 0; text-wrap: pretty; }
+.resline .btn { flex: none; min-height: 40px; padding: 8px 18px; font-size: 14px; }
+.resline.calm { color: var(--ink-dim); }
+.next { width: 100%; }
+
+/* Лист Знамения (B): на телефоне снизу, в ландшафте и на ПК — по центру */
+.veil { position: absolute; inset: 0; z-index: 30; display: grid; background: rgb(6 5 20 / 0.6); animation: fade 0.22s ease both; }
+.sheet { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 20px 20px 22px; background: linear-gradient(180deg, #1d1950, #100e2c); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45), 0 -18px 40px -12px rgb(0 0 0 / 0.85); }
+.portrait .veil { align-items: end; }
+.portrait .sheet { border-radius: 22px 22px 0 0; padding-bottom: 30px; animation: up 0.32s var(--ease) both; }
+.landscape .veil, .desktop .veil { place-items: center; }
+.landscape .sheet, .desktop .sheet { width: 380px; border-radius: 20px; animation: pop 0.28s var(--ease) both; }
+.sheet h4 { margin: 0; font: 400 19px/1.1 var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-hi); }
+.sheet p { margin: 0; font: 600 14px/1.45 var(--font-body); color: var(--ink); text-wrap: balance; }
+.sheet .pairnote { font: 600 12.5px/1.35 var(--font-body); color: var(--gold-hi); }
+.sheet .acts { display: grid; gap: 8px; width: 100%; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes up { from { transform: translateY(100%); } }
+@keyframes pop { from { opacity: 0; transform: scale(0.94); } }
+
+/* ── Сцена Резонанса — та же, что в игре ── */
+.scene { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; background: rgb(6 5 20 / 0); transition: background 0.35s ease; }
+.scene.on { background: rgb(6 5 20 / 0.82); }
+.scene.out { opacity: 0; transition: opacity 0.22s ease; }
+.stack { display: grid; justify-items: center; gap: 18px; margin-top: -51px; }
+.landscape .stack { grid-auto-flow: column; align-items: center; gap: 28px; margin-top: 0; }
+.landscape .rtext { justify-items: start; text-align: left; }
+.desktop .stack { margin-top: -46px; transform: scale(1.25); }
+.rslot { position: relative; width: 120px; height: 120px; }
+.fly { position: absolute; width: 72px; height: 72px; margin: -36px 0 0 -36px; transform: scale(0.64); transition: left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; z-index: 51; }
+.fly .k-sig { width: 72px !important; height: 72px !important; }
+.fly.up { transform: scale(1); }
+.scene.hum ~ .fly, .fly.hum { animation: shiver 0.12s linear infinite; filter: drop-shadow(0 0 16px rgb(var(--gold-rgb) / 0.9)); }
+@keyframes shiver { 50% { translate: 0 -1.5px; } }
+.fly.merge { transition-duration: 0.28s; transform: scale(0.4); opacity: 0; }
+.burst { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff6e0; box-shadow: 0 0 60px 30px rgb(var(--gold-rgb) / 0.8); animation: burst 0.7s ease-out forwards; }
+@keyframes burst { from { transform: scale(0.2); opacity: 1; } to { transform: scale(18); opacity: 0; } }
+.lmedal { position: absolute; inset: 0; display: grid; place-items: center; animation: lmedal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; filter: drop-shadow(0 0 22px rgb(var(--gold-rgb) / 0.7)); }
+.lmedal .k-sig { width: 120px !important; height: 120px !important; }
+@keyframes lmedal { from { transform: scale(0.3) rotate(-40deg); opacity: 0; } }
+.rtext { width: 340px; display: grid; justify-items: center; gap: 10px; text-align: center; min-height: 190px; align-content: start; }
+.rtext > * { animation: fade 0.4s 0.15s ease both; }
+.rtext .bonus { font: 600 14px/1.45 var(--font-body); color: var(--ink); text-wrap: balance; }
+.rfrom { display: flex; align-items: center; gap: 6px; font: 600 12px/1 var(--font-body); color: var(--ink-faint); }
+.rtext .btn { min-width: 180px; }
+@media (prefers-reduced-motion: reduce) { .fly, .lmedal, .burst, .slot.res, .thread path { animation: none !important; transition: none !important; } }
+
+/* ── Раскладки ── */
+.scr.portrait { grid-template-rows: auto auto auto auto minmax(0, 1fr) auto; gap: 12px; padding: 46px 16px 24px; align-content: start; }
+.scr.portrait .ware { grid-template-columns: 52px minmax(0, 1fr) auto; padding: 13px 14px; gap: 14px; }
+.scr.portrait .owned { margin-top: 6px; }
+.scr.portrait .next { align-self: end; }
+.scr.landscape { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; padding: 16px 48px; align-items: center; }
+.scr.landscape .col { display: grid; gap: 10px; align-content: center; }
+.scr.desktop { grid-template-rows: auto minmax(0, 1fr); gap: 20px; padding: 26px 44px 32px; }
+.scr.desktop .top { max-width: 1040px; width: 100%; margin: 0 auto; }
+.scr.desktop .body { display: grid; grid-template-columns: minmax(0, 540px) minmax(0, 420px); justify-content: center; align-items: center; gap: 56px; }
+.scr.desktop .col { display: grid; gap: 14px; align-content: center; }
+.scr.desktop .ware .nm { font-size: 16px; } .scr.desktop .ware .ds { font-size: 14px; }
+.scr.desktop .slot { width: 56px; height: 56px; }
+.scr.desktop .resline { font-size: 14.5px; }
+.scr.desktop .next { width: auto; justify-self: start; min-width: 240px; }
 
 .cmp { display: grid; }
 .cmp .r { display: grid; grid-template-columns: 150px repeat(2, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
@@ -47,18 +143,13 @@
     <p class="vlead" id="vlead"></p>
   </div>
 
-  <div class="label">Пара стоит рядом <small>настоящая игра, Обсерватория 4-й главы: Солнцепоклонник и Зенит в ряду своих Знамений</small></div>
-  <div class="shots" id="row"></div>
-
-  <div class="label">Слияние <small>одинаково в обоих вариантах: экран гаснет, медали слетаются, дрожат и сливаются вспышкой</small></div>
-  <div class="shots" id="hum"></div>
-  <div class="shots" id="final"></div>
-
-  <div class="label">После слияния <small>легендарное занимает одно место — в ряду освободился слот</small></div>
-  <div class="shots" id="after"></div>
-
-  <div class="label">Пара врозь <small>оба Знамения есть, но не рядом — строка-совет под рядом</small></div>
-  <div class="shots" id="apart"></div>
+  <div class="label">Попробуй сам <small>Обсерватория 4-й главы: Солнцепоклонник и Зенит в ряду своих Знамений; нажимается всё, что нажимается в игре</small></div>
+  <div class="ctl"><div class="seg small" id="where"></div></div>
+  <div class="devices top">
+    <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><button class="btn btn-secondary again" data-f="0">Сначала</button></div>
+    <div class="dev"><h3>Ландшафт <small>915 × 412</small></h3><div class="fit" id="fL"></div><button class="btn btn-secondary again" data-f="1">Сначала</button></div>
+  </div>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div>
 
   <div class="label">Чем различаются <small>одно слияние, два места для кнопки</small></div>
   <div class="cmp" id="cmp"></div>
@@ -70,7 +161,7 @@
     <div class="aside" id="aside"></div>
     <div id="ladder"></div>
   </div>
-  <p class="foot">Витрина 0.7 · Резонанс · слияние в Обсерватории (RS.1, RS.2) · 26.10.2026 · снимки настоящей игры, ветка feature/myths-core · выбирает Денис · замысел: <a href="d8-resonance.html">первая витрина</a></p>
+  <p class="foot">Витрина 0.7 · Резонанс · слияние в Обсерватории (RS.1, RS.2) · 26.10.2026 · интерактивные макеты экранов игры, ветка feature/myths-core · выбирает Денис · замысел: <a href="d8-resonance.html">первая витрина</a></p>
 </div>
 <!--KITJS-->
 <script>
@@ -80,27 +171,145 @@ const VARIANTS = [
   ['A', 'Строка «Слить»', 'Под рядом Знамений строка: «<b>Солнцепоклонник и Зенит звучат вместе: сольются в Полдень</b>» и кнопка «Слить». Видно сразу, ничего не надо искать.'],
   ['B', 'В листе Знамения', 'Под рядом только совет «Нажми на любое из них». Кнопка «<b>Слить в Полдень</b>» — в листе Знамения, вместо «Оставить». Экран тише, но слияние на касание дальше.'],
 ];
-const FORMS = [['portrait', 'Телефон · 393 × 852'], ['landscape', 'Ландшафт · 915 × 412'], ['pc', 'ПК · 1366 × 768']];
+/* art: omen-stardust omen-sunWorship omen-highNoon omen-nightOwl omen-noon omen-crossroads omen-moonTide chart-flush pack-omen ritual-glyph-glass */
+const NAME = { stardust: 'Звёздная пыль', sunWorship: 'Солнцепоклонник', highNoon: 'Зенит', nightOwl: 'Сова', noon: 'Полдень' };
+const DESC = {
+  stardust: 'Каждое созвездие: <span class="m">+4 к множителю</span>',
+  sunWorship: 'Каждая карта Солнца в созвездии: <span class="m">+3 к множителю</span>',
+  highNoon: 'Карты ранга 7–9: <span class="m">+2 к множителю</span>',
+  nightOwl: 'Последний ход ночи: <span class="m">×3 к итогу</span>',
+  noon: 'Карты Солнца 7–9: <span class="m">+6 к множителю и ×1.5</span>. Другие Солнца: <span class="m">+3</span>, другие 7–9: <span class="m">+2</span>',
+};
+const WARES = [
+  ['omen-crossroads', 'Перекрёсток', 'Крест: <span class="m">+1 к множителю креста</span>', 6],
+  ['omen-moonTide', 'Лунный прилив', 'Каждая карта Луны в созвездии: <span class="l">+25 света</span>', 5],
+  ['chart-flush', 'Флеш: уровень 2 → 3', '<span class="l">+15 света</span>, <span class="m">+2 к множителю</span>', 4],
+  ['pack-omen', 'Пакет Знамений', 'Открой и выбери одно из трёх Знамений', 5],
+  ['ritual-glyph-glass', 'Глиф стекла', 'Карта получает Стекло: <span class="m">×2 к множителю</span>, шанс 25% разбиться', 4],
+];
+const WHERE = [['near', 'Пара рядом'], ['apart', 'Пара врозь']];
 let variant = ['A', 'B'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'A';
+let where = 'near';
+const PAIR = ['sunWorship', 'highNoon'];
+const coin = () => h('span', { class: 'coin' });
+const wait2 = (ms) => (REDUCED ? Promise.resolve() : wait(ms));
 
-function shots(el, file, cap) {
-  const f = (form, size, tall) => h('figure', { class: `shot${tall ? ' tall' : ''}` },
-    h('img', { src: `shots/${file}-${form}.jpg`, alt: `${size}: ${cap}`, loading: 'lazy' }),
-    h('figcaption', {}, `${size} · ${cap}`));
-  el.replaceChildren(f(...FORMS[0], true), h('div', { class: 'shots-col' }, f(...FORMS[1]), f(...FORMS[2])));
+function frameIn(fit, mode, W, H) {
+  const frame = h('div', { class: 'frame stage' });
+  frame.style.width = W + 'px'; frame.style.height = H + 'px';
+  fit.append(frame);
+  sky(frame, 6);
+  const scr = h('div', { class: 'scr ' + mode });
+  frame.append(scr);
+  const f = { mode, frame, scr, scale: () => Math.min(1, fit.clientWidth / W) };
+  const fs = () => { const s = f.scale(); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; };
+  new ResizeObserver(fs).observe(fit); fs();
+  return f;
 }
+// Точка элемента внутри рамки в её собственных пикселях (рамка уменьшена transform-ом)
+function local(f, el) {
+  const fr = f.frame.getBoundingClientRect(), r = el.getBoundingClientRect(), s = f.scale();
+  return { x: (r.left + r.width / 2 - fr.left) / s, y: (r.top + r.height / 2 - fr.top) / s };
+}
+
+function shop(f) {
+  const st = f.state;
+  const ware = ([art, nm, ds, price]) => h('div', { class: 'ware' }, sig(art, 44), h('div', { class: 't' }, h('b', { class: 'nm' }, nm), h('span', { class: 'ds', html: ds })), h('span', { class: 'price' }, price, ' ', coin()));
+  const top = h('div', { class: 'top' }, h('span', { class: 'menu' }, h('i')), h('div', { class: 'ttl' }, 'Обсерватория'), h('span', { class: 'purse' }, coin(), '18'));
+  const at = st.omens.findIndex((id, i) => id === PAIR[0] && st.omens[i + 1] === PAIR[1]);
+  const size = f.mode === 'desktop' ? 56 : 46;
+  const row = h('div', { class: 'row' }, ...st.omens.map((id, i) => {
+    const res = at >= 0 && (i === at || i === at + 1);
+    const el = h('div', { class: 'slot' + (res ? ' res' : '') + (id === st.born ? ' born' : ''), 'data-i': i, onclick: () => openSheet(f, id, res) }, sig(`omen-${id}`, size - 6));
+    return el;
+  }), ...Array.from({ length: 5 - st.omens.length }, () => h('div', { class: 'slot empty' })));
+  if (at >= 0) {
+    const gap = 10, c1 = at * (size + gap) + size / 2, c2 = c1 + size + gap;
+    row.append(h('span', { class: 'thread', html: `<svg width="100%" height="100%" style="overflow:visible"><path d="M${c1 + 10} ${size / 2 - 12} Q${(c1 + c2) / 2} ${size / 2 - 30} ${c2 - 10} ${size / 2 - 12}"/><path d="M${c1 + size / 2 - 2} ${size / 2} L${c2 - size / 2 + 2} ${size / 2}"/></svg>` }));
+  }
+  let line = null;
+  const names = PAIR.map((id) => `«${NAME[id]}»`).join(' и ');
+  if (at >= 0 && variant === 'A') line = h('div', { class: 'resline' }, h('span', {}, `${names} звучат вместе: сольются в «${NAME.noon}».`), h('button', { class: 'btn btn-primary', onclick: () => fuse(f) }, 'Слить'));
+  else if (at >= 0) line = h('div', { class: 'resline' }, h('span', {}, `${names} звучат вместе: сольются в «${NAME.noon}». Нажми на любое из них.`));
+  else if (st.omens.includes(PAIR[0]) && st.omens.includes(PAIR[1])) line = h('div', { class: 'resline' }, h('span', {}, `${names} звучат вместе. Поставь их рядом.`));
+  else line = h('div', { class: 'resline calm' }, h('span', {}, 'Касание Знамения — что делает. Перетащи, чтобы поменять порядок.'));
+  const owned = h('div', { class: 'owned' }, h('div', { class: 'cap' }, `Твои Знамения · ${st.omens.length} из 5`), row, line);
+  const next = h('button', { class: 'btn btn-primary next' }, 'Следующая ночь');
+  const list = (xs) => h('div', { class: 'list' }, xs.map(ware));
+  if (f.mode === 'portrait') return [top, h('div', { class: 'cap' }, 'Знамения'), list(WARES.slice(0, 2)), h('div', { class: 'cap' }, 'Звёздные карты и пакеты'), h('div', { style: { display: 'grid', gap: '14px', alignContent: 'start' } }, list(WARES.slice(2)), owned), next];
+  if (f.mode === 'landscape') return [h('div', { class: 'col' }, h('div', { class: 'cap' }, 'Знамения и звёздные карты'), list(WARES.slice(0, 3))), h('div', { class: 'col' }, top, owned, next)];
+  return [top, h('div', { class: 'body' }, h('div', { class: 'col' }, h('div', { class: 'cap' }, 'Знамения'), list(WARES.slice(0, 2)), h('div', { class: 'cap' }, 'Звёздные карты и пакеты'), list(WARES.slice(2))), h('div', { class: 'col' }, owned, next))];
+}
+
+function paint(f) { f.scr.replaceChildren(...shop(f)); }
+function mount(f) {
+  qa('.veil, .scene, .fly', f.frame).forEach((x) => x.remove());
+  f.state = { omens: where === 'apart' ? ['sunWorship', 'stardust', 'highNoon', 'nightOwl'] : ['stardust', 'sunWorship', 'highNoon', 'nightOwl'], born: null };
+  paint(f);
+}
+
+// Лист своего Знамения: в B у пары рядом вместо «Оставить» — «Слить в «Полдень»»
+function openSheet(f, id, res) {
+  const close = () => veil.remove();
+  const acts = res && variant === 'B'
+    ? [h('button', { class: 'btn btn-primary', onclick: () => { close(); fuse(f); } }, `Слить в «${NAME.noon}»`), h('button', { class: 'btn btn-secondary', onclick: close }, 'Продать +3 ', coin())]
+    : [h('button', { class: 'btn btn-primary', onclick: close }, 'Оставить'), h('button', { class: 'btn btn-secondary', onclick: close }, 'Продать +3 ', coin())];
+  const sheet = h('div', { class: 'sheet', onclick: (e) => e.stopPropagation() },
+    sig(`omen-${id}`, 64), h('h4', {}, NAME[id]), h('p', { html: DESC[id] }),
+    res && variant === 'B' ? h('div', { class: 'pairnote' }, `Звучит вместе с «${NAME[PAIR.find((x) => x !== id)]}»`) : null,
+    h('div', { class: 'acts' }, ...acts));
+  const veil = h('div', { class: 'veil', onclick: close }, sheet);
+  f.scr.append(veil);
+}
+
+// Сцена: экран гаснет, медали слетаются к центру, дрожат, сливаются вспышкой — раскрывается Полдень
+async function fuse(f) {
+  const st = f.state;
+  const at = st.omens.indexOf(PAIR[0]);
+  const from = [qa('.slot', f.scr)[at], qa('.slot', f.scr)[at + 1]].map((el) => local(f, el));
+  const slot = h('div', { class: 'rslot' });
+  const text = h('div', { class: 'rtext' });
+  const scene = h('div', { class: 'scene' }, h('div', { class: 'stack' }, slot, text));
+  f.scr.append(scene);
+  const c = local(f, slot);
+  const flies = PAIR.map((id, i) => {
+    const m = h('div', { class: 'fly' }, sig(`omen-${id}`, 72));
+    m.style.left = from[i].x + 'px'; m.style.top = from[i].y + 'px';
+    f.frame.append(m);
+    return m;
+  });
+  requestAnimationFrame(() => scene.classList.add('on'));
+  await wait2(60);
+  flies.forEach((m, i) => { m.style.left = c.x + (i ? 46 : -46) + 'px'; m.style.top = c.y + 'px'; m.classList.add('up'); });
+  await wait2(620);
+  flies.forEach((m) => m.classList.add('hum'));
+  await wait2(520);
+  flies.forEach((m) => { m.style.left = c.x + 'px'; m.classList.add('merge'); });
+  await wait2(300);
+  flies.forEach((m) => m.remove());
+  st.omens.splice(at, 2, 'noon');
+  st.born = 'noon';
+  slot.append(h('div', { class: 'burst' }), h('div', { class: 'lmedal' }, sig('omen-noon', 120)));
+  await wait2(260);
+  text.append(
+    h('div', { class: 'ribbon' }, h('b', {}, 'Резонанс'), h('small', {}, NAME.noon)),
+    h('div', { class: 'bonus', html: DESC.noon }),
+    h('div', { class: 'rfrom' }, sig('omen-sunWorship', 24), h('span', {}, '+'), sig('omen-highNoon', 24), h('span', {}, 'освободили место')),
+    h('button', { class: 'btn btn-primary', onclick: () => { scene.classList.add('out'); setTimeout(() => { scene.remove(); paint(f); }, 220); } }, 'Дальше'));
+}
+
+const frames = [[q('#fP'), 'portrait', 393, 852], [q('#fL'), 'landscape', 915, 412], [q('#fD'), 'desktop', 1366, 768]].map(([fit, mode, W, H]) => frameIn(fit, mode, W, H));
+qa('.again').forEach((b) => (b.onclick = () => mount(frames[+b.dataset.f])));
 function render() {
   qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  qa('#where button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === where)));
   q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
-  if (variant === 'A') shots(q('#row'), 'res-row', 'вариант A: нить между медалями и строка «Слить»');
-  else shots(q('#row'), 'res-sheet', 'вариант B: касание медали — лист с «Слить в Полдень»');
+  frames.forEach(mount);
 }
 q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${id} · ${name}`)));
+q('#where').append(...WHERE.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { where = id; render(); } }, name)));
 render();
-shots(q('#hum'), 'res-hum', 'медали встали рядом и дрожат, звуча вместе');
-shots(q('#final'), 'res-final', 'легендарное «Полдень»: лента «Резонанс», бонус строкой, из чего слито');
-shots(q('#after'), 'res-after', 'в ряду Полдень, место пятого Знамения свободно');
-shots(q('#apart'), 'res-apart', '«Солнцепоклонник и Зенит звучат вместе. Поставь их рядом»');
+document.fonts?.ready.then(render);
 
 q('#cmp').append(
   h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
