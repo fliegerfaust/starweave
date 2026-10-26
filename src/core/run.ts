@@ -94,7 +94,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
 
 /** Снимок открытий из журнала до 0.7 — без дара и тел, как и игрался. */
 function normalizeUnlocks(u: Unlocks): Unlocks {
-  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false, trophies: u.trophies ?? false };
+  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false, trophies: u.trophies ?? false, myths: u.myths ?? false };
 }
 
 /**

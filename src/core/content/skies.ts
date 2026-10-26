@@ -13,6 +13,8 @@ export type Unlock =
   | { kind: 'runsDone'; runs: number }
   /** Побеждено Затмений за всё время. */
   | { kind: 'eclipses'; count: number }
+  /** Найдено разных созвездий (линий) за всё время. */
+  | { kind: 'combos'; count: number }
   /** Входит в «Звёздный атлас» — открывается покупкой, а не достижением. */
   | { kind: 'atlas' };
 

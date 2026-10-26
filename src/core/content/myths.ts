@@ -1,3 +1,5 @@
+import type { Unlock } from './skies';
+
 /**
  * Мифические созвездия (MY.1): фигуры настоящих созвездий на небе 4×4. Карты, сложившиеся в
  * фигуру с её условием, вспыхивают разом, миф записывается в Звёздный каталог. Клетки —
@@ -22,6 +24,12 @@ export interface MythDef {
   /** Множитель мифа к его свету. */
   x: number;
 }
+
+/** Свет мифа за каждую звезду фигуры, к рангам карт. */
+export const MYTH_STAR_LIGHT = 10;
+
+/** Ступень «Мифы»: найти 6 разных созвездий. */
+export const MYTHS_UNLOCK: Unlock = { kind: 'combos', count: 6 };
 
 export const MYTHS: readonly MythDef[] = [
   { id: 'cassiopeia', cells: [[0, 0], [1, 1], [0, 2], [1, 3]], cond: 'suit', x: 3 },

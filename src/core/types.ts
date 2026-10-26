@@ -118,6 +118,8 @@ export type StepSource =
   /** Небесное тело: Чёрная дыра на своей клетке, Пульсар — без клетки (копит на всю ночь). */
   | { kind: 'body'; body: BodyId; cell?: number; cardId?: number }
   | { kind: 'chain'; lines: number }
+  /** Мифическое созвездие (MY.2): база фигуры и её множитель. */
+  | { kind: 'myth'; myth: string }
   | EffectSource;
 
 /** Один вклад в подсчёт. Презентер проигрывает шаги по порядку как всплывающие числа. */
@@ -142,8 +144,20 @@ export interface LineScore {
   total: number;
 }
 
+/** Миф хода (MY.2): фигура вспыхивает как своя формация, рядом с линиями. */
+export interface MythScore {
+  myth: string;
+  /** Клетки в порядке фигуры. */
+  cells: number[];
+  steps: ScoreStep[];
+  light: number;
+  mult: number;
+  total: number;
+}
+
 export interface PlacementScore {
   lines: LineScore[];
+  myths: MythScore[];
   /** Шаги уровня хода: цепь, «последний ход» и т.п. */
   steps: ScoreStep[];
   chainMult: number;

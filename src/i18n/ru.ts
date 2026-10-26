@@ -826,6 +826,7 @@ export const ru = {
     linesTotal: 'Зажги {n} линий за все забеги',
     runsDone: 'Закончи забег',
     eclipses: 'Победи {n} Затмений',
+    combos: 'Найди {n} разных созвездий',
     atlas: 'Входит в «Звёздный атлас»',
   },
   tutorial: {

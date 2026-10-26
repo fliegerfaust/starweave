@@ -820,6 +820,7 @@ export const en: Dict = {
     linesTotal: 'Light {n} lines across runs',
     runsDone: 'Finish a run',
     eclipses: 'Defeat {n} Eclipses',
+    combos: 'Find {n} different constellations',
     atlas: 'Part of the Star Atlas',
   },
   tutorial: {

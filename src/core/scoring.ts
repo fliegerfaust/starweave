@@ -1,11 +1,13 @@
 import { comboBase } from './content/combos';
+import { MYTH_STAR_LIGHT, mythDef } from './content/myths';
+import type { MythPlacement } from './myths';
 import { resolveLine } from './combos';
 import { activeEffects, type ActiveEffect } from './effect-sources';
 import type { BaseCtx, CardCtx, Contrib, LineInfo, PlacementCtx } from './effects';
 import { activeCells } from './grid';
 import type { RngState } from './rng';
 import { traitOf } from './content/traits';
-import type { Card, Line, LineScore, NightState, PlacementScore, RunState, ScoreStep, StepSource, EffectSource } from './types';
+import type { Card, Line, LineScore, MythScore, NightState, PlacementScore, RunState, ScoreStep, StepSource, EffectSource } from './types';
 
 /** Накопитель шагов одной линии. */
 class Tally {
@@ -99,6 +101,23 @@ function scoreLine(
   return { line, combo, cells, steps: tally.steps, light, mult, total: Math.floor(light * mult), gold: tally.gold };
 }
 
+/**
+ * Миф как формация (MY.2): база — свет за каждую звезду, множитель — множитель мифа, к ним
+ * ранги карт. Карты под пятном Затмения света не дают, как и в линии.
+ */
+function scoreMyth(night: NightState, found: MythPlacement): MythScore {
+  const def = mythDef(found.myth);
+  const tally = new Tally();
+  tally.push({ kind: 'myth', myth: def.id }, { light: MYTH_STAR_LIGHT * found.cells.length, mult: def.x });
+  for (const cell of found.cells) {
+    const card = night.grid[cell] as Card;
+    if (!isDebuffed(card, night)) tally.push({ kind: 'card', cell, cardId: card.id }, { light: card.rank });
+  }
+  const light = Math.max(0, tally.light);
+  const mult = Math.max(0, tally.mult);
+  return { myth: def.id, cells: found.cells, steps: tally.steps, light, mult, total: Math.floor(light * mult) };
+}
+
 function withCell(source: EffectSource, cell: number): EffectSource {
   return source.kind === 'omen' ? { ...source, cell } : source;
 }
@@ -108,14 +127,15 @@ function withCell(source: EffectSource, cell: number): EffectSource {
  * это делает `night.ts`, чтобы подсчёт оставался чистым относительно стейта ночи
  * (кроме данных Знамений и ГПСЧ).
  */
-export function scorePlacement(run: RunState, night: NightState, lines: Line[], rng: RngState): PlacementScore {
+export function scorePlacement(run: RunState, night: NightState, lines: Line[], rng: RngState, found: readonly MythPlacement[] = []): PlacementScore {
   const effects = activeEffects(run, night);
   const shattered = new Set<number>();
   const rolled = new Set<number>();
   const scored = lines.map((line) => scoreLine(run, night, line, effects, rng, shattered, rolled));
+  const myths = found.map((m) => scoreMyth(night, m));
 
   const steps: ScoreStep[] = [];
-  const sum = scored.reduce((s, l) => s + l.total, 0);
+  const sum = scored.reduce((s, l) => s + l.total, 0) + myths.reduce((s, m) => s + m.total, 0);
   let gold = scored.reduce((s, l) => s + l.gold, 0);
   let xMult = 1;
 
@@ -150,6 +170,7 @@ export function scorePlacement(run: RunState, night: NightState, lines: Line[], 
 
   return {
     lines: scored.map(({ gold: _gold, ...rest }) => rest),
+    myths,
     steps,
     chainMult,
     xMult,

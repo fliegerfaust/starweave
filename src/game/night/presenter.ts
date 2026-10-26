@@ -574,6 +574,7 @@ export class Presenter {
         return t('calc.trophy', { name: named('trophy', src.trophyId).name, effect });
       case 'combo':
       case 'chain':
+      case 'myth':
         return effect;
     }
   }
