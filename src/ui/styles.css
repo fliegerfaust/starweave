@@ -825,45 +825,15 @@ body {
 
 .icon { flex: none; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-/* ─── Вход в Коллекцию с главной (витрина CL.1, `?menuvar=`) ─────────── */
-/* a — третья лёгкая кнопка: счёт тише слова, цифры не прыгают */
-.menu-count { font: 700 12px/1 var(--font-body); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-/* b — «Твоё небо»: мифы игрока золотом, имя чуть выше, под ним — счёт каталога */
-.dome-scope.own-sky { --own-b: calc(clamp(34px, 10.4vw, 46px) * 0.9 + 6px); }
-.own-sky .dome-figure { cursor: pointer; }
-.own-sky .dome-name { margin-bottom: 30px; }
-.own-sky .dome-figure { height: calc(100% - var(--slit-w) * 0.2 - 16% - 34px); }
-.dome-figure.own line { stroke: rgb(var(--gold-rgb) / 0.9); stroke-width: 0.6; }
-.dome-figure.own circle { fill: #ffe6a8; }
-.dome-own {
-  position: absolute;
-  left: 50%;
-  bottom: var(--own-b);
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  min-height: 36px;
-  padding: 0 6px 0 12px;
-  border: 0;
-  background: none;
-  color: var(--gold);
-  font: 700 12.5px/1 var(--font-body);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-.dome-own .icon { width: 14px; height: 14px; }
-.dome-own:hover { color: #ffe6a8; }
-/* c — полка находок: знаки без плашки, самая новая светится, счёт строкой */
+/* ─── Полка находок под названием (CL.1, «Следующее открытие») ─────────── */
+/* Знаки последних находок и счёт, под ними шкала Коллекции и силуэт следующего открытия.
+   Без плашки: строка целиком — кнопка в Коллекцию */
 .menu-shelf {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
+  display: inline-grid;
+  justify-items: center;
+  gap: 6px;
   margin-top: 12px;
-  padding: 4px 6px 4px 8px;
+  padding: 6px 10px;
   border: 0;
   border-radius: 12px;
   background: none;
@@ -874,84 +844,19 @@ body {
   transition: background-color 0.2s, color 0.2s;
 }
 .menu-shelf:hover { background: rgb(var(--violet-rgb) / 0.08); color: var(--ink); }
+.shelf-top { display: inline-flex; align-items: center; gap: 12px; }
 .shelf-marks { display: flex; align-items: center; gap: 6px; }
 .shelf-mark { display: block; opacity: 0.85; }
 .shelf-mark.fresh { opacity: 1; filter: drop-shadow(0 0 6px rgb(var(--gold-rgb) / 0.75)); }
 .shelf-text { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 .shelf-text .icon { width: 14px; height: 14px; color: var(--gold); }
-/* c1 — что нового: непросмотренное светится и один раз вспыхивает, увиденное тише */
-.menu-shelf.v1 .shelf-mark.old { opacity: 0.5; }
-.shelf-mark.glint { animation: shelf-glint 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
-@keyframes shelf-glint { 0% { opacity: 0.5; } 40% { opacity: 1; filter: drop-shadow(0 0 10px rgb(255 230 168 / 0.95)); } 100% { opacity: 1; filter: drop-shadow(0 0 6px rgb(var(--gold-rgb) / 0.75)); } }
-.shelf-new { color: #ffe6a8; font-weight: 700; }
-.shelf-dim { color: var(--ink-faint); font-size: 12.5px; }
-.shelf-lines { display: grid; gap: 3px; text-align: left; }
-/* c2 — по разделам: знак и счёт столбиком, пустой раздел — силуэтом */
-.menu-shelf.v2 { gap: 4px; padding: 0; cursor: default; }
-.menu-shelf.v2:hover { background: none; }
-.shelf-sec {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 5px;
-  min-width: 52px;
-  min-height: 56px;
-  padding: 6px 4px 4px;
-  border: 0;
-  border-radius: 12px;
-  background: none;
-  color: var(--ink-faint);
-  font: 600 11.5px/1 var(--font-body);
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-.shelf-sec:hover { background: rgb(var(--violet-rgb) / 0.08); }
-.shelf-sec b { color: var(--ink); font-weight: 800; }
-.shelf-sec-mark { display: grid; place-items: center; height: 26px; }
-.shelf-sec-mark .sky-fan { position: relative; width: 26px; height: 26px; }
-.shelf-sec.empty b { color: var(--ink-faint); }
-.shelf-mark .unknown, .shelf-sec-mark .unknown, .shelf-ghost .unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
-/* c3 — следующее открытие: шкала под счётом, силуэт и сколько осталось */
-.menu-shelf.v3 { display: inline-grid; justify-items: center; gap: 6px; padding: 6px 10px; }
-.shelf-top { display: inline-flex; align-items: center; gap: 12px; }
 .shelf-bar { position: relative; width: 100%; height: 2px; border-radius: 1px; background: rgb(var(--gold-rgb) / 0.16); overflow: hidden; }
 .shelf-bar::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--p); background: linear-gradient(90deg, var(--gold-deep), #ffe6a8); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.7); }
 .shelf-next { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-faint); font: 600 12.5px/1.25 var(--font-body); text-wrap: balance; }
 .shelf-ghost { display: grid; place-items: center; flex: none; }
-/* Узкий телефон (320 px): на полке три знака, остальное в Коллекции */
+.shelf-ghost .unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
+/* Узкий телефон (320 px): на полке три знака помещаются, четвёртого нет */
 @media (max-width: 359px) { .shelf-marks .shelf-mark:nth-child(n + 4) { display: none; } }
-
-/* d — три комнаты: под волосяной линией, текущая — золотом с чертой сверху */
-.menu-rooms {
-  display: flex;
-  justify-content: center;
-  width: min(400px, calc(100vw - 40px));
-  margin-top: 14px;
-  box-shadow: 0 -1px 0 var(--hair);
-}
-.menu-room {
-  position: relative;
-  flex: 1;
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  min-height: 54px;
-  padding: 9px 6px 4px;
-  border: 0;
-  background: none;
-  color: var(--ink-dim);
-  font: 700 11px/1 var(--font-body);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.menu-room .icon { width: 20px; height: 20px; }
-.menu-room:hover { color: var(--ink); }
-.menu-room.here { color: #ffe6a8; cursor: default; }
-.menu-room.here .icon { color: var(--gold); }
-.menu-room.here::before { content: ''; position: absolute; top: -1px; left: 30%; right: 30%; height: 2px; border-radius: 1px; background: var(--gold); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.7); }
 
 
 /* Невысокие экраны: щель ниже, слоган прячется — пульт влезает без прокрутки */
@@ -970,9 +875,6 @@ body {
   .tagline { font-size: 16px; }
   .menu-buttons { width: min(520px, 100%); padding-top: 28px; }
   .menu-buttons .menu-primary { width: calc(var(--slit-px, 300px) + 24px); }
-  .dome-scope.own-sky { --own-b: calc(clamp(54px, 5vw, 76px) * 0.9 + 8px); }
-  .menu-rooms { width: auto; margin-top: 28px; }
-  .menu-room { flex: none; width: 112px; }
 }
 /* Телефон в ландшафте: щель узкая и низкая, название в одну строку */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
@@ -992,15 +894,7 @@ body {
   .menu-buttons .menu-primary:not(:has(+ .menu-atlas)) { grid-column: 1 / -1; justify-self: center; }
   .menu-pair, .menu-handle { grid-column: 1 / -1; justify-self: center; }
   .menu-handle { padding-top: 4px; }
-  .dome-scope.own-sky { --own-b: calc(clamp(28px, 5vw, 40px) * 0.9 + 4px); }
-  /* Щель низкая: имя мифа уступает место счёту, фигура над ним */
-  .own-sky .dome-name { display: none; }
-  .own-sky .dome-figure { top: calc(var(--slit-w) * 0.16); height: calc(100% - var(--slit-w) * 0.16 - var(--own-b) - 38px); }
-  .menu-shelf { margin-top: 4px; min-height: 36px; }
-  .menu-shelf.v3 { gap: 3px; padding: 2px 10px; }
-  .shelf-sec { min-height: 48px; padding-top: 3px; }
-  .menu-rooms { width: auto; }
-  .menu-room { flex: none; width: 104px; min-height: 46px; padding-top: 6px; }
+  .menu-shelf { gap: 3px; margin-top: 4px; padding: 2px 10px; }
 }
 
 /* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */
@@ -2833,6 +2727,26 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .gb-kind.mult { color: #ff8fa6; } .gb-kind.xmult { color: #ffb070; } .gb-kind.light { color: #7fe0ff; } .gb-kind.gold { color: #ffe6a8; }
 /* Коллекция: итоги игрока строками «подпись · число» в две колонки, без плашек */
 .gb-statrows { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 22px; }
+/* Коллекция (CL.2): итоги игрока в шапке окна — числа крупно, подписи под ними, без плашек */
+.coll-head { display: grid; gap: 10px; padding: 2px 4px 10px; }
+.coll-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.coll-stat { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
+.coll-stat b { font: 800 19px/1.2 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.coll-stat small { font: 600 11px/1.2 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+/* Невысокое окно (iPhone SE, ландшафт): итоги одной тонкой строкой, общий счёт — на полке главной */
+@media (max-height: 700px) {
+  .coll-head { gap: 6px; padding-bottom: 6px; }
+  .coll-stat { gap: 2px; }
+  .coll-stat b { font-size: 16px; }
+  .coll-stat small { font-size: 10.5px; }
+}
+@media (max-height: 520px) {
+  .coll-head .coll-progress { display: none; }
+  .coll-head { padding-bottom: 4px; }
+  .coll-stats { max-width: 520px; margin: 0 auto; width: 100%; }
+}
+.coll-progress { display: grid; gap: 6px; font: 600 12.5px/1 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.gb-scroll > .coll-progress { margin: 2px 2px 10px; }
 .gb-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 0; box-shadow: 0 1px 0 var(--hair); font-size: 13px; color: var(--ink-dim); }
 .gb-stat b { font: 800 14px/1.2 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 

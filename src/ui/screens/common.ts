@@ -110,9 +110,14 @@ export function showDeck(run: RunState): void {
   });
 }
 
-/** Справка — одно окно с вкладками (созвездия, ночь, Обсерватория, глифы, коллекция). */
+/** Справочник — одно окно с вкладками правил (созвездия, ночь, Обсерватория, карты). */
 export function showHelp(opts: import('./guide').GuideOptions = {}): void {
   void import('./guide').then(({ showGuide }) => showGuide(opts));
+}
+
+/** Коллекция игрока — своё окно (CL.2), с фокусом на находке или разделе. */
+export function showCollection(profile: import('@/meta/profile').Profile, focus?: string): void {
+  void import('./guide').then((m) => m.showCollection(profile, focus));
 }
 
 /** Справка на вкладке созвездий: уровни забега и коллекция игрока. */

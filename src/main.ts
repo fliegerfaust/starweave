@@ -116,11 +116,11 @@ async function boot(): Promise<void> {
     const { showRoutesNotice } = await import('./dev/routes-notice');
     await showRoutesNotice(app, params.get('routesfx') ?? 'open');
   }
-  // Витрина CL.1: главная с прогрессом игрока (`?menuvar=a|b|c|d`); `&player=new` — после первого забега
-  if (dev && params.has('menuvar')) {
+  // Витрины CL.1–CL.2: главная опытного игрока (`?home`); `?home=new` — после первого забега, `&open` — сразу Коллекция
+  if (dev && params.has('home')) {
     const [{ OMEN_LIST }, { BOSS_LIST }] = await Promise.all([import('./core/content/omens'), import('./core/content/bosses')]);
     const regular = OMEN_LIST.filter((o) => !o.pair).map((o) => o.id);
-    const fresh = params.get('player') === 'new';
+    const fresh = params.get('home') === 'new';
     Object.assign(app.profile, fresh
       ? { tutorialDone: true, tutorialFinished: true, runs: 1, bestAnte: 2, bestPlacement: 640, totalLines: 21, combosFound: ['pair', 'flush', 'straight'], seenOmens: regular.slice(0, 4), seenBosses: [], mythsFound: [] }
       : {
@@ -131,9 +131,8 @@ async function boot(): Promise<void> {
           mythsFound: ['cassiopeia', 'cygnus', 'lyra'], unlockedSkies: ['classic', 'twins', 'wanderer'],
         });
     app.runs.persistProfile();
-    // Полка «Что нового» каждый раз начинает с непросмотренных находок
-    localStorage.removeItem('starweave.shelf.v1');
     await app.router.goMenu();
+    if (params.has('open')) (await import('./ui/screens/common')).showCollection(app.profile);
   }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {

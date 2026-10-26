@@ -3,6 +3,7 @@ import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
 import { BODY_UNLOCKS } from '@/core/content/pools';
 import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
+import { collectionTally } from '@/meta/collection';
 import { BOSS_LIST } from '@/core/content/bosses';
 import { MYTHS, MYTHS_UNLOCK } from '@/core/content/myths';
 import { OMEN_LIST } from '@/core/content/omens';
@@ -49,6 +50,11 @@ export interface GuideOptions {
 }
 
 const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
+/**
+ * Витрина CL.2: где итоги игрока — `?statsvar=head` (в шапке окна, всегда видны) или
+ * `list` (первым разделом списка). Без параметра — в шапке.
+ */
+const STATS: 'head' | 'list' = import.meta.env.DEV && new URLSearchParams(location.search).get('statsvar') === 'list' ? 'list' : 'head';
 const STEP_IDS = ['place', 'line', 'score', 'cross', 'burn', 'eclipse'] as const;
 const SHOP_IDS = ['omens', 'order', 'charts', 'rituals', 'gold'] as const;
 /** Старые id разделов (фокус из подсказок ночи и обучения) → шаг ночи. */
@@ -110,7 +116,27 @@ function sky(cards: Record<number, [number, Suit]>, opts: { line?: boolean; drop
   return grid;
 }
 
+/** Раздел Коллекции в фокусе: `collection`, `myths`, `legends`, находка `myth-…`, `omen-…`, `boss-…`, `legend-…`. */
+const isCollectionFocus = (focus?: string) => !!focus && (['collection', 'myths', 'legends'].includes(focus) || /^(myth|omen|boss|legend)-/.test(focus));
+
+/**
+ * Справочник — правила: созвездия, ночь, Обсерватория, карты. Коллекция с CL.2 — своё окно:
+ * старые вызовы с вкладкой или фокусом Коллекции открывают его.
+ */
 export function showGuide(opts: GuideOptions = {}): void {
+  if (opts.profile && (opts.tab === 'collection' || isCollectionFocus(opts.focus))) return showCollection(opts.profile, opts.focus);
+  openBoard(opts, false);
+}
+
+/**
+ * Коллекция (CL.2): то же окно «доска + список», без вкладок правил. Наверху — итоги
+ * игрока, ниже — мифы, Знамения, легендарные, Затмения и небеса.
+ */
+export function showCollection(profile: Profile, focus?: string): void {
+  openBoard({ profile, found: profile.combosFound, tab: 'collection', ...(focus ? { focus } : {}) }, true);
+}
+
+function openBoard(opts: GuideOptions, only: boolean): void {
   const focus = opts.focus;
   let tab: GuideTab = opts.tab ?? 'combos';
   let combo: ComboId = 'pair';
@@ -134,7 +160,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     else if (focus === 'myths' && opts.profile) tab = 'collection';
     else if (focus === 'legends' && opts.profile) tab = 'collection';
   }
-  const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
+  const tabs = only ? (['collection'] as GuideTab[]) : TABS.filter((x) => x !== 'collection');
   // Коллекция: выбранное Знамение, Затмение или миф — крупно на доске
   // Находка с главной (CL.1): `myth-lyra`, `omen-stardust`, `boss-fog`, `legend-noon`
   const findFocus = focus?.match(/^(myth|omen|boss|legend)-(.+)$/);
@@ -144,7 +170,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     : focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id }
     : focus === 'legends' ? { kind: 'legend', id: (LEGENDS.find((x) => !opts.profile!.seenOmens.includes(x.id)) ?? LEGENDS[0]!).id }
     : null;
-  track('guide_open', { focus: focus ?? tab });
+  track(only ? 'collection_open' : 'guide_open', { focus: focus ?? tab });
   const g = dict().guide;
   const levelOf = (id: ComboId) => opts.levels?.[id] ?? 1;
   let timers: number[] = [];
@@ -512,12 +538,6 @@ export function showGuide(opts: GuideOptions = {}): void {
       if (kind === 'boss' && trophiesOpen()) sub += ` · ${format(c.tamedShort, { n: BOSS_LIST.filter((b) => tamedOf(b.id) > 0).length })}`;
       return [section(kind === 'omen' ? c.omens : c.bosses, sub), el];
     };
-    // Итоги игрока — строками «подпись · число», без плашек
-    const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
-    const stats = h('div.gb-statrows', null, [
-      stat(c.sRuns, num(p.runs)), stat(c.sWins, num(p.wins)), stat(c.sAnte, String(p.bestAnte)),
-      stat(c.sBest, num(p.bestPlacement)), stat(c.sLines, num(p.totalLines)), stat(format(c.sOmens, { total: REGULAR.length }), String(REGULAR.filter((x) => p.seenOmens.includes(x.id)).length)),
-    ]);
     const skies = h('div.gb-list');
     for (const skyDef of SKY_LIST) {
       const open = p.unlockedSkies.includes(skyDef.id);
@@ -525,7 +545,37 @@ export function showGuide(opts: GuideOptions = {}): void {
       skies.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
     }
     const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
-    return [...(mythsOpen() ? mythList() : []), ...grid('omen'), ...(resonanceOpen() ? legendList() : []), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+    return [...(STATS === 'list' ? statsSection() : []), ...(mythsOpen() ? mythList() : []), ...grid('omen'), ...(resonanceOpen() ? legendList() : []), ...grid('boss'), section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+  };
+  // ─── Итоги игрока (CL.2) ─────────────────────────────────────────────────
+  /** Общий счёт Коллекции тонкой шкалой — та же, что на полке главной. */
+  const progress = () => {
+    const tl = collectionTally(opts.profile!);
+    return h('div.coll-progress', null, [
+      h('span', null, format(c.foundAll, { n: tl.found, total: tl.total })),
+      h('span.shelf-bar', { style: `--p: ${tl.total ? Math.round((tl.found / tl.total) * 100) : 0}%`, attrs: { 'aria-hidden': 'true' } }),
+    ]);
+  };
+  /** В шапке окна: пять чисел крупно, подпись под каждым — без плашек, видно всегда. */
+  const statsHead = () => {
+    const p = opts.profile!;
+    const cell = (value: string, label: string) => h('div.coll-stat', null, [h('b', null, value), h('small', null, label)]);
+    return h('div.coll-head', null, [
+      h('div.coll-stats', null, [
+        cell(num(p.runs), c.hRuns), cell(num(p.wins), c.hWins), cell(String(p.bestAnte), c.hAnte),
+        cell(num(p.bestPlacement), c.hBest), cell(num(p.totalLines), c.hLines),
+      ]),
+      progress(),
+    ]);
+  };
+  /** Первым разделом списка: строки «подпись · число», уходят вверх при прокрутке. */
+  const statsSection = (): HTMLElement[] => {
+    const p = opts.profile!;
+    const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
+    return [section(c.results, null), progress(), h('div.gb-statrows', null, [
+      stat(c.sRuns, num(p.runs)), stat(c.sWins, num(p.wins)), stat(c.sAnte, String(p.bestAnte)),
+      stat(c.sBest, num(p.bestPlacement)), stat(c.sLines, num(p.totalLines)), stat(format(c.sOmens, { total: REGULAR.length }), String(REGULAR.filter((x) => p.seenOmens.includes(x.id)).length)),
+    ])];
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
@@ -615,7 +665,13 @@ export function showGuide(opts: GuideOptions = {}): void {
     });
     tabsBar.append(b);
   });
-  const m = modal(body, { title: g.title, className: 'board-modal guide-modal', sheet: opts.sheet, headExtra: tabsBar, onClose: () => timers.forEach(clearTimeout) });
+  const m = modal(body, {
+    title: only ? c.title : g.title,
+    className: `board-modal guide-modal${only ? ' collection-modal' : ''}`,
+    sheet: opts.sheet,
+    headExtra: only ? (STATS === 'head' ? statsHead() : undefined) : tabsBar,
+    onClose: () => timers.forEach(clearTimeout),
+  });
   render();
   // Фокус на строке из подсказки — она видна в списке
   if (focus) requestAnimationFrame(() => body.querySelector('.gb-row.on, .gb-sigils .on')?.scrollIntoView({ block: 'nearest' }));

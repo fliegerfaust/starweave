@@ -57,8 +57,6 @@ test('Справочник: живая доска, четыре вкладки, 
     for (const sheet of [false, true]) {
       if (sheet) await page.evaluate(() => (window as unknown as { starweave: App }).starweave.runs.startRun('classic', false, 0, 4242));
       for (const tab of TABS) {
-        // Лист с профилем (5 вкладок) в ландшафте не помещается и без тел — задача CG-60; тела проверяем в окне
-        if (sheet && tab === 'bodies') continue;
         await closeAll(page);
         await page.evaluate(async ({ lang, tab, sheet }) => {
           const { setLang } = await import('/src/i18n/index.ts');
@@ -97,7 +95,7 @@ test('Справочник: живая доска, четыре вкладки, 
   expect(errors).toEqual([]);
 });
 
-test('Коллекция во Справочнике (бывший Кодекс): доска, знаки, итоги, вкладки помещаются', async ({ page }) => {
+test('Коллекция своим окном (CL.2): доска, знаки, итоги в шапке помещаются', async ({ page }) => {
   const errors = await boot(page);
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
@@ -110,12 +108,13 @@ test('Коллекция во Справочнике (бывший Кодекс)
       showGuide({ tab: 'collection', profile: app.profile });
     }, lang);
     await check(page, `${lang} коллекция`, failures);
-    // Пять вкладок целиком на экране — ни одна не уезжает за край полосы
+    // Вкладок правил в Коллекции нет; пять итогов шапки целиком в окне
     const cut = await page.evaluate(() => {
-      const bar = document.querySelector('.gb-tabs')!.getBoundingClientRect();
-      return [...document.querySelectorAll('.gb-tab')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < bar.left - 1 || r.right > bar.right + 1; }).map((t) => t.textContent);
+      if (document.querySelector('.collection-modal .gb-tabs')) return ['вкладки правил в Коллекции'];
+      const head = document.querySelector('.coll-stats')!.getBoundingClientRect();
+      return [...document.querySelectorAll('.coll-stat')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < head.left - 1 || r.right > head.right + 1; }).map((t) => t.textContent ?? '');
     });
-    if (cut.length) failures.push(`${lang}: вкладки за краем — ${cut.join(', ')}`);
+    if (cut.length) failures.push(`${lang}: итоги за краем — ${cut.join(', ')}`);
     if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-collection.png` });
   }
   // Неизвестное Знамение: доска честно говорит, что оно ещё не встречалось

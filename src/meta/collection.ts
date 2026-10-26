@@ -9,14 +9,6 @@ import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from './profile';
 /** Находка Коллекции: что показать знаком на главной. */
 export type Find = { kind: 'omen' | 'legend' | 'boss' | 'myth'; id: string };
 
-/** Раздел Коллекции на полке: счёт и последняя находка (её знак). */
-export interface Shelf {
-  id: 'myths' | 'omens' | 'legends' | 'bosses' | 'skies';
-  found: number;
-  total: number;
-  last: Find | null;
-}
-
 /**
  * Ближайшее открытие: ступень лестницы, до которой осталось меньше всего, а когда все
  * ступени открыты — ещё не найденный миф каталога.
@@ -26,12 +18,8 @@ export type NextFind = { kind: 'step'; id: 'myths' | 'trophies' | 'resonance'; l
 export interface CollectionTally {
   found: number;
   total: number;
-  /** Звёздный каталог — только со ступени «Мифы». */
-  myths: { found: string[]; total: number } | null;
   /** Последние находки, новые первыми. */
   recent: Find[];
-  /** Разделы, открытые игроку, в порядке Коллекции. */
-  shelves: Shelf[];
   next: NextFind | null;
 }
 
@@ -79,19 +67,11 @@ export function collectionTally(p: Profile): CollectionTally {
     ...last(seenBosses, 1).map((id) => ({ kind: 'boss' as const, id })),
     ...last(seenOmens, 5).map((id) => ({ kind: 'omen' as const, id })),
   ];
-  const lastOf = (kind: Find['kind'], list: string[]): Find | null => (list.length ? { kind, id: list[list.length - 1]! } : null);
-  const shelves: Shelf[] = [
-    ...(mythsOpen ? [{ id: 'myths' as const, found: myths.length, total: MYTHS.length, last: lastOf('myth', myths) }] : []),
-    { id: 'omens', found: seenOmens.length, total: regular.length, last: lastOf('omen', seenOmens) },
-    ...(legendsOpen ? [{ id: 'legends' as const, found: seenLegends.length, total: legends.length, last: lastOf('legend', seenLegends) }] : []),
-    { id: 'bosses', found: seenBosses.length, total: BOSS_LIST.length, last: lastOf('boss', seenBosses) },
-    { id: 'skies', found: skies.length, total: SKY_LIST.length, last: null },
-  ];
   const steps = ([['myths', MYTHS_UNLOCK], ['trophies', TROPHY_UNLOCK], ['resonance', RESONANCE_UNLOCK]] as const)
     .map(([id, unlock]) => ({ kind: 'step' as const, id, left: stepLeft(unlock, p) }))
     .filter((x) => x.left > 0)
     .sort((a, b) => a.left - b.left);
   const unfound = MYTHS.filter((m) => !myths.includes(m.id));
   const next: NextFind | null = steps[0] ?? (unfound.length ? { kind: 'myth', id: unfound[0]!.id, left: unfound.length } : null);
-  return { found, total, myths: mythsOpen ? { found: myths, total: MYTHS.length } : null, recent, shelves, next };
+  return { found, total, recent, next };
 }
