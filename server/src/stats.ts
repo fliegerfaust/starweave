@@ -1,4 +1,5 @@
 import type { Db } from './db.ts';
+import { cmpVersion, computePlay, ERRORS_SINCE, median, type Play } from './play-stats.ts';
 
 /**
  * Сводка по событиям за период — всё, что нужно, чтобы понять, как играют:
@@ -19,13 +20,30 @@ export interface Stats {
     players: number;
     newPlayers: number;
     sessions: number;
+    /** Открыли и сразу закрыли: кроме запуска и замера FPS (он сам через 5 с) событий нет. В длину сессий не входят. */
+    bounceSessions: number;
+    /** Медиана активного времени сессии (паузы дольше 5 минут не в счёт), только сессии, начатые в периоде. */
     medianSessionMin: number | null;
     events: number;
   };
   daily: { day: number; players: number; newPlayers: number; sessions: number }[];
   platforms: { platform: string; players: number; sessions: number }[];
   retention: { d1Base: number; d1: number; weekBase: number; week: number };
-  tutorial: { started: number; completed: number; skipped: number; steps: { index: number; step: string; players: number }[] };
+  /** steps — шаги текущего обучения (track): короткое и полное не смешиваются. */
+  tutorial: {
+    started: number;
+    completed: number;
+    skipped: number;
+    track: 'short' | 'full';
+    steps: { index: number; step: string; players: number }[];
+    /** Игроки текущего обучения (track): сколько начали, закончили, пропустили. */
+    trackPlayers: number;
+    trackDone: number;
+    trackSkipped: number;
+    /** Другое обучение тех же дней — отдельной строкой, не в таблицу шагов. */
+    otherPlayers: number;
+    otherDone: number;
+  };
   runs: { started: number; ended: number; victories: number; byResult: { result: string; count: number }[]; reach: { ante: number; runs: number }[] };
   /** movesLeft — сколько ходов в среднем оставалось у победивших: мера запаса, а не перебора. */
   nights: { ante: number; night: string; played: number; lost: number; movesLeft: number | null }[];
@@ -43,12 +61,13 @@ export interface Stats {
     results: { beat: number; tie: number; behind: number };
     sources: { source: string; players: number; fresh: number }[];
   };
-  help: { guide: number; scoring: number; banish: number; rerolls: number };
-  ads: { kind: string; placement: string; requests: number; rewarded: number }[];
+  help: { guide: number; banish: number; rerolls: number };
+  ads: { platform: string; kind: string; placement: string; requests: number; rewarded: number }[];
   /** stack — самый свежий из присланных стеков; versions — в каких версиях игры встречалась. */
   errors: { message: string; where: string; count: number; last: number; stack: string; versions: string[] }[];
   perf: { platform: string; medianFps: number; samples: number }[];
   versions: { version: string; players: number }[];
+  play: Play;
 }
 
 type Row = Record<string, unknown>;
@@ -69,9 +88,14 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     players: num(one('SELECT COUNT(DISTINCT client) AS n FROM events WHERE ts >= ?', from).n),
     newPlayers: num(one(`SELECT COUNT(*) AS n FROM (${firstSeen}) WHERE first_day >= ?`, fromDay).n),
     sessions: num(one('SELECT COUNT(DISTINCT session) AS n FROM events WHERE ts >= ?', from).n),
-    medianSessionMin: median(all('SELECT (MAX(ts) - MIN(ts)) / 60000.0 AS m FROM events WHERE ts >= ? GROUP BY session', from).map((r) => num(r.m))),
+    bounceSessions: 0,
+    medianSessionMin: null as number | null,
     events: num(one('SELECT COUNT(*) AS n FROM events WHERE ts >= ?', from).n),
   };
+
+  const play = computePlay(db, now, from);
+  totals.bounceSessions = play.sessions.bounce;
+  totals.medianSessionMin = play.sessions.medianMin;
 
   const activeByDay = new Map(
     all(`SELECT ${DAY_SQL} AS day, COUNT(DISTINCT client) AS players, COUNT(DISTINCT session) AS sessions FROM events WHERE ts >= ? GROUP BY day`, from).map((r) => [
@@ -80,8 +104,10 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     ]),
   );
   const newByDay = new Map(all(`SELECT first_day AS day, COUNT(*) AS n FROM (${firstSeen}) WHERE first_day >= ? GROUP BY first_day`, fromDay).map((r) => [num(r.day), num(r.n)]));
+  // Дни до первого события в базе не показываем: иначе за 90 дней график наполовину пуст
+  const firstDay = num(one(`SELECT MIN(${DAY_SQL}) AS d FROM events`).d);
   const daily: Stats['daily'] = [];
-  for (let d = fromDay; d <= today; d++) {
+  for (let d = Math.max(fromDay, firstDay || fromDay); d <= today; d++) {
     const a = activeByDay.get(d);
     daily.push({ day: d, players: a?.players ?? 0, newPlayers: newByDay.get(d) ?? 0, sessions: a?.sessions ?? 0 });
   }
@@ -112,15 +138,32 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   const count = (name: string) => num(one('SELECT COUNT(*) AS n FROM events WHERE name = ? AND ts >= ?', name, from).n);
   const players = (name: string) => num(one('SELECT COUNT(DISTINCT client) AS n FROM events WHERE name = ? AND ts >= ?', name, from).n);
 
+  // Короткое обучение (CQ.4) отмечает не все шаги, и номера у него с пропусками: складывать
+  // его с полным по номеру шага нельзя. Игрок короткого — тот, у кого есть шаг «short…».
+  const shortClients = `client IN (SELECT client FROM events WHERE name = 'tutorial_step' AND json_extract(params, '$.step') LIKE 'short%' AND ts >= ${from})`;
+  const track: Stats['tutorial']['track'] = num(one(`SELECT COUNT(*) AS n FROM events WHERE name = 'tutorial_step' AND ${shortClients}`).n) > 0 ? 'short' : 'full';
+  /** not = '' — игроки текущего обучения, 'NOT ' — другого. */
+  const trackCounts = (not: string) => {
+    const mine = `${track === 'short' ? not : not ? '' : 'NOT '}${shortClients}`;
+    const n = (name: string) => num(one(`SELECT COUNT(DISTINCT client) AS n FROM events WHERE name = ? AND ts >= ? AND ${mine}`, name, from).n);
+    return { trackPlayers: n('tutorial_step'), trackDone: n('tutorial_complete'), trackSkipped: n('tutorial_skip') };
+  };
   const tutorial = {
     started: players('tutorial_start'),
     completed: players('tutorial_complete'),
     skipped: players('tutorial_skip'),
+    track,
     steps: all(
-      `SELECT CAST(json_extract(params, '$.index') AS INTEGER) AS idx, json_extract(params, '$.step') AS step, COUNT(DISTINCT client) AS players
-       FROM events WHERE name = 'tutorial_step' AND ts >= ? GROUP BY idx ORDER BY idx`,
+      `SELECT MIN(CAST(json_extract(params, '$.index') AS INTEGER)) AS idx, json_extract(params, '$.step') AS step, COUNT(DISTINCT client) AS players
+       FROM events WHERE name = 'tutorial_step' AND ts >= ? AND ${track === 'short' ? '' : 'NOT '}${shortClients}
+       GROUP BY step ORDER BY idx, players DESC`,
       from,
-    ).map((r) => ({ index: num(r.idx), step: String(r.step ?? ''), players: num(r.players) })),
+    ).map((r, i) => ({ index: i + 1, step: String(r.step ?? ''), players: num(r.players) })),
+    ...trackCounts(''),
+    ...(() => {
+      const other = trackCounts('NOT ');
+      return { otherPlayers: other.trackPlayers, otherDone: other.trackDone };
+    })(),
   };
 
   const runs = {
@@ -198,19 +241,28 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     ).map((r) => ({ source: String(r.source), players: num(r.players), fresh: num(r.fresh) })),
   };
 
-  const help = { guide: count('guide_open'), scoring: count('scoring_help_open'), banish: count('shop_banish'), rerolls: count('shop_reroll') };
+  const help = { guide: count('guide_open'), banish: count('shop_banish'), rerolls: count('shop_reroll') };
+
+  // До 0.4.10 игра писала запрос межстраничной рекламы и там, где её нет (Telegram, сайт).
+  // Отсекаем только эти версии: с 0.5.9 межстраничная в Telegram — настоящая (AdsGram).
+  const buggyAdVersions = all<{ version: string }>('SELECT DISTINCT version FROM events WHERE ts >= ?', from)
+    .map((r) => String(r.version))
+    .filter((v) => cmpVersion(v, '0.4.10') < 0);
+  const buggyAdFilter = buggyAdVersions.length
+    ? `AND NOT (json_extract(params, '$.kind') = 'interstitial' AND platform IN ('telegram', 'web') AND version IN (${buggyAdVersions.map(() => '?').join(', ')}))`
+    : '';
 
   const ads = all(
-    `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
+    `SELECT platform, json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
             SUM(CASE WHEN name = 'ad_request' THEN 1 ELSE 0 END) AS requests,
             SUM(CASE WHEN name = 'ad_result' AND json_extract(params, '$.result') = 'rewarded' THEN 1 ELSE 0 END) AS rewarded
-     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ?
-       -- До 0.4.10 игра писала запрос межстраничной рекламы и там, где её нет (Telegram, сайт)
-       AND NOT (json_extract(params, '$.kind') = 'interstitial' AND platform IN ('telegram', 'web'))
-     GROUP BY kind, placement ORDER BY requests DESC`,
+     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ? ${buggyAdFilter}
+     GROUP BY platform, kind, placement ORDER BY requests DESC`,
     from,
-  ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
+    ...buggyAdVersions,
+  ).map((r) => ({ platform: String(r.platform), kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
+  // Свежие сверху: давно исправленная ошибка старой версии не заслоняет новую
   const errors = all(
     `SELECT json_extract(e.params, '$.message') AS message, MAX(json_extract(e.params, '$.where')) AS place, COUNT(*) AS n, MAX(e.ts) AS last,
             GROUP_CONCAT(DISTINCT e.version) AS vers,
@@ -218,7 +270,7 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
               WHERE s.name = 'js_error' AND s.ts >= ? AND json_extract(s.params, '$.message') = json_extract(e.params, '$.message')
                 AND json_extract(s.params, '$.stack') IS NOT NULL
               ORDER BY s.ts DESC LIMIT 1) AS stack
-     FROM events e WHERE e.name = 'js_error' AND e.ts >= ? GROUP BY message ORDER BY n DESC LIMIT 10`,
+     FROM events e WHERE e.name = 'js_error' AND e.ts >= ? GROUP BY message ORDER BY last DESC LIMIT 10`,
     from,
     from,
   ).map((r) => ({
@@ -228,7 +280,9 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     last: num(r.last),
     stack: r.stack ? String(r.stack) : '',
     versions: String(r.vers ?? '').split(',').filter(Boolean).sort(cmpVersion),
-  }));
+  }))
+    // Ошибки только старых версий давно исправлены: их число — в play.oldErrors
+    .filter((e) => e.versions.some((v) => cmpVersion(v, ERRORS_SINCE) >= 0));
 
   const fpsRows = all(`SELECT platform, json_extract(params, '$.fps') AS fps FROM events WHERE name = 'perf' AND ts >= ?`, from);
   const fpsBy = new Map<string, number[]>();
@@ -244,25 +298,7 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     players: num(r.players),
   }));
 
-  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
-}
-
-/** Сравнение версий «0.4.9» < «0.4.13» — по числам, не по строке. */
-function cmpVersion(a: string, b: string): number {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d) return d;
-  }
-  return 0;
-}
-
-function median(list: number[]): number | null {
-  if (list.length === 0) return null;
-  const s = [...list].sort((a, b) => a - b);
-  const mid = s.length >> 1;
-  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions, play };
 }
 
 /** Московский день → «12 окт». */

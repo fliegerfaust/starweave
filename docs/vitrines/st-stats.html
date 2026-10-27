@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сводка /stats · витрина ST.3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root { --n0:#05061a; --ink:#eae6ff; --dim:#a5a0cf; --faint:#8a85b8; --gold:#f6c25b; --gold-hi:#ffe6a8; --hair:rgb(246 194 91 / .16); color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #03030f; color: var(--ink); font: 400 14px/1.5 'Manrope', system-ui, sans-serif; }
+.bar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; padding: 14px 20px; background: rgb(5 6 26 / .94); border-bottom: 1px solid var(--hair); backdrop-filter: blur(8px); }
+.bar h1 { font: 400 20px 'Forum', serif; color: var(--gold-hi); margin: 0; }
+.group { display: flex; gap: 4px; align-items: center; }
+.group span { color: var(--faint); font-size: 12px; margin-right: 6px; }
+.group button { padding: 7px 14px; border-radius: 999px; border: 1px solid transparent; background: none; color: var(--dim); font: 600 13px 'Manrope', sans-serif; cursor: pointer; }
+.group button:hover { color: var(--ink); }
+.group button[aria-pressed="true"] { background: var(--gold); color: var(--n0); }
+.about { flex-basis: 100%; margin: 0; color: var(--dim); font-size: 13px; }
+.stage { display: flex; justify-content: center; padding: 24px 16px 64px; }
+.frame { border: 1px solid var(--hair); border-radius: 14px; overflow: hidden; background: var(--n0); max-width: 100%; transition: width .25s ease; }
+.frame iframe { display: block; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Сводка /stats</h1>
+  <div class="group" id="variant"><span>Вариант</span>
+    <button data-v="a" aria-pressed="true">A · Журнал</button>
+    <button data-v="b">B · Приборы</button>
+    <button data-v="c">C · По вопросам</button>
+  </div>
+  <div class="group" id="size"><span>Экран</span>
+    <button data-w="1280" aria-pressed="true">ПК 1280</button>
+    <button data-w="768">Планшет 768</button>
+    <button data-w="390">Телефон 390</button>
+  </div>
+  <p class="about" id="about"></p>
+</div>
+<div class="stage"><div class="frame" id="frame"><iframe id="view" title="Вариант сводки"></iframe></div></div>
+<script>
+// Данные настоящие: копия базы 27.10, последние 30 дней. Сами варианты без скриптов, как сводка на сервере.
+const ABOUT = {
+  a: 'Журнал наблюдений: одна колонка, раздел за разделом, каждый отвечает на свой вопрос. Читается сверху вниз, одинаково на ПК и телефоне.',
+  b: 'Приборная панель: строка главных чисел и сетка блоков, всё на одном экране ПК. На телефоне блоки встают в столбик.',
+  c: 'По вопросам: вкладки Неделя, Приток, Игра, Фичи, Деньги, Здоровье. Наверху каждой вкладки ответ одной фразой. Вкладки работают без скриптов.',
+};
+const view = document.getElementById('view');
+const frame = document.getElementById('frame');
+let v = 'a', w = 1280;
+function fit() {
+  try { view.style.height = view.contentDocument.documentElement.scrollHeight + 'px'; } catch { view.style.height = '2400px'; }
+}
+function show() {
+  frame.style.width = w + 'px';
+  view.src = `st-stats-${v}.html${location.hash && v === 'c' ? location.hash : ''}`;
+  document.getElementById('about').textContent = ABOUT[v];
+  document.querySelectorAll('#variant button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === v));
+  document.querySelectorAll('#size button').forEach((b) => b.setAttribute('aria-pressed', +b.dataset.w === w));
+}
+view.addEventListener('load', () => {
+  fit();
+  setTimeout(fit, 400);
+  // Вкладки варианта C меняют высоту
+  try { view.contentWindow.addEventListener('hashchange', () => setTimeout(fit, 30)); } catch {}
+});
+document.getElementById('variant').addEventListener('click', (e) => { if (e.target.dataset.v) { v = e.target.dataset.v; show(); } });
+document.getElementById('size').addEventListener('click', (e) => { if (e.target.dataset.w) { w = +e.target.dataset.w; show(); } });
+show();
+</script>
+</body>
+</html>
