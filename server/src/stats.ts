@@ -19,13 +19,17 @@ export interface Stats {
     players: number;
     newPlayers: number;
     sessions: number;
+    /** Открыли и сразу закрыли: кроме запуска и замера FPS (он сам через 5 с) событий нет. В длину сессий не входят. */
+    bounceSessions: number;
+    /** Медиана активного времени сессии (см. activeMinutes), только сессии, начатые в периоде. */
     medianSessionMin: number | null;
     events: number;
   };
   daily: { day: number; players: number; newPlayers: number; sessions: number }[];
   platforms: { platform: string; players: number; sessions: number }[];
   retention: { d1Base: number; d1: number; weekBase: number; week: number };
-  tutorial: { started: number; completed: number; skipped: number; steps: { index: number; step: string; players: number }[] };
+  /** steps — шаги текущего обучения (track): короткое и полное не смешиваются. */
+  tutorial: { started: number; completed: number; skipped: number; track: 'short' | 'full'; steps: { index: number; step: string; players: number }[] };
   runs: { started: number; ended: number; victories: number; byResult: { result: string; count: number }[]; reach: { ante: number; runs: number }[] };
   /** movesLeft — сколько ходов в среднем оставалось у победивших: мера запаса, а не перебора. */
   nights: { ante: number; night: string; played: number; lost: number; movesLeft: number | null }[];
@@ -43,7 +47,7 @@ export interface Stats {
     results: { beat: number; tie: number; behind: number };
     sources: { source: string; players: number; fresh: number }[];
   };
-  help: { guide: number; scoring: number; banish: number; rerolls: number };
+  help: { guide: number; banish: number; rerolls: number };
   ads: { kind: string; placement: string; requests: number; rewarded: number }[];
   /** stack — самый свежий из присланных стеков; versions — в каких версиях игры встречалась. */
   errors: { message: string; where: string; count: number; last: number; stack: string; versions: string[] }[];
@@ -69,9 +73,29 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     players: num(one('SELECT COUNT(DISTINCT client) AS n FROM events WHERE ts >= ?', from).n),
     newPlayers: num(one(`SELECT COUNT(*) AS n FROM (${firstSeen}) WHERE first_day >= ?`, fromDay).n),
     sessions: num(one('SELECT COUNT(DISTINCT session) AS n FROM events WHERE ts >= ?', from).n),
-    medianSessionMin: median(all('SELECT (MAX(ts) - MIN(ts)) / 60000.0 AS m FROM events WHERE ts >= ? GROUP BY session', from).map((r) => num(r.m))),
+    bounceSessions: 0,
+    medianSessionMin: null as number | null,
     events: num(one('SELECT COUNT(*) AS n FROM events WHERE ts >= ?', from).n),
   };
+
+  // Сессии, начатые в периоде: начатую раньше граница обрезала бы на середине
+  const sessionTimes = new Map<string, { times: number[]; acted: boolean }>();
+  for (const r of all(
+    'SELECT session, ts, name FROM events WHERE session IN (SELECT session FROM events GROUP BY session HAVING MIN(ts) >= ?) ORDER BY session, ts',
+    from,
+  )) {
+    const key = String(r.session);
+    const entry = sessionTimes.get(key) ?? { times: [], acted: false };
+    entry.times.push(num(r.ts));
+    if (!PASSIVE.has(String(r.name))) entry.acted = true;
+    sessionTimes.set(key, entry);
+  }
+  const lengths: number[] = [];
+  for (const { times, acted } of sessionTimes.values()) {
+    if (!acted) totals.bounceSessions++;
+    else lengths.push(activeMinutes(times));
+  }
+  totals.medianSessionMin = median(lengths);
 
   const activeByDay = new Map(
     all(`SELECT ${DAY_SQL} AS day, COUNT(DISTINCT client) AS players, COUNT(DISTINCT session) AS sessions FROM events WHERE ts >= ? GROUP BY day`, from).map((r) => [
@@ -80,8 +104,10 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     ]),
   );
   const newByDay = new Map(all(`SELECT first_day AS day, COUNT(*) AS n FROM (${firstSeen}) WHERE first_day >= ? GROUP BY first_day`, fromDay).map((r) => [num(r.day), num(r.n)]));
+  // Дни до первого события в базе не показываем: иначе за 90 дней график наполовину пуст
+  const firstDay = num(one(`SELECT MIN(${DAY_SQL}) AS d FROM events`).d);
   const daily: Stats['daily'] = [];
-  for (let d = fromDay; d <= today; d++) {
+  for (let d = Math.max(fromDay, firstDay || fromDay); d <= today; d++) {
     const a = activeByDay.get(d);
     daily.push({ day: d, players: a?.players ?? 0, newPlayers: newByDay.get(d) ?? 0, sessions: a?.sessions ?? 0 });
   }
@@ -112,15 +138,21 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   const count = (name: string) => num(one('SELECT COUNT(*) AS n FROM events WHERE name = ? AND ts >= ?', name, from).n);
   const players = (name: string) => num(one('SELECT COUNT(DISTINCT client) AS n FROM events WHERE name = ? AND ts >= ?', name, from).n);
 
+  // Короткое обучение (CQ.4) отмечает не все шаги, и номера у него с пропусками: складывать
+  // его с полным по номеру шага нельзя. Игрок короткого — тот, у кого есть шаг «short…».
+  const shortClients = `client IN (SELECT client FROM events WHERE name = 'tutorial_step' AND json_extract(params, '$.step') LIKE 'short%' AND ts >= ${from})`;
+  const track: Stats['tutorial']['track'] = num(one(`SELECT COUNT(*) AS n FROM events WHERE name = 'tutorial_step' AND ${shortClients}`).n) > 0 ? 'short' : 'full';
   const tutorial = {
     started: players('tutorial_start'),
     completed: players('tutorial_complete'),
     skipped: players('tutorial_skip'),
+    track,
     steps: all(
-      `SELECT CAST(json_extract(params, '$.index') AS INTEGER) AS idx, json_extract(params, '$.step') AS step, COUNT(DISTINCT client) AS players
-       FROM events WHERE name = 'tutorial_step' AND ts >= ? GROUP BY idx ORDER BY idx`,
+      `SELECT MIN(CAST(json_extract(params, '$.index') AS INTEGER)) AS idx, json_extract(params, '$.step') AS step, COUNT(DISTINCT client) AS players
+       FROM events WHERE name = 'tutorial_step' AND ts >= ? AND ${track === 'short' ? '' : 'NOT '}${shortClients}
+       GROUP BY step ORDER BY idx, players DESC`,
       from,
-    ).map((r) => ({ index: num(r.idx), step: String(r.step ?? ''), players: num(r.players) })),
+    ).map((r, i) => ({ index: i + 1, step: String(r.step ?? ''), players: num(r.players) })),
   };
 
   const runs = {
@@ -198,19 +230,28 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     ).map((r) => ({ source: String(r.source), players: num(r.players), fresh: num(r.fresh) })),
   };
 
-  const help = { guide: count('guide_open'), scoring: count('scoring_help_open'), banish: count('shop_banish'), rerolls: count('shop_reroll') };
+  const help = { guide: count('guide_open'), banish: count('shop_banish'), rerolls: count('shop_reroll') };
+
+  // До 0.4.10 игра писала запрос межстраничной рекламы и там, где её нет (Telegram, сайт).
+  // Отсекаем только эти версии: с 0.5.9 межстраничная в Telegram — настоящая (AdsGram).
+  const buggyAdVersions = all<{ version: string }>('SELECT DISTINCT version FROM events WHERE ts >= ?', from)
+    .map((r) => String(r.version))
+    .filter((v) => cmpVersion(v, '0.4.10') < 0);
+  const buggyAdFilter = buggyAdVersions.length
+    ? `AND NOT (json_extract(params, '$.kind') = 'interstitial' AND platform IN ('telegram', 'web') AND version IN (${buggyAdVersions.map(() => '?').join(', ')}))`
+    : '';
 
   const ads = all(
     `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
             SUM(CASE WHEN name = 'ad_request' THEN 1 ELSE 0 END) AS requests,
             SUM(CASE WHEN name = 'ad_result' AND json_extract(params, '$.result') = 'rewarded' THEN 1 ELSE 0 END) AS rewarded
-     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ?
-       -- До 0.4.10 игра писала запрос межстраничной рекламы и там, где её нет (Telegram, сайт)
-       AND NOT (json_extract(params, '$.kind') = 'interstitial' AND platform IN ('telegram', 'web'))
+     FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ? ${buggyAdFilter}
      GROUP BY kind, placement ORDER BY requests DESC`,
     from,
+    ...buggyAdVersions,
   ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
+  // Свежие сверху: давно исправленная ошибка старой версии не заслоняет новую
   const errors = all(
     `SELECT json_extract(e.params, '$.message') AS message, MAX(json_extract(e.params, '$.where')) AS place, COUNT(*) AS n, MAX(e.ts) AS last,
             GROUP_CONCAT(DISTINCT e.version) AS vers,
@@ -218,7 +259,7 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
               WHERE s.name = 'js_error' AND s.ts >= ? AND json_extract(s.params, '$.message') = json_extract(e.params, '$.message')
                 AND json_extract(s.params, '$.stack') IS NOT NULL
               ORDER BY s.ts DESC LIMIT 1) AS stack
-     FROM events e WHERE e.name = 'js_error' AND e.ts >= ? GROUP BY message ORDER BY n DESC LIMIT 10`,
+     FROM events e WHERE e.name = 'js_error' AND e.ts >= ? GROUP BY message ORDER BY last DESC LIMIT 10`,
     from,
     from,
   ).map((r) => ({
@@ -245,6 +286,25 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   }));
 
   return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
+}
+
+/** События, которые игра шлёт сама, без действия игрока. */
+const PASSIVE = new Set(['app_open', 'perf']);
+
+/** Пауза дольше этой — игра лежала в фоне или забыта, а не идёт. */
+const IDLE_GAP = 5 * 60 * 1000;
+
+/**
+ * Активное время сессии в минутах: сумма промежутков между соседними событиями без пауз
+ * дольше IDLE_GAP. Разница первого и последнего события считала бы игрой и два часа в фоне.
+ */
+export function activeMinutes(times: number[]): number {
+  let ms = 0;
+  for (let i = 1; i < times.length; i++) {
+    const gap = times[i]! - times[i - 1]!;
+    if (gap <= IDLE_GAP) ms += gap;
+  }
+  return ms / 60000;
 }
 
 /** Сравнение версий «0.4.9» < «0.4.13» — по числам, не по строке. */

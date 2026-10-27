@@ -13,7 +13,9 @@ const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;',
 const fmt = (n: number): string => n.toLocaleString('ru-RU');
 const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '—');
 
-const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры' };
+/** Последняя глава забега (FINAL_ANTE игры): победный run_end приходит с главой на 1 больше. */
+const FINAL_ANTE = 8;
+const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры', pikabu: 'Пикабу Игры', crazygames: 'CrazyGames' };
 const NIGHT: Record<string, string> = { dusk: ru.night.dusk, midnight: ru.night.midnight, eclipse: ru.night.eclipse };
 const RESULT: Record<string, string> = { lost: 'проиграли', abandon: 'сдались', victory: 'победили' };
 const PLACEMENT: Record<string, string> = { between_antes: 'Между главами', revive: 'Второй шанс', double_reward: 'Удвоить награду' };
@@ -33,9 +35,12 @@ function firstOf(v: unknown): string | null {
   return Array.isArray(v) && typeof v[0] === 'string' ? v[0] : null;
 }
 
+/** Шаги, у которых в словаре обучения не строка, а группа текстов. */
+const STEP: Record<string, string> = { reward: 'Награда за первую ночь', hand: 'Рука', formula: 'Как считаются очки', items: 'Предметы' };
+
 function tutorialLabel(step: string): string {
   const text = (ru.tut as Record<string, unknown>)[step];
-  if (typeof text !== 'string') return step;
+  if (typeof text !== 'string') return STEP[step] ?? step;
   return text.length > 60 ? `${text.slice(0, 57).trimEnd()}…` : text;
 }
 
@@ -53,6 +58,13 @@ function empty(text = 'Пока нет данных за этот период.'
   return `<p class="empty">${esc(text)}</p>`;
 }
 
+/** Длительность без ложной точности и без «0 мин»: секунды, минуты с десятыми, целые минуты. */
+function duration(min: number): string {
+  if (min < 1) return `${Math.round(min * 60)} с`;
+  if (min < 10) return `${min.toFixed(1).replace('.', ',')} мин`;
+  return `${Math.round(min)} мин`;
+}
+
 function kpi(value: string, label: string, note: string): string {
   return `<div class="kpi"><div class="kpi-value">${value}</div><div class="kpi-label">${esc(label)}</div><div class="kpi-note">${esc(note)}</div></div>`;
 }
@@ -66,6 +78,8 @@ function dailyChart(daily: Stats['daily']): string {
   const gap = 4;
   const bw = Math.max(4, (w - gap * (daily.length - 1)) / daily.length);
   const every = Math.ceil(daily.length / 10);
+  // Числа над столбиками — пока они помещаются в ширину столбика
+  const showValues = bw >= 14;
   const bars = daily
     .map((d, i) => {
       const x = i * (bw + gap);
@@ -73,8 +87,10 @@ function dailyChart(daily: Stats['daily']): string {
       const fresh = (Math.min(d.newPlayers, d.players) / max) * (h - 20);
       const anchor = i === 0 ? 'start' : i === daily.length - 1 ? 'end' : 'middle';
       const lx = anchor === 'start' ? x : anchor === 'end' ? x + bw : x + bw / 2;
-      const label = i % every === 0 || i === daily.length - 1 ? `<text x="${lx}" y="${h + 14}" text-anchor="${anchor}">${esc(dayLabel(d.day))}</text>` : '';
-      const value = d.players > 0 ? `<text class="v" x="${x + bw / 2}" y="${h - total - 5}" text-anchor="middle">${d.players}</text>` : '';
+      // Последняя дата всегда подписана, поэтому соседнюю обычную подпись перед ней пропускаем
+      const last = i === daily.length - 1;
+      const label = last || (i % every === 0 && daily.length - 1 - i >= every) ? `<text x="${lx}" y="${h + 14}" text-anchor="${anchor}">${esc(dayLabel(d.day))}</text>` : '';
+      const value = showValues && d.players > 0 ? `<text class="v" x="${x + bw / 2}" y="${h - total - 5}" text-anchor="middle">${d.players}</text>` : '';
       return `<g><title>${esc(dayLabel(d.day))}: игроков ${d.players}, из них новых ${d.newPlayers}, сессий ${d.sessions}</title>
         <rect class="ret" x="${x}" y="${h - total}" width="${bw}" height="${total}" rx="3"/>
         <rect class="new" x="${x}" y="${h - fresh}" width="${bw}" height="${fresh}" rx="3"/>${value}${label}</g>`;
@@ -105,8 +121,8 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
   const kpis = `<div class="kpis">
     ${kpi(fmt(t.players), 'игроков за период', `всего за всё время — ${fmt(t.playersAll)}`)}
     ${kpi(fmt(t.newPlayers), 'новых', 'впервые открыли игру в этот период')}
-    ${kpi(fmt(t.sessions), 'сессий', 'одна сессия — один запуск игры')}
-    ${kpi(t.medianSessionMin === null ? '—' : `${Math.round(t.medianSessionMin)} мин`, 'типичная сессия', 'половина сессий короче, половина — длиннее')}
+    ${kpi(fmt(t.sessions), 'сессий', t.bounceSessions ? `открыли и сразу закрыли: ${fmt(t.bounceSessions)} (${pct(t.bounceSessions, t.sessions)})` : 'одна сессия — один запуск игры')}
+    ${kpi(t.medianSessionMin === null ? '—' : duration(t.medianSessionMin), 'типичная сессия', 'время в игре без пауз дольше 5 минут; половина сессий короче')}
   </div>`;
 
   const r = s.retention;
@@ -123,10 +139,12 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
     : empty();
 
   const tu = s.tutorial;
+  const stepBase = Math.max(1, ...tu.steps.map((st) => st.players));
   const tutorial = tu.started
     ? `<p class="lead">Начали обучение <b>${fmt(tu.started)}</b>, прошли до конца <b>${fmt(tu.completed)}</b> (${pct(tu.completed, tu.started)}), пропустили <b>${fmt(tu.skipped)}</b>.</p>
+      ${tu.steps.length ? `<h3>${tu.track === 'short' ? 'Короткое обучение' : 'Полное обучение'}: от дошедших до первого шага</h3>` : ''}
       <ol class="rows funnel">${tu.steps
-        .map((st) => `<li><span class="name"><span class="idx">${st.index}</span>${esc(tutorialLabel(st.step))}</span>${bar(st.players, tu.started)}<span class="num">${pct(st.players, tu.started)}</span></li>`)
+        .map((st) => `<li><span class="name"><span class="idx">${st.index}</span>${esc(tutorialLabel(st.step))}</span>${bar(st.players, stepBase)}<span class="num">${pct(st.players, stepBase)}</span></li>`)
         .join('')}</ol>`
     : empty('Обучение в этот период никто не начинал.');
 
@@ -136,7 +154,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
     ? `<p class="lead">Начато забегов <b>${fmt(ru2.started)}</b>, закончено <b>${fmt(ru2.ended)}</b>, побед <b>${fmt(ru2.victories)}</b>.${
         ru2.byResult.length ? ` Чем кончились: ${ru2.byResult.map((x) => `${RESULT[x.result] ?? x.result} — ${fmt(x.count)}`).join(', ')}.` : ''
       }</p>
-      ${ru2.reach.length ? `<h3>До какого созвездия доходят</h3><ul class="rows">${ru2.reach.map((x) => `<li><span class="name">Созвездие ${x.ante}</span>${bar(x.runs, maxReach)}<span class="num">${fmt(x.runs)}</span></li>`).join('')}</ul>` : ''}`
+      ${ru2.reach.length ? `<h3>До какой главы доходят</h3><ul class="rows">${ru2.reach.map((x) => `<li><span class="name">${x.ante > FINAL_ANTE ? `Прошли все ${FINAL_ANTE}` : `Глава ${x.ante}`}</span>${bar(x.runs, maxReach)}<span class="num">${fmt(x.runs)}</span></li>`).join('')}</ul>` : ''}`
     : empty('Забегов в этот период не было.');
 
   const nights = s.nights.length
@@ -146,7 +164,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
           const lossShare = n.played ? n.lost / n.played : 0;
           const tone = lossShare >= 0.4 ? 'bad' : lossShare >= 0.2 ? 'warn' : 'ok';
           return [
-            `Созвездие ${n.ante} · ${esc(NIGHT[n.night] ?? n.night)}`,
+            `Глава ${n.ante} · ${esc(NIGHT[n.night] ?? n.night)}`,
             fmt(n.played),
             `<span class="pill ${tone}">${pct(n.lost, n.played)}</span>`,
             n.movesLeft === null ? '—' : n.movesLeft.toFixed(1),
@@ -193,9 +211,8 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
       : '<p class="empty">Ссылок с меткой <code>startapp=src_…</code> пока не открывали.</p>'
   }`;
 
-  const help = `<div class="kpis four">
+  const help = `<div class="kpis three">
     ${kpi(fmt(s.help.guide), 'открыли справочник', 'кнопка «?» и ссылки на термины')}
-    ${kpi(fmt(s.help.scoring), 'открыли «Как считаются очки»', 'из паузы и Обсерватории')}
     ${kpi(fmt(s.help.banish), 'убрали карту', 'услуга Обсерватории')}
     ${kpi(fmt(s.help.rerolls), 'обновили витрину', 'кнопка «Обновить»')}
   </div>`;
@@ -218,7 +235,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
   }<h3>Ошибки</h3>${
     s.errors.length
       ? table(
-          ['Сообщение', 'Раз', 'Последняя'],
+          ['Сообщение (свежие сверху)', 'Раз', 'Последняя'],
           s.errors.map((e) => [
             `<code>${esc(e.message)}</code>${e.where ? `<br><small class="where">${esc(e.where)}</small>` : ''}${
               e.versions.length ? `<br><small class="where">версии: ${esc(e.versions.join(', '))}</small>` : ''
@@ -251,8 +268,8 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
   ${section('Первые минуты', 'Новички этого периода: сколько дошли до каждого шага. «Закончили обучение» — прошли или пропустили. Самый большой провал — первое, что чинить.', funnel)}
   ${section('Откуда играют', 'Игроки по площадкам за период.', platforms)}
   ${section('Рост', 'Вызовы друзьям («Бросить вызов» после забега) и ссылки с меткой источника — какие каналы приводят людей.', growth)}
-  ${section('Обучение', 'Сколько игроков дошли до каждого шага, от числа начавших. Резкий провал между шагами — место, где непонятно или скучно.', tutorial)}
-  ${section('Забеги', 'Как далеко заходят игроки. Если почти все обрываются на одном созвездии — там слишком резкий скачок сложности.', runs)}
+  ${section('Обучение', 'Сколько игроков дошли до каждого шага, от дошедших до первого. Резкий провал между шагами — место, где непонятно или скучно.', tutorial)}
+  ${section('Забеги', 'Как далеко заходят игроки. Если почти все обрываются на одной главе — там слишком резкий скачок сложности.', runs)}
   ${section('Где сложно', 'Каждая ночь: сколько раз её играли и как часто проигрывали. Красным — проигрывают 40% и чаще. «Ходов в запасе» — сколько ходов в среднем оставалось у победивших: меньше 3 — проходят на грани.', nights)}
   ${section('Что покупают в Обсерватории', 'Сколько покупок каждого вида и самое популярное внутри вида. «Звёздную пыль» покупают и в обучении — она там обязательна.', shop)}
   ${section('Пользуются ли подсказками', 'Если справочник открывают часто — какое-то правило объяснено плохо.', help)}
@@ -285,6 +302,7 @@ h2{margin:0;font-size:19px}h3{margin:18px 0 8px;font-size:15px;color:var(--dim);
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
 .kpis.two{grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
 .kpis.four{margin:0}
+.kpis.three{grid-template-columns:repeat(3,minmax(0,1fr));margin:0}
 .kpi{background:var(--chip);border-radius:12px;padding:14px 16px}
 .kpi-value{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .kpi-label{font-weight:600;margin-top:2px}
@@ -317,5 +335,5 @@ code{font-size:13px;word-break:break-word}
 .stack .decoded small{display:block;color:var(--dim);font-size:11px;margin-bottom:4px}
 .empty{color:var(--dim);margin:0;padding:12px 0}.empty.good{color:var(--ok)}
 footer{max-width:1080px;margin:0 auto;padding:8px 20px 40px;color:var(--dim);font-size:13px}
-@media (max-width:760px){main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding-top:20px}h1{font-size:23px}.kpi-value{font-size:26px}.rows li{grid-template-columns:minmax(0,1fr) 72px auto}}
+@media (max-width:760px){main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis.three{grid-template-columns:1fr}.top{padding-top:20px}h1{font-size:23px}.kpi-value{font-size:26px}.rows li{grid-template-columns:minmax(0,1fr) 72px auto}}
 `;
