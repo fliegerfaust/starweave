@@ -332,6 +332,7 @@ export class MenuScreen implements Screen {
       item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound, profile: app.profile })),
       item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.runs.startTutorial())),
       app.profile.runs > 0 ? item('codex', t('menu.collection'), lib.collection, () => this.openCollection()) : null,
+      app.profile.runs > 0 ? item('hall', t('hall.menu'), t('hall.libSub'), () => void this.openHall()) : null,
       app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.router.goArchive()) : null,
       item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
     ];
@@ -343,6 +344,14 @@ export class MenuScreen implements Screen {
 
   private openCollection(focus?: string): void {
     showCollection(this.app.profile, focus);
+  }
+
+  /** «Зал славы» (HF.3): свежие доли игроков ждём недолго, иначе — прошлые с устройства. */
+  private async openHall(): Promise<void> {
+    const [{ showHall }, sync] = await Promise.all([import('./hall'), import('@/meta/hall-sync')]);
+    const fresh = sync.fetchHallStats();
+    const stats = await Promise.race([fresh, new Promise<null>((r) => window.setTimeout(() => r(null), 1200))]);
+    showHall(this.app.profile, stats ?? sync.cachedHallStats());
   }
 
   /** Свайп вверх у нижнего края открывает библиотеку — если меню не прокручивается само. */

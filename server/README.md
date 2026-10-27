@@ -8,6 +8,8 @@
   Что и как она считает: [docs/ANALYTICS.md](../docs/ANALYTICS.md).
 - **Приём событий:** `POST /v1/events` только с `https://fliegerfaust.github.io` (сайт, Telegram)
   и `https://game.denvalclass.ru` (Пикабу Игры).
+- **Доли игроков «Зала славы»:** `GET /v1/hall`, открыто всем, считается раз в час по последнему
+  снимку `hall_snap` каждого устройства за 90 дней (`src/hall.ts`).
 - **Пикабу Игры:** `/pikabu/` (выпуск) и `/pikabu-test/`, см. [docs/PIKABU.md](../docs/PIKABU.md).
 - **Проверка:** https://game.denvalclass.ru/health → `ok`.
 
@@ -30,6 +32,7 @@ starweave-api ──IPv6 (сеть starweave_egress)──▶ api.telegram.org
 | `src/validate.ts` | проверка пачки событий: форматы, лимиты, только простые значения |
 | `src/limits.ts` | пределы приёма (адрес не хранится) |
 | `src/db.ts` | SQLite (WAL), события старше 400 дней удаляются раз в сутки |
+| `src/hall.ts` | доли игроков по достижениям и пороги рекордов для «Зала славы» |
 | `src/stats.ts`, `src/play-stats.ts` | расчёт сводки; сырые события читаются потоком |
 | `src/dashboard.ts`, `src/fonts/` | страница сводки со вшитыми шрифтами игры |
 | `src/stack-decoder.ts` | расшифровка стеков ошибок по картам исходников сайта |

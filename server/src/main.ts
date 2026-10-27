@@ -6,6 +6,7 @@ import { admit, DEFAULT_EVENTS_DB_MAX, eventLimits, RateLimiter, clientKey } fro
 import { createInvoice, handleUpdate, ownedProducts, type PaymentsConfig } from './payments.ts';
 import { botApi, verifyInitData } from './telegram.ts';
 import { renderDashboard } from './dashboard.ts';
+import { HallCache } from './hall.ts';
 import { STACK_SCRIPT_HASH } from './stack-decoder.ts';
 import { computeStats } from './stats.ts';
 import { LIMITS, parseBatch } from './validate.ts';
@@ -17,6 +18,7 @@ import { LIMITS, parseBatch } from './validate.ts';
  *
  *   POST /v1/events  — пачка событий (text/plain с JSON, чтобы браузер обходился без preflight)
  *   GET  /stats      — сводка, вход по паролю (Basic)
+ *   GET  /v1/hall    — доли игроков для «Зала славы» (открыто всем, кэш на час)
  *   GET  /health     — для проверки контейнера
  *   POST /v1/pay/invoice, /v1/pay/owned — покупки за Telegram Stars (игрок — по initData)
  *   POST /tg/webhook — обновления бота (оплаты, /start, /paysupport, /terms)
@@ -52,6 +54,7 @@ if (STATS_PASSWORD.length < 12) {
 }
 
 const db = openDb(DB_PATH);
+const hall = new HallCache(db);
 
 // ── Ограничение частоты и объёма (SEC.1, см. limits.ts) ──────────────────────
 const limits = eventLimits();
@@ -165,6 +168,18 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
   send(res, 204, '', cors);
 }
 
+/** Доли игроков для «Зала славы»: только чтение готового, персональных данных в ответе нет. */
+function handleHall(req: IncomingMessage, res: ServerResponse): void {
+  const cors = corsFor(req);
+  if (req.method !== 'GET') return send(res, 405, 'method', cors);
+  try {
+    send(res, 200, hall.json(Date.now()), { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=900' });
+  } catch (err) {
+    console.error('зал славы не посчитан', err);
+    send(res, 500, 'hall', cors);
+  }
+}
+
 function corsFor(req: IncomingMessage): Record<string, string> {
   const origin = req.headers.origin ?? '';
   return ORIGINS.has(origin) ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {};
@@ -244,6 +259,7 @@ const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   try {
     if (url.pathname === '/v1/events') return void handleEvents(req, res);
+    if (url.pathname === '/v1/hall') return handleHall(req, res);
     if (url.pathname === '/stats') return handleStats(req, res, url);
     if (url.pathname === '/v1/pay/invoice') return void handlePay(req, res, 'invoice');
     if (url.pathname === '/v1/pay/owned') return void handlePay(req, res, 'owned');
