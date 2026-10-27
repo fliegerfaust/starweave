@@ -166,6 +166,51 @@ async function boot(): Promise<void> {
     run.reward = { base: 5, moves: 2, burns: 0, interest: 1, total: 8 };
     await app.router.route();
   }
+  // DEV: итоги забега с находками для витрины и e2e (`?over=lost|win`, `&finds=N` — сколько нового, по умолчанию 3)
+  if (dev && params.has('over')) {
+    const [{ OMEN_LIST }, { BOSS_LIST }, { startNight }, { planChapter }] = await Promise.all([import('./core/content/omens'), import('./core/content/bosses'), import('./core/night'), import('./core/route')]);
+    const regular = OMEN_LIST.filter((o) => !o.pair).map((o) => o.id);
+    Object.assign(app.profile, {
+      tutorialDone: true, tutorialFinished: true, runs: 14, wins: 1, bestAnte: 8, bestPlacement: 9000, eclipses: 31,
+      combosFound: ['pair', 'flush', 'straight', 'twoPair', 'triple'], seenOmens: regular.slice(0, 20), seenBosses: BOSS_LIST.slice(0, 6).map((b) => b.id),
+      mythsFound: ['cassiopeia', 'cygnus'], tutorial: ['guideSeen', 'giftSeen', 'boss'],
+    });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    app.runs.bestBefore = app.profile.bestPlacement;
+    const n = Number(params.get('finds') ?? 3);
+    const fresh = [{ k: 'myth', id: 'lyra' }, { k: 'boss', id: BOSS_LIST[7]!.id }, ...regular.slice(20, 26).map((id) => ({ k: 'omen', id }))].slice(0, n);
+    for (const f of fresh) (f.k === 'myth' ? app.profile.mythsFound! : f.k === 'boss' ? app.profile.seenBosses : app.profile.seenOmens).push(f.id);
+    Object.assign(run.stats, { bestPlacement: 2140, lines: 64, crosses: 3, nightsWon: 11 });
+    if (params.get('over') === 'win') {
+      run.ante = 8;
+      run.phase = 'victory';
+    } else {
+      run.ante = 5;
+      Object.assign(run.unlocks, { routes: false, wonders: false });
+      run.chapter = { ...planChapter(run), at: 1 };
+      startNight(run);
+      Object.assign(run.night!, { result: 'lost', score: Math.round(run.night!.target * 0.8) });
+      run.phase = 'gameOver';
+    }
+    await app.router.route();
+  }
+  // DEV: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
+  if (dev && params.has('mythfx')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'], mythsFound: ['cassiopeia', 'cygnus', 'lyra'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const [{ planChapter }, { startNight }, { announceDiscovery }, { showCollection }] = await Promise.all([import('./core/route'), import('./core/night'), import('./ui/discovery'), import('./ui/screens/common')]);
+    Object.assign(run.unlocks, { routes: false, wonders: false, myths: true });
+    run.chapter = { ...planChapter(run), at: 1 };
+    startNight(run);
+    await app.router.route();
+    await new Promise((r) => setTimeout(r, 900));
+    const show = () => announceDiscovery([{ kind: 'myth', id: 'lyra', count: 3 }], undefined, (focus, done) => showCollection(app.profile, focus, done));
+    show();
+    // Витрину смотрят не сразу: баннер возвращается, пока Коллекция закрыта
+    setInterval(() => document.querySelector('.discovery, .collection-modal') || show(), 2500);
+  }
 }
 
 void boot();

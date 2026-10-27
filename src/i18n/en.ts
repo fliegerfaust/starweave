@@ -320,6 +320,8 @@ export const en: Dict = {
     next: 'Continue',
   },
   over: {
+    finds: 'New in the Collection',
+    findsAria: 'New in the Collection: {n}. Open the Collection',
     lostTitle: 'The sky went dark',
     of: 'of {target}',
     winTitle: 'All eight chapters cleared',

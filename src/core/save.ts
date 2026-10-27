@@ -205,6 +205,8 @@ export function deserializeRun(text: string | null): RunState | null {
     if (isObj(run.unlocks)) run.unlocks.trophies ??= false;
     // Битый журнал не должен стоить игроку забега: забег открываем без журнала
     if (run.log !== undefined && !isLog(run.log)) delete run.log;
+    // Снимок находок (CL.3) — только для строки итогов: битый просто не показываем
+    if (run.foundBefore !== undefined && !(Array.isArray(run.foundBefore) && run.foundBefore.every((k) => typeof k === 'string'))) delete run.foundBefore;
     return isPlayable(run) ? (run as unknown as RunState) : null;
   } catch {
     return null;

@@ -75,3 +75,24 @@ export function collectionTally(p: Profile): CollectionTally {
   const next: NextFind | null = steps[0] ?? (unfound.length ? { kind: 'myth', id: unfound[0]!.id, left: unfound.length } : null);
   return { found, total, recent, next };
 }
+
+/** Ключи находок (`myth-lyra`, `legend-noon`, `boss-fog`, `omen-stardust`) — снимок на старте забега. */
+export function findKeys(p: Profile): string[] {
+  const legends = new Set(OMEN_LIST.filter((x) => x.pair).map((x) => x.id));
+  return [
+    ...(p.mythsFound ?? []).map((id) => `myth-${id}`),
+    ...p.seenOmens.map((id) => `${legends.has(id) ? 'legend' : 'omen'}-${id}`),
+    ...p.seenBosses.map((id) => `boss-${id}`),
+  ];
+}
+
+const FIND_ORDER: Record<Find['kind'], number> = { myth: 0, legend: 1, boss: 2, omen: 3 };
+
+/** Что нашлось после снимка (CL.3): мифы и легендарные первыми, потом Затмения и Знамения. */
+export function findsSince(p: Profile, before: readonly string[]): Find[] {
+  const had = new Set(before);
+  return findKeys(p)
+    .filter((k) => !had.has(k))
+    .map((k) => ({ kind: k.slice(0, k.indexOf('-')) as Find['kind'], id: k.slice(k.indexOf('-') + 1) }))
+    .sort((a, b) => FIND_ORDER[a.kind] - FIND_ORDER[b.kind]);
+}
