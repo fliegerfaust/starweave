@@ -2741,10 +2741,6 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .collection-modal .gb-plus { font-size: 12px; }
 /* Фишка бонуса не рвётся посередине */
 .collection-modal .gb-tally .kw { white-space: nowrap; }
-/* Вариант «в сетке»: доска раскрывается под рядом выбранного знака, хвостик смотрит на него */
-.collection-modal .gb-board.gb-inline { grid-column: 1 / -1; overflow: visible; clip-path: none; margin: 4px 0 6px; animation: gb-open 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.collection-modal .gb-board.gb-inline::before { content: ''; position: absolute; top: -7px; left: calc(var(--tip, 50%) - 7px); width: 14px; height: 14px; transform: rotate(45deg); background: #1d1852; box-shadow: -1px -1px 0 0 rgb(var(--gold-rgb) / 0.3); }
-@keyframes gb-open { from { opacity: 0; transform: translateY(-6px); } }
 /* Итоги (CL.2, вариант Б): первым разделом списка; в широком окне — под доской, а в списке их нет */
 .coll-block { display: grid; gap: 10px; }
 .gb-pin > .coll-block { display: none; }
@@ -2830,29 +2826,23 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
 /* Коллекция в широком окне: под доской итоги — левая колонка без пустого поля */
 /* Ниже 400 px высоты итоги под доской не помещаются — остаются первым разделом списка */
 @media (min-height: 400px) {
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-pin { display: grid; gap: 12px; align-content: start; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-pin > .coll-block { display: grid; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-scroll > .coll-block { display: none; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; gap: 12px; align-content: start; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin > .coll-block { display: grid; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll > .coll-block { display: none; }
 }
-/* Вариант «в сетке» в широком окне: одна колонка, знаки мельче шагом, итоги в три столбца */
-body.landscape .modal-panel.collection-modal.bv-grid:not(.sheet) .gb { grid-template-columns: minmax(0, 1fr); }
-body.landscape .modal-panel.collection-modal.bv-grid:not(.sheet) .gb-sigils { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
-body.landscape .modal-panel.collection-modal.bv-grid:not(.sheet) .gb-statrows { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 /* ПК: большое окно по центру экрана, а не выпавшее меню */
 @media (min-width: 900px) and (min-height: 561px) {
   body.landscape .modal-panel.collection-modal:not(.sheet) { width: min(1120px, 100% - 64px); height: min(720px, 100% - 48px); max-height: none; }
   body.landscape .modal-backdrop:has(> .modal-panel.collection-modal:not(.sheet)) { place-items: center; padding-top: var(--safe-top); }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb { grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb { grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); }
   /* Витрина: доска заполняет колонку над итогами, знак крупно, всё по центру */
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-pin { height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-board { min-height: 0; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 14px; padding: 28px; text-align: center; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-tally { justify-items: center; gap: 6px; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-kindrow { justify-content: center; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-tally h3 { font-size: 32px; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-tally p { max-width: 34ch; font-size: 15px; text-wrap: balance; }
-  body.landscape .modal-panel.collection-modal.bv-center:not(.sheet) .gb-sigils { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 4px; }
-  body.landscape .modal-panel.collection-modal.bv-grid:not(.sheet) .gb-board.gb-inline { min-height: 0; padding: 20px 24px; column-gap: 22px; grid-template-columns: auto minmax(0, 52ch); }
-  body.landscape .modal-panel.collection-modal.bv-grid:not(.sheet) .gb-tally h3 { font-size: 26px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-board { min-height: 0; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 14px; padding: 28px; text-align: center; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; gap: 6px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-kindrow { justify-content: center; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally h3 { font-size: 32px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally p { max-width: 34ch; font-size: 15px; text-wrap: balance; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-sigils { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 4px; }
 }
 /* Низкий ландшафт телефона: итоги под доской плотнее */
 @media (orientation: landscape) and (max-height: 560px) {
