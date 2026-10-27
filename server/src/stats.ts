@@ -1,4 +1,5 @@
 import type { Db } from './db.ts';
+import { cmpVersion, computePlay, ERRORS_SINCE, median, type Play } from './play-stats.ts';
 
 /**
  * Сводка по событиям за период — всё, что нужно, чтобы понять, как играют:
@@ -21,7 +22,7 @@ export interface Stats {
     sessions: number;
     /** Открыли и сразу закрыли: кроме запуска и замера FPS (он сам через 5 с) событий нет. В длину сессий не входят. */
     bounceSessions: number;
-    /** Медиана активного времени сессии (см. activeMinutes), только сессии, начатые в периоде. */
+    /** Медиана активного времени сессии (паузы дольше 5 минут не в счёт), только сессии, начатые в периоде. */
     medianSessionMin: number | null;
     events: number;
   };
@@ -29,7 +30,20 @@ export interface Stats {
   platforms: { platform: string; players: number; sessions: number }[];
   retention: { d1Base: number; d1: number; weekBase: number; week: number };
   /** steps — шаги текущего обучения (track): короткое и полное не смешиваются. */
-  tutorial: { started: number; completed: number; skipped: number; track: 'short' | 'full'; steps: { index: number; step: string; players: number }[] };
+  tutorial: {
+    started: number;
+    completed: number;
+    skipped: number;
+    track: 'short' | 'full';
+    steps: { index: number; step: string; players: number }[];
+    /** Игроки текущего обучения (track): сколько начали, закончили, пропустили. */
+    trackPlayers: number;
+    trackDone: number;
+    trackSkipped: number;
+    /** Другое обучение тех же дней — отдельной строкой, не в таблицу шагов. */
+    otherPlayers: number;
+    otherDone: number;
+  };
   runs: { started: number; ended: number; victories: number; byResult: { result: string; count: number }[]; reach: { ante: number; runs: number }[] };
   /** movesLeft — сколько ходов в среднем оставалось у победивших: мера запаса, а не перебора. */
   nights: { ante: number; night: string; played: number; lost: number; movesLeft: number | null }[];
@@ -48,11 +62,12 @@ export interface Stats {
     sources: { source: string; players: number; fresh: number }[];
   };
   help: { guide: number; banish: number; rerolls: number };
-  ads: { kind: string; placement: string; requests: number; rewarded: number }[];
+  ads: { platform: string; kind: string; placement: string; requests: number; rewarded: number }[];
   /** stack — самый свежий из присланных стеков; versions — в каких версиях игры встречалась. */
   errors: { message: string; where: string; count: number; last: number; stack: string; versions: string[] }[];
   perf: { platform: string; medianFps: number; samples: number }[];
   versions: { version: string; players: number }[];
+  play: Play;
 }
 
 type Row = Record<string, unknown>;
@@ -78,24 +93,9 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     events: num(one('SELECT COUNT(*) AS n FROM events WHERE ts >= ?', from).n),
   };
 
-  // Сессии, начатые в периоде: начатую раньше граница обрезала бы на середине
-  const sessionTimes = new Map<string, { times: number[]; acted: boolean }>();
-  for (const r of all(
-    'SELECT session, ts, name FROM events WHERE session IN (SELECT session FROM events GROUP BY session HAVING MIN(ts) >= ?) ORDER BY session, ts',
-    from,
-  )) {
-    const key = String(r.session);
-    const entry = sessionTimes.get(key) ?? { times: [], acted: false };
-    entry.times.push(num(r.ts));
-    if (!PASSIVE.has(String(r.name))) entry.acted = true;
-    sessionTimes.set(key, entry);
-  }
-  const lengths: number[] = [];
-  for (const { times, acted } of sessionTimes.values()) {
-    if (!acted) totals.bounceSessions++;
-    else lengths.push(activeMinutes(times));
-  }
-  totals.medianSessionMin = median(lengths);
+  const play = computePlay(db, now, from);
+  totals.bounceSessions = play.sessions.bounce;
+  totals.medianSessionMin = play.sessions.medianMin;
 
   const activeByDay = new Map(
     all(`SELECT ${DAY_SQL} AS day, COUNT(DISTINCT client) AS players, COUNT(DISTINCT session) AS sessions FROM events WHERE ts >= ? GROUP BY day`, from).map((r) => [
@@ -142,6 +142,12 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   // его с полным по номеру шага нельзя. Игрок короткого — тот, у кого есть шаг «short…».
   const shortClients = `client IN (SELECT client FROM events WHERE name = 'tutorial_step' AND json_extract(params, '$.step') LIKE 'short%' AND ts >= ${from})`;
   const track: Stats['tutorial']['track'] = num(one(`SELECT COUNT(*) AS n FROM events WHERE name = 'tutorial_step' AND ${shortClients}`).n) > 0 ? 'short' : 'full';
+  /** not = '' — игроки текущего обучения, 'NOT ' — другого. */
+  const trackCounts = (not: string) => {
+    const mine = `${track === 'short' ? not : not ? '' : 'NOT '}${shortClients}`;
+    const n = (name: string) => num(one(`SELECT COUNT(DISTINCT client) AS n FROM events WHERE name = ? AND ts >= ? AND ${mine}`, name, from).n);
+    return { trackPlayers: n('tutorial_step'), trackDone: n('tutorial_complete'), trackSkipped: n('tutorial_skip') };
+  };
   const tutorial = {
     started: players('tutorial_start'),
     completed: players('tutorial_complete'),
@@ -153,6 +159,11 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
        GROUP BY step ORDER BY idx, players DESC`,
       from,
     ).map((r, i) => ({ index: i + 1, step: String(r.step ?? ''), players: num(r.players) })),
+    ...trackCounts(''),
+    ...(() => {
+      const other = trackCounts('NOT ');
+      return { otherPlayers: other.trackPlayers, otherDone: other.trackDone };
+    })(),
   };
 
   const runs = {
@@ -242,14 +253,14 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     : '';
 
   const ads = all(
-    `SELECT json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
+    `SELECT platform, json_extract(params, '$.kind') AS kind, json_extract(params, '$.placement') AS placement,
             SUM(CASE WHEN name = 'ad_request' THEN 1 ELSE 0 END) AS requests,
             SUM(CASE WHEN name = 'ad_result' AND json_extract(params, '$.result') = 'rewarded' THEN 1 ELSE 0 END) AS rewarded
      FROM events WHERE name IN ('ad_request', 'ad_result') AND ts >= ? ${buggyAdFilter}
-     GROUP BY kind, placement ORDER BY requests DESC`,
+     GROUP BY platform, kind, placement ORDER BY requests DESC`,
     from,
     ...buggyAdVersions,
-  ).map((r) => ({ kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
+  ).map((r) => ({ platform: String(r.platform), kind: String(r.kind), placement: String(r.placement), requests: num(r.requests), rewarded: num(r.rewarded) }));
 
   // Свежие сверху: давно исправленная ошибка старой версии не заслоняет новую
   const errors = all(
@@ -269,7 +280,9 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     last: num(r.last),
     stack: r.stack ? String(r.stack) : '',
     versions: String(r.vers ?? '').split(',').filter(Boolean).sort(cmpVersion),
-  }));
+  }))
+    // Ошибки только старых версий давно исправлены: их число — в play.oldErrors
+    .filter((e) => e.versions.some((v) => cmpVersion(v, ERRORS_SINCE) >= 0));
 
   const fpsRows = all(`SELECT platform, json_extract(params, '$.fps') AS fps FROM events WHERE name = 'perf' AND ts >= ?`, from);
   const fpsBy = new Map<string, number[]>();
@@ -285,44 +298,7 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
     players: num(r.players),
   }));
 
-  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
-}
-
-/** События, которые игра шлёт сама, без действия игрока. */
-const PASSIVE = new Set(['app_open', 'perf']);
-
-/** Пауза дольше этой — игра лежала в фоне или забыта, а не идёт. */
-const IDLE_GAP = 5 * 60 * 1000;
-
-/**
- * Активное время сессии в минутах: сумма промежутков между соседними событиями без пауз
- * дольше IDLE_GAP. Разница первого и последнего события считала бы игрой и два часа в фоне.
- */
-export function activeMinutes(times: number[]): number {
-  let ms = 0;
-  for (let i = 1; i < times.length; i++) {
-    const gap = times[i]! - times[i - 1]!;
-    if (gap <= IDLE_GAP) ms += gap;
-  }
-  return ms / 60000;
-}
-
-/** Сравнение версий «0.4.9» < «0.4.13» — по числам, не по строке. */
-function cmpVersion(a: string, b: string): number {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d) return d;
-  }
-  return 0;
-}
-
-function median(list: number[]): number | null {
-  if (list.length === 0) return null;
-  const s = [...list].sort((a, b) => a - b);
-  const mid = s.length >> 1;
-  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+  return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions, play };
 }
 
 /** Московский день → «12 окт». */
