@@ -3,6 +3,7 @@ import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
 import { BODY_UNLOCKS } from '@/core/content/pools';
 import { COLLECTIBLE_COMBOS, isUnlocked, type Profile } from '@/meta/profile';
+import { collectionTally } from '@/meta/collection';
 import { BOSS_LIST } from '@/core/content/bosses';
 import { MYTHS, MYTHS_UNLOCK } from '@/core/content/myths';
 import { OMEN_LIST } from '@/core/content/omens';
@@ -46,6 +47,8 @@ export interface GuideOptions {
   sheet?: boolean;
   /** Профиль игрока: с ним во Справочнике есть вкладка «Коллекция» (бывший Кодекс). */
   profile?: Profile;
+  /** Окно закрыли (баннер ночи ждёт этого, чтобы досмотреть очередь). */
+  onClose?: () => void;
 }
 
 const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
@@ -110,7 +113,27 @@ function sky(cards: Record<number, [number, Suit]>, opts: { line?: boolean; drop
   return grid;
 }
 
+/** Раздел Коллекции в фокусе: `collection`, `myths`, `legends`, находка `myth-…`, `omen-…`, `boss-…`, `legend-…`. */
+const isCollectionFocus = (focus?: string) => !!focus && (['collection', 'myths', 'legends'].includes(focus) || /^(myth|omen|boss|legend)-/.test(focus));
+
+/**
+ * Справочник — правила: созвездия, ночь, Обсерватория, карты. Коллекция с CL.2 — своё окно:
+ * старые вызовы с вкладкой или фокусом Коллекции открывают его.
+ */
 export function showGuide(opts: GuideOptions = {}): void {
+  if (opts.profile && (opts.tab === 'collection' || isCollectionFocus(opts.focus))) return showCollection(opts.profile, opts.focus);
+  openBoard(opts, false);
+}
+
+/**
+ * Коллекция (CL.2): то же окно «доска + список», без вкладок правил. Наверху — итоги
+ * игрока, ниже — мифы, Знамения, легендарные, Затмения и небеса.
+ */
+export function showCollection(profile: Profile, focus?: string, onClose?: () => void): void {
+  openBoard({ profile, found: profile.combosFound, tab: 'collection', ...(focus ? { focus } : {}), ...(onClose ? { onClose } : {}) }, true);
+}
+
+function openBoard(opts: GuideOptions, only: boolean): void {
   const focus = opts.focus;
   let tab: GuideTab = opts.tab ?? 'combos';
   let combo: ComboId = 'pair';
@@ -134,13 +157,17 @@ export function showGuide(opts: GuideOptions = {}): void {
     else if (focus === 'myths' && opts.profile) tab = 'collection';
     else if (focus === 'legends' && opts.profile) tab = 'collection';
   }
-  const tabs = TABS.filter((x) => x !== 'collection' || !!opts.profile);
+  const tabs = only ? (['collection'] as GuideTab[]) : TABS.filter((x) => x !== 'collection');
   // Коллекция: выбранное Знамение, Затмение или миф — крупно на доске
+  // Находка с главной (CL.1): `myth-lyra`, `omen-stardust`, `boss-fog`, `legend-noon`
+  const findFocus = focus?.match(/^(myth|omen|boss|legend)-(.+)$/);
+  if (findFocus && opts.profile) tab = 'collection';
   let pick: { kind: 'omen' | 'boss' | 'myth' | 'legend'; id: string } | null =
-    focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id }
+    findFocus && opts.profile ? { kind: findFocus[1] as 'omen' | 'boss' | 'myth' | 'legend', id: findFocus[2]! }
+    : focus === 'myths' ? { kind: 'myth', id: MYTHS[0]!.id }
     : focus === 'legends' ? { kind: 'legend', id: (LEGENDS.find((x) => !opts.profile!.seenOmens.includes(x.id)) ?? LEGENDS[0]!).id }
     : null;
-  track('guide_open', { focus: focus ?? tab });
+  track(only ? 'collection_open' : 'guide_open', { focus: focus ?? tab });
   const g = dict().guide;
   const levelOf = (id: ComboId) => opts.levels?.[id] ?? 1;
   let timers: number[] = [];
@@ -361,6 +388,8 @@ export function showGuide(opts: GuideOptions = {}): void {
 
   // ─── Коллекция (бывший Кодекс) ───────────────────────────────────────────
   const c = dict().codex;
+  /** Знак на доске: в широком окне (ПК) крупнее — доске есть где. */
+  const bigSize = () => (document.body.classList.contains('landscape') && matchMedia('(min-width: 900px) and (min-height: 561px)').matches ? 128 : 56);
   const collSigil = (kind: 'omen' | 'boss', id: string, size: number) => canvasImg(kind === 'omen' ? omenSigil(id, size, dpr()) : bossSigil(id, size, dpr()), size);
   /** Описание без «(сейчас +{x})» — вне забега текущего значения нет. */
   const effect = (text: string) => text.replace(/\s*\([^)]*\{x\}[^)]*\)/, '').replace('{x}', '…');
@@ -373,7 +402,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     if (pick.kind === 'myth') return mythBoard(pick.id);
     if (pick.kind === 'legend') return legendBoard(pick.id);
     const known = (pick.kind === 'omen' ? p.seenOmens : p.seenBosses).includes(pick.id);
-    const big = collSigil(pick.kind, pick.id, 72);
+    const big = collSigil(pick.kind, pick.id, bigSize());
     big.classList.add('gb-big');
     if (!known) big.classList.add('unknown');
     const info = named(pick.kind, pick.id);
@@ -381,7 +410,7 @@ export function showGuide(opts: GuideOptions = {}): void {
     if (pick.kind === 'boss' && known && trophiesOpen()) return trophyBoard(pick.id, big);
     const tally = known
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
-      : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
+      : [h('h3', null, pick.kind === 'omen' ? c.unknownOmenName : c.unknownBossName), h('span.gb-kind', null, c.notFound), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
     return [h('div.gb-stage', null, big), tally];
   };
   // ─── Легендарные Резонанса (RS.3): видны со ступени «Резонанс» ──────────
@@ -402,14 +431,15 @@ export function showGuide(opts: GuideOptions = {}): void {
     const found = seenOmen(id);
     const [a, b] = LEGENDS.find((x) => x.id === id)!.pair!;
     const nameOf = (x: string) => (seenOmen(x) ? `[${named('omen', x).name}|omen.${x}]` : c.unknownHalf);
-    // Легендарное крупно, под ним — из чего оно сливается
-    const [ha, plus, hb, , big] = formula(id, 30, 72);
+    // Легендарное крупно, у имени — из чего оно сливается
+    const [ha, plus, hb, , big] = formula(id, 20, bigSize());
     big!.classList.add('gb-big');
-    const vis = h('div.gb-stage', null, [big!, h('div.gb-formula', null, [ha!, plus!, hb!])]);
+    // Пара половинок — в строке вида, не отдельной строкой: доска не выше, чем у Знамения
+    const kindRow = (label: HTMLElement) => h('div.gb-kindrow', null, [label, h('span.gb-formula', null, [ha!, plus!, hb!])]);
     const kind = OMEN_LIST.find((x) => x.id === id)!.kind;
-    return [vis, found
-      ? [h('h3', null, named('omen', id).name), h(`span.gb-kind.${kind}`, null, `${c.legend} · ${c.kinds[kind] ?? ''}`), h('p', null, rich(effect(named('omen', id).desc)))]
-      : [h('h3', null, c.unknownLegend), h('span.gb-kind', null, c.legend), h('p', null, rich(format(c.unknownLegendDesc, { a: nameOf(a), b: nameOf(b) })))]];
+    return [h('div.gb-stage', null, big!), found
+      ? [h('h3', null, named('omen', id).name), kindRow(h(`span.gb-kind.${kind}`, null, `${c.legend} · ${c.kinds[kind] ?? ''}`)), h('p', null, rich(effect(named('omen', id).desc)))]
+      : [h('h3', null, c.unknownLegend), kindRow(h('span.gb-kind', null, c.legend)), h('p', null, rich(format(c.unknownLegendDesc, { a: nameOf(a), b: nameOf(b) })))]];
   };
   const legendList = (): HTMLElement[] => {
     const el = h('div.gb-sigils.gb-legends');
@@ -438,7 +468,7 @@ export function showGuide(opts: GuideOptions = {}): void {
   /** Найденный миф — рисунок золотом, имя, множитель и легенда; неизвестный — силуэт фигуры. */
   const mythBoard = (id: string): [HTMLElement, Child[]] => {
     const found = mythFound(id);
-    const big = mythFigure(id, 104, found);
+    const big = mythFigure(id, bigSize(), found);
     big.classList.add('gb-myth');
     const x = MYTHS.find((m) => m.id === id)!.x;
     return [h('div.gb-stage', null, big), found
@@ -467,8 +497,9 @@ export function showGuide(opts: GuideOptions = {}): void {
   const tamedOf = (id: string) => opts.profile!.tamed?.[id] ?? 0;
   const tamedText = (n: number) => format(c.tamedN[new Intl.PluralRules(getLang()).select(n)] ?? c.tamedN.other!, { n });
   /**
-   * Трофей главный: что взято и какой бонус даёт, сколько раз приручён. Затмение — под
-   * чертой, тише. Знак один — Затмения; у приручённого он золотой, как медаль трофея.
+   * Трофей главный: что взято и какой бонус даёт, сколько раз приручён. Затмение — строкой
+   * ниже, тише: доска не выше, чем у Знамения. Знак один — Затмения; у приручённого он
+   * золотой, как медаль трофея.
    */
   const trophyBoard = (id: string, big: HTMLElement): [HTMLElement, Child[]] => {
     const n = tamedOf(id);
@@ -479,7 +510,7 @@ export function showGuide(opts: GuideOptions = {}): void {
       h(`h3${n ? '' : '.wild'}`, null, tro.name),
       h(`span.gb-kind.gold${n ? '' : '.none'}`, null, [c.trophy, ' · ', n ? tamedText(n) : c.notTamed]),
       h('p', null, rich(tro.desc)),
-      h('div.gb-ecl', null, [h('b', null, boss.name), h('span', null, rich(effect(boss.desc)))]),
+      h('p.gb-ecl', null, [h('b', null, boss.name), h('span', null, [' · ', rich(effect(boss.desc))])]),
     ]];
   };
   const collectionList = (): HTMLElement[] => {
@@ -494,7 +525,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         const gold = kind === 'boss' && isSeen && tamedOf(x.id) > 0 && trophiesOpen();
         const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}${gold ? '.tamed' : ''}`, {
           type: 'button',
-          attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : c.unknown },
+          attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : kind === 'omen' ? c.unknownOmenName : c.unknownBossName },
         }, collSigil(kind, x.id, 40));
         b.addEventListener('click', (e) => {
           if (on) return;
@@ -508,12 +539,6 @@ export function showGuide(opts: GuideOptions = {}): void {
       if (kind === 'boss' && trophiesOpen()) sub += ` · ${format(c.tamedShort, { n: BOSS_LIST.filter((b) => tamedOf(b.id) > 0).length })}`;
       return [section(kind === 'omen' ? c.omens : c.bosses, sub), el];
     };
-    // Итоги игрока — строками «подпись · число», без плашек
-    const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
-    const stats = h('div.gb-statrows', null, [
-      stat(c.sRuns, num(p.runs)), stat(c.sWins, num(p.wins)), stat(c.sAnte, String(p.bestAnte)),
-      stat(c.sBest, num(p.bestPlacement)), stat(c.sLines, num(p.totalLines)), stat(format(c.sOmens, { total: REGULAR.length }), String(REGULAR.filter((x) => p.seenOmens.includes(x.id)).length)),
-    ]);
     const skies = h('div.gb-list');
     for (const skyDef of SKY_LIST) {
       const open = p.unlockedSkies.includes(skyDef.id);
@@ -521,7 +546,28 @@ export function showGuide(opts: GuideOptions = {}): void {
       skies.append(h(`div.gb-row.static${open ? '' : '.miss'}`, null, h('span.gb-text', null, [h('b', null, open ? info.name : [icon('lock', 'icon gb-lock'), info.name]), h('small', null, info.desc)])));
     }
     const openN = SKY_LIST.filter((x) => p.unlockedSkies.includes(x.id)).length;
-    return [...(mythsOpen() ? mythList() : []), ...grid('omen'), ...(resonanceOpen() ? legendList() : []), ...grid('boss'), section(c.results, null), stats, section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+    return [statsBlock(), ...(mythsOpen() ? mythList() : []), ...grid('omen'), ...(resonanceOpen() ? legendList() : []), ...grid('boss'), section(c.skies, format(c.opened, { n: openN, total: SKY_LIST.length })), skies];
+  };
+  // ─── Итоги игрока (CL.2) ─────────────────────────────────────────────────
+  /** Общий счёт Коллекции тонкой шкалой — та же, что на полке главной. */
+  const progress = () => {
+    const tl = collectionTally(opts.profile!);
+    return h('div.coll-progress', null, [
+      h('span', null, format(c.foundAll, { n: tl.found, total: tl.total })),
+      h('span.shelf-bar', { style: `--p: ${tl.total ? Math.round((tl.found / tl.total) * 100) : 0}%`, attrs: { 'aria-hidden': 'true' } }),
+    ]);
+  };
+  /**
+   * Итоги первым разделом списка (вариант Б Дениса): строки «подпись · число», уходят вверх
+   * при прокрутке. В широком окне тот же блок стоит под доской — левая колонка не пустует.
+   */
+  const statsBlock = (): HTMLElement => {
+    const p = opts.profile!;
+    const stat = (label: string, value: string) => h('div.gb-stat', null, [h('span', null, label), h('b', null, value)]);
+    return h('div.coll-block', null, [section(c.results, null), progress(), h('div.gb-statrows', null, [
+      stat(c.sRuns, num(p.runs)), stat(c.sWins, num(p.wins)), stat(c.sAnte, String(p.bestAnte)),
+      stat(c.sBest, num(p.bestPlacement)), stat(c.sLines, num(p.totalLines)), stat(format(c.sOmens, { total: REGULAR.length }), String(REGULAR.filter((x) => p.seenOmens.includes(x.id)).length)),
+    ])]);
   };
 
   const boardOf = (which: GuideTab): [HTMLElement, Child[]] =>
@@ -533,6 +579,23 @@ export function showGuide(opts: GuideOptions = {}): void {
    * коллекцию — и держим высоту самого большого.
    */
   const steadyHeights = new Map<string, number>();
+  /**
+   * Доска Коллекции одной высоты у любого игрока (замечание Дениса): меряем не то, что открыто
+   * у него, а всю Коллекцию — найденной целиком и ненайденной, со ступенями и без.
+   */
+  const collectionProfiles = (): Profile[] => {
+    const p = opts.profile!;
+    const steps = { eclipses: 99, combosFound: [...COMBO_IDS] };
+    const all = { seenOmens: OMEN_LIST.map((x) => x.id), seenBosses: BOSS_LIST.map((x) => x.id), mythsFound: MYTHS.map((x) => x.id) };
+    return [
+      { ...p, ...steps, ...all, tamed: Object.fromEntries(BOSS_LIST.map((x) => [x.id, 2])) },
+      { ...p, ...steps, ...all, tamed: {} },
+      // Затмение до ступени трофеев — своя доска, со своим правилом
+      { ...p, ...steps, ...all, eclipses: 0 },
+      { ...p, ...steps, seenOmens: REGULAR.map((x) => x.id), seenBosses: [], mythsFound: [] },
+      { ...p, ...steps, seenOmens: [], seenBosses: [], mythsFound: [] },
+    ];
+  };
   // Шрифты могли догрузиться после первого замера — меряем заново
   void document.fonts?.ready.then(() => {
     if (!m.el.isConnected || !steadyHeights.size) return;
@@ -549,13 +612,14 @@ export function showGuide(opts: GuideOptions = {}): void {
         : tab === 'night' ? g.steps.map((_, i) => () => { step = i; })
         : tab === 'shop' ? SHOP_IDS.map((id) => () => { shopSel = id; })
         : tab === 'glyphs' ? [...GLYPHS.map((id) => () => { glyph = id; showBody = false; }), ...openBodies.map((id) => () => { bodyId = id; showBody = true; })]
-        : [
-            ...REGULAR.map((x) => () => { pick = { kind: 'omen', id: x.id }; }),
-            ...(resonanceOpen() ? LEGENDS.map((x) => () => { pick = { kind: 'legend', id: x.id }; }) : []),
-            ...BOSS_LIST.map((x) => () => { pick = { kind: 'boss', id: x.id }; }),
-            ...(mythsOpen() ? MYTHS.map((x) => () => { pick = { kind: 'myth', id: x.id }; }) : []),
-          ];
+        : collectionProfiles().flatMap((prof) => [
+            ...REGULAR.map((x) => () => { opts.profile = prof; pick = { kind: 'omen', id: x.id }; }),
+            ...LEGENDS.map((x) => () => { opts.profile = prof; pick = { kind: 'legend', id: x.id }; }),
+            ...BOSS_LIST.map((x) => () => { opts.profile = prof; pick = { kind: 'boss', id: x.id }; }),
+            ...MYTHS.map((x) => () => { opts.profile = prof; pick = { kind: 'myth', id: x.id }; }),
+          ]);
       const live = [...board.childNodes];
+      const profile = opts.profile;
       max = board.offsetHeight;
       for (const apply of variants) {
         apply();
@@ -563,6 +627,7 @@ export function showGuide(opts: GuideOptions = {}): void {
         board.replaceChildren(vis, h('div.gb-tally', null, tally));
         max = Math.max(max, board.offsetHeight);
       }
+      opts.profile = profile;
       ({ combo, step, shopSel, glyph, bodyId, showBody, pick } = saved);
       board.replaceChildren(...live);
       steadyHeights.set(key, max);
@@ -585,9 +650,13 @@ export function showGuide(opts: GuideOptions = {}): void {
     const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : collectionList();
     // Широкая сцена (Обсерватория) — подпись под ней
     const board = h(`div.gb-board${tab === 'shop' ? '.stack' : ''}`, null, [vis, h('div.gb-tally', { attrs: { 'aria-live': 'polite' } }, tally)]);
-    body.replaceChildren(h('div.gb-pin', null, board), h('div.gb-scroll', null, below));
+    body.replaceChildren(
+      h('div.gb-pin', null, [board, tab === 'collection' && only ? statsBlock() : null]),
+      h('div.gb-scroll', null, below),
+    );
+    const scroll = body.querySelector<HTMLElement>('.gb-scroll')!;
     steadyBoard(board);
-    body.querySelector('.gb-scroll')!.scrollTop = keep;
+    scroll.scrollTop = keep;
     shownTab = tab;
     // Шаги ночи идут сами, пока игрок не выбрал шаг
     if (tab === 'night' && auto && !reduced()) later(() => { step = (step + 1) % g.steps.length; render(); }, 3200);
@@ -611,8 +680,17 @@ export function showGuide(opts: GuideOptions = {}): void {
     });
     tabsBar.append(b);
   });
-  const m = modal(body, { title: g.title, className: 'board-modal guide-modal', sheet: opts.sheet, headExtra: tabsBar, onClose: () => timers.forEach(clearTimeout) });
+  const m = modal(body, {
+    title: only ? c.title : g.title,
+    className: `board-modal guide-modal${only ? ' collection-modal' : ''}`,
+    sheet: opts.sheet,
+    headExtra: only ? undefined : tabsBar,
+    onClose: () => {
+      timers.forEach(clearTimeout);
+      opts.onClose?.();
+    },
+  });
   render();
   // Фокус на строке из подсказки — она видна в списке
-  if (focus) requestAnimationFrame(() => body.querySelector('.gb-row.on')?.scrollIntoView({ block: 'nearest' }));
+  if (focus) requestAnimationFrame(() => body.querySelector('.gb-row.on, .gb-sigils .on')?.scrollIntoView({ block: 'nearest' }));
 }

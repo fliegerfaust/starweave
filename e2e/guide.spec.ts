@@ -57,8 +57,6 @@ test('Справочник: живая доска, четыре вкладки, 
     for (const sheet of [false, true]) {
       if (sheet) await page.evaluate(() => (window as unknown as { starweave: App }).starweave.runs.startRun('classic', false, 0, 4242));
       for (const tab of TABS) {
-        // Лист с профилем (5 вкладок) в ландшафте не помещается и без тел — задача CG-60; тела проверяем в окне
-        if (sheet && tab === 'bodies') continue;
         await closeAll(page);
         await page.evaluate(async ({ lang, tab, sheet }) => {
           const { setLang } = await import('/src/i18n/index.ts');
@@ -97,7 +95,7 @@ test('Справочник: живая доска, четыре вкладки, 
   expect(errors).toEqual([]);
 });
 
-test('Коллекция во Справочнике (бывший Кодекс): доска, знаки, итоги, вкладки помещаются', async ({ page }) => {
+test('Коллекция своим окном (CL.2): доска, знаки, итоги первым разделом помещаются', async ({ page }) => {
   const errors = await boot(page);
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
@@ -110,17 +108,20 @@ test('Коллекция во Справочнике (бывший Кодекс)
       showGuide({ tab: 'collection', profile: app.profile });
     }, lang);
     await check(page, `${lang} коллекция`, failures);
-    // Пять вкладок целиком на экране — ни одна не уезжает за край полосы
+    // Вкладок правил в Коллекции нет; итоги видны ровно одним блоком (в списке или под доской) и целиком в окне
     const cut = await page.evaluate(() => {
-      const bar = document.querySelector('.gb-tabs')!.getBoundingClientRect();
-      return [...document.querySelectorAll('.gb-tab')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < bar.left - 1 || r.right > bar.right + 1; }).map((t) => t.textContent);
+      if (document.querySelector('.collection-modal .gb-tabs')) return ['вкладки правил в Коллекции'];
+      const shown = [...document.querySelectorAll<HTMLElement>('.collection-modal .coll-block')].filter((b) => b.offsetParent);
+      if (shown.length !== 1) return [`блоков итогов: ${shown.length}`];
+      const box = shown[0]!.getBoundingClientRect();
+      return [...shown[0]!.querySelectorAll('.gb-stat')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < box.left - 1 || r.right > box.right + 1; }).map((t) => t.textContent ?? '');
     });
-    if (cut.length) failures.push(`${lang}: вкладки за краем — ${cut.join(', ')}`);
+    if (cut.length) failures.push(`${lang}: итоги — ${cut.join(', ')}`);
     if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-collection.png` });
   }
   // Неизвестное Знамение: доска честно говорит, что оно ещё не встречалось
   await page.locator('.gb-sigils button.unknown').first().click();
-  await expect(page.locator('.gb-tally h3')).toHaveText('???');
+  await expect(page.locator('.gb-tally h3')).toHaveText('Unknown omen');
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -159,7 +160,7 @@ test('Справочник: доска не меняет размер при п�
 /**
  * Коллекция трофеев (TR.4, вариант A4 Дениса): взятый в сцене «Небо сдаётся» трофей
  * считается приручением; в коллекции приручённое Затмение золотое, на доске главный трофей
- * и сколько раз приручён, Затмение под чертой. Ничего не вылезает, ru и en.
+ * и сколько раз приручён, Затмение строкой ниже. Ничего не вылезает, ru и en.
  */
 test('коллекция трофеев: взятый трофей приручён, доска трофея помещается', async ({ page }) => {
   const errors: string[] = [];
