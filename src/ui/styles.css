@@ -857,6 +857,31 @@ body {
 .shelf-ghost .unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
 /* Узкий телефон (320 px): на полке три знака помещаются, четвёртого нет */
 @media (max-width: 359px) { .shelf-marks .shelf-mark:nth-child(n + 4) { display: none; } }
+/* Находки забега в итогах (CL.3): строка без плашки, как полка на главной — целиком кнопка */
+.over-finds {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink-dim);
+  font: 600 13.5px/1.2 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.over-finds:hover { background: rgb(var(--violet-rgb) / 0.08); color: var(--ink); }
+.of-label { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.of-label b { color: var(--gold); font-weight: 800; }
+.of-marks { display: flex; align-items: center; gap: 6px; }
+.of-mark { display: block; filter: drop-shadow(0 0 5px rgb(var(--gold-rgb) / 0.55)); }
+.of-more { color: var(--ink-faint); font-size: 12.5px; }
+.over-finds > .icon { width: 14px; height: 14px; color: var(--gold); }
+/* Баннер мифа ведёт в Коллекцию: стрелка у имени */
+.discovery-name .icon { width: 0.7em; height: 0.7em; margin-left: 4px; vertical-align: 0.05em; color: var(--gold); }
 
 
 /* Невысокие экраны: щель ниже, слоган прячется — пульт влезает без прокрутки */

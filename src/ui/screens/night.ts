@@ -8,6 +8,7 @@ import { NightScene } from '@/game/night/scene';
 import { challengeOf, challengeScore, compareToChallenge, encodeChallenge } from '@/game/challenge';
 import { ROUTES_UNLOCK } from '@/core/content/pools';
 import { COLLECTIBLE_COMBOS, dailyNumber, isUnlocked } from '@/meta/profile';
+import { findsSince } from '@/meta/collection';
 import { track } from '@/analytics';
 import { named, num, t } from '@/i18n';
 import { h } from '../dom';
@@ -16,12 +17,19 @@ import { showTrophyScene } from '../trophy-scene';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
-import { showCombos, showDeck, showHelp, showSettings } from './common';
+import { showCollection, showCombos, showDeck, showHelp, showSettings } from './common';
+import { findMark } from '../find-shelf';
 import { icon } from '../icons';
 import { hasJourney, journeyCard } from '../journey';
 import { chapterChain, lightButton, sceneRibbon, sceneRows, sceneTally, sceneWindow, statsTable } from '../scene-window';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
+/**
+ * Витрина CL.3: находки забега в итогах — `?hookvar=row` (строка со знаками в итогах)
+ * или `light` (кнопка «Коллекция +N» в ряду с «В меню»). Без параметра — строка.
+ */
+const HOOK: 'row' | 'light' = import.meta.env.DEV && new URLSearchParams(location.search).get('hookvar') === 'light' ? 'light' : 'row';
+
 export class NightScreen implements Screen {
   private hud!: Hud;
   private scene: NightScene | null = null;
@@ -203,7 +211,10 @@ export class NightScreen implements Screen {
       banners.push({ kind: 'cross' });
       track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
     }
-    announceDiscovery(banners, () => this.app.svc.audio.win());
+    announceDiscovery(banners, () => this.app.svc.audio.win(), (focus, done) => {
+      track('collection_hook', { from: 'banner', kind: 'myth', n: 1 });
+      showCollection(this.app.profile, focus, done);
+    });
     const completed = banners.some((b) => b.kind === 'combo' && b.count === COLLECTIBLE_COMBOS.length);
     if (completed) toast(t('discovery.all'));
   }
@@ -385,6 +396,7 @@ export class NightScreen implements Screen {
         path,
         night ? sceneTally(night.score, night.target) : null,
         isRecord ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
+        HOOK === 'row' ? this.findsRow() : null,
         this.challengeVersus(false),
         h('p.scene-tip', null, [icon('bulb'), h('span', null, lostTip(run))]),
         statsTable(run),
@@ -394,6 +406,7 @@ export class NightScreen implements Screen {
         pair.length ? h(`div.scene-pair${pair.length === 1 ? '.one' : ''}`, null, pair) : null,
         h('div.scene-lights', null, [
           run.daily ? null : this.challengeLight(false),
+          HOOK === 'light' ? this.findsLight() : null,
           lightButton('home', t('over.menu'), () => this.app.runs.abandonRun(), true),
         ]),
       ],
@@ -419,6 +432,7 @@ export class NightScreen implements Screen {
         sceneRibbon(t('over.winTitle'), t('over.winSub', { sky: named('sky', run.skyId).name, stake: stake ? t('map.stake', { n: stake }) : t('menu.stakeNormal') })),
         path,
         run.stats.bestPlacement > this.app.runs.bestBefore ? sceneRows([[t('over.record'), num(run.stats.bestPlacement)]], { gold: true }) : null,
+        HOOK === 'row' ? this.findsRow() : null,
         this.challengeVersus(true),
         statsTable(run),
       ],
@@ -435,11 +449,49 @@ export class NightScreen implements Screen {
         }, { variant: 'secondary', sub: t('over.endlessSub') }),
         h('div.scene-lights', null, [
           run.daily ? lightButton('share', t('over.share'), () => this.share()) : this.challengeLight(true),
+          HOOK === 'light' ? this.findsLight() : null,
           lightButton('home', t('over.menu'), () => this.app.runs.abandonRun(), true),
         ]),
       ],
     });
     this.placePath(path);
+  }
+
+  /** Что открылось в Коллекции за этот забег (CL.3). */
+  private runFinds() {
+    const before = this.run.foundBefore;
+    return before ? findsSince(this.app.profile, before) : [];
+  }
+
+  /** Коллекция поверх итогов — на самой ценной находке забега. */
+  private openFinds(finds: ReturnType<NightScreen['runFinds']>): void {
+    const f = finds[0]!;
+    track('collection_hook', { from: 'over', kind: f.kind, n: finds.length });
+    showCollection(this.app.profile, `${f.kind}-${f.id}`);
+  }
+
+  /** Вариант «строка»: «Новое в Коллекции 3», знаки находок и стрелка. */
+  private findsRow(): HTMLElement | null {
+    const finds = this.runFinds();
+    if (!finds.length) return null;
+    const shown = finds.slice(0, 4);
+    const b = h('button.over-finds', { type: 'button', attrs: { 'aria-label': t('over.findsAria', { n: finds.length }) } }, [
+      h('span.of-label', null, [t('over.finds'), h('b', null, String(finds.length))]),
+      h('span.of-marks', { attrs: { 'aria-hidden': 'true' } }, [
+        ...shown.map((f) => h('span.of-mark', null, findMark(f, 28))),
+        finds.length > shown.length ? h('span.of-more', null, `+${finds.length - shown.length}`) : null,
+      ]),
+      icon('chevron'),
+    ]);
+    b.addEventListener('click', () => this.openFinds(finds));
+    return b;
+  }
+
+  /** Вариант «кнопка»: «Коллекция +3» в ряду кнопок рядом с «В меню». */
+  private findsLight(): HTMLElement | null {
+    const finds = this.runFinds();
+    if (!finds.length) return null;
+    return lightButton('codex', t('over.collection', { n: finds.length }), () => this.openFinds(finds));
   }
 
   /** Кнопка «за рекламу»: блокируется на время ролика, при неудаче — подсказка. */

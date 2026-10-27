@@ -4,6 +4,7 @@ import type { ComboId } from '@/core/types';
 import { COLLECTIBLE_COMBOS } from '@/meta/profile';
 import { dict, t } from '@/i18n';
 import { h } from './dom';
+import { icon } from './icons';
 import { mythFigure } from './myth-figure';
 import { routeIcon } from './route-icon';
 import { cardThumb } from './screens/common';
@@ -16,6 +17,11 @@ let timer = 0;
 /** Кто ждёт конца баннеров (окно итогов ночи). */
 let waiters: (() => void)[] = [];
 let fakeId = -5000;
+/** Касание баннера мифа (CL.3): открыть Коллекцию на нём; `done` — окно закрыли. */
+type Opener = (focus: string, done: () => void) => void;
+let opener: Opener | null = null;
+/** Коллекция открыта с баннера: очередь ждёт, пока её закроют. */
+let held = false;
 const SHOW_MS = 2600;
 /** Новый миф — рисунок и строка легенды, читают чуть дольше созвездия. */
 const MYTH_MS = 3400;
@@ -30,14 +36,15 @@ const OUT_MS = 220;
  * Не блокирует игру: плашка над небом, уходит сама или по касанию. Несколько открытий
  * за ход показываются по очереди.
  */
-export function announceDiscovery(banners: Banner[], onShow?: () => void): void {
+export function announceDiscovery(banners: Banner[], onShow?: () => void, open?: Opener): void {
   queue.push(...banners);
-  if (!current) next(onShow);
+  if (open) opener = open;
+  if (!current && !held) next(onShow);
 }
 
 /** Дождаться, пока баннеры уйдут (или их закроют касанием). */
 export function whenDiscoveryDone(): Promise<void> {
-  if (!current && queue.length === 0) return Promise.resolve();
+  if (!current && !held && queue.length === 0) return Promise.resolve();
   return new Promise((resolve) => waiters.push(resolve));
 }
 
@@ -61,7 +68,7 @@ function next(onShow?: () => void): void {
       : b.kind === 'myth'
         ? h('div.discovery.myth', { attrs: { role: 'status', 'aria-live': 'polite' } }, [
             h('div.discovery-kicker', null, t('discovery.newMyth', { n: b.count, total: MYTHS.length })),
-            h('div.discovery-name', null, (dict().myth as Record<string, string>)[b.id] ?? b.id),
+            h('div.discovery-name', null, [(dict().myth as Record<string, string>)[b.id] ?? b.id, opener ? icon('chevron') : null]),
             h('div.discovery-figure', null, mythFigure(b.id, 76, true)),
             h('div.discovery-desc', null, (dict().mythDesc as Record<string, string>)[b.id] ?? ''),
           ])
@@ -77,7 +84,7 @@ function next(onShow?: () => void): void {
             h('div.discovery-name', null, t('discovery.cross')),
             h('div.discovery-desc', null, t('discovery.crossDesc')),
           ]);
-  el.addEventListener('click', () => dismiss(onShow));
+  el.addEventListener('click', () => (b.kind === 'myth' && opener ? openFind(`myth-${b.id}`, onShow) : dismiss(onShow)));
   document.getElementById('ui')!.append(el);
   current = el;
   onShow?.();
@@ -87,6 +94,19 @@ function next(onShow?: () => void): void {
 /** Значок пути в звезде, как на карте неба, и подпись под ним. */
 function routePick(kind: 'night' | 'bright'): HTMLElement {
   return h('div.discovery-route', null, [h('span.orb', null, routeIcon(kind)), h('span', null, t(`route.${kind}`))]);
+}
+
+/** Баннер уходит сразу, остальные ждут закрытия Коллекции: окно итогов ночи не встанет поверх. */
+function openFind(focus: string, onShow?: () => void): void {
+  window.clearTimeout(timer);
+  current?.remove();
+  current = null;
+  held = true;
+  opener!(focus, () => {
+    if (!held) return;
+    held = false;
+    next(onShow);
+  });
 }
 
 function dismiss(onShow?: () => void): void {
@@ -105,6 +125,7 @@ function dismiss(onShow?: () => void): void {
 export function clearDiscovery(): void {
   window.clearTimeout(timer);
   queue.length = 0;
+  held = false;
   current?.remove();
   current = null;
   settle();

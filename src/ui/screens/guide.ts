@@ -47,6 +47,8 @@ export interface GuideOptions {
   sheet?: boolean;
   /** Профиль игрока: с ним во Справочнике есть вкладка «Коллекция» (бывший Кодекс). */
   profile?: Profile;
+  /** Окно закрыли (баннер ночи ждёт этого, чтобы досмотреть очередь). */
+  onClose?: () => void;
 }
 
 const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
@@ -127,8 +129,8 @@ export function showGuide(opts: GuideOptions = {}): void {
  * Коллекция (CL.2): то же окно «доска + список», без вкладок правил. Наверху — итоги
  * игрока, ниже — мифы, Знамения, легендарные, Затмения и небеса.
  */
-export function showCollection(profile: Profile, focus?: string): void {
-  openBoard({ profile, found: profile.combosFound, tab: 'collection', ...(focus ? { focus } : {}) }, true);
+export function showCollection(profile: Profile, focus?: string, onClose?: () => void): void {
+  openBoard({ profile, found: profile.combosFound, tab: 'collection', ...(focus ? { focus } : {}), ...(onClose ? { onClose } : {}) }, true);
 }
 
 function openBoard(opts: GuideOptions, only: boolean): void {
@@ -680,10 +682,13 @@ function openBoard(opts: GuideOptions, only: boolean): void {
   });
   const m = modal(body, {
     title: only ? c.title : g.title,
-    className: `board-modal guide-modal${only ? ` collection-modal` : ''}`,
+    className: `board-modal guide-modal${only ? ' collection-modal' : ''}`,
     sheet: opts.sheet,
     headExtra: only ? undefined : tabsBar,
-    onClose: () => timers.forEach(clearTimeout),
+    onClose: () => {
+      timers.forEach(clearTimeout);
+      opts.onClose?.();
+    },
   });
   render();
   // Фокус на строке из подсказки — она видна в списке

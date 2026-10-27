@@ -12,7 +12,7 @@ import { mythFigure } from './myth-figure';
 const plural = (forms: Record<string, string>, n: number) => format(forms[new Intl.PluralRules(getLang()).select(n)] ?? forms.other!, { n });
 
 /** Знак находки: медаль Знамения или Затмения, рисунок мифа золотом; неизвестное — силуэтом. */
-function findMark(f: Find, size: number, found = true): HTMLElement {
+export function findMark(f: Find, size: number, found = true): HTMLElement {
   if (f.kind === 'myth') return mythFigure(f.id, size, found);
   const el = canvasImg(f.kind === 'boss' ? bossSigil(f.id, size, dpr()) : omenSigil(f.id, size, dpr()), size);
   if (!found) el.classList.add('unknown');

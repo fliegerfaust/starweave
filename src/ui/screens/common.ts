@@ -116,8 +116,8 @@ export function showHelp(opts: import('./guide').GuideOptions = {}): void {
 }
 
 /** Коллекция игрока — своё окно (CL.2), с фокусом на находке или разделе. */
-export function showCollection(profile: import('@/meta/profile').Profile, focus?: string): void {
-  void import('./guide').then((m) => m.showCollection(profile, focus));
+export function showCollection(profile: import('@/meta/profile').Profile, focus?: string, onClose?: () => void): void {
+  void import('./guide').then((m) => m.showCollection(profile, focus, onClose));
 }
 
 /** Справка на вкладке созвездий: уровни забега и коллекция игрока. */
