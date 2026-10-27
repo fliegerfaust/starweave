@@ -260,21 +260,17 @@ b, strong { font-weight: 700; }
   <header class="top">
     <h1>Зал славы</h1>
     <div class="sill"></div>
-    <p>Новое окно игры: <b>рекорды</b>, <b>28 достижений</b> и место среди других игроков. У каждого достижения видно, у скольких игроков оно есть, а у каждого рекорда видно, скольких игроков ты обошёл. Выбери вариант.</p>
+    <p>Вариант «Горизонт», второй круг. Доска стала <b>небом игроков</b>: сто звёзд, каждая звезда равна одному проценту игроков. Касание рекорда показывает, <b>скольких игроков ты обошёл</b>, касание достижения показывает, <b>у скольких оно есть</b> и среди них ли ты.</p>
   </header>
-  <div class="ctl">
-    <div class="seg" id="seg"></div>
-    <p class="vlead" id="vlead"></p>
-  </div>
-  <div class="label">Попробуй сам <small>окно из сборки ветки; касайся медальонов и рекордов, прокручивай список</small></div>
+  <div class="label">Попробуй сам <small>окно из сборки ветки; касайся рекордов и достижений, следи за небом</small></div>
   <div class="ctl"><div class="seg small" id="who"></div></div>
   <div class="devices top">
     <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><button class="btn btn-secondary again" data-f="0">Сначала</button></div>
     <div class="dev"><h3>Ландшафт <small>915 × 412</small></h3><div class="fit" id="fL"></div><button class="btn btn-secondary again" data-f="1">Сначала</button></div>
   </div>
   <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div>
-  <div class="label">Чем различаются <small>одно окно, два взгляда</small></div>
-  <div class="cmp" id="cmp"></div>
+  <div class="label">Что изменилось <small>после первого круга</small></div>
+  <div class="facts-wrap"><div class="facts" id="changes"></div></div>
   <div class="label">Достижения <small>28 штук, шесть разделов; ступень видна по оправе медальона</small></div>
   <div class="feat-list" id="feats"></div>
   <div class="label">Как это работает <small>этап 1, без аккаунтов</small></div>
@@ -284,7 +280,7 @@ b, strong { font-weight: 700; }
     <div class="fact"><span>Вход</span><div>Строка «Зал славы» в Библиотеке рядом с Коллекцией, после первого забега.</div></div>
     <div class="fact"><span>Дальше</span><div>Этап 2: таблица вызова дня. Гость видит только своё место, игрок с аккаунтом Пикабу видит свой ник.</div></div>
   </div></div>
-  <p class="foot">Витрина HF.0 · Зал славы · 28.10.2026 · сборка ветки feature/hall-vitrine · выбирает Денис</p>
+  <p class="foot">Витрина HF.0 · Зал славы, «Горизонт», круг 2 · 28.10.2026 · сборка ветки feature/hall-vitrine · выбирает Денис</p>
 </div>
 <script>
 function h(tag, attrs, ...kids) {
@@ -301,12 +297,7 @@ function h(tag, attrs, ...kids) {
 }
 const q = (sel, root = document) => root.querySelector(sel);
 const qa = (sel, root = document) => [...root.querySelectorAll(sel)];
-const VARIANTS = [
-  ['order', 'Орден', 'Как Коллекция: выбранное достижение <b>крупно на доске</b>, сколько у него осталось и у скольких игроков оно есть. Ниже рекорды с местом среди игроков и медальоны по разделам. Сначала на доске то, что <b>ближе всего</b> к открытию.'],
-  ['horizon', 'Горизонт', 'На доске рекорд и <b>дуга звёзд</b> из игроков: золотые звёзды ты обошёл, твоя звезда ярче всех. Касание рекорда переключает дугу. Достижения строками <b>от легендарных к обычным</b>, справа доля игроков.'],
-];
 const WHO = [['seasoned', 'Опытный игрок'], ['new', 'После первого забега']];
-let variant = ['order', 'horizon'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'order';
 let who = 'seasoned';
 // Выходы из окна в витрине не нужны: крестик и фон не закрывают зал
 function frameIn(fit, W, H) {
@@ -325,28 +316,22 @@ function frameIn(fit, W, H) {
   });
   return frame;
 }
-const load = (frame) => { frame.src = `game/index.html?hall=${variant}${who === 'new' ? '&who=new' : ''}`; };
+const load = (frame) => { frame.src = `game/index.html?hall${who === 'new' ? '&who=new' : ''}`; };
 const frames = [[q('#fP'), 393, 852], [q('#fL'), 915, 412], [q('#fD'), 1366, 768]].map(([fit, W, H]) => frameIn(fit, W, H));
 qa('.again').forEach((b) => (b.onclick = () => load(frames[+b.dataset.f])));
 function render() {
-  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
   qa('#who button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === who)));
-  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
   frames.forEach(load);
 }
-q('#seg').append(...VARIANTS.map(([id, name], i) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${i + 1} · ${name}`)));
 q('#who').append(...WHO.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { who = id; render(); } }, name)));
 render();
-q('#cmp').append(
-  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([, n], i) => h('span', { class: 'head' }, `${i + 1} · ${n}`))),
-  ...[
-    ['Главное на доске', 'Одно достижение: медальон, условие, ступень, доля игроков, прогресс', 'Один рекорд: число и дуга звёзд, сколько игроков позади'],
-    ['Рекорды', 'Строками, под каждым «лучше, чем у N% игроков»', 'Строками-кнопками, касание меняет дугу'],
-    ['Достижения', 'Медальоны сеткой по разделам: путь, ход, небо, Затмения, находки, вызов дня', 'Строками по ступеням от легендарных, справа доля игроков или прогресс'],
-    ['Мотивация', 'Ближайшее достижение открыто на доске сразу', 'Строка «Ближе всего» над списком и место среди игроков на дуге'],
-    ['Похоже на', 'Коллекцию: тот же жест «коснись знака»', 'Достижения Steam: редкие видно сразу'],
-  ].map(([k, a, b]) => h('div', { class: 'r' }, h('span', {}, k), h('span', { 'data-v': '1 · Орден' }, a), h('span', { 'data-v': '2 · Горизонт' }, b))),
-);
+const CHANGES = [
+  ['Небо игроков', 'Сто звёзд на дуге горизонта. Звёзды, которых ты обошёл, загораются волной слева направо, <b>созвездие тянется к твоей звезде</b>, она вспыхивает с кольцом, и число процента набегает вместе с волной. Тусклые звёзды мерцают.'],
+  ['Достижения', 'Каждая строка нажимается. На доске медальон, условие и ступень, а на небе горят ровно те <b>проценты игроков, у кого оно есть</b>. Если оно есть у тебя, твоя звезда среди них.'],
+  ['Проценты', 'Подписаны словами: «Ты лучше, чем 74% игроков», «Ты среди 2,9% игроков, у кого оно есть». Над списком пояснение, справа у строк «2,9% игроков». Твоя <b>самая редкая награда</b> стоит первой.'],
+  ['Крупнее', 'Доска выше на телефоне и в ландшафте: число 46 px, небо во всю ширину. В ландшафте доска занимает всю левую колонку.'],
+];
+q('#changes').append(...CHANGES.map(([k, v]) => h('div', { class: 'fact' }, h('span', {}, k), h('div', { html: v }))));
 const FEATS = [
   ['Путь', 'Первый взгляд, Третья глава, Глубокая ночь, Восемь глав, Звездочёт (10 побед), <b>Сверхновая</b> (высшая звёздность)'],
   ['Ход', 'Тысяча огней (1 000 за ход), Двойная звезда (5 000), Вспышка (25 000), <b>Чёрная дыра</b> (100 000)'],

@@ -134,13 +134,13 @@ async function boot(): Promise<void> {
     await app.router.goMenu();
     if (params.has('open')) (await import('./ui/screens/common')).showCollection(app.profile);
   }
-  // Витрина HF.0: «Зал славы» опытного игрока, `?hall=order|horizon`; `&who=new` — после первого забега
+  // Витрина HF.0: «Зал славы» опытного игрока, `?hall`; `&who=new` — после первого забега
   if (dev && params.has('hall')) {
     const [{ showHall }, { hallDemo }] = await Promise.all([import('./ui/screens/hall'), import('./dev/hall-demo')]);
     const demo = hallDemo(app.profile, params.get('who') === 'new');
     app.runs.persistProfile();
     await app.router.goMenu();
-    showHall(app.profile, demo, params.get('hall') === 'horizon' ? 'horizon' : 'order');
+    showHall(app.profile, demo);
   }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {
