@@ -24,6 +24,7 @@ import { resolveFeatures, type Features, type Platform } from '@/platform';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
+import { sendHallSnapshot } from '@/meta/hall-sync';
 import { Monetization } from './monetization';
 import { Router } from './router';
 import { RunController } from './run-controller';
@@ -222,6 +223,8 @@ export async function startGame(platform: Platform): Promise<App> {
     ...(start.challenge ? { challenge: true } : {}),
   });
   app.start();
+  // Снимок для долей «Зала славы»: у давних игроков он уходит с первого же запуска
+  sendHallSnapshot(app.profile);
   // FPS меряем, когда игрок уже в игре, а не на загрузке
   window.setTimeout(() => measureFps(5), 30_000);
   return app;

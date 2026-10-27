@@ -969,7 +969,8 @@ export const en: Dict = {
   hall: {
     title: 'Hall of Fame',
     menu: 'Hall of Fame',
-    libSub: 'Records and achievements',
+    libSub: 'Records, achievements, your place among players',
+    unlocked: 'Achievement: {name}',
     records: 'Records',
     feats: 'Achievements',
     opened: '{n} of {total} unlocked',
@@ -994,7 +995,7 @@ export const en: Dict = {
     record: { bestMove: 'Best move', bestAnte: 'Furthest', wins: 'Wins', lines: 'Constellations lit', eclipses: 'Eclipses beaten', streak: 'Daily streak' } as Record<string, string>,
     chapter: 'chapter {n}',
     days: 'd',
-    offline: 'Comparison with other players appears when the server is reachable',
+    offline: 'Your place among players appears when the game is online',
     feat: {
       firstRun: ['First Glance', 'Play your first run'],
       chapter3: ['Third Chapter', 'Reach chapter III'],

@@ -6,12 +6,16 @@ import { GIFT_GOLD_CAP, canDoubleReward, canRevive } from '@/core/run';
 import { deserializeRun, serializeRun } from '@/core/save';
 import { applyTutorialNight, newTutorialRun, tutorialShop } from '@/core/tutorial';
 import type { GameEvent, RunState } from '@/core/types';
-import { named, t } from '@/i18n';
+import { dict, named, t } from '@/i18n';
+import { featSigil } from '@/art/sigil';
+import { featStates } from '@/meta/achievements';
+import { sendHallSnapshot } from '@/meta/hall-sync';
 import { dailySeed, todayKey, loadProfile, saveProfile, type Discovery } from '@/meta/profile';
 import { recordEvent, unlocksFor, type ProgressEvent, type ProgressResult } from '@/meta/progress';
 import { KEYS, storage } from '@/meta/storage';
 import { TutorialDirector } from '@/tutorial/director';
 import { clearCoach } from '@/ui/tutorial';
+import { canvasImg, dpr, h } from '@/ui/dom';
 import { toast } from '@/ui/widgets';
 import type { App } from './app';
 import { compareToChallenge, type Challenge } from './challenge';
@@ -57,10 +61,39 @@ export class RunController {
    * облако, открытые небеса — тостом (`announce: false` — молча, как у сданного забега).
    */
   progress(ev: ProgressEvent, run: RunState = this.run!, announce = true): ProgressResult {
+    // Достижения считаются по профилю: открытые до события запоминаем, чтобы найти новые
+    this.featsDone ??= this.doneFeats();
     const result = recordEvent(this.app.profile, run, ev);
-    if (result.changed) this.persistProfile();
+    if (result.changed) {
+      this.persistProfile();
+      this.checkFeats(announce && !run.tutorial);
+      if (ev.e === 'runEnd' || ev.e === 'progress') sendHallSnapshot(this.app.profile);
+    }
     if (announce) this.announceUnlocks(result.skies);
     return result;
+  }
+
+  /** Открытые достижения на момент последней проверки (HF.4). */
+  private featsDone: Set<string> | null = null;
+
+  private doneFeats(): Set<string> {
+    return new Set(featStates(this.app.profile).filter((s) => s.done).map((s) => s.def.id));
+  }
+
+  /** Новые достижения — тостом с медальоном после подсчёта хода, по одному. */
+  private checkFeats(announce: boolean): void {
+    const now = featStates(this.app.profile).filter((s) => s.done);
+    const fresh = now.filter((s) => !this.featsDone!.has(s.def.id));
+    this.featsDone = new Set(now.map((s) => s.def.id));
+    fresh.forEach((s, i) => {
+      track('feat_unlock', { id: s.def.id, runs: this.app.profile.runs });
+      if (!announce) return;
+      window.setTimeout(() => {
+        const medal = h('span.feat-toast-medal', null, canvasImg(featSigil(s.def.motif, s.def.fam, s.def.tier, 36, dpr()), 36));
+        toast(t('hall.unlocked', { name: dict().hall.feat[s.def.id]?.[0] ?? s.def.id }), 'info', medal);
+        this.app.svc.audio.bell(4 + s.def.tier);
+      }, 1400 + i * 2800);
+    });
   }
 
   /** Что впервые нашлось за последний ход: экран ночи празднует это после подсчёта. */

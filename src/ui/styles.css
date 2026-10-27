@@ -3400,3 +3400,12 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap { height: 46px; gap: 4px; }
   .hall-row { min-height: 44px; }
 }
+/* Тост открытого достижения (HF.4): медальон вспыхивает — импакт, как у «Нового созвездия» */
+.toast .feat-toast-medal { position: relative; flex: none; display: grid; margin: -6px 0 -6px -10px; }
+/* Вспышка — световой слой за медальоном и кольцо; сам растровый знак не трогаем, чтобы не плыл */
+.toast .feat-toast-medal::before, .toast .feat-toast-medal::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; }
+.toast .feat-toast-medal::before { z-index: -1; background: radial-gradient(circle, rgb(255 230 168 / 0.95), rgb(246 194 91 / 0.4) 45%, transparent 70%); animation: feat-glow 1s ease-out both; }
+.toast .feat-toast-medal::after { box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.9); animation: feat-ring 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes feat-glow { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes feat-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast .feat-toast-medal::before, .toast .feat-toast-medal::after { animation: none; opacity: 0; } }

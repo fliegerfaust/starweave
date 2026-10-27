@@ -1,6 +1,8 @@
+import { track } from '@/analytics';
 import { featSigil } from '@/art/sigil';
 import { dict, format, getLang, num } from '@/i18n';
 import { featStates, nearestFeat, percentileOf, RECORDS, recordValue, type FeatState, type FeatTier, type HallStats, type RecordId } from '@/meta/achievements';
+import { hallView } from '@/meta/hall-sync';
 import type { Profile } from '@/meta/profile';
 import { canvasImg, dpr, h } from '../dom';
 import { PlayerSky } from '../hall-sky';
@@ -30,8 +32,11 @@ function medal(s: FeatState, size: number): HTMLCanvasElement {
 
 type Pick = { kind: 'record'; id: RecordId } | { kind: 'feat'; state: FeatState };
 
-export function showHall(profile: Profile, stats: HallStats | null): void {
+export function showHall(profile: Profile, raw: HallStats | null): void {
   const d = dict().hall;
+  // Доли достижений есть всегда (сглаженные), места в рекордах — когда сервер ответил
+  const stats = hallView(raw);
+  const noShare = d.offline;
   const states = featStates(profile);
   const doneCount = states.filter((s) => s.done).length;
   const nearest = nearestFeat(states);
@@ -80,7 +85,7 @@ export function showHall(profile: Profile, stats: HallStats | null): void {
       if (p == null) {
         countEl = null;
         // Нет числа: либо ещё нечего сравнивать, либо нет связи с сервером
-        cap.replaceChildren(h('span.hall-cap-line.off', null, stats && !recordValue(profile, id) ? d.noRecord : d.offline));
+        cap.replaceChildren(h('span.hall-cap-line.off', null, stats && !recordValue(profile, id) ? d.noRecord : noShare));
       } else {
         const line = withNum(d.better, '0%');
         countEl = line.n;
@@ -110,7 +115,7 @@ export function showHall(profile: Profile, stats: HallStats | null): void {
         parts.push(h('span.hall-cap-line', null, line.el));
       } else {
         countEl = null;
-        parts.push(h('span.hall-cap-line.off', null, s.secret ? d.secretShare : d.offline));
+        parts.push(h('span.hall-cap-line.off', null, s.secret ? d.secretShare : noShare));
       }
       if (!s.done && !s.secret && s.goal > 1) {
         parts.push(h('span.hall-prog', null, [
@@ -178,6 +183,7 @@ export function showHall(profile: Profile, stats: HallStats | null): void {
   ].filter((x): x is HTMLElement => !!x));
 
   const body = h('div.gb', null, [pin, scroll]);
+  track('hall_open', { feats: doneCount, shares: !!raw });
   modal(body, { title: d.title, className: 'board-modal collection-modal hall-modal' });
   // Небо меряется по уже вставленной доске
   requestAnimationFrame(drawBoard);
