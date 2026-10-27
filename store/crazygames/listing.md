@@ -1,7 +1,7 @@
 # CrazyGames — карточка игры
 
 Поля формы «Submit a game» на [developer.crazygames.com](https://developer.crazygames.com).
-Шаги — [docs/CRAZYGAMES-LAUNCH.md](../../docs/CRAZYGAMES-LAUNCH.md). Без упоминаний Telegram,
+Шаги — [docs/CRAZYGAMES.md](../../docs/CRAZYGAMES.md). Без упоминаний Telegram,
 своего сайта, Яндекса и сторов: кросс-промо запрещено.
 
 | Поле | Что вставить |

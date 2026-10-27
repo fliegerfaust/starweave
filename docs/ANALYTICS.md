@@ -1,69 +1,63 @@
 # Аналитика
 
-События описаны в одном месте — `src/analytics/events.ts` (типизированы: опечатку поймает
-компилятор). Отправка — `track('имя', { параметры })`. Аналитика никогда не роняет игру.
+События описаны в `src/analytics/events.ts` (типы ловят опечатки), отправка: `track('имя', { … })`.
+Аналитика никогда не роняет игру. Термины: `ante` — глава (1–8), `night` — dusk / midnight / eclipse.
 
 ## Куда уходят события
-- **Свой сервер** — https://game.denvalclass.ru (`VITE_EVENTS_URL`, переменная репозитория
-  `EVENTS_URL`): события с сайта и из Telegram, сводка `/stats` под паролем
-  ([server/README.md](../server/README.md)). Работает с 0.3.10.
-- **Аналитика Telegram Mini Apps** — ключ из @DataChief_bot (`TG_ANALYTICS_TOKEN`,
-  `TG_ANALYTICS_APP`); запуски и удержание в каталоге Telegram.
-- **Яндекс Метрика** — ждёт номер счётчика (D.2), см. ниже.
 
-## Подключение Яндекс Метрики
-1. Создать счётчик на [metrika.yandex.ru](https://metrika.yandex.ru) (адрес сайта — домен игры
-   или адрес на Яндекс Играх).
-2. Собрать игру с номером счётчика:
-   ```bash
-   VITE_METRIKA_ID=12345678 npm run build:yandex
-   ```
-3. В Метрике завести цели типа «JavaScript-событие» с идентификаторами из таблицы ниже.
-   Параметры событий приходят в «Параметры визитов».
+- **Свой сервер** https://game.denvalclass.ru: основной источник, сводка `/stats` под паролем
+  ([server/README.md](../server/README.md)). Сборка шлёт события, если задан `VITE_EVENTS_URL`
+  (для Pages — переменная репозитория `EVENTS_URL`, задана).
+- **Яндекс Метрика:** код готов, включается номером счётчика `VITE_METRIKA_ID` (переменная
+  `METRIKA_ID`, сейчас не задана). Цели в Метрике — «JavaScript-событие» с именами из таблицы.
+- **Аналитика Telegram Mini Apps** (@DataChief_bot): `VITE_TG_ANALYTICS_TOKEN` и `…_APP`, сейчас не заданы.
 
-Без `VITE_METRIKA_ID` события пишутся только в консоль в режиме разработки.
-В нативной сборке (Capacitor) добавится приёмник AppMetrica — тот же `track()`.
+## Сводка /stats
+
+Одна страница без внешних файлов, вариант B «Приборы» (эпик ST). Расчёт: `server/src/stats.ts`
+и `server/src/play-stats.ts`, страница: `server/src/dashboard.ts`. Дни по Москве.
+
+Как считается:
+- **Сессия** — один запуск игры. Её длина — активное время: сумма промежутков между событиями,
+  паузы длиннее 5 минут выкидываются. Сессии, где кроме `app_open` и `perf` ничего нет, — «открыли
+  и сразу закрыли», в длину не входят. Сессии, начатые до периода, не учитываются.
+- **На игрока за день** — медиана активных минут игрока в день, когда он играл.
+- **Новички** — впервые пришли в периоде; площадка и версия — по первому событию.
+- **Обучение** — короткое (шаги `short…`) и полное считаются отдельно, не по номеру шага.
+- **Забег оборван** — новый `run_start` или конец сессии без `run_end`, либо `run_end` с `abandon`.
+- **Ошибки** — только версий не старше `ERRORS_SINCE` (0.5.6); старые считаются числом.
+- **Фичи** — «Была» (дошли до места, где фича возможна, на версии не старше выхода),
+  «Встретили» (увидели выбор), «Взяли».
+- **«На что смотреть»** — правила в `watchItems()` (`dashboard.ts`): провал обучения, площадка
+  вдвое хуже лучшей, неделя к неделе, неиспользуемые фичи, возвраты ниже 20%, ошибки.
 
 ## События
 
-| Событие | Когда | Параметры | Что смотрим |
+| Событие | Когда | Параметры | Зачем |
 |---|---|---|---|
-| `app_open` | запуск | platform, lang, returning, source, challenge | аудитория, возвраты; source — метка из ссылки `startapp=src_<канал>` (рекламный источник, GR.7); challenge — открыли по вызову друга |
-| `challenge_share` | «Бросить вызов» / «Ответить вызовом» | ante, best, won | сколько вызовов отправляют и после каких забегов |
-| `challenge_open` | окно вызова при входе по ссылке | ante, best, fresh | fresh — новый игрок: **сколько людей приводит вызов** |
-| `challenge_accept` | вызов принят | ante, best | конверсия окна вызова |
-| `challenge_result` | забег по вызову закончен | ante, best, their_ante, their_best, outcome (1 / 0 / −1) | побеждают ли друзей; отвечают ли вызовом |
-| `tutorial_start` | начало обучения | source: offer / menu / retry | кто идёт в обучение |
-| `tutorial_step` | каждый шаг | step, index | **где бросают обучение** |
-| `tutorial_skip` | пропуск | step, index | на каком шаге пропускают |
-| `tutorial_complete` | конец обучения | — | конверсия обучения (цель ≥ 80%) |
-| `run_start` | новый забег | sky, stake, daily, archive, gentle, gift, replay, challenge | популярность колод и сложности; archive — вызов из архива; gentle — первый забег со щедрой ночью; gift — с золотом из обучения; replay — «Тот же расклад» после поражения; challenge — по вызову друга |
-| `night_start` | начало ночи | ante, night, boss, gentle | gentle — щедрая первая ночь новичка |
-| `night_end` | конец ночи | ante, night, boss, won, score, target, ratio, moves_left, burns_left, lines | **баланс целей**: ratio около 1 — на грани, сильно больше — слишком легко |
-| `combo_found` | созвездие собрано впервые (коллекция) | combo (или `cross`), count, ante | когда новички открывают созвездия; дошли ли до редких |
-| `run_end` | конец забега | result, ante, nights, lines, best, crosses, omens | где умирают, сильные наборы Знамений |
-| `shop_buy` | покупка | kind, id, price, ante, gold_left | популярность Знамений и предметов, цены |
-| `shop_sell` | продажа Знамения | id, ante | «ловушки» — что покупают и сразу продают |
-| `shop_banish` | услуга «Убрать карту» | ante | чистят ли колоду и с какого созвездия |
-| `shop_reroll` | переброс | cost, ante | хватает ли выбора в магазине |
-| `pack_choose` | выбор из пакета | pack, id | что берут из трёх |
-| `gift_take` | взят дар ночи (GF.2) | kind (glyph · body · ascend), id, ante, deck | что берут и как растёт колода |
-| `gift_skip` | «Чистое небо» вместо дара | ante, deck | доля пропусков: тонкая колода как стратегия |
-| `ad_request` | запрос рекламы | kind, placement | частота показов |
-| `ad_result` | итог рекламы за награду | kind, placement, result | досматриваемость |
-| `store_open` | открыт «Звёздный атлас» | from: menu / sky / archive … | откуда приходят в магазин |
-| `purchase_start` | нажата покупка | product | интерес к товарам |
-| `purchase_result` | итог покупки | product, result: paid / cancelled / failed / unavailable | **конверсия** и сбои оплаты |
-| `guide_open` | справочник | focus — раздел или вкладка (combos, night, shop, glyphs) | какие термины непонятны; «Как считаются очки» теперь вкладка «Ночь» |
-| `perf` | через 30 с после запуска | fps, dpr, width, height | слабые устройства |
-| `js_error` | ошибка JavaScript | message, where (файл:строка:колонка; пусто — чужой скрипт без CORS) | стабильность; чужие скрипты Telegram грузятся с crossorigin, их ошибки видны полностью |
+| `app_open` | запуск | platform, lang, returning, source, challenge | аудитория; source — метка ссылки `startapp=src_<канал>` |
+| `challenge_share` / `_open` / `_accept` / `_result` | вызов другу | ante, best, won / fresh / outcome (1, 0, −1) | сколько людей приводит вызов (fresh — новый игрок) |
+| `tutorial_start` | начало обучения | source: auto / offer / menu / retry | |
+| `tutorial_step` / `tutorial_skip` | шаг / пропуск | step, index | где бросают обучение |
+| `tutorial_complete` | конец обучения | | |
+| `run_start` | новый забег | sky, stake, daily, archive, gentle, gift, replay, challenge | колоды, ставки, источник забега |
+| `night_start` / `night_end` | ночь | ante, night, boss; в конце won, score, target, ratio, moves_left, burns_left, lines | баланс: ratio около 1 — на грани |
+| `run_end` | конец забега | result: lost / abandon / victory, ante, nights, lines, best, crosses, omens | где умирают, сила Знамений |
+| `combo_found` | созвездие впервые | combo, count, ante | |
+| `myth_found` | миф неба найден | myth, count, ante | Мифы неба |
+| `resonance_fuse` | слияние Знамений | id, ante | Резонанс |
+| `shop_buy` / `shop_sell` | покупка / продажа | kind, id, price, ante, gold_left / id, ante | популярность и цены |
+| `shop_banish` / `shop_reroll` | убрать карту / обновить витрину | ante, cost | |
+| `pack_choose` | выбор из пакета | pack, id | |
+| `gift_take` / `gift_skip` | Дар ночи / «Чистое небо» | kind (glyph, body, ascend), id, ante, deck | |
+| `trophy_take` | после Затмения | kind: trophy / omen, id, ante | Трофеи Затмений |
+| `wonder` | Комета или Телескоп | kind: take / pass, ante | Развилки |
+| `collection_open` / `collection_hook` | Коллекция / крючок в неё | focus / from: over, banner; kind, n | Коллекция |
+| `ad_request` / `ad_result` | реклама | kind, placement, result | частота и досматриваемость |
+| `store_open` / `purchase_start` / `purchase_result` | атлас и покупка | from / product / result: paid, cancelled, failed, unavailable | конверсия; продажи Stars также `/sales` в чате бота |
+| `guide_open` | справочник | focus | какие правила непонятны |
+| `perf` | через 30 с после запуска, замер 5 с | fps, dpr, width, height | слабые устройства |
+| `js_error` | ошибка JavaScript | message, where, stack | стабильность |
 
-## Ключевые отчёты
-- **Воронка новичка:** app_open → tutorial_start → tutorial_step (по index) → tutorial_complete →
-  run_start → night_end (won, ante 1) → night_end (boss ≠ '').
-- **Баланс:** night_end по ante и night: доля побед и медиана ratio; по boss — доля поражений.
-- **Знамения:** shop_buy по id против omens в run_end с result=victory — частота выбора и побед.
-- **Атлас:** store_open → purchase_start → purchase_result (paid) по product; откуда заходят (from).
-  Продажи Stars — также командой `/sales` в чате с ботом.
-
-Термины в событиях: `ante` — номер главы (1–8), `night` — dusk / midnight / eclipse.
+Нужны для сводки, ещё не отправляются (0.7.11, CG-122): `route_pick` (выбор пути на Развилке),
+`feature_unlock` (ступень лестницы открытий), `app_hide` (время на переднем плане при сворачивании).
