@@ -322,7 +322,6 @@ export const en: Dict = {
   over: {
     finds: 'New in the Collection',
     findsAria: 'New in the Collection: {n}. Open the Collection',
-    collection: 'Collection +{n}',
     lostTitle: 'The sky went dark',
     of: 'of {target}',
     winTitle: 'All eight chapters cleared',

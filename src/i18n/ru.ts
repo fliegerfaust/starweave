@@ -327,7 +327,6 @@ export const ru = {
   over: {
     finds: 'Новое в Коллекции',
     findsAria: 'Новое в Коллекции: {n}. Открыть Коллекцию',
-    collection: 'Коллекция +{n}',
     lostTitle: 'Небо погасло',
     of: 'из {target}',
     winTitle: 'Все восемь глав пройдены',

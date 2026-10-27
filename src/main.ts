@@ -166,7 +166,7 @@ async function boot(): Promise<void> {
     run.reward = { base: 5, moves: 2, burns: 0, interest: 1, total: 8 };
     await app.router.route();
   }
-  // Витрина CL.3: итоги забега с находками (`?over=lost|win`, `&finds=N` — сколько нового, по умолчанию 3)
+  // DEV: итоги забега с находками для витрины и e2e (`?over=lost|win`, `&finds=N` — сколько нового, по умолчанию 3)
   if (dev && params.has('over')) {
     const [{ OMEN_LIST }, { BOSS_LIST }, { startNight }, { planChapter }] = await Promise.all([import('./core/content/omens'), import('./core/content/bosses'), import('./core/night'), import('./core/route')]);
     const regular = OMEN_LIST.filter((o) => !o.pair).map((o) => o.id);
@@ -195,7 +195,7 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
-  // Витрина CL.3: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
+  // DEV: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
   if (dev && params.has('mythfx')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'], mythsFound: ['cassiopeia', 'cygnus', 'lyra'] });
     app.runs.startRun('classic', false, 0, 4242);
