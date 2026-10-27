@@ -182,7 +182,7 @@ export class PikabuPlatform implements Platform {
 
   /** Вызов друга ведёт на страницу игры на Пикабу: ссылки на свой сайт площадка запрещает. */
   inviteUrl(): string | null {
-    return import.meta.env.VITE_PIKABU_GAME_URL || 'https://games.pikabu.ru/';
+    return import.meta.env.VITE_PIKABU_GAME_URL || 'https://games.pikabu.ru/game/zvyozdnoe-pletenie';
   }
 
   private emitPause(paused: boolean): void {
