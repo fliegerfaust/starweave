@@ -6,8 +6,9 @@ import { dict, named, num, t } from '@/i18n';
 import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
+import { findShelf } from '../find-shelf';
 import { button, modal } from '../widgets';
-import { cardThumb, confirmNewRun, showHelp, showSettings } from './common';
+import { cardThumb, confirmNewRun, showCollection, showHelp, showSettings } from './common';
 import type { Card, Glyph, Suit } from '@/core/types';
 import { enterFullscreen, suggestHomeScreen } from '@/platform/fullscreen';
 import type { Challenge } from '@/game/challenge';
@@ -256,13 +257,15 @@ export class MenuScreen implements Screen {
    */
   private render(): void {
     const app = this.app;
-    this.plate.replaceChildren(
+    this.plate.replaceChildren(...[
       h('h1.logo', null, [
         h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-    );
+      // Полка находок (CL.1) — после первого забега, когда есть что показать
+      app.profile.runs > 0 ? findShelf(app.profile, (focus) => this.openCollection(focus)) : null,
+    ].filter((x): x is HTMLElement => !!x));
     if (this.figure) {
       const name = dict().constellation[this.figure.id] ?? this.figure.id;
       this.figureName.textContent = name;
@@ -324,10 +327,11 @@ export class MenuScreen implements Screen {
       });
       return b;
     };
-    // Новичку — меньше выбора: архив и кодекс появятся после первого забега
+    // Новичку — меньше выбора: Коллекция и архив появятся после первого забега
     const items = [
       item('guide', t('menu.howTo'), lib.guide, () => showHelp({ found: app.profile.combosFound, profile: app.profile })),
       item('learn', t('tut.menuButton'), app.profile.tutorialDone ? lib.tutorial : t('tut.menuSub'), () => this.guardSave(() => app.runs.startTutorial())),
+      app.profile.runs > 0 ? item('codex', t('menu.collection'), lib.collection, () => this.openCollection()) : null,
       app.profile.runs > 0 ? item('archive', t('archive.menu'), lib.archive, () => void app.router.goArchive()) : null,
       item('settings', t('menu.settings'), lib.settings, () => showSettings(app, () => this.render())),
     ];
@@ -335,6 +339,10 @@ export class MenuScreen implements Screen {
       [h('div.lib-list', null, items), h('p.lib-ver', null, `v${__APP_VERSION__}`)],
       { title: t('menu.library'), sheet: !document.body.classList.contains('landscape'), className: 'library' },
     );
+  }
+
+  private openCollection(focus?: string): void {
+    showCollection(this.app.profile, focus);
   }
 
   /** Свайп вверх у нижнего края открывает библиотеку — если меню не прокручивается само. */
