@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Плашка находки</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Forum&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Кит витрин 0.7 «Глубина» — язык «Латунной обсерватории» (DESIGN.md) */
+:root {
+  --night-0: #05061a;
+  --night-1: #0c0d2c;
+  --night-2: #191641;
+  --panel: rgb(14 12 38 / 0.82);
+  --panel-solid: #0e0c26;
+  --ink: #eae6ff;
+  --ink-dim: #a5a0cf;
+  --ink-faint: #8a85b8;
+  --gold: #f6c25b;
+  --gold-hi: #ffe6a8;
+  --gold-deep: #e09a2f;
+  --gold-rgb: 246 194 91;
+  --light: #7fe0ff;
+  --light-rgb: 127 224 255;
+  --mult: #ff6b8b;
+  --mult-rgb: 255 107 139;
+  --ok: #7cf0b0;
+  --danger: #ff5370;
+  --pearl: #e8e4f4;
+  --brass: rgb(246 194 91 / 0.3);
+  --hair: rgb(246 194 91 / 0.16);
+  --line: rgb(234 230 255 / 0.08);
+  --sun: #f6c25b;
+  --moon: #8fd0ff;
+  --star: #c39bff;
+  --comet: #ff7f62;
+  --font-display: 'Forum', 'Times New Roman', serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; scrollbar-color: rgb(246 194 91 / 0.35) transparent; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(120% 60% at 50% 0%, #191641 0%, #0c0d2c 38%, #05061a 100%) fixed, var(--night-0);
+  color: var(--ink);
+  font: 400 14px/1.5 var(--font-body);
+  overflow-x: hidden;
+}
+::selection { background: rgb(246 194 91 / 0.35); color: #fff6e0; }
+:focus-visible { outline: 2px solid rgb(255 230 168 / 0.8); outline-offset: 3px; border-radius: 6px; }
+img, canvas, svg { display: block; }
+img { max-width: none; }
+body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: #08081e; }
+button { font: inherit; color: inherit; }
+b, strong { font-weight: 700; }
+.num { font-variant-numeric: tabular-nums; }
+.c-light { color: var(--light); font-weight: 800; }
+.c-mult { color: var(--mult); font-weight: 800; }
+.c-gold { color: var(--gold-hi); font-weight: 800; }
+.c-dim { color: var(--ink-dim); }
+.c-ok { color: var(--ok); font-weight: 700; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 0 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow-x: clip; }
+
+/* Навигация между витринами */
+.vt-nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; margin: 0 -16px; padding: 8px 16px;
+  background: linear-gradient(180deg, rgb(8 8 30 / 0.97) 72%, rgb(8 8 30 / 0)); }
+.vt-nav a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 6px; color: var(--gold); text-decoration: none; font: 700 13.5px/1 var(--font-body); }
+.vt-nav a:hover { color: var(--gold-hi); }
+.vt-nav .sp { flex: 1; }
+.vt-nav .pg { color: var(--ink-faint); font: 700 12px/1 var(--font-body); letter-spacing: 0.08em; }
+.vt-nav svg { width: 16px; height: 16px; }
+
+/* Шапка-табличка */
+.top { text-align: center; padding: 18px 0 4px; }
+.top h1 { margin: 0; font: 400 clamp(26px, 6.4vw, 40px)/1.02 var(--font-display); letter-spacing: 0.14em; padding-left: 0.14em; text-transform: uppercase; color: var(--gold-hi); text-wrap: balance; }
+.sill { height: 2px; width: min(420px, 80%); margin: 14px auto 0; background: radial-gradient(50% 100% at 50% 50%, rgb(255 230 168 / 0.9), rgb(246 194 91 / 0.35) 45%, transparent 100%); }
+.top p { max-width: 620px; margin: 14px auto 0; color: var(--ink-dim); font-size: 15px; text-wrap: pretty; }
+.top p b { color: var(--ink); }
+
+/* Подписи разделов */
+.label { display: flex; align-items: center; gap: 12px; margin: 36px 0 14px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--hair), transparent); }
+.label small { font: 600 11.5px/1 var(--font-body); letter-spacing: 0.02em; text-transform: none; color: var(--ink-faint); }
+
+/* Раскладка «прототип + суть» */
+.split { display: grid; gap: 28px; margin-top: 24px; }
+@media (min-width: 900px) { .split { grid-template-columns: 420px minmax(0, 1fr); align-items: start; } .split .aside { position: sticky; top: 72px; } }
+
+/* Сцена прототипа: живое небо */
+.stage { position: relative; width: 100%; max-width: 420px; margin: 0 auto; min-height: 640px; border-radius: 24px; overflow: hidden; isolation: isolate;
+  background: radial-gradient(120% 70% at 50% 0%, #1c1850 0%, #0c0d2c 50%, #05061a 100%);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3), 0 30px 60px -20px rgb(0 0 0 / 0.8); clip-path: inset(0 round 24px); }
+.stage > .neb { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; opacity: 0.55; }
+.stage > canvas.stars { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; }
+.stage-inner { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 640px; padding: 18px 16px 16px; }
+.stage-head { display: grid; justify-items: center; gap: 6px; text-align: center; }
+.plate-title { font: 400 18px/1 var(--font-display); letter-spacing: 0.2em; padding-left: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.plate-sub { font: 600 12.5px/1.35 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.stage-foot { margin-top: auto; display: grid; gap: 8px; }
+.stage-note { font: 600 12px/1.4 var(--font-body); color: var(--ink-faint); text-align: center; min-height: 17px; text-wrap: balance; }
+
+/* Кнопки — как в игре */
+.btn { position: relative; appearance: none; border: 0; border-radius: 999px; min-height: 48px; padding: 10px 22px; font: 700 15px/1.1 var(--font-body);
+  letter-spacing: 0.02em; color: #1a1206; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.2s ease, box-shadow 0.2s ease; }
+.btn:active:not(:disabled) { transform: scale(0.96); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; filter: grayscale(0.6); }
+.btn-primary { min-height: 52px; background: linear-gradient(180deg, #ffe09a 0%, #f6c25b 55%, #e09a2f 100%);
+  box-shadow: 0 0 0 1px rgba(255, 230, 160, 0.5) inset, 0 6px 14px -8px rgb(246 194 91 / 0.45), 0 2px 5px rgb(0 0 0 / 0.35); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.btn-secondary { color: var(--gold-hi); background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.09), transparent 70%), rgb(14 12 34 / 0.86); box-shadow: inset 0 0 0 1px var(--brass); }
+.btn-secondary:hover:not(:disabled) { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); }
+.btn-light { min-height: 44px; padding: 4px 8px; color: var(--gold); background: none; font-size: 14px; }
+.btn-light:hover:not(:disabled) { color: var(--gold-hi); }
+.btn-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn-row { display: flex; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.btn-row .btn-light + .btn-light { box-shadow: -1px 0 0 var(--hair); border-radius: 0; }
+
+/* Лента сцены (как «Ночь пройдена») */
+.ribbon { position: relative; display: grid; place-items: center; gap: 6px; width: min(340px, 100%); margin: 0 auto; padding: 12px 22px 13px;
+  background: linear-gradient(90deg, rgb(6 5 22 / 0), rgb(6 5 22 / 0.94) 14%, rgb(6 5 22 / 0.94) 86%, rgb(6 5 22 / 0)); }
+.ribbon::before, .ribbon::after { content: ''; position: absolute; left: 8%; right: 8%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 230 168 / 0.9), transparent); }
+.ribbon::before { top: 0; } .ribbon::after { bottom: 0; }
+.ribbon b { font: 400 24px/1.05 var(--font-display); letter-spacing: 0.18em; padding-left: 0.18em; text-transform: uppercase; color: #fff6e0; text-align: center; text-shadow: 0 0 12px rgb(var(--gold-rgb) / 0.45); text-wrap: balance; }
+.ribbon small { font: 700 12.5px/1.35 var(--font-body); letter-spacing: 0.03em; color: #f2dfb6; text-align: center; text-wrap: balance; }
+.ribbon.pop { animation: unfurl 0.7s cubic-bezier(.16,1,.3,1) both; }
+@keyframes unfurl { from { clip-path: inset(0 50% 0 50%); opacity: 0.4; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+.toast-layer { position: absolute; left: 0; right: 0; top: 38%; z-index: 30; pointer-events: none; display: grid; justify-items: center; }
+.toast-layer .ribbon { transition: opacity 0.5s ease; }
+
+/* Строки (как итоги ночи) */
+.rows { display: grid; }
+.rows .r { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 9px 2px; color: var(--ink-dim); font-size: 14px; }
+.rows .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.rows .r b { color: var(--ink); font-weight: 700; text-align: right; }
+.rows .r.total { box-shadow: 0 -1px 0 rgb(var(--gold-rgb) / 0.55); color: var(--gold-hi); font-weight: 700; }
+
+/* Суть идеи: строки справа от прототипа */
+.aside h2 { margin: 0 0 4px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.facts { display: grid; gap: 0; margin: 0 0 22px; }
+.fact { display: grid; grid-template-columns: 142px minmax(0, 1fr); gap: 14px; padding: 12px 0; }
+.fact + .fact { box-shadow: 0 -1px 0 var(--hair); }
+.fact > span { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); padding-top: 1px; }
+.fact > div { color: var(--ink); font-size: 14px; line-height: 1.55; text-wrap: pretty; }
+.fact > div i { font-style: normal; color: var(--ink-dim); }
+.tasks { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.tasks li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 8px 0; font-size: 13.5px; color: var(--ink); }
+.tasks li + li { box-shadow: 0 -1px 0 var(--line); }
+.tasks li code { font: 800 11.5px/1.6 var(--font-body); letter-spacing: 0.06em; color: var(--gold); }
+@media (max-width: 520px) { .fact { grid-template-columns: 1fr; gap: 2px; } }
+
+/* Лестница открытия (полоса на каждой витрине) */
+.ladder { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: start; gap: 0; position: relative; padding: 8px 0 0; }
+.ladder::before { content: ''; position: absolute; left: 4%; right: 4%; top: 24px; height: 1px; background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.5), rgb(var(--gold-rgb) / 0.12)); }
+.ladder .st { position: relative; display: grid; justify-items: center; gap: 8px; text-align: center; }
+.ladder .st i { width: 12px; height: 12px; margin-top: 10px; border-radius: 50%; background: #2a2650; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35); }
+.ladder .st.past i { background: radial-gradient(circle at 40% 35%, #fff3c4, #f6c25b 55%, #b9791b); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.6); }
+.ladder .st.here i { width: 20px; height: 20px; margin-top: 6px; background: radial-gradient(circle at 40% 35%, #fff, #ffe6a8 40%, #f6c25b 75%); box-shadow: 0 0 0 4px rgb(var(--gold-rgb) / 0.18), 0 0 18px rgb(var(--gold-rgb) / 0.9); }
+.ladder .st small { font: 700 10.5px/1.25 var(--font-body); color: var(--ink-faint); max-width: 76px; text-wrap: balance; }
+.ladder .st.here small { color: var(--gold-hi); }
+@media (max-width: 720px) { .ladder .st small { display: none; } .ladder .st.here small { display: block; position: absolute; top: 34px; white-space: nowrap; } .ladder { padding-bottom: 26px; } }
+.ladder-note { margin: 10px 0 0; color: var(--ink-dim); font-size: 13.5px; text-align: center; text-wrap: balance; }
+.ladder-note b { color: var(--gold-hi); }
+
+/* Карты и знаки игры */
+.k-card { position: relative; flex: none; }
+.k-card > img { position: absolute; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.k-sig { flex: none; display: block; }
+.k-body-mark { position: absolute; pointer-events: none; }
+
+/* Небо 4×4 */
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 100%; max-width: 330px; margin: 0 auto; }
+.cell { position: relative; aspect-ratio: 0.7; border-radius: 9px; background: rgb(255 255 255 / 0.025); box-shadow: inset 0 0 0 1px rgb(170 160 255 / 0.16); }
+.cell.can { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); cursor: pointer; }
+.cell .k-card { position: absolute; inset: 0; }
+
+/* Рука */
+.hand { display: flex; justify-content: center; gap: 8px; }
+.hand .slot { cursor: pointer; transition: transform 0.18s cubic-bezier(.2,.9,.3,1.2); }
+.hand .slot.sel { transform: translateY(-10px); filter: drop-shadow(0 0 10px rgb(var(--gold-rgb) / 0.7)); }
+
+/* Формула */
+.formula { display: flex; justify-content: center; align-items: center; gap: 8px; }
+.plate { min-width: 74px; padding: 7px 10px; border-radius: 12px; text-align: center; font: 800 20px/1 var(--font-body); font-variant-numeric: tabular-nums; }
+.plate small { display: block; margin-top: 4px; font: 800 10px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; }
+.plate.l { color: var(--light); background: rgb(var(--light-rgb) / 0.08); box-shadow: inset 0 0 0 1px rgb(var(--light-rgb) / 0.5); }
+.plate.m { color: var(--mult); background: rgb(var(--mult-rgb) / 0.08); box-shadow: inset 0 0 0 1px rgb(var(--mult-rgb) / 0.5); }
+.plate.s { color: var(--gold-hi); background: rgb(var(--gold-rgb) / 0.06); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
+.formula .x { color: var(--ink-faint); font: 800 16px/1 var(--font-body); }
+
+/* Подсказка-плитка без плашки */
+.hintline { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ink-dim); font: 600 13px/1.35 var(--font-body); text-align: center; }
+
+/* Плавное появление */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.45s cubic-bezier(.16,1,.3,1) both; }
+@keyframes flare { 0% { filter: brightness(1); } 35% { filter: brightness(1.9) drop-shadow(0 0 14px rgb(255 230 168 / 0.95)); } 100% { filter: brightness(1); } }
+.flare { animation: flare 0.9s ease-out both; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+.foot { margin-top: 48px; text-align: center; color: var(--ink-faint); font-size: 12px; }
+
+</style>
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.vlead b { color: var(--gold-hi); }
+
+.devices { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 1100px) { .devices.top { grid-template-columns: 393px minmax(0, 1fr); } }
+.dev { display: grid; gap: 10px; min-width: 0; }
+.dev h3 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.dev h3 small { font: 600 12px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.dev .again { justify-self: center; }
+.fit { position: relative; width: 100%; }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; border: 0; border-radius: 28px; clip-path: inset(0 round 28px); box-shadow: inset 0 0 0 1px var(--brass); background: var(--night-0); }
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(2, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 760px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+.tr5 { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tr5 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tr5 figure { margin: 0; display: grid; gap: 6px; }
+.tr5 img { width: 100%; height: auto; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--brass); }
+.tr5 figcaption { font: 600 12px/1.35 var(--font-body); color: var(--ink-dim); text-align: center; text-wrap: balance; }
+.tr5 h4 { margin: 0 0 8px; font: 700 13.5px/1.3 var(--font-body); color: var(--gold-hi); text-align: center; }
+.pairs { display: grid; gap: 4px; }
+.pairs div { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); gap: 12px; padding: 7px 0; font-size: 13.5px; line-height: 1.4; color: var(--ink-dim); box-shadow: 0 -1px 0 var(--hair); }
+.pairs b { color: var(--gold-hi); font-weight: 700; }
+</style>
+<style>
+.seg.small button { min-height: 36px; font-size: 13px; }
+.facts-wrap { max-width: 760px; margin: 0 auto; }
+.how { max-width: 680px; margin: 10px auto 0; color: var(--ink-dim); font-size: 14px; text-align: center; text-wrap: balance; }
+.how b { color: var(--gold-hi); }
+.cmp .r { grid-template-columns: 150px repeat(2, minmax(0, 1fr)); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Плашка находки</h1>
+    <div class="sill"></div>
+    <p>По итогам критики: у обоих вариантов знак и текст стоят <b>одной группой ровно по центру</b>, у неизвестной находки есть имя и строка вида, поэтому заголовок не прыгает. Окно Коллекции на ПК <b>большое и по центру экрана</b>: 1120 × 720 вместо 1040 × 471. Различаются варианты тем, где живёт плашка.</p>
+  </header>
+
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Попробуй сам <small>окно Коллекции из ветки; касайся знаков в сетках. На главной «Новый забег», «Вызов дня», атлас, обучение и архив отключены</small></div>
+  <div class="ctl"><div class="seg small" id="who"></div></div>
+  <div class="devices top">
+    <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><button class="btn btn-secondary again" data-f="0">Сначала</button></div>
+    <div class="dev"><h3>Ландшафт <small>915 × 412</small></h3><div class="fit" id="fL"></div><button class="btn btn-secondary again" data-f="1">Сначала</button></div>
+  </div>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div>
+
+  <div class="label">Чем различаются <small>одна плашка, два места</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <p class="foot">Витрина CL.2 · Плашка находки · 27.10.2026 · сборка ветки feature/collection-vitrine · выбирает Денис</p>
+</div>
+<script>
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const q = (sel, root = document) => root.querySelector(sel);
+const qa = (sel, root = document) => [...root.querySelectorAll(sel)];
+const VARIANTS = [
+  ['center', 'Витрина по центру', 'Плашка закреплена над списком и всегда видна. На телефоне знак и текст одной группой по центру. На ПК слева <b>крупная витрина</b>: знак 128 px, имя 32 px, описание по центру, под ней итоги; справа все сетки, 45 Знамений без прокрутки. Высоту задаёт самая длинная находка (правило Затмения «Туман»): на телефоне 175 px.'],
+  ['grid', 'Раскрывается в сетке', 'Закреплённой плашки нет: экран целиком отдан Коллекции. Касание знака <b>раскрывает его прямо под рядом</b>, хвостик смотрит на знак, а сам знак остаётся под пальцем. На ПК одна широкая колонка: итоги в три столбца, по 15 знаков в ряд.'],
+];
+const WHO = [['seasoned', 'Опытный игрок'], ['new', 'После первого забега']];
+let variant = ['center', 'grid'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'center';
+let who = 'seasoned';
+const BLOCK = '.menu-primary, .menu-atlas, .menu-pair .menu-lite:not(:has(.menu-count)), .menu-room:nth-child(3), .lib-row:nth-child(2), .lib-row:nth-child(3), .sky-row button, .home-link';
+function frameIn(fit, W, H) {
+  const frame = h('iframe', { class: 'frame', title: 'Коллекция', width: W, height: H });
+  frame.style.width = W + 'px'; frame.style.height = H + 'px';
+  fit.append(frame);
+  const fs = () => { const s = Math.min(1, fit.clientWidth / W); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; };
+  new ResizeObserver(fs).observe(fit); fs();
+  frame.addEventListener('load', () => {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    doc.addEventListener('click', (e) => { if (e.target.closest?.(BLOCK)) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  });
+  return frame;
+}
+const load = (frame) => { frame.src = `game/index.html?${who === 'new' ? 'home=new' : 'home'}&open&boardvar=${variant}`; };
+const frames = [[q('#fP'), 393, 852], [q('#fL'), 915, 412], [q('#fD'), 1366, 768]].map(([fit, W, H]) => frameIn(fit, W, H));
+qa('.again').forEach((b) => (b.onclick = () => load(frames[+b.dataset.f])));
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  qa('#who button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === who)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  frames.forEach(load);
+}
+q('#seg').append(...VARIANTS.map(([id, name], i) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${i + 1} · ${name}`)));
+q('#who').append(...WHO.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { who = id; render(); } }, name)));
+render();
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([, n], i) => h('span', { class: 'head' }, `${i + 1} · ${n}`))),
+  ...[
+    ['Место на телефоне', 'Плашка 175 px закреплена: около 20 % экрана всегда', 'Ничего не закреплено, плашка только под выбранным рядом'],
+    ['Выбранная находка', 'Всегда видна, пока листаешь', 'Уезжает вместе со своим рядом'],
+    ['ПК', 'Две колонки: витрина и итоги слева, сетки справа', 'Одна колонка: итоги сверху, сетки во всю ширину'],
+    ['При выборе', 'Меняется только содержимое плашки', 'Плашка переезжает к новому ряду, ряды ниже сдвигаются; знак под пальцем стоит на месте'],
+    ['Похоже на', 'Витрину музея', 'Альбом с наклейками'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': String(i + 1) }, x)))));
+</script>
+</body>
+</html>

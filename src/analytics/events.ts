@@ -68,6 +68,8 @@ export interface EventMap {
 
   // ── Понятность ─────────────────────────────────────────────────────────
   guide_open: { focus: string };
+  /** Коллекция (CL.2): с полки на главной, из Библиотеки или по фокусу находки. */
+  collection_open: { focus: string };
 
   // ── Техника ────────────────────────────────────────────────────────────
   perf: { fps: number; dpr: number; width: number; height: number };

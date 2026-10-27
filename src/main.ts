@@ -116,6 +116,24 @@ async function boot(): Promise<void> {
     const { showRoutesNotice } = await import('./dev/routes-notice');
     await showRoutesNotice(app, params.get('routesfx') ?? 'open');
   }
+  // Витрины CL.1–CL.2: главная опытного игрока (`?home`); `?home=new` — после первого забега, `&open` — сразу Коллекция
+  if (dev && params.has('home')) {
+    const [{ OMEN_LIST }, { BOSS_LIST }] = await Promise.all([import('./core/content/omens'), import('./core/content/bosses')]);
+    const regular = OMEN_LIST.filter((o) => !o.pair).map((o) => o.id);
+    const fresh = params.get('home') === 'new';
+    Object.assign(app.profile, fresh
+      ? { tutorialDone: true, tutorialFinished: true, runs: 1, wins: 0, eclipses: 0, bestAnte: 2, bestPlacement: 640, totalLines: 21, combosFound: ['pair', 'flush', 'straight'], seenOmens: regular.slice(0, 4), seenBosses: [], mythsFound: [] }
+      : {
+          tutorialDone: true, tutorialFinished: true, runs: 23, wins: 3, bestAnte: 8, bestPlacement: 4820, totalLines: 412, eclipses: 31,
+          combosFound: ['pair', 'flush', 'straight', 'twoPair', 'triple', 'quartet', 'mirror'],
+          seenOmens: [...regular.slice(0, 28), ...OMEN_LIST.filter((o) => o.pair).slice(0, 2).map((o) => o.id)],
+          seenBosses: BOSS_LIST.slice(0, 9).map((b) => b.id), tamed: { [BOSS_LIST[0]!.id]: 2, [BOSS_LIST[3]!.id]: 1 },
+          mythsFound: ['cassiopeia', 'cygnus', 'lyra'], unlockedSkies: ['classic', 'twins', 'wanderer'],
+        });
+    app.runs.persistProfile();
+    await app.router.goMenu();
+    if (params.has('open')) (await import('./ui/screens/common')).showCollection(app.profile);
+  }
   // Коллекция трофеев во Справочнике (TR.4): профиль со ступенью трофеев и приручениями
   if (dev && params.has('collection')) {
     const seen = ['void', 'eclipse-sun', 'eclipse-moon', 'eclipse-star', 'fog', 'drought', 'shortNight', 'silence', 'gravity', 'judge', 'wane'];
