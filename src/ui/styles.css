@@ -3308,3 +3308,104 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 @media (min-width: 900px) and (min-height: 561px) {
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-legends { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
+
+/* ─── «Зал славы» (HF, «Горизонт»): доска — небо игроков, ниже рекорды и достижения строками ─── */
+/* Окно — как у Коллекции. Доска одной высоты для рекорда и достижения: ничего не скачет. */
+.modal-panel.hall-modal .gb-board.hall-sky { --bp: 18px; display: flex; flex-direction: column; align-items: stretch; gap: 6px; height: 340px; padding: 18px var(--bp) 16px; text-align: center;
+  background: radial-gradient(120% 70% at 50% 110%, rgb(246 194 91 / 0.1), transparent 60%), radial-gradient(90% 90% at 30% 10%, rgb(80 60 170 / 0.42), transparent), linear-gradient(170deg, #1d1852, #0a0924);
+  transition: box-shadow 0.4s ease; }
+/* Небо без краёв: холст до самых кромок доски (--bp — её боковой отступ) и тает маской со всех
+   сторон, поэтому свечение звезды у края гаснет, а не обрезается прямоугольником */
+.hall-skycanvas { flex: 1 1 auto; min-height: 0; display: block; width: calc(100% + var(--bp) * 2); margin: -4px calc(var(--bp) * -1);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(180deg, transparent, #000 16%, #000 88%, transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(180deg, transparent, #000 16%, #000 88%, transparent); mask-composite: intersect; }
+/* Шапка доски: рекорд — название и число; достижение — медальон, имя, условие, ступень */
+.hall-head { flex: none; height: 96px; display: grid; align-content: center; gap: 4px; }
+.hall-head.rec h3 { margin: 0; font: 400 14px/1.2 var(--font-display); letter-spacing: 0.24em; padding-left: 0.24em; text-transform: uppercase; color: #ffe6a8; }
+.hall-value { font: 800 46px/1 var(--font-body); color: #fff6e0; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; text-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.35); }
+.hall-head.feat { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; text-align: left; }
+.hall-medal { display: grid; place-items: center; filter: drop-shadow(0 0 12px rgb(var(--gold-rgb) / 0.35)); }
+.hall-medal canvas.unknown { filter: grayscale(1) brightness(0.5); opacity: 0.75; }
+.hall-headtext { display: grid; gap: 3px; min-width: 0; }
+.hall-headtext h3 { margin: 0; font: 400 22px/1.1 var(--font-display); letter-spacing: 0.03em; color: #ffe6a8; text-wrap: balance; }
+.hall-headtext p { margin: 0; font: 500 13px/1.35 var(--font-body); color: #e6defa; text-wrap: pretty; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hall-tierline { font: 800 10.5px/1.2 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase; }
+/* Ступени — латунью по нарастающей, не цветами мастей */
+.hall-tierline.t0 { color: var(--ink-faint); } .hall-tierline.t1 { color: var(--ink); } .hall-tierline.t2 { color: var(--gold); } .hall-tierline.t3 { color: #ffe6a8; text-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.6); }
+/* Подпись под небом: число набегает вместе со звёздами */
+.hall-cap { flex: none; height: 44px; display: grid; align-content: center; justify-items: center; gap: 6px; }
+.hall-cap-line { font: 600 14.5px/1.3 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
+.hall-cap-line b { font: 800 18px/1 var(--font-body); color: #ffe6a8; font-variant-numeric: tabular-nums; display: inline-block; min-width: 2.6ch; }
+.hall-cap-line.off { font-size: 12.5px; color: var(--ink-faint); max-width: 34ch; }
+.hall-prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: min(260px, 100%); font: 700 12px/1 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+/* Импакт: твоя звезда вспыхнула — латунная кромка и число на миг ярче */
+.modal-panel.hall-modal .gb-board.hall-sky.flare { animation: hall-edge 0.7s ease-out; }
+.hall-sky.flare .hall-value, .hall-sky.flare .hall-cap-line b { animation: hall-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes hall-edge { 0% { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); } 25% { box-shadow: inset 0 0 0 1px rgb(255 230 168 / 0.9), inset 0 0 28px rgb(var(--gold-rgb) / 0.22); } 100% { box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); } }
+@keyframes hall-pop { 0% { text-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.35); } 30% { text-shadow: 0 0 26px rgb(255 230 168 / 0.95), 0 0 6px #fff; } 100% { text-shadow: 0 0 22px rgb(var(--gold-rgb) / 0.35); } }
+/* Строки: рекорды и достижения — кнопки, выбранная подсвечена латунью */
+.hall-rows, .hall-feats { display: grid; }
+.hall-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 48px; margin: 0; padding: 6px 8px; border: 0; border-radius: 12px; background: none;
+  box-shadow: inset 0 -1px 0 var(--hair); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; }
+.hall-row.feat { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.hall-row:hover:not(.on) { background: rgb(255 255 255 / 0.03); }
+.hall-row.on { background: rgb(var(--gold-rgb) / 0.08); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
+.hall-row:focus-visible { outline: 2px solid rgb(255 230 168 / 0.8); outline-offset: -2px; }
+.hall-row canvas.unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
+.hall-row-text { display: grid; gap: 2px; min-width: 0; }
+.hall-row-text b { font: 700 14px/1.25 var(--font-body); color: var(--ink-dim); }
+.hall-row.rec .hall-row-text b, .hall-row.done .hall-row-text b, .hall-row.on .hall-row-text b { color: var(--ink); }
+.hall-row-text small { font: 500 12px/1.35 var(--font-body); color: var(--ink-faint); text-wrap: pretty; }
+.hall-row-side { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.hall-row-side em { font: 800 15px/1.1 var(--font-body); font-style: normal; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hall-row.feat .hall-row-side em { color: var(--ink-faint); }
+.hall-row.feat.done .hall-row-side em { color: #ffe6a8; }
+.hall-row-side small { font: 600 11px/1.2 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+.hall-row.rec .hall-row-side small { color: #f2dfb6; }
+.hall-legend { margin: -4px 2px 0; font: 500 12.5px/1.45 var(--font-body); color: var(--ink-faint); text-wrap: pretty; }
+.hall-group { display: block; margin: 8px 2px 0; font: 800 11px/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.hall-spot { display: grid; gap: 4px; }
+/* Короткий телефон (iPhone SE, Telegram): доска ниже, списку остаётся место */
+@media (max-height: 700px) and (orientation: portrait) {
+  .modal-panel.hall-modal .gb-board.hall-sky { --bp: 16px; height: 288px; padding: 14px var(--bp) 12px; }
+  .hall-head { height: 84px; }
+  .hall-value { font-size: 38px; }
+}
+@media (prefers-reduced-motion: reduce) { .hall-sky.flare, .hall-sky.flare * { animation: none !important; } }
+/* ПК: доска во всю левую колонку над рекордами, небо и число крупнее; достижения в две колонки */
+@media (min-width: 900px) and (min-height: 561px) {
+  /* Колонки ровно по высоте окна: доска сжимается, рекорды под ней видны целиком */
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { min-height: 0; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { --bp: 26px; display: flex; height: auto; min-height: 0; padding: 22px var(--bp) 18px; gap: 6px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-records { gap: 6px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-records .hall-row { min-height: 44px; padding-block: 3px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head { height: 104px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-value { font-size: 56px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head.rec h3 { font-size: 16px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head.feat { grid-template-columns: auto minmax(0, 1fr); text-align: left; gap: 16px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-headtext h3 { font-size: 26px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap-line { font-size: 16px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap-line b { font-size: 20px; }
+}
+/* Низкий ландшафт телефона: доска во всю высоту левой колонки, рекорды — в списке справа */
+@media (orientation: landscape) and (max-height: 560px) {
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin > .coll-block { display: none; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-scroll > .coll-block { display: grid; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { --bp: 16px; flex: 1 1 auto; height: auto; padding: 12px var(--bp) 10px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head { height: 84px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-value { font-size: 40px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap { height: 46px; gap: 4px; }
+  .hall-row { min-height: 44px; }
+}
+/* Тост открытого достижения (HF.4): медальон вспыхивает — импакт, как у «Нового созвездия» */
+.toast .feat-toast-medal { position: relative; flex: none; display: grid; margin: -6px 0 -6px -10px; }
+/* Вспышка — световой слой за медальоном и кольцо; сам растровый знак не трогаем, чтобы не плыл */
+.toast .feat-toast-medal::before, .toast .feat-toast-medal::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; }
+.toast .feat-toast-medal::before { z-index: -1; background: radial-gradient(circle, rgb(255 230 168 / 0.95), rgb(246 194 91 / 0.4) 45%, transparent 70%); animation: feat-glow 1s ease-out both; }
+.toast .feat-toast-medal::after { box-shadow: 0 0 0 1.5px rgb(255 230 168 / 0.9); animation: feat-ring 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes feat-glow { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes feat-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast .feat-toast-medal::before, .toast .feat-toast-medal::after { animation: none; opacity: 0; } }
