@@ -83,17 +83,58 @@ describe('сервер: сводка', () => {
     expect(s.shop.top[0]).toEqual({ kind: 'omen', id: 'pillar', count: 2, players: 2 });
   });
 
-  it('реклама: ложные межстраничные из Telegram и с сайта не считаются', () => {
+  it('реклама: ложные межстраничные до 0.4.10 не считаются, AdsGram в Telegram считается', () => {
     const db = openDb(':memory:');
-    const ad = (platform: string, kind: string) =>
-      insertBatch(db, { client: `client-${platform}`, session: `s-${platform}-${kind}`, platform, version: '1', lang: 'ru', events: [{ name: 'ad_request', params: { kind, placement: kind === 'interstitial' ? 'between_antes' : 'revive' }, at: NOW - DAY }] });
-    ad('telegram', 'interstitial');
-    ad('web', 'interstitial');
-    ad('yandex', 'interstitial');
-    ad('yandex', 'rewarded');
+    const ad = (platform: string, kind: string, version: string) =>
+      insertBatch(db, { client: `client-${platform}`, session: `s-${platform}-${kind}-${version}`, platform, version, lang: 'ru', events: [{ name: 'ad_request', params: { kind, placement: kind === 'interstitial' ? 'between_antes' : 'revive' }, at: NOW - DAY }] });
+    ad('telegram', 'interstitial', '0.4.9');
+    ad('web', 'interstitial', '0.4.9');
+    ad('yandex', 'interstitial', '0.4.9');
+    ad('yandex', 'rewarded', '0.4.9');
+    ad('telegram', 'interstitial', '0.5.9');
     const s = computeStats(db, NOW, 7);
-    expect(s.ads.map((a) => `${a.kind}:${a.requests}`).sort()).toEqual(['interstitial:1', 'rewarded:1']);
+    expect(s.ads.map((a) => `${a.kind}:${a.requests}`).sort()).toEqual(['interstitial:2', 'rewarded:1']);
     expect(renderDashboard(s)).toContain('Между главами');
+  });
+
+  it('сессия: активное время без фона, мгновенные выходы отдельно, без обрезки границей', () => {
+    const db = openDb(':memory:');
+    const put = (session: string, times: number[]) =>
+      insertBatch(db, { client: 'client-sess', session, platform: 'telegram', version: '0.7.10', lang: 'ru', events: times.map((at) => ({ name: 'app_open', params: {}, at })) });
+    const t0 = NOW - DAY;
+    const min = 60_000;
+    // 3 минуты игры, 2 часа в фоне, ещё 1 минута — сессия длиной 4 минуты, а не 124
+    put('s-long', [t0, t0 + 3 * min, t0 + 123 * min, t0 + 124 * min]);
+    put('s-mid', [t0, t0 + 30_000, t0 + 90_000]);
+    put('s-bounce', [t0]);
+    // Начата до периода — в длину не входит
+    put('s-edge', [NOW - 8 * DAY, NOW - 7 * DAY + 1000]);
+    const s = computeStats(db, NOW, 7);
+    expect(s.totals.bounceSessions).toBe(1);
+    expect(s.totals.medianSessionMin).toBeCloseTo((4 + 1.5) / 2);
+    const html = renderDashboard(s);
+    expect(html).toContain('2,8 мин');
+    expect(html).toContain('открыли и сразу закрыли: 1');
+  });
+
+  it('обучение: короткое и полное не складываются по номеру шага', () => {
+    const db = openDb(':memory:');
+    const step = (c: string, steps: [string, number][]) =>
+      insertBatch(db, { client: c, session: `${c}-s`, platform: 'pikabu', version: '0.7.10', lang: 'ru', events: steps.map(([st, index], i) => ({ name: 'tutorial_step', params: { step: st, index }, at: NOW - DAY + i })) });
+    step('client-old1', [['board', 1], ['hand', 2], ['place1', 3], ['place2', 4], ['place3', 5]]);
+    step('client-new1', [['shortRow', 1], ['shortBurn', 5], ['shortCross', 6]]);
+    step('client-new2', [['shortRow', 1]]);
+    insertBatch(db, { client: 'client-new1', session: 'client-new1-s', platform: 'pikabu', version: '0.7.10', lang: 'ru', events: [{ name: 'tutorial_start', params: { source: 'auto' }, at: NOW - DAY - 1 }] });
+    const s = computeStats(db, NOW, 7);
+    expect(s.tutorial.track).toBe('short');
+    expect(s.tutorial.steps).toEqual([
+      { index: 1, step: 'shortRow', players: 2 },
+      { index: 2, step: 'shortBurn', players: 1 },
+      { index: 3, step: 'shortCross', players: 1 },
+    ]);
+    const html = renderDashboard(s);
+    expect(html).toContain('Короткое обучение');
+    expect(html).toContain('Пикабу Игры');
   });
 
   it('воронка новичков и рост', () => {
