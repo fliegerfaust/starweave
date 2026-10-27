@@ -377,11 +377,6 @@ export const en: Dict = {
   codex: {
     title: 'Collection',
     foundAll: '{n} of {total} found',
-    hRuns: 'runs',
-    hWins: 'wins',
-    hAnte: 'chapter',
-    hBest: 'best move',
-    hLines: 'lines',
     kinds: { mult: '+ multiplier', xmult: '× multiplier', light: '+ light', rule: 'rule', gold: 'gold' } as Record<string, string>,
     eclipse: 'Eclipse',
     unknownOmen: 'Not met yet. It will show up in the Observatory — and open here.',

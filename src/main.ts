@@ -122,7 +122,7 @@ async function boot(): Promise<void> {
     const regular = OMEN_LIST.filter((o) => !o.pair).map((o) => o.id);
     const fresh = params.get('home') === 'new';
     Object.assign(app.profile, fresh
-      ? { tutorialDone: true, tutorialFinished: true, runs: 1, bestAnte: 2, bestPlacement: 640, totalLines: 21, combosFound: ['pair', 'flush', 'straight'], seenOmens: regular.slice(0, 4), seenBosses: [], mythsFound: [] }
+      ? { tutorialDone: true, tutorialFinished: true, runs: 1, wins: 0, eclipses: 0, bestAnte: 2, bestPlacement: 640, totalLines: 21, combosFound: ['pair', 'flush', 'straight'], seenOmens: regular.slice(0, 4), seenBosses: [], mythsFound: [] }
       : {
           tutorialDone: true, tutorialFinished: true, runs: 23, wins: 3, bestAnte: 8, bestPlacement: 4820, totalLines: 412, eclipses: 31,
           combosFound: ['pair', 'flush', 'straight', 'twoPair', 'triple', 'quartet', 'mirror'],

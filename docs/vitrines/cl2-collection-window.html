@@ -254,15 +254,10 @@ b, strong { font-weight: 700; }
   <header class="top">
     <h1>Коллекция своим окном</h1>
     <div class="sill"></div>
-    <p>Коллекция больше не пятая вкладка Справочника: это <b>своё окно</b> с той же живой доской, а <b>итоги игрока стоят наверху</b>. В Справочнике остались четыре вкладки правил, и в ландшафте они теперь помещаются (CG-60). Открывается Коллекция с полки на главной и строкой в Библиотеке. Здесь два места для итогов; закрой окно крестиком, чтобы увидеть главную с полкой «Следующее открытие».</p>
+    <p>Выбран вариант Б: <b>итоги первым разделом</b>. Доска наверху теперь <b>одной высоты у любого игрока</b>: опытный и новичок видят одинаковую плашку без пустого поля. Знак и имя стоят строкой, описание идёт на всю ширину. На ПК и в ландшафте <b>итоги стоят под доской</b>, а окно на ПК по высоте содержимого. Закрой окно крестиком, чтобы увидеть главную с полкой.</p>
   </header>
 
-  <div class="ctl">
-    <div class="seg" id="seg"></div>
-    <p class="vlead" id="vlead"></p>
-  </div>
-
-  <div class="label">Попробуй сам <small>окно Коллекции из ветки; на главной «Новый забег», «Вызов дня», атлас, обучение и архив в витрине отключены</small></div>
+  <div class="label">Попробуй сам <small>окно Коллекции из ветки; переключай игрока и знаки, высота доски не меняется. На главной «Новый забег», «Вызов дня», атлас, обучение и архив отключены</small></div>
   <div class="ctl"><div class="seg small" id="who"></div></div>
   <div class="devices top">
     <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><button class="btn btn-secondary again" data-f="0">Сначала</button></div>
@@ -270,13 +265,10 @@ b, strong { font-weight: 700; }
   </div>
   <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div>
 
-  <div class="label">Чем различаются <small>одни итоги, два места</small></div>
-  <div class="cmp" id="cmp"></div>
-
-  <div class="label">Что дальше <small>после твоего выбора</small></div>
+  <div class="label">Что поменялось <small>после замечаний</small></div>
   <div class="facts-wrap" id="aside"></div>
 
-  <p class="foot">Витрина CL.2 · Коллекция своим окном · 27.10.2026 · главная из ветки feature/collection-vitrine · выбирает Денис</p>
+  <p class="foot">Витрина CL.2 · Коллекция своим окном · 27.10.2026 · сборка ветки feature/collection-vitrine</p>
 </div>
 <script>
 function h(tag, attrs, ...kids) {
@@ -284,7 +276,6 @@ function h(tag, attrs, ...kids) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v == null || v === false) continue;
     if (k === 'class') el.className = v;
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
     else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
     else if (k === 'html') el.innerHTML = v;
     else el.setAttribute(k, v === true ? '' : v);
@@ -294,20 +285,11 @@ function h(tag, attrs, ...kids) {
 }
 const q = (sel, root = document) => root.querySelector(sel);
 const qa = (sel, root = document) => [...root.querySelectorAll(sel)];
-
-
-const VARIANTS = [
-  ['head', 'В шапке окна', 'Пять чисел крупно под заголовком: <b>забеги, победы, лучшая глава, лучший ход, созвездия</b>, ниже общий счёт «Найдено 52 из 94» той же шкалой, что на полке. Итоги видны всегда, пока листаешь Коллекцию. В невысоком окне числа мельче, а в ландшафте счёт прячется: он есть на полке главной.'],
-  ['list', 'Первым разделом', 'Итоги стоят <b>первым разделом списка</b> под доской: общий счёт со шкалой и шесть строк «подпись · число», как раньше, только сверху, а не в самом низу. При прокрутке уходят вверх, шапка окна остаётся тихой.'],
-];
 const WHO = [['seasoned', 'Опытный игрок'], ['new', 'После первого забега']];
-let variant = ['head', 'list'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'head';
 let who = 'seasoned';
-
-// Витрина главной: вход в Коллекцию и Библиотека работают, всё, что начинает забег или уводит с экрана, молчит
 const BLOCK = '.menu-primary, .menu-atlas, .menu-pair .menu-lite:not(:has(.menu-count)), .menu-room:nth-child(3), .lib-row:nth-child(2), .lib-row:nth-child(3), .sky-row button, .home-link';
 function frameIn(fit, W, H) {
-  const frame = h('iframe', { class: 'frame', title: 'Главная', width: W, height: H });
+  const frame = h('iframe', { class: 'frame', title: 'Коллекция', width: W, height: H });
   frame.style.width = W + 'px'; frame.style.height = H + 'px';
   fit.append(frame);
   const fs = () => { const s = Math.min(1, fit.clientWidth / W); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; };
@@ -319,40 +301,27 @@ function frameIn(fit, W, H) {
   });
   return frame;
 }
-function load(frame) {
-  frame.src = `game/index.html?${who === 'new' ? 'home=new' : 'home'}&open&statsvar=${variant}`;
-}
+const load = (frame) => { frame.src = `game/index.html?${who === 'new' ? 'home=new' : 'home'}&open`; };
 const frames = [[q('#fP'), 393, 852], [q('#fL'), 915, 412], [q('#fD'), 1366, 768]].map(([fit, W, H]) => frameIn(fit, W, H));
 qa('.again').forEach((b) => (b.onclick = () => load(frames[+b.dataset.f])));
 function render() {
-  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
   qa('#who button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === who)));
-  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
   frames.forEach(load);
 }
-q('#seg').append(...VARIANTS.map(([id, name], i) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, `${'АБ'[i]} · ${name}`)));
 q('#who').append(...WHO.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { who = id; render(); } }, name)));
 render();
-
-q('#cmp').append(
-  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([id, n]) => h('span', { class: 'head' }, `${id} · ${n}`))),
-  ...[
-    ['Итоги видны', 'Всегда, пока открыта Коллекция', 'Сразу при открытии, потом уходят вверх'],
-    ['Доска на телефоне', 'Чуть ниже: шапка выше на строку чисел', 'Как в Справочнике'],
-    ['Подробность', 'Пять чисел', 'Шесть строк, плюс «Знамений из 45»'],
-    ['Похоже на', 'Профиль игрока', 'Нынешние «Итоги», поднятые наверх'],
-  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][0] }, x)))));
-
 q('#aside').append(
   h('div', { class: 'facts' }, [
-    ['Справочник', 'Четыре вкладки правил: созвездия, ночь, Обсерватория, карты. Старые ссылки на вкладку Коллекции открывают её окно.'],
-    ['Входы', 'Полка «Следующее открытие» под названием игры и строка «Коллекция · Находки и итоги» в Библиотеке, обе после первого забега.'],
+    ['Одна высота', 'Раньше доска брала высоту самой длинной находки <b>из открытых игроку</b>: у опытного трофеи Затмений раздували её до 214 px, у новичка 135. Теперь её меряют по всей Коллекции, и она одна у всех: 168 px на телефоне.'],
+    ['Без пустот', 'Знак и имя строкой, описание на всю ширину. У легендарного пара половинок мелко у имени. У трофея Затмение строкой ниже, его правило видно на ПК.'],
+    ['ПК', 'Доска по содержимому, знак 96 px, под ней итоги. Окно по высоте левой колонки, список справа листается в ней.'],
+    ['Ландшафт', 'Итоги тоже под доской. На самом низком экране (667 × 375) они не помещаются и остаются первым разделом списка.'],
   ].map(([k, v]) => h('div', { class: 'fact' }, h('span', {}, k), h('div', { html: v })))),
   h('h2', {}, 'Задачи'),
   h('ul', { class: 'tasks' }, [
-    ['CL.1', 'Готово: полка «Следующее открытие» на главной, пульт в ландшафте парой'],
-    ['CL.2', 'Эта витрина: где стоят итоги'],
-    ['CL.3', 'Крючки возврата: «За забег открыто… › Посмотреть» в итогах и касание баннера новой находки'],
+    ['CL.1', 'Готово: полка «Следующее открытие» на главной'],
+    ['CL.2', 'Эта витрина: Коллекция своим окном, итоги первым разделом'],
+    ['CL.3', 'Дальше: «За забег открыто… › Посмотреть» в итогах и касание баннера новой находки'],
   ].map(([c, t]) => h('li', {}, h('code', {}, c), h('span', {}, t)))));
 </script>
 </body>

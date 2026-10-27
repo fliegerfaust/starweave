@@ -95,7 +95,7 @@ test('Справочник: живая доска, четыре вкладки, 
   expect(errors).toEqual([]);
 });
 
-test('Коллекция своим окном (CL.2): доска, знаки, итоги в шапке помещаются', async ({ page }) => {
+test('Коллекция своим окном (CL.2): доска, знаки, итоги первым разделом помещаются', async ({ page }) => {
   const errors = await boot(page);
   const failures: string[] = [];
   for (const lang of ['ru', 'en'] as const) {
@@ -108,13 +108,15 @@ test('Коллекция своим окном (CL.2): доска, знаки, �
       showGuide({ tab: 'collection', profile: app.profile });
     }, lang);
     await check(page, `${lang} коллекция`, failures);
-    // Вкладок правил в Коллекции нет; пять итогов шапки целиком в окне
+    // Вкладок правил в Коллекции нет; итоги видны ровно одним блоком (в списке или под доской) и целиком в окне
     const cut = await page.evaluate(() => {
       if (document.querySelector('.collection-modal .gb-tabs')) return ['вкладки правил в Коллекции'];
-      const head = document.querySelector('.coll-stats')!.getBoundingClientRect();
-      return [...document.querySelectorAll('.coll-stat')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < head.left - 1 || r.right > head.right + 1; }).map((t) => t.textContent ?? '');
+      const shown = [...document.querySelectorAll<HTMLElement>('.collection-modal .coll-block')].filter((b) => b.offsetParent);
+      if (shown.length !== 1) return [`блоков итогов: ${shown.length}`];
+      const box = shown[0]!.getBoundingClientRect();
+      return [...shown[0]!.querySelectorAll('.gb-stat')].filter((t) => { const r = t.getBoundingClientRect(); return r.left < box.left - 1 || r.right > box.right + 1; }).map((t) => t.textContent ?? '');
     });
-    if (cut.length) failures.push(`${lang}: итоги за краем — ${cut.join(', ')}`);
+    if (cut.length) failures.push(`${lang}: итоги — ${cut.join(', ')}`);
     if (lang === 'ru') await page.screenshot({ path: `e2e-results/${test.info().project.name}/29-collection.png` });
   }
   // Неизвестное Знамение: доска честно говорит, что оно ещё не встречалось
@@ -158,7 +160,7 @@ test('Справочник: доска не меняет размер при п�
 /**
  * Коллекция трофеев (TR.4, вариант A4 Дениса): взятый в сцене «Небо сдаётся» трофей
  * считается приручением; в коллекции приручённое Затмение золотое, на доске главный трофей
- * и сколько раз приручён, Затмение под чертой. Ничего не вылезает, ru и en.
+ * и сколько раз приручён, Затмение строкой ниже. Ничего не вылезает, ru и en.
  */
 test('коллекция трофеев: взятый трофей приручён, доска трофея помещается', async ({ page }) => {
   const errors: string[] = [];

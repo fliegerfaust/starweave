@@ -2727,26 +2727,24 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 .gb-kind.mult { color: #ff8fa6; } .gb-kind.xmult { color: #ffb070; } .gb-kind.light { color: #7fe0ff; } .gb-kind.gold { color: #ffe6a8; }
 /* Коллекция: итоги игрока строками «подпись · число» в две колонки, без плашек */
 .gb-statrows { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 22px; }
-/* Коллекция (CL.2): итоги игрока в шапке окна — числа крупно, подписи под ними, без плашек */
-.coll-head { display: grid; gap: 10px; padding: 2px 4px 10px; }
-.coll-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-.coll-stat { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
-.coll-stat b { font: 800 19px/1.2 var(--font-body); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
-.coll-stat small { font: 600 11px/1.2 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
-/* Невысокое окно (iPhone SE, ландшафт): итоги одной тонкой строкой, общий счёт — на полке главной */
-@media (max-height: 700px) {
-  .coll-head { gap: 6px; padding-bottom: 6px; }
-  .coll-stat { gap: 2px; }
-  .coll-stat b { font-size: 16px; }
-  .coll-stat small { font-size: 10.5px; }
-}
-@media (max-height: 520px) {
-  .coll-head .coll-progress { display: none; }
-  .coll-head { padding-bottom: 4px; }
-  .coll-stats { max-width: 520px; margin: 0 auto; width: 100%; }
-}
+/*
+ * Доска Коллекции (CL.2): знак и имя строкой, описание — на всю ширину доски. Так у любой
+ * находки близкая высота, а доска одна и та же у любого игрока и не пустует.
+ */
+.collection-modal .gb-board { grid-template-columns: auto minmax(0, 1fr); grid-auto-rows: auto; column-gap: 14px; row-gap: 4px; align-content: center; align-items: start; }
+.collection-modal .gb-tally { display: contents; }
+.collection-modal .gb-stage { grid-row: 1 / span 3; align-self: center; }
+.collection-modal .gb-tally > h3 { grid-column: 2; align-self: end; }
+.collection-modal .gb-tally > .gb-kind { grid-column: 2; grid-row: 2; }
+.collection-modal .gb-tally > .gb-formula { grid-column: 2; grid-row: 3; margin-top: 2px; }
+.collection-modal .gb-tally > p { grid-column: 1 / -1; margin-top: 8px; }
+.collection-modal .gb-tally > h3:has(+ p) { grid-row: 1 / span 2; align-self: center; }
+.collection-modal .gb-tally > p + p { margin-top: 2px; }
+/* Итоги (CL.2, вариант Б): первым разделом списка; в широком окне — под доской, а в списке их нет */
+.coll-block { display: grid; gap: 10px; }
+.gb-pin > .coll-block { display: none; }
 .coll-progress { display: grid; gap: 6px; font: 600 12.5px/1 var(--font-body); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
-.gb-scroll > .coll-progress { margin: 2px 2px 10px; }
+.coll-block > .coll-progress { margin: 0 2px; }
 .gb-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 0; box-shadow: 0 1px 0 var(--hair); font-size: 13px; color: var(--ink-dim); }
 .gb-stat b { font: 800 14px/1.2 var(--font-body); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -2823,6 +2821,24 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-tally h3 { font-size: 30px; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-tally p { font-size: 14px; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-sigils { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+/* Коллекция в широком окне: доска по своему содержимому, под ней итоги — левая колонка без пустого поля */
+/* Ниже 400 px высоты итоги под доской не помещаются — остаются первым разделом списка */
+@media (min-height: 400px) {
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; gap: 12px; align-content: start; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin > .coll-block { display: grid; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll > .coll-block { display: none; }
+}
+@media (min-width: 900px) and (min-height: 561px) {
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-board { min-height: 0; padding: 20px 22px; column-gap: 18px; row-gap: 6px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { gap: 14px; }
+  /* Высоту окна задаёт левая колонка, длинный список справа листается в ней */
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll { contain: size; }
+}
+/* Низкий ландшафт телефона: итоги под доской плотнее */
+@media (orientation: landscape) and (max-height: 560px) {
+  body.landscape .modal-panel.collection-modal:not(.sheet) .coll-block { gap: 6px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-stat { padding: 5px 0; }
 }
 /* Невысокий ландшафт телефона: доска ниже, чтобы поместиться в окно и в боковой лист */
 @media (orientation: landscape) and (max-height: 560px) {
@@ -3240,12 +3256,13 @@ body.pc-wide .ts-pick, body.pc-wide .ts-medal { zoom: var(--ui-k, 1); }
 canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightness(1.08) drop-shadow(0 0 14px rgb(255 200 90 / 0.5)); }
 .gb-tally h3.wild { color: var(--ink); }
 .gb-kind.gold.none { color: var(--ink-faint); }
-/* Затмение под чертой: имя и правило тише трофея */
-.gb-ecl { display: grid; gap: 3px; margin-top: 6px; padding-top: 10px; box-shadow: 0 -1px 0 var(--hair); }
-.gb-ecl b { font: 400 15px/1.15 var(--font-display); letter-spacing: 0.03em; color: var(--ink-dim); }
-.gb-ecl span { font: 600 12px/1.3 var(--font-body); color: var(--ink-dim); }
+/* Затмение строкой под трофеем: имя и правило тише трофея */
+.gb-tally p.gb-ecl { color: var(--ink-dim); font-size: 12px; }
+.gb-ecl b { font-weight: 800; color: var(--ink); }
+/* Правило Затмения — только в широком окне: на телефоне доска не растёт ради него */
+.gb-ecl span { display: none; }
 @media (min-width: 900px) and (min-height: 561px) {
-  body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { font-size: 13px; }
+  body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { display: inline; }
 }
 
 

@@ -382,11 +382,6 @@ export const ru = {
   codex: {
     title: 'Коллекция',
     foundAll: 'Найдено {n} из {total}',
-    hRuns: 'забеги',
-    hWins: 'победы',
-    hAnte: 'глава',
-    hBest: 'лучший ход',
-    hLines: 'созвездия',
     kinds: { mult: '+ к множителю', xmult: '× множитель', light: '+ свет', rule: 'правило', gold: 'золото' } as Record<string, string>,
     eclipse: 'Затмение',
     unknownOmen: 'Ещё не встречалось. Появится в Обсерватории — и откроется здесь.',
