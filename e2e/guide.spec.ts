@@ -121,7 +121,7 @@ test('Коллекция своим окном (CL.2): доска, знаки, �
   }
   // Неизвестное Знамение: доска честно говорит, что оно ещё не встречалось
   await page.locator('.gb-sigils button.unknown').first().click();
-  await expect(page.locator('.gb-tally h3')).toHaveText('???');
+  await expect(page.locator('.gb-tally h3')).toHaveText('Unknown omen');
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });

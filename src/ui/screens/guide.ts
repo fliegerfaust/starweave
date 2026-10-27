@@ -50,6 +50,11 @@ export interface GuideOptions {
 }
 
 const TABS: GuideTab[] = ['combos', 'night', 'shop', 'glyphs', 'collection'];
+/**
+ * Витрина CL.2: доска Коллекции — `?boardvar=center` (витрина по центру, закреплена над списком)
+ * или `grid` (находка раскрывается прямо в сетке под своим рядом). Без параметра — по центру.
+ */
+const BOARD: 'center' | 'grid' = import.meta.env.DEV && new URLSearchParams(location.search).get('boardvar') === 'grid' ? 'grid' : 'center';
 const STEP_IDS = ['place', 'line', 'score', 'cross', 'burn', 'eclipse'] as const;
 const SHOP_IDS = ['omens', 'order', 'charts', 'rituals', 'gold'] as const;
 /** Старые id разделов (фокус из подсказок ночи и обучения) → шаг ночи. */
@@ -387,7 +392,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
   // ─── Коллекция (бывший Кодекс) ───────────────────────────────────────────
   const c = dict().codex;
   /** Знак на доске: в широком окне (ПК) крупнее — доске есть где. */
-  const bigSize = () => (document.body.classList.contains('landscape') && matchMedia('(min-width: 900px) and (min-height: 561px)').matches ? 96 : 72);
+  const bigSize = () => (document.body.classList.contains('landscape') && matchMedia('(min-width: 900px) and (min-height: 561px)').matches ? (BOARD === 'center' ? 128 : 96) : 56);
   const collSigil = (kind: 'omen' | 'boss', id: string, size: number) => canvasImg(kind === 'omen' ? omenSigil(id, size, dpr()) : bossSigil(id, size, dpr()), size);
   /** Описание без «(сейчас +{x})» — вне забега текущего значения нет. */
   const effect = (text: string) => text.replace(/\s*\([^)]*\{x\}[^)]*\)/, '').replace('{x}', '…');
@@ -408,7 +413,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
     if (pick.kind === 'boss' && known && trophiesOpen()) return trophyBoard(pick.id, big);
     const tally = known
       ? [h('h3', null, info.name), h(`span.gb-kind${kind ? `.${kind}` : ''}`, null, kind ? c.kinds[kind] ?? '' : c.eclipse), h('p', null, rich(effect(info.desc)))]
-      : [h('h3', null, c.unknown), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
+      : [h('h3', null, pick.kind === 'omen' ? c.unknownOmenName : c.unknownBossName), h('span.gb-kind', null, c.notFound), h('p', null, pick.kind === 'omen' ? c.unknownOmen : c.unknownBoss)];
     return [h('div.gb-stage', null, big), tally];
   };
   // ─── Легендарные Резонанса (RS.3): видны со ступени «Резонанс» ──────────
@@ -429,14 +434,15 @@ function openBoard(opts: GuideOptions, only: boolean): void {
     const found = seenOmen(id);
     const [a, b] = LEGENDS.find((x) => x.id === id)!.pair!;
     const nameOf = (x: string) => (seenOmen(x) ? `[${named('omen', x).name}|omen.${x}]` : c.unknownHalf);
-    // Легендарное крупно, у имени — из чего оно сливается: доска не выше, чем у Знамения
-    const [ha, plus, hb, , big] = formula(id, 22, bigSize());
+    // Легендарное крупно, у имени — из чего оно сливается
+    const [ha, plus, hb, , big] = formula(id, 20, bigSize());
     big!.classList.add('gb-big');
-    const pair = h('div.gb-formula', null, [ha!, plus!, hb!]);
+    // Пара половинок — в строке вида, не отдельной строкой: доска не выше, чем у Знамения
+    const kindRow = (label: HTMLElement) => h('div.gb-kindrow', null, [label, h('span.gb-formula', null, [ha!, plus!, hb!])]);
     const kind = OMEN_LIST.find((x) => x.id === id)!.kind;
     return [h('div.gb-stage', null, big!), found
-      ? [h('h3', null, named('omen', id).name), h(`span.gb-kind.${kind}`, null, `${c.legend} · ${c.kinds[kind] ?? ''}`), pair, h('p', null, rich(effect(named('omen', id).desc)))]
-      : [h('h3', null, c.unknownLegend), h('span.gb-kind', null, c.legend), pair, h('p', null, rich(format(c.unknownLegendDesc, { a: nameOf(a), b: nameOf(b) })))]];
+      ? [h('h3', null, named('omen', id).name), kindRow(h(`span.gb-kind.${kind}`, null, `${c.legend} · ${c.kinds[kind] ?? ''}`)), h('p', null, rich(effect(named('omen', id).desc)))]
+      : [h('h3', null, c.unknownLegend), kindRow(h('span.gb-kind', null, c.legend)), h('p', null, rich(format(c.unknownLegendDesc, { a: nameOf(a), b: nameOf(b) })))]];
   };
   const legendList = (): HTMLElement[] => {
     const el = h('div.gb-sigils.gb-legends');
@@ -522,7 +528,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
         const gold = kind === 'boss' && isSeen && tamedOf(x.id) > 0 && trophiesOpen();
         const b = h(`button${isSeen ? '' : '.unknown'}${on ? '.on' : ''}${gold ? '.tamed' : ''}`, {
           type: 'button',
-          attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : c.unknown },
+          attrs: { 'aria-pressed': String(on), 'aria-label': isSeen ? named(kind, x.id).name : kind === 'omen' ? c.unknownOmenName : c.unknownBossName },
         }, collSigil(kind, x.id, 40));
         b.addEventListener('click', (e) => {
           if (on) return;
@@ -632,6 +638,36 @@ function openBoard(opts: GuideOptions, only: boolean): void {
     board.style.minHeight = `${max}px`;
   }
 
+  // ─── Вариант «в сетке» (витрина CL.2): находка раскрывается под своим рядом ──
+  /** Ставит доску сразу за последним знаком ряда выбранной находки; хвостик — к ней. */
+  function placeInGrid(board: HTMLElement, scroll: HTMLElement): void {
+    const on = scroll.querySelector<HTMLElement>('.gb-sigils button.on');
+    if (!on) return void scroll.prepend(board);
+    const row = [...on.parentElement!.children].filter((b) => (b as HTMLElement).offsetTop === on.offsetTop);
+    row.at(-1)!.after(board);
+    board.classList.add('gb-inline');
+    board.style.setProperty('--tip', `${on.offsetLeft + on.offsetWidth / 2 - board.offsetLeft}px`);
+  }
+  /** Знак, которого коснулись, остаётся на месте: доска могла уехать из-под него выше. */
+  let tapped: { grid: number; i: number; y: number } | null = null;
+  body.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.gb-sigils button');
+    if (!b) return;
+    const grids = [...body.querySelectorAll('.gb-sigils')];
+    tapped = { grid: grids.indexOf(b.parentElement!), i: [...b.parentElement!.children].filter((x) => x.tagName === 'BUTTON').indexOf(b), y: b.getBoundingClientRect().top };
+  }, true);
+  function holdTapped(scroll: HTMLElement, board: HTMLElement): void {
+    const t = tapped;
+    tapped = null;
+    if (t) {
+      const b = body.querySelectorAll('.gb-sigils')[t.grid]?.querySelectorAll('button')[t.i];
+      if (b) scroll.scrollTop += b.getBoundingClientRect().top - t.y;
+    }
+    // Раскрытая находка видна целиком
+    const r = board.getBoundingClientRect(), v = scroll.getBoundingClientRect();
+    if (r.bottom > v.bottom - 12) scroll.scrollTop += r.bottom - v.bottom + 12;
+  }
+
   let shownTab: GuideTab | null = null;
   function render(): void {
     timers.forEach(clearTimeout);
@@ -647,9 +683,16 @@ function openBoard(opts: GuideOptions, only: boolean): void {
     const below = tab === 'combos' ? comboList() : tab === 'night' ? nightList() : tab === 'shop' ? shopList() : tab === 'glyphs' ? glyphList() : collectionList();
     // Широкая сцена (Обсерватория) — подпись под ней
     const board = h(`div.gb-board${tab === 'shop' ? '.stack' : ''}`, null, [vis, h('div.gb-tally', { attrs: { 'aria-live': 'polite' } }, tally)]);
-    body.replaceChildren(h('div.gb-pin', null, [board, tab === 'collection' && only ? statsBlock() : null]), h('div.gb-scroll', null, below));
+    const inGrid = tab === 'collection' && only && BOARD === 'grid';
+    body.replaceChildren(
+      inGrid ? '' : h('div.gb-pin', null, [board, tab === 'collection' && only ? statsBlock() : null]),
+      h('div.gb-scroll', null, below),
+    );
+    const scroll = body.querySelector<HTMLElement>('.gb-scroll')!;
+    if (inGrid) placeInGrid(board, scroll);
     steadyBoard(board);
-    body.querySelector('.gb-scroll')!.scrollTop = keep;
+    scroll.scrollTop = keep;
+    if (inGrid) holdTapped(scroll, board);
     shownTab = tab;
     // Шаги ночи идут сами, пока игрок не выбрал шаг
     if (tab === 'night' && auto && !reduced()) later(() => { step = (step + 1) % g.steps.length; render(); }, 3200);
@@ -675,7 +718,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
   });
   const m = modal(body, {
     title: only ? c.title : g.title,
-    className: `board-modal guide-modal${only ? ' collection-modal' : ''}`,
+    className: `board-modal guide-modal${only ? ` collection-modal bv-${BOARD}` : ''}`,
     sheet: opts.sheet,
     headExtra: only ? undefined : tabsBar,
     onClose: () => timers.forEach(clearTimeout),
