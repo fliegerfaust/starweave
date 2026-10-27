@@ -66,15 +66,17 @@ export class PlayerSky {
 
   private layout(): void {
     const { w, h } = this;
-    const padX = 14;
-    const base = h * 0.82;
-    const amp = h * 0.5;
+    // Холст уходит под края доски и растворяется маской (CSS): звёзды держим в ясной середине,
+    // чтобы свечение и кольцо своей звезды гасли мягко, а не упирались в край
+    const padX = Math.max(34, w * 0.11);
+    const base = h * 0.8;
+    const amp = h * 0.44;
     this.stars = Array.from({ length: N }, (_, i) => {
       const old = this.stars[i];
       const t = (i + 0.5) / N;
       // Дуга горизонта и полоса неба над ней: ближе к краям звёзды ниже, в середине выше
       const arc = Math.sin(t * Math.PI) ** 0.8;
-      const band = (noise(i, 1) - 0.5) * h * 0.4;
+      const band = (noise(i, 1) - 0.5) * h * 0.34;
       const big = noise(i, 2);
       return {
         x: padX + t * (w - padX * 2) + (noise(i, 3) - 0.5) * ((w - padX * 2) / N) * 1.6,
@@ -180,7 +182,7 @@ export class PlayerSky {
     }
 
     // Горизонт: тонкая латунная дуга внизу и тёплое зарево под пройденной частью
-    const base = h * 0.82;
+    const base = h * 0.8;
     const glowTo = this.you >= 0 && this.path.length ? stars[this.you]!.x : 0;
     ctx.save();
     ctx.beginPath();

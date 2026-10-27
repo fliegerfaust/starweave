@@ -3311,10 +3311,14 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 
 /* ─── «Зал славы» (HF, «Горизонт»): доска — небо игроков, ниже рекорды и достижения строками ─── */
 /* Окно — как у Коллекции. Доска одной высоты для рекорда и достижения: ничего не скачет. */
-.modal-panel.hall-modal .gb-board.hall-sky { display: flex; flex-direction: column; align-items: stretch; gap: 6px; height: 340px; padding: 18px 18px 16px; text-align: center;
+.modal-panel.hall-modal .gb-board.hall-sky { --bp: 18px; display: flex; flex-direction: column; align-items: stretch; gap: 6px; height: 340px; padding: 18px var(--bp) 16px; text-align: center;
   background: radial-gradient(120% 70% at 50% 110%, rgb(246 194 91 / 0.1), transparent 60%), radial-gradient(90% 90% at 30% 10%, rgb(80 60 170 / 0.42), transparent), linear-gradient(170deg, #1d1852, #0a0924);
   transition: box-shadow 0.4s ease; }
-.hall-skycanvas { flex: 1 1 auto; min-height: 0; width: 100%; display: block; }
+/* Небо без краёв: холст до самых кромок доски (--bp — её боковой отступ) и тает маской со всех
+   сторон, поэтому свечение звезды у края гаснет, а не обрезается прямоугольником */
+.hall-skycanvas { flex: 1 1 auto; min-height: 0; display: block; width: calc(100% + var(--bp) * 2); margin: -4px calc(var(--bp) * -1);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(180deg, transparent, #000 16%, #000 88%, transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent), linear-gradient(180deg, transparent, #000 16%, #000 88%, transparent); mask-composite: intersect; }
 /* Шапка доски: рекорд — название и число; достижение — медальон, имя, условие, ступень */
 .hall-head { flex: none; height: 96px; display: grid; align-content: center; gap: 4px; }
 .hall-head.rec h3 { margin: 0; font: 400 14px/1.2 var(--font-display); letter-spacing: 0.24em; padding-left: 0.24em; text-transform: uppercase; color: #ffe6a8; }
@@ -3363,7 +3367,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 .hall-spot { display: grid; gap: 4px; }
 /* Короткий телефон (iPhone SE, Telegram): доска ниже, списку остаётся место */
 @media (max-height: 700px) and (orientation: portrait) {
-  .modal-panel.hall-modal .gb-board.hall-sky { height: 288px; padding: 14px 16px 12px; }
+  .modal-panel.hall-modal .gb-board.hall-sky { --bp: 16px; height: 288px; padding: 14px var(--bp) 12px; }
   .hall-head { height: 84px; }
   .hall-value { font-size: 38px; }
 }
@@ -3373,7 +3377,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   /* Колонки ровно по высоте окна: доска сжимается, рекорды под ней видны целиком */
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { min-height: 0; }
-  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { display: flex; height: auto; min-height: 0; padding: 22px 26px 18px; gap: 6px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { --bp: 26px; display: flex; height: auto; min-height: 0; padding: 22px var(--bp) 18px; gap: 6px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-records { gap: 6px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-records .hall-row { min-height: 44px; padding-block: 3px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head { height: 104px; }
@@ -3390,7 +3394,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { height: 100%; min-height: 0; display: flex; flex-direction: column; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin > .coll-block { display: none; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-scroll > .coll-block { display: grid; }
-  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { flex: 1 1 auto; height: auto; padding: 12px 16px 10px; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { --bp: 16px; flex: 1 1 auto; height: auto; padding: 12px var(--bp) 10px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-head { height: 84px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-value { font-size: 40px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap { height: 46px; gap: 4px; }
