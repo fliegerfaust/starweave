@@ -22,7 +22,7 @@ interface ImportMetaEnv {
   readonly VITE_ADSGRAM_INTER_ID?: string;
   /** `1` — реклама CrazyGames включена (Full Launch); иначе её нет (Basic Launch). */
   readonly VITE_CG_ADS?: string;
-  /** Страница игры на Пикабу Играх — куда ведёт вызов друга в сборке Пикабу. */
+  /** Страница игры на Пикабу Играх — куда ведёт вызов друга в сборке Пикабу; без неё — zvyozdnoe-pletenie. */
   readonly VITE_PIKABU_GAME_URL?: string;
 }
 
