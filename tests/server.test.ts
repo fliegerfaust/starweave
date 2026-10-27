@@ -99,22 +99,24 @@ describe('сервер: сводка', () => {
 
   it('сессия: активное время без фона, мгновенные выходы отдельно, без обрезки границей', () => {
     const db = openDb(':memory:');
-    const put = (session: string, times: number[]) =>
-      insertBatch(db, { client: 'client-sess', session, platform: 'telegram', version: '0.7.10', lang: 'ru', events: times.map((at) => ({ name: 'app_open', params: {}, at })) });
+    const put = (session: string, times: number[], name = 'night_start') =>
+      insertBatch(db, { client: 'client-sess', session, platform: 'telegram', version: '0.7.10', lang: 'ru', events: times.map((at) => ({ name, params: {}, at })) });
     const t0 = NOW - DAY;
     const min = 60_000;
     // 3 минуты игры, 2 часа в фоне, ещё 1 минута — сессия длиной 4 минуты, а не 124
     put('s-long', [t0, t0 + 3 * min, t0 + 123 * min, t0 + 124 * min]);
     put('s-mid', [t0, t0 + 30_000, t0 + 90_000]);
-    put('s-bounce', [t0]);
+    put('s-bounce', [t0], 'app_open');
+    // Запуск и автоматический замер FPS — тоже «открыли и закрыли»
+    put('s-idle', [t0, t0 + 5000], 'perf');
     // Начата до периода — в длину не входит
     put('s-edge', [NOW - 8 * DAY, NOW - 7 * DAY + 1000]);
     const s = computeStats(db, NOW, 7);
-    expect(s.totals.bounceSessions).toBe(1);
+    expect(s.totals.bounceSessions).toBe(2);
     expect(s.totals.medianSessionMin).toBeCloseTo((4 + 1.5) / 2);
     const html = renderDashboard(s);
     expect(html).toContain('2,8 мин');
-    expect(html).toContain('открыли и сразу закрыли: 1');
+    expect(html).toContain('открыли и сразу закрыли: 2');
   });
 
   it('обучение: короткое и полное не складываются по номеру шага', () => {

@@ -19,7 +19,7 @@ export interface Stats {
     players: number;
     newPlayers: number;
     sessions: number;
-    /** Сессии из одного события: открыли и сразу закрыли. В длину сессий не входят. */
+    /** Открыли и сразу закрыли: кроме запуска и замера FPS (он сам через 5 с) событий нет. В длину сессий не входят. */
     bounceSessions: number;
     /** Медиана активного времени сессии (см. activeMinutes), только сессии, начатые в периоде. */
     medianSessionMin: number | null;
@@ -79,19 +79,20 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
   };
 
   // Сессии, начатые в периоде: начатую раньше граница обрезала бы на середине
-  const sessionTimes = new Map<string, number[]>();
+  const sessionTimes = new Map<string, { times: number[]; acted: boolean }>();
   for (const r of all(
-    'SELECT session, ts FROM events WHERE session IN (SELECT session FROM events GROUP BY session HAVING MIN(ts) >= ?) ORDER BY session, ts',
+    'SELECT session, ts, name FROM events WHERE session IN (SELECT session FROM events GROUP BY session HAVING MIN(ts) >= ?) ORDER BY session, ts',
     from,
   )) {
     const key = String(r.session);
-    const list = sessionTimes.get(key) ?? [];
-    list.push(num(r.ts));
-    sessionTimes.set(key, list);
+    const entry = sessionTimes.get(key) ?? { times: [], acted: false };
+    entry.times.push(num(r.ts));
+    if (!PASSIVE.has(String(r.name))) entry.acted = true;
+    sessionTimes.set(key, entry);
   }
   const lengths: number[] = [];
-  for (const times of sessionTimes.values()) {
-    if (times.length < 2) totals.bounceSessions++;
+  for (const { times, acted } of sessionTimes.values()) {
+    if (!acted) totals.bounceSessions++;
     else lengths.push(activeMinutes(times));
   }
   totals.medianSessionMin = median(lengths);
@@ -286,6 +287,9 @@ export function computeStats(db: Db, now: number, periodDays: number): Stats {
 
   return { periodDays, generatedAt: now, totals, daily, platforms, retention, tutorial, runs, nights, shop, funnel, growth, help, ads, errors, perf, versions };
 }
+
+/** События, которые игра шлёт сама, без действия игрока. */
+const PASSIVE = new Set(['app_open', 'perf']);
 
 /** Пауза дольше этой — игра лежала в фоне или забыта, а не идёт. */
 const IDLE_GAP = 5 * 60 * 1000;
