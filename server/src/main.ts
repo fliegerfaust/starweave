@@ -234,7 +234,7 @@ function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void 
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
-    'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src '${STACK_SCRIPT_HASH}'; connect-src ${site || "'none'"}; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`,
+    'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; script-src '${STACK_SCRIPT_HASH}'; connect-src ${site || "'none'"}; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`,
     'X-Robots-Tag': 'noindex',
   });
   res.end(html);
