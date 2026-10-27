@@ -776,3 +776,80 @@ export function drawEnamelMark(ctx: Ctx, id: string, size: number): void {
   relief(ctx, MARK_MOTIF[id]?.() ?? [], 22, size < 60 ? 1.18 : 1, 'gold', mix(f.base, f.deep, 0.6));
   ctx.restore();
 }
+
+// ─── Достижения «Зала славы» ─────────────────────────────────────────────────
+
+/**
+ * Медальон достижения (HF.0): та же эмаль и золотой рельеф, что у Знамений, но оправа —
+ * зубчатая розетка ордена, чтобы награда не путалась со Знамением. Ступень — как редкость
+ * Знамений: у редкого бусины, у эпического яркая латунь, у легендарного ещё звезда сверху.
+ */
+export function drawEnamelFeat(ctx: Ctx, motif: string, fam: string, tier: 0 | 1 | 2 | 3, size: number): void {
+  const f = FAM[fam] ?? FAM.lapis!;
+  const small = size < 40;
+  const s = 22;
+  const er = 38;
+  ctx.save();
+  stage(ctx, size);
+  const rosette = (r0: number, r1: number) => path(shape(Array.from({ length: 48 }, (_, i) => {
+    const a = (i / 48) * 2 * PI - PI / 2;
+    const r = i % 2 ? r0 : r1;
+    return [cos(a) * r, sin(a) * r];
+  })));
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  ctx.translate(0, 1.4);
+  ctx.fill(rosette(46, 49.5));
+  ctx.translate(0, -1.4);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = brassBezel(ctx, -48, -48, 48, 48, tier >= 2);
+  ctx.fill(rosette(46, 49.5));
+  ctx.strokeStyle = 'rgba(60,34,6,0.55)';
+  ctx.lineWidth = 0.8;
+  circle(ctx, 43.2);
+  ctx.stroke();
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, -er * 0.4, 0, 0, -er * 0.4, er * 1.56), [[0, mix(f.base, '#ffffff', 0.08)], [0.5, mix(f.base, f.deep, 0.5)], [1, f.deep]]);
+  circle(ctx, er);
+  ctx.fill();
+  if (!small) {
+    ctx.strokeStyle = f.hi;
+    ctx.globalAlpha = 0.07;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    for (let i = 0; i < 48; i++) {
+      const a = (i / 48) * 2 * PI;
+      ctx.moveTo(cos(a) * 9, sin(a) * 9);
+      ctx.lineTo(cos(a) * 37, sin(a) * 37);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, 0, 0, 0, 0, er), [[0.78, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.5)']]);
+  circle(ctx, er);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(42,24,4,0.8)';
+  ctx.lineWidth = 1.4;
+  circle(ctx, er + 0.2);
+  ctx.stroke();
+  const parts = MOTIF[motif]?.(s) ?? [{ f: sparkle(0, 0, s, 4, 0.28) }];
+  relief(ctx, parts, s, size < 40 ? 1.2 : size < 60 ? 1.08 : 1, 'gold', mix(f.base, f.deep, 0.55));
+  if (tier >= 1 && !small) {
+    ctx.fillStyle = 'rgba(255,244,208,0.9)';
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * 2 * PI - PI / 2;
+      if (tier === 3 && Math.abs(a + PI / 2) < 0.3) continue;
+      ctx.beginPath();
+      ctx.arc(cos(a) * 41, sin(a) * 41, 1.1, 0, PI * 2);
+      ctx.fill();
+    }
+  }
+  if (tier === 3) {
+    const star = path(sparkle(0, -45, small ? 8 : 7, 4, 0.3));
+    ctx.fillStyle = '#fffbe8';
+    ctx.fill(star);
+    ctx.strokeStyle = '#8a5a14';
+    ctx.lineWidth = 0.6;
+    ctx.stroke(star);
+  }
+  ctx.restore();
+}
