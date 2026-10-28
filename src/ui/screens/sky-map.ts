@@ -83,6 +83,7 @@ const TIGHT_MAP = 170;
 export class SkyMap {
   readonly el: HTMLElement;
   private resize?: ResizeObserver;
+  private resizeFrame = 0;
   private timers: number[] = [];
   private fillTimer = 0;
   private sel: number | null = null;
@@ -169,9 +170,21 @@ export class SkyMap {
       first = false;
     };
     place();
+    // Не в самом колбэке: steady() меняет высоту плашки, а с ней и карты, — в том же кадре
+    // браузер сообщил бы «ResizeObserver loop» (61 раз у игрока Пикабу, PK.19). Плашку
+    // перемеряем, только когда сменилось окно: её собственная смена снова будит наблюдателя.
+    // Первый вызов перемеряет всегда: steady() выше шёл до классов раскладки (ПК, ландшафт)
+    let view = '';
     this.resize = new ResizeObserver(() => {
-      this.steady();
-      this.relayout();
+      cancelAnimationFrame(this.resizeFrame);
+      this.resizeFrame = requestAnimationFrame(() => {
+        const now = `${innerWidth}x${innerHeight}`;
+        if (now !== view) {
+          view = now;
+          this.steady();
+        }
+        this.relayout();
+      });
     });
     this.resize.observe(this.map);
     // Развилка с одним вариантом (Затмение) — выбрана сама
@@ -193,6 +206,7 @@ export class SkyMap {
   unmount(): void {
     this.wonder?.close();
     this.resize?.disconnect();
+    cancelAnimationFrame(this.resizeFrame);
     this.timers.forEach((id) => clearTimeout(id));
     clearCoach();
     this.el.remove();

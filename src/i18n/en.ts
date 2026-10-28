@@ -339,6 +339,7 @@ export const en: Dict = {
     endless: 'Endless mode',
     share: 'Share',
     copied: 'Copied!',
+    copyHint: 'The text is already selected. Copy it and send it to a friend.',
     unlocked: 'Unlocked: {name}',
     newRecord: 'Best move record: {n}',
     record: 'New best move',

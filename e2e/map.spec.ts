@@ -168,6 +168,46 @@ test('карта неба: развилки без наложений, выбо�
 });
 
 /**
+ * Смена размера окна на карте неба (PK.19): у игрока Пикабу в окне 360×474 каждая смена
+ * высоты (панель браузера, реклама) давала «ResizeObserver loop» — 61 раз за день. Ни одной
+ * такой ошибки, и после возврата к прежнему размеру карта стоит как стояла.
+ */
+test('карта неба: смена размера окна без ResizeObserver loop', async ({ page }) => {
+  // Окно игрока: на нём карта у порога тесного режима (.low), где плашка меняет высоту
+  await page.setViewportSize({ width: 360, height: 474 });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __errors: string[] };
+    w.__errors = [];
+    addEventListener('error', (e) => w.__errors.push(e.message));
+  });
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  await page.evaluate(async () => {
+    const { planChapter } = await import('/src/core/route.ts');
+    type Run = { ante: number; phase: string; chapter: unknown; unlocks: Record<string, boolean> };
+    const app = (window as unknown as { starweave: { profile: Record<string, unknown>; runs: { startRun(s: string): void }; run: Run; router: { route(): Promise<void> } } }).starweave;
+    Object.assign(app.profile, { tutorialDone: true, bestAnte: 3, runs: 4 });
+    app.runs.startRun('classic');
+    Object.assign(app.run, { ante: 3, phase: 'map' });
+    Object.assign(app.run.unlocks, { routes: true, wonders: true, trophies: true });
+    app.run.chapter = planChapter(app.run as never);
+    await app.router.route();
+  });
+  await page.waitForSelector('.map.sm');
+  const layout = () => page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.sm-star, .sm-detail, .sm-map')]
+    .map((el) => { const r = el.getBoundingClientRect(); return `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}`; }).join(' '));
+  await page.waitForTimeout(300);
+  const before = await layout();
+  for (const height of [872, 474, 520, 474, 430, 474, 600, 474]) {
+    await page.setViewportSize({ width: 360, height });
+    await page.waitForTimeout(120);
+  }
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { __errors: string[] }).__errors)).toEqual([]);
+  expect(await layout()).toBe(before);
+});
+
+/**
  * Комета и Телескоп (RT.4, RT.7): на каждом устройстве и обоих языках — три строки одной
  * высоты, всё на экране и ничего не вылезает (fit-audit), выбор строки ничего не сдвигает
  * (правило Дениса), подсказка ключевого слова и следующая в цепочке — целиком в экране,
