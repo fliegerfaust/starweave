@@ -7,16 +7,12 @@ import { canvasImg, dpr, h } from './dom';
 import { icon } from './icons';
 
 /*
- * Вход в «Зал славы» с главной (HF.6). Три варианта для витрины, выбор Дениса — в `?hallv=a|b|c`:
- *  a — «Две полки»: полка находок делится на Коллекцию и Зал славы;
- *  b — «Пульт»: лёгкая кнопка рядом с вызовом дня, знак — твоя самая редкая медаль;
- *  c — «Строка гордости»: под названием медаль и «Ты лучше, чем 74% игроков».
+ * Вход в «Зал славы» с главной (HF.6, выбор Дениса — «строка гордости вместо слогана»):
+ * под названием медаль и одна фраза с числом цветом, «Ты лучше, чем 74% игроков».
  * Новое достижение, которое игрок ещё не видел в зале, светится на входе.
  */
 
 const SEEN_KEY = 'starweave.hallseen.v1';
-
-export type HallEntryKind = 'a' | 'b' | 'c';
 
 function pct(p: number): string {
   const v = p < 10 ? Math.round(p * 10) / 10 : Math.round(p);
@@ -33,6 +29,16 @@ export interface HallTeaser {
   fresh: boolean;
 }
 
+function readSeen(done: number): number {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    if (raw != null) return Number(raw);
+    // Первый показ входа: всё открытое до него считаем увиденным, светится только новое
+    localStorage.setItem(SEEN_KEY, String(done));
+  } catch { /* без хранилища новое не подсвечиваем */ }
+  return done;
+}
+
 export function hallTeaser(p: Profile): HallTeaser {
   const d = dict().hall;
   const stats = hallView(cachedHallStats());
@@ -44,13 +50,8 @@ export function hallTeaser(p: Profile): HallTeaser {
   const rare = medals[0] && share(medals[0]) <= 25 ? share(medals[0]) : null;
   // Место среди игроков звучит сильнее, но только когда оно хорошее; иначе — редкость медали
   const hook = best >= 50 ? { tpl: d.better, p: `${best}%` } : rare != null ? { tpl: d.entryRare, p: pct(rare) } : null;
-  let seen = done.length;
-  try {
-    const raw = localStorage.getItem(SEEN_KEY);
-    seen = raw == null ? done.length : Number(raw);
-  } catch { /* без хранилища новое не подсвечиваем */ }
   const force = import.meta.env.DEV && new URLSearchParams(location.search).has('fresh');
-  return { done: done.length, total: states.length, medals, hook, fresh: force || done.length > seen };
+  return { done: done.length, total: states.length, medals, hook, fresh: force || done.length > readSeen(done.length) };
 }
 
 /** Зал открыт: всё открытое увидено, свечение на входе гаснет. */
@@ -64,53 +65,18 @@ function medal(s: FeatState | undefined, size: number): HTMLElement {
   return s ? canvasImg(featSigil(s.def.motif, s.def.fam, s.def.tier, size, dpr()), size) : h('span.hall-entry-empty', { style: `width:${size}px;height:${size}px` }, icon('hall'));
 }
 
-function hookLine(hook: HallTeaser['hook']): HTMLElement | null {
-  if (!hook) return null;
-  const [a, b] = hook.tpl.split('{p}');
-  return h('span.hall-entry-hook', null, [a ?? '', h('b', null, hook.p), b ?? '']);
-}
-
-/** a — правая половина полки: три медали и счёт, подпись разделом сверху. */
-export function hallShelfCell(p: Profile, open: () => void): HTMLElement {
+/** Строка гордости: медаль и одна фраза с числом цветом; нечем гордиться — счёт достижений. */
+export function hallPride(p: Profile, open: () => void): HTMLElement {
   const t = hallTeaser(p);
   const d = dict().hall;
-  const marks = t.medals.slice(0, 3).map((s, i) => h(`span.shelf-mark${i === 0 && t.fresh ? '.fresh' : ''}`, null, medal(s, 26)));
-  const b = h(`button.menu-shelf.shelf-cell.hall-cell${t.fresh ? '.is-new' : ''}`, { type: 'button', attrs: { 'aria-label': `${d.title}: ${format(d.of, { n: t.done, total: t.total })}` } }, [
-    h('span.shelf-label', null, d.title),
-    h('span.shelf-top', null, [
-      marks.length ? h('span.shelf-marks', { attrs: { 'aria-hidden': 'true' } }, marks) : null,
-      h('span.shelf-text', null, [format(d.of, { n: t.done, total: t.total }), icon('chevron')]),
-    ]),
-    h('span.shelf-bar', { style: `--p: ${Math.round((t.done / t.total) * 100)}%`, attrs: { 'aria-hidden': 'true' } }),
+  const [a, b] = (t.hook?.tpl ?? '').split('{p}');
+  const line = t.hook
+    ? h('span.hall-entry-hook', null, [a ?? '', h('b', null, t.hook.p), b ?? ''])
+    : h('span.hall-entry-hook', null, format(d.entryCount, { n: t.done, total: t.total }));
+  const btn = h(`button.hall-pride${t.fresh ? '.is-new' : ''}`, { type: 'button', attrs: { 'aria-label': `${d.title}. ${line.textContent ?? ''}${t.fresh ? `. ${d.entryNew}` : ''}` } }, [
+    h('span.hall-pride-medal', null, medal(t.medals[0], 26)),
+    h('span.hall-pride-line', null, [line, icon('chevron')]),
   ]);
-  b.addEventListener('click', open);
-  return b;
-}
-
-/** b — лёгкая кнопка пульта: знак — самая редкая медаль игрока. */
-export function hallLite(p: Profile, open: () => void): HTMLElement {
-  const t = hallTeaser(p);
-  const b = h(`button.menu-lite.hall-lite${t.fresh ? '.is-new' : ''}`, { type: 'button' }, [h('span.hall-lite-medal', null, medal(t.medals[0], 24)), dict().hall.menu]);
-  b.addEventListener('click', open);
-  return b;
-}
-
-/** Раскладка строки гордости (HF.6, круг 2): c1 — вместо слогана, c2 — печать, c3 — в небе купола. */
-export type PrideLayout = 'c1' | 'c2' | 'c3';
-
-/** c — строка гордости: медаль и одна фраза с числом цветом. */
-export function hallPride(p: Profile, open: () => void, layout: PrideLayout = 'c1'): HTMLElement {
-  const t = hallTeaser(p);
-  const d = dict().hall;
-  const stacked = layout !== 'c1';
-  // Под подписью «Зал славы» фраза короче: «Лучше, чем 97% игроков» влезает в щель купола
-  const short = stacked && t.hook ? { tpl: t.hook.tpl === d.better ? d.entryBetter : d.entryRareShort, p: t.hook.p } : t.hook;
-  const hook = hookLine(short) ?? h('span.hall-entry-hook', null, format(d.opened, { n: t.done, total: t.total }));
-  const b = h(`button.hall-pride.pride-${layout}${t.fresh ? '.is-new' : ''}`, { type: 'button', attrs: { 'aria-label': `${d.title}. ${hook.textContent ?? ''}${t.fresh ? `. ${d.entryNew}` : ''}` } }, [
-    h('span.hall-pride-medal', null, medal(t.medals[0], stacked ? 40 : 26)),
-    stacked ? h('span.hall-pride-label', null, d.title) : null,
-    h('span.hall-pride-line', null, [hook, icon('chevron')]),
-  ]);
-  b.addEventListener('click', open);
-  return b;
+  btn.addEventListener('click', open);
+  return btn;
 }

@@ -7,7 +7,7 @@ import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
 import { findShelf } from '../find-shelf';
-import { hallLite, hallPride, hallShelfCell, markHallSeen, type HallEntryKind, type PrideLayout } from '../hall-entry';
+import { hallPride, markHallSeen } from '../hall-entry';
 import { button, modal } from '../widgets';
 import { cardThumb, confirmNewRun, showCollection, showHelp, showSettings } from './common';
 import type { Card, Glyph, Suit } from '@/core/types';
@@ -62,18 +62,6 @@ let domeOpened = false;
  * созвездия. Под куполом одна главная кнопка, атлас вторым, два лёгких режима,
  * всё служебное — в «Библиотеке» (нижний лист).
  */
-/** Вариант входа в Зал славы (HF.6); в DEV витрина переключает его `?hallv=a|b|c`. */
-function hallEntryKind(): HallEntryKind {
-  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('hallv') : null;
-  return v === 'a' || v === 'b' ? v : 'c';
-}
-
-/** Раскладка строки гордости (круг 2): `?hallv=c1|c2|c3`. */
-function prideLayout(): PrideLayout {
-  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('hallv') : null;
-  return v === 'c2' || v === 'c3' ? v : 'c1';
-}
-
 export class MenuScreen implements Screen {
   private el!: HTMLElement;
   private scroller!: HTMLElement;
@@ -271,11 +259,8 @@ export class MenuScreen implements Screen {
   private render(): void {
     const app = this.app;
     const seasoned = app.profile.runs > 0;
-    const entry = hallEntryKind();
-    const layout = prideLayout();
-    this.el.classList.toggle('has-pride', seasoned && entry === 'c');
-    this.el.dataset.pride = layout;
-    this.scope.querySelector('.hall-pride')?.remove();
+    // Строка гордости занимает место слогана: опытному игроку важнее его место среди игроков
+    this.el.classList.toggle('has-pride', seasoned);
     const hall = () => {
       app.svc.audio.click();
       void this.openHall();
@@ -286,14 +271,10 @@ export class MenuScreen implements Screen {
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-      // Зал славы (HF.6) и полка находок (CL.1) — одной группой: на телефоне столбиком по оси
-      // арки, в ландшафте и на ПК парой через черту. В «c3» строка гордости в небе купола,
-      // а здесь остаётся запасной для невысоких экранов
-      seasoned ? h(`div.menu-feats.feats-${entry === 'c' ? layout : entry}`, null, entry === 'a'
-        ? [h('div.menu-shelves', null, [findShelf(app.profile, (focus) => this.openCollection(focus), true), hallShelfCell(app.profile, hall)])]
-        : [entry === 'c' ? hallPride(app.profile, hall, layout === 'c3' ? 'c1' : layout) : null, findShelf(app.profile, (focus) => this.openCollection(focus))]) : null,
+      // Зал славы (HF.6) и полка находок (CL.1) — после первого забега, одной группой:
+      // на телефоне столбиком по оси арки, в ландшафте и на ПК парой через черту
+      seasoned ? h('div.menu-feats', null, [hallPride(app.profile, hall), findShelf(app.profile, (focus) => this.openCollection(focus))]) : null,
     ] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x));
-    if (seasoned && entry === 'c' && layout === 'c3') this.scope.append(hallPride(app.profile, hall, 'c3'));
     if (this.figure) {
       const name = dict().constellation[this.figure.id] ?? this.figure.id;
       this.figureName.textContent = name;
@@ -329,7 +310,6 @@ export class MenuScreen implements Screen {
     const pair = h('div.menu-pair', null, [
       primaryKind !== 'newRun' ? lite('play', t('menu.newRun'), newRun) : null,
       lite('daily', dailyDone ? t('menu.dailyDone') : t('menu.daily'), daily, { disabled: dailyDone, title: `№ ${dailyNumber()} · ${humanDate(todayKey())}` }),
-      seasoned && entry === 'b' ? hallLite(app.profile, hall) : null,
     ]);
     const handle = h('button.menu-handle', { type: 'button', attrs: { 'aria-haspopup': 'dialog', 'aria-label': t('menu.libraryOpen') } }, t('menu.library'));
     handle.addEventListener('click', () => {

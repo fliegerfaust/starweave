@@ -1004,8 +1004,7 @@ export const ru = {
     chapter: 'глава {n}',
     days: 'дн.',
     entryRare: 'Твоя медаль есть у {p} игроков',
-    entryBetter: 'Лучше, чем {p} игроков',
-    entryRareShort: 'Медаль есть у {p} игроков',
+    entryCount: 'Зал славы: {n} из {total} достижений',
     entryNew: 'Новое достижение',
     offline: 'Твоё место среди игроков появится, когда игра будет в сети',
     feat: {

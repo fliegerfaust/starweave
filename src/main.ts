@@ -130,8 +130,8 @@ async function boot(): Promise<void> {
           seenBosses: BOSS_LIST.slice(0, 9).map((b) => b.id), tamed: { [BOSS_LIST[0]!.id]: 2, [BOSS_LIST[3]!.id]: 1 },
           mythsFound: ['cassiopeia', 'cygnus', 'lyra'], unlockedSkies: ['classic', 'twins', 'wanderer'],
         });
-    // Витрина HF.6 (`&hallv=a|b|c`): доли игроков, как будто сервер уже ответил
-    if (params.has('hallv')) {
+    // Витрина HF.6 (`&stats`): доли игроков, как будто сервер уже ответил; `&fresh` — новое достижение
+    if (params.has('stats')) {
       const [{ hallDemo }, { FEATS }] = await Promise.all([import('./dev/hall-demo'), import('./meta/achievements')]);
       const demo = hallDemo({ ...app.profile }, false);
       localStorage.setItem('starweave.hall.v1', JSON.stringify({ players: demo.players, feats: FEATS.map((f) => demo.feats[f.id]), records: demo.records }));

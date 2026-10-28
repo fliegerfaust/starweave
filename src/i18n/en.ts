@@ -995,8 +995,7 @@ export const en: Dict = {
     chapter: 'chapter {n}',
     days: 'd',
     entryRare: 'Your medal is held by {p} of players',
-    entryBetter: 'Better than {p} of players',
-    entryRareShort: 'Medal held by {p} of players',
+    entryCount: 'Hall of Fame: {n} of {total} achievements',
     entryNew: 'New achievement',
     offline: 'Your place among players appears when the game is online',
     feat: {
