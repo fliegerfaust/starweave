@@ -2675,6 +2675,8 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 @media (min-width: 900px) and (min-height: 600px) and (max-height: 700px) {
   .atl-stack { --bw: 118px; --fw: 94px; width: 205px; height: 205px; }
   .atl-title { font-size: 34px; }
+  /* Живое окно Пикабу (1392×633): примерочная по высоте окна, а не 420 px — не уходит под кнопку */
+  .atl-stage { height: clamp(220px, calc(100dvh - 270px - var(--safe-top) - var(--safe-bottom)), 420px); }
 }
 /* Невысокий ландшафт: вкладки в строку шапки, обложка слева закреплена, кнопка справа внизу */
 @media (orientation: landscape) and (max-height: 599px) {
