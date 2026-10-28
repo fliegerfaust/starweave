@@ -17,6 +17,7 @@ import { showTrophyScene } from '../trophy-scene';
 import { announceDiscovery, clearDiscovery, whenDiscoveryDone } from '../discovery';
 import { clearCoach, coach, dropCoach, setCoachDock } from '../tutorial';
 import { button, confirmDialog, modal, toast, type ModalHandle, withCoin } from '../widgets';
+import { shareText } from '../share';
 import { showCollection, showCombos, showDeck, showHelp, showSettings } from './common';
 import { findMark } from '../find-shelf';
 import { icon } from '../icons';
@@ -523,11 +524,7 @@ export class NightScreen implements Screen {
     track('challenge_share', { ante: c.ante, best: c.best, won });
     if (this.app.platform.share?.(text, param)) return;
     const url = this.app.platform.inviteUrl?.(param) ?? `${location.origin}${location.pathname}?startapp=${param}`;
-    if (navigator.share) {
-      void navigator.share({ text, url }).catch(() => undefined);
-    } else {
-      void navigator.clipboard?.writeText(`${text}\n${url}`).then(() => toast(t('over.copied')));
-    }
+    void shareText(text, url);
   }
 
   private share(): void {
@@ -536,11 +533,7 @@ export class NightScreen implements Screen {
     const stars = '✦'.repeat(Math.min(8, run.ante)) + '·'.repeat(Math.max(0, 8 - run.ante));
     const full = `${text}\n${stars}`;
     if (this.app.platform.share?.(full)) return;
-    if (navigator.share) {
-      void navigator.share({ text: full }).catch(() => undefined);
-    } else {
-      void navigator.clipboard?.writeText(full).then(() => toast(t('over.copied')));
-    }
+    void shareText(full);
   }
 }
 
