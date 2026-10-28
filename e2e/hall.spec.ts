@@ -50,6 +50,60 @@ test('Зал славы: вход из Библиотеки', async ({ page }) =
   expect(errors).toEqual([]);
 });
 
+/** Главная опытного игрока: профиль после нескольких забегов, меню собирается заново. */
+async function seasonedHome(page: Page, seen: number | null): Promise<void> {
+  await page.evaluate(async (seen) => {
+    if (seen == null) localStorage.removeItem('starweave.hallseen.v1');
+    else localStorage.setItem('starweave.hallseen.v1', String(seen));
+    const app = (window as unknown as { starweave: App & { router: { goMenu(): Promise<void> } } }).starweave;
+    Object.assign(app.profile, { runs: 3, tutorialDone: true, tutorialFinished: true, bestPlacement: 1400, bestAnte: 3, totalLines: 40 });
+    app.runs.persistProfile();
+    await app.router.goMenu();
+  }, seen);
+  await page.waitForTimeout(400);
+}
+
+test('Зал славы на главной: строка гордости вместо слогана, ничего не наезжает', async ({ page }) => {
+  const errors = await boot(page);
+  // Новичок строки не видит
+  await expect(page.locator('.hall-pride')).toHaveCount(0);
+  await seasonedHome(page, null);
+  const pride = page.locator('.menu-feats .hall-pride');
+  await expect(pride).toBeVisible();
+  await expect(page.locator('.tagline')).toBeHidden();
+  // Первый показ: всё открытое считается увиденным — не светится
+  await expect(page.locator('.hall-pride.is-new')).toHaveCount(0);
+  const res = await page.evaluate(() => {
+    const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+    const a = r('.menu-feats .hall-pride'), b = r('.menu-feats .menu-shelf'), c = r('.menu-buttons .menu-primary'), t = r('.logo');
+    const hit = (x: DOMRect, y: DOMRect) => x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1;
+    const menu = document.querySelector<HTMLElement>('.menu')!;
+    return {
+      overlap: [hit(a, b), hit(a, c), hit(a, t), hit(b, c)],
+      inside: a.left >= 0 && a.right <= innerWidth,
+      height: a.height,
+      sideways: menu.scrollWidth - menu.clientWidth,
+    };
+  });
+  expect(res.overlap).toEqual([false, false, false, false]);
+  expect(res.inside).toBe(true);
+  expect(res.height).toBeGreaterThanOrEqual(30);
+  expect(res.sideways).toBeLessThanOrEqual(0);
+  expect(errors).toEqual([]);
+});
+
+test('Зал славы на главной: новое достижение светится, пока зал не открыт', async ({ page }) => {
+  const errors = await boot(page);
+  await seasonedHome(page, 0);
+  await expect(page.locator('.hall-pride.is-new')).toBeVisible();
+  await page.locator('.hall-pride').click();
+  await expect(page.locator('.hall-modal .hall-sky')).toBeVisible();
+  await page.evaluate(() => document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove()));
+  await expect(page.locator('.hall-pride')).toBeVisible();
+  await expect(page.locator('.hall-pride.is-new')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 test('Зал славы: вёрстка, строки и доска на всех устройствах', async ({ page }) => {
   const errors = await boot(page);
   const failures: string[] = [];
