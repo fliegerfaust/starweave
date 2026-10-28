@@ -15,22 +15,14 @@ export class Monetization {
   readonly purchases = new Entitlements();
   /** Идёт реклама или окно оплаты — звук молчит. */
   adPlaying = false;
-  /** Звук выключил сайт площадки (CrazyGames) — сильнее настроек игры. */
-  private platformMuted = false;
   /** Когда в этой сессии была последняя реклама — межстраничная выдерживает паузу после неё. */
   private lastAdAt: number | null = null;
 
   constructor(private readonly app: App) {
-    // Площадка без магазина (CrazyGames) выдаёт атлас и внешний вид даром
-    if (this.platform.grants) this.purchases.grant(this.platform.grants);
     // Покупка или возврат меняют, что можно носить
     this.purchases.onChange(() => this.applyCosmetics());
     this.platform.onPauseChange((paused) => {
       this.adPlaying = paused;
-      this.syncMute();
-    });
-    this.platform.onMuteChange?.((muted) => {
-      this.platformMuted = muted;
       this.syncMute();
     });
     document.addEventListener('visibilitychange', () => this.syncMute());
@@ -40,9 +32,9 @@ export class Monetization {
     return this.app.platform;
   }
 
-  /** Без фокуса, во время рекламы и когда звук выключила площадка, игра молчит. */
+  /** Без фокуса и во время рекламы игра молчит. */
   syncMute(): void {
-    this.app.svc.audio.setMuted(document.hidden || this.adPlaying || this.platformMuted);
+    this.app.svc.audio.setMuted(document.hidden || this.adPlaying);
   }
 
   /** Сверить купленное с площадкой (возвраты, покупки с другого устройства). */

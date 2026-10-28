@@ -65,7 +65,6 @@ TypeScript strict + Vite; Canvas 2D со своим ECS для поля, DOM б�
 | Сайт (GitHub Pages) | по умолчанию | `npm run build`, выкладка тегом | нет |
 | Telegram Mini App | параметры запуска | тот же сайт | Stars через свой сервер |
 | Пикабу Игры | `VITE_PLATFORM` | `build:pikabu` → `game.denvalclass.ru/pikabu/` | SDK Пикабу |
-| CrazyGames | `VITE_PLATFORM` | `build:crazygames` → zip | атлас даром |
 | Яндекс Игры | `VITE_PLATFORM` | `build:yandex` → zip | SDK Яндекса |
 
 Каталог товаров один (`store/catalog.ts`), силу игры не продаёт.
