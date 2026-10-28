@@ -1,98 +1,380 @@
+import { readFileSync } from 'node:fs';
 import { ru } from '../../src/i18n/ru.ts';
 import { RETENTION_DAYS } from './db.ts';
+import { COHORT_DAYS, ERRORS_SINCE, FUNNEL_STEPS, SESSION_BUCKETS, type Feature } from './play-stats.ts';
 import { STACK_SCRIPT } from './stack-decoder.ts';
 import { dayLabel, type Stats } from './stats.ts';
 
 /**
- * Страница сводки: одна HTML-страница без скриптов и внешних файлов. Написана для
- * чтения, а не для разработчика: крупные числа, под каждым блоком — как его читать,
- * названия Знамений и ночей по-русски из словаря игры.
+ * Страница сводки, вариант B «Приборы» (ST.3, выбор Дениса): строка главных чисел, ниже
+ * сетка блоков. Одна HTML-страница без внешних файлов и без скриптов (кроме расшифровки
+ * стеков): шрифты игры вшиты, графики — SVG. Мир игры: ночь, золото, свет.
  */
 
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const fmt = (n: number): string => n.toLocaleString('ru-RU');
-const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '—');
+const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '–');
+const dec = (n: number | null): string => (n === null ? '–' : Number.isInteger(n) ? fmt(n) : n.toFixed(1).replace('.', ','));
 
-const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры' };
+const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры', pikabu: 'Пикабу Игры', crazygames: 'CrazyGames' };
+const platformName = (p: string) => PLATFORM[p] ?? p;
+const NIGHTS = ['dusk', 'midnight', 'eclipse'] as const;
 const NIGHT: Record<string, string> = { dusk: ru.night.dusk, midnight: ru.night.midnight, eclipse: ru.night.eclipse };
-const RESULT: Record<string, string> = { lost: 'проиграли', abandon: 'сдались', victory: 'победили' };
-const PLACEMENT: Record<string, string> = { between_antes: 'Между главами', revive: 'Второй шанс', double_reward: 'Удвоить награду' };
-const AD_KIND: Record<string, string> = { interstitial: 'межстраничная', rewarded: 'за награду' };
-const KIND: Record<string, string> = { omen: 'Знамения', chart: 'Звёздные карты', ritual: 'Ритуалы', pack: 'Пакеты' };
+const PLACEMENT: Record<string, string> = { between_antes: 'между главами', revive: 'второй шанс', double_reward: 'удвоить награду' };
+/** Последняя глава забега (FINAL_ANTE игры): победный run_end приходит с главой на 1 больше. */
+const FINAL_ANTE = 8;
 
 function itemName(kind: string, id: string): string {
   const dict = ru as unknown as Record<string, Record<string, unknown>>;
-  if (kind === 'omen') return firstOf(dict.omen?.[id]) ?? id;
-  if (kind === 'ritual') return firstOf(dict.ritual?.[id]) ?? id;
-  if (kind === 'pack') return firstOf(dict.pack?.[id]) ?? id;
-  if (kind === 'chart') return `Звёздная карта: ${(dict.combo?.[id] as string | undefined) ?? id}`;
-  return id;
+  const v = dict[kind]?.[id];
+  return Array.isArray(v) && typeof v[0] === 'string' ? v[0] : id;
 }
 
-function firstOf(v: unknown): string | null {
-  return Array.isArray(v) && typeof v[0] === 'string' ? v[0] : null;
-}
+/** Шаги, у которых в словаре обучения не строка, а группа текстов. */
+/** Короткие имена шагов: тексты подсказок обучения для таблицы слишком длинные. */
+const STEP: Record<string, string> = {
+  shortRow: 'Собрать первый ряд',
+  shortBurn: 'Сжечь карту',
+  shortCross: 'Крест из двух линий',
+  reward: 'Награда за первую ночь',
+  hand: 'Рука',
+  formula: 'Как считаются очки',
+  items: 'Предметы',
+};
 
 function tutorialLabel(step: string): string {
+  if (STEP[step]) return STEP[step];
   const text = (ru.tut as Record<string, unknown>)[step];
   if (typeof text !== 'string') return step;
-  return text.length > 60 ? `${text.slice(0, 57).trimEnd()}…` : text;
+  return text.length > 48 ? `${text.slice(0, 46).trimEnd()}…` : text;
 }
 
-/** Горизонтальная полоса-доля. */
-function bar(value: number, max: number, tone = 'accent'): string {
-  const w = max > 0 ? Math.max(value > 0 ? 2 : 0, Math.round((value / max) * 100)) : 0;
-  return `<span class="bar"><span class="fill ${tone}" style="width:${w}%"></span></span>`;
+/** Длительность без ложной точности и без «0 мин»: секунды, минуты с десятыми, целые минуты. */
+function duration(min: number | null): string {
+  if (min === null) return '–';
+  if (min < 1) return `${Math.round(min * 60)} с`;
+  if (min < 10) return `${min.toFixed(1).replace('.', ',')} мин`;
+  return `${Math.round(min)} мин`;
 }
 
-function section(title: string, hint: string, body: string): string {
-  return `<section class="card"><h2>${esc(title)}</h2><p class="hint">${esc(hint)}</p>${body}</section>`;
+const bar = (share: number, tone = '') => `<div class="bar${tone ? ` ${tone}` : ''}"><i style="width:${Math.round(Math.max(0, Math.min(1, share)) * 100)}%"></i></div>`;
+const foot = (text: string) => `<p class="foot">${text}</p>`;
+const few = '<span class="few">мало</span>';
+const empty = (text = 'Пока нет данных за этот период.') => `<p class="empty">${esc(text)}</p>`;
+
+/** Стрелка к прошлой неделе: зелёная, если стало лучше. */
+function delta(cur: number | null, prev: number | null, goodUp = true, unit = ''): string {
+  if (cur === null || prev === null) return '';
+  if (cur === prev) return '<span class="dl">как неделей раньше</span>';
+  const up = cur > prev;
+  return `<span class="dl ${up === goodUp ? 'up' : 'down'}">${up ? '▲' : '▼'} было ${dec(prev)}${unit}</span>`;
 }
 
-function empty(text = 'Пока нет данных за этот период.'): string {
-  return `<p class="empty">${esc(text)}</p>`;
+function cell(span: 4 | 5 | 6 | 7, title: string, body: string): string {
+  return `<section class="cell c${span}"><h2>${esc(title)}</h2>${body}</section>`;
 }
 
-function kpi(value: string, label: string, note: string): string {
-  return `<div class="kpi"><div class="kpi-value">${value}</div><div class="kpi-label">${esc(label)}</div><div class="kpi-note">${esc(note)}</div></div>`;
+// ── На что смотреть: правила по цифрам ──────────────────────────────────────
+
+type Tone = 'hot' | 'tick' | 'good';
+
+export function watchItems(s: Stats): { tone: Tone; title: string; text: string }[] {
+  const p = s.play;
+  const out: { tone: Tone; title: string; text: string }[] = [];
+  const tu = s.tutorial;
+
+  if (tu.track === 'short' && tu.trackPlayers >= 5 && p.tutorialStuck.players / tu.trackPlayers >= 0.35) {
+    const sec = p.tutorialStuck.medianSec;
+    out.push({
+      tone: 'hot',
+      title: 'Обучение теряет игроков на первом шаге',
+      text: `Из ${tu.trackPlayers} начавших короткое обучение ${p.tutorialStuck.players} не собрали ни одного ряда${
+        sec === null ? '' : sec < 1 ? ', половина закрыла игру в ту же секунду' : `, половина ушла за ${dec(sec)} с`
+      }.`,
+    });
+  }
+
+  const rated = p.platformFunnel.filter((f) => f.steps[0]! >= 5).map((f) => ({ ...f, rate: f.steps[2]! / f.steps[0]! }));
+  const best = Math.max(0, ...rated.map((f) => f.rate));
+  for (const f of rated.filter((x) => x.rate < best / 2)) {
+    const others = rated.filter((x) => x !== f).map((x) => `${platformName(x.platform)} ${pct(x.steps[2]!, x.steps[0]!)}`);
+    out.push({
+      tone: 'hot',
+      title: `${platformName(f.platform)}: почти не доходят до игры`,
+      text: `Обучение прошли ${f.steps[2]} из ${f.steps[0]} (${pct(f.steps[2]!, f.steps[0]!)}).${others.length ? ` Для сравнения: ${others.join(', ')}.` : ''}`,
+    });
+  }
+
+  const fn = p.week.firstNight;
+  if (fn.played >= 10 && fn.won / fn.played < 0.5) {
+    out.push({ tone: 'hot', title: 'Первая ночь слишком сложная', text: `За неделю её выиграли ${pct(fn.won, fn.played)} (${fn.won} из ${fn.played}).` });
+  }
+
+  if (p.week.errors > 0) {
+    out.push({ tone: 'hot', title: `Ошибки в игре: ${p.week.errors} за неделю`, text: 'Список и стеки в блоке «Здоровье».' });
+  }
+
+  const w = p.week.minPerDay;
+  const pw = p.prevWeek.minPerDay;
+  if (w !== null && pw !== null && pw >= 1) {
+    if (w / pw <= 0.6) out.push({ tone: 'tick', title: 'Играют меньше', text: `${dec(w)} мин в игре на игрока за день против ${dec(pw)} неделей раньше.` });
+    else if (w / pw >= 1.5) out.push({ tone: 'good', title: 'Играют дольше', text: `${dec(w)} мин в игре на игрока за день против ${dec(pw)} неделей раньше.` });
+  }
+
+  if (p.prevWeek.players >= 10) {
+    const r = p.week.players / p.prevWeek.players;
+    if (r <= 0.6) out.push({ tone: 'tick', title: 'Игроков стало меньше', text: `${p.week.players} за неделю против ${p.prevWeek.players} неделей раньше.` });
+    else if (r >= 1.5) out.push({ tone: 'good', title: 'Игроков стало больше', text: `${p.week.players} за неделю против ${p.prevWeek.players} неделей раньше.` });
+  }
+
+  const unused = p.features.filter((f) => !f.need && f.available >= 5 && f.used === 0);
+  if (unused.length) {
+    out.push({ tone: 'tick', title: 'Новыми фичами не пользуются', text: `${unused.map((f) => f.name).join(', ')}: ни одного игрока за период.` });
+  }
+
+  const r = s.retention;
+  if (r.d1Base >= 10 && r.d1 / r.d1Base < 0.2) {
+    out.push({ tone: 'tick', title: 'Мало возвращаются', text: `На следующий день вернулись ${pct(r.d1, r.d1Base)} (${r.d1} из ${r.d1Base}). Ориентир для мобильных игр от 30 до 40%.` });
+  }
+
+  if (p.money.paid > 0) out.push({ tone: 'good', title: `Оплат за период: ${p.money.paid}`, text: 'Подробности в блоке «Деньги и реклама».' });
+
+  const order: Record<Tone, number> = { hot: 0, tick: 1, good: 2 };
+  out.sort((a, b) => order[a.tone] - order[b.tone]);
+  return out.length ? out.slice(0, 6) : [{ tone: 'good', title: 'Ничего тревожного', text: 'Цифры недели в обычных пределах.' }];
 }
 
-/** Столбики по дням: новые игроки поверх вернувшихся. */
-function dailyChart(daily: Stats['daily']): string {
+// ── Блоки ───────────────────────────────────────────────────────────────────
+
+function dailyBars(daily: Stats['daily']): string {
   if (daily.every((d) => d.players === 0)) return empty();
+  const h = 120;
   const max = Math.max(1, ...daily.map((d) => d.players));
-  const w = 640;
-  const h = 160;
-  const gap = 4;
-  const bw = Math.max(4, (w - gap * (daily.length - 1)) / daily.length);
-  const every = Math.ceil(daily.length / 10);
+  const w = 100 / daily.length;
+  const every = Math.max(1, Math.ceil(daily.length / 5));
   const bars = daily
     .map((d, i) => {
-      const x = i * (bw + gap);
-      const total = (d.players / max) * (h - 20);
-      const fresh = (Math.min(d.newPlayers, d.players) / max) * (h - 20);
-      const anchor = i === 0 ? 'start' : i === daily.length - 1 ? 'end' : 'middle';
-      const lx = anchor === 'start' ? x : anchor === 'end' ? x + bw : x + bw / 2;
-      const label = i % every === 0 || i === daily.length - 1 ? `<text x="${lx}" y="${h + 14}" text-anchor="${anchor}">${esc(dayLabel(d.day))}</text>` : '';
-      const value = d.players > 0 ? `<text class="v" x="${x + bw / 2}" y="${h - total - 5}" text-anchor="middle">${d.players}</text>` : '';
-      return `<g><title>${esc(dayLabel(d.day))}: игроков ${d.players}, из них новых ${d.newPlayers}, сессий ${d.sessions}</title>
-        <rect class="ret" x="${x}" y="${h - total}" width="${bw}" height="${total}" rx="3"/>
-        <rect class="new" x="${x}" y="${h - fresh}" width="${bw}" height="${fresh}" rx="3"/>${value}${label}</g>`;
+      const ph = (d.players / max) * (h - 18);
+      const nh = (Math.min(d.newPlayers, d.players) / max) * (h - 18);
+      const x = (i * w + w * 0.15).toFixed(2);
+      const bw = (w * 0.7).toFixed(2);
+      return `<rect x="${x}%" y="${(h - 16 - ph).toFixed(1)}" width="${bw}%" height="${ph.toFixed(1)}" rx="2" class="all"><title>${esc(dayLabel(d.day))}: игроков ${d.players}, новых ${d.newPlayers}, сессий ${d.sessions}</title></rect><rect x="${x}%" y="${(h - 16 - nh).toFixed(1)}" width="${bw}%" height="${nh.toFixed(1)}" rx="2" class="new"/>`;
     })
     .join('');
-  return `<svg class="chart" viewBox="0 -4 ${w} ${h + 22}" role="img" aria-label="Игроки по дням">${bars}</svg>
-    <div class="legend"><span><i class="sw new"></i>новые</span><span><i class="sw ret"></i>вернувшиеся</span></div>`;
+  // Последняя дата подписана всегда, поэтому обычную подпись слишком близко к ней пропускаем
+  const labels = daily
+    .map((d, i) => {
+      const last = i === daily.length - 1;
+      if (!last && (i % every !== 0 || daily.length - 1 - i < every)) return '';
+      // Крайние подписи прижаты к краю, иначе на телефоне обрезаются
+      const anchor = i === 0 ? 'start' : last ? 'end' : 'middle';
+      const x = anchor === 'start' ? i * w : anchor === 'end' ? (i + 1) * w : i * w + w / 2;
+      return `<text x="${x.toFixed(2)}%" y="${h - 2}" text-anchor="${anchor}">${esc(dayLabel(d.day))}</text>`;
+    })
+    .join('');
+  return `<div class="legend"><span><i class="sw new"></i>новые</span><span><i class="sw all"></i>все игроки</span></div><svg class="days" width="100%" height="${h}" role="img" aria-label="Игроки по дням">${bars}${labels}</svg>`;
 }
 
-function table(head: string[], rows: string[][], numericFrom = 1): string {
-  const th = head.map((c, i) => `<th${i >= numericFrom ? ' class="n"' : ''}>${esc(c)}</th>`).join('');
-  const tr = rows.map((r) => `<tr>${r.map((c, i) => `<td${i >= numericFrom ? ' class="n"' : ''}>${c}</td>`).join('')}</tr>`).join('');
-  return `<div class="table-wrap"><table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;
+function platformCards(s: Stats): string {
+  const list = s.play.platforms.slice(0, 3);
+  if (!list.length) return '';
+  return `<div class="trio">${list
+    .map((p) => `<div class="pcard"><span class="lab">${esc(platformName(p.platform))}</span><span class="num mid">${fmt(p.players)}</span><span class="faint">игроков, ${fmt(p.sessions)} сессий, сессия ${duration(p.medianMin)}</span></div>`)
+    .join('')}</div>`;
 }
+
+function growthLine(s: Stats): string {
+  const g = s.growth;
+  const parts: string[] = [];
+  if (g.shared || g.opened) parts.push(`Вызовы друзьям: отправили ${fmt(g.shared)}, открыли ${fmt(g.opened)}, приняли ${fmt(g.accepted)}.`);
+  if (g.sources.length) parts.push(`Метки ссылок: ${g.sources.map((x) => `<code>${esc(x.source)}</code> ${fmt(x.players)}`).join(', ')}.`);
+  return parts.length ? foot(parts.join(' ')) : '';
+}
+
+function funnelTable(s: Stats): string {
+  const pf = s.play.platformFunnel;
+  if (!pf.length) return empty('Новых игроков в этот период не было.');
+  const head = pf.map((f) => `<th class="r">${esc(platformName(f.platform))}</th>`).join('');
+  const rows = FUNNEL_STEPS.map((step, i) => {
+    const cells = pf.map((f) => {
+      const k = f.steps[i]!;
+      const base = f.steps[0]!;
+      return `<td class="r"><div class="fc"><span><b>${pct(k, base)}</b> <span class="faint">${fmt(k)}</span></span>${bar(base ? k / base : 0, 'light')}</div></td>`;
+    });
+    return `<tr><td>${esc(step)}</td>${cells.join('')}</tr>`;
+  });
+  const back = pf.map((f) => {
+    if (!f.d1Base) return '<td class="r faint">ещё рано</td>';
+    return `<td class="r"><div class="fc"><span><b>${pct(f.d1, f.d1Base)}</b> <span class="faint">${f.d1}</span>${f.d1Base < 5 ? ` <span class="few">из ${f.d1Base}</span>` : ''}</span>${bar(f.d1 / f.d1Base, 'mult')}</div></td>`;
+  });
+  return `<div class="scroll"><table class="funnel"><thead><tr><th>Шаг новичка</th>${head}</tr></thead><tbody>${rows.join('')}<tr><td>Вернулись на 2-й день</td>${back.join('')}</tr></tbody></table></div>${foot(
+    'Новички периода по площадке первого входа, доля от пришедших. «Вернулись» считается от тех, у кого второй день уже наступил.',
+  )}`;
+}
+
+function sessionBlock(s: Stats): string {
+  const ss = s.play.sessions;
+  if (!ss.all) return empty();
+  return `<p class="lead"><span class="num big">${duration(ss.medianMin)}</span> длится обычная сессия, если считать только время в игре. Среднее ${duration(ss.meanMin)}.</p>
+<p class="muted">Ещё ${fmt(ss.bounce)} сессий из ${fmt(ss.all)} (${pct(ss.bounce, ss.all)}) открыли и сразу закрыли: в длину они не входят. Паузы длиннее 5 минут не считаются игрой.</p>
+<p class="muted">На игрока за день: <b>${duration(s.play.perPlayerDayMin)}</b> в игре, за последнюю неделю ${duration(s.play.week.minPerDay)}.</p>${bucketsTable(ss.buckets)}`;
+}
+
+/** Сыгранные сессии по длине: видно, это минутные заходы или вечерние посиделки. */
+function bucketsTable(buckets: number[]): string {
+  const total = buckets.reduce((a, b) => a + b, 0);
+  if (!total) return '';
+  const label = (i: number) => {
+    const lo = SESSION_BUCKETS[i - 1];
+    const hi = SESSION_BUCKETS[i];
+    return lo === undefined ? `меньше ${hi} мин` : hi === undefined ? `${lo} мин и дольше` : `от ${lo} до ${hi} мин`;
+  };
+  const max = Math.max(...buckets);
+  return `<table class="buckets"><thead><tr><th>Длина сессии</th><th class="r">Сессий</th><th class="r">Доля</th><th></th></tr></thead><tbody>${buckets
+    .map((k, i) => `<tr><td>${label(i)}</td><td class="r">${fmt(k)}</td><td class="r">${pct(k, total)}</td><td class="w40">${bar(k / max, 'light')}</td></tr>`)
+    .join('')}</tbody></table>`;
+}
+
+function featureRow(f: Feature): string {
+  const since = `<span class="since faint">с ${esc(f.since)}</span>`;
+  const note = f.note ? `<div class="faint small">${esc(f.note)}</div>` : '';
+  if (f.need) return `<tr><td><b>${esc(f.name)}</b>${since}</td><td class="r">${fmt(f.available)}</td><td colspan="2" class="need">нужно событие <code>${esc(f.need)}</code>, появится в 0.7.11</td></tr>`;
+  const base = f.met ?? f.available;
+  const used = f.used ?? 0;
+  return `<tr><td><b>${esc(f.name)}</b>${since}${note}</td><td class="r">${fmt(f.available)}</td><td class="r">${f.met === null ? '–' : fmt(f.met)}</td><td class="r"><b>${fmt(used)}</b> <span class="faint">${pct(used, base)}</span></td></tr>`;
+}
+
+function featuresBlock(s: Stats): string {
+  return `<div class="scroll"><table class="feat"><thead><tr><th>Фича</th><th class="r">Была</th><th class="r">Встретили</th><th class="r">Взяли</th></tr></thead><tbody>${s.play.features.map(featureRow).join('')}</tbody></table></div>${foot(
+    'Игроки периода на версии не старше выхода фичи. «Была»: дошли до места игры, где она возможна (Дар ночи: начали забег с даром). «Встретили»: увидели выбор (Трофеи: выиграли Затмение; Коллекция: увидели строку «Новое в Коллекции»). Прочерк: такого события нет.',
+  )}`;
+}
+
+function tutorialBlock(s: Stats): string {
+  const tu = s.tutorial;
+  if (!tu.steps.length) return empty('Обучение в этот период никто не начинал.');
+  const base = Math.max(1, ...tu.steps.map((st) => st.players));
+  const row = (label: string, k: number) => `<tr><td>${label}</td><td class="r">${fmt(k)}</td><td class="r">${pct(k, base)}</td><td class="w40">${bar(k / base)}</td></tr>`;
+  const other = tu.otherPlayers ? ` ${tu.track === 'short' ? 'Полное' : 'Короткое'} обучение в эти дни: прошли ${tu.otherDone} из ${tu.otherPlayers}, в таблицу не смешиваем.` : '';
+  return `<table><thead><tr><th>${tu.track === 'short' ? 'Короткое обучение' : 'Полное обучение'}</th><th class="r">Игроков</th><th class="r">Доля</th><th></th></tr></thead><tbody>${tu.steps
+    .map((st) => row(`${st.index}. ${esc(tutorialLabel(st.step))}`, st.players))
+    .join('')}${row('Закончили', tu.trackDone)}</tbody></table>${foot(`Доля от дошедших до первого шага. Пропустили: ${tu.trackSkipped}.${other}`)}`;
+}
+
+function chaptersBlock(s: Stats): string {
+  if (!s.nights.length) return empty('Ночей в этот период не сыграно.');
+  const antes = [...new Set(s.nights.map((n) => n.ante))].sort((a, b) => a - b);
+  const rows = antes.map((ante) => {
+    const cells = NIGHTS.map((night) => {
+      const n = s.nights.find((x) => x.ante === ante && x.night === night);
+      if (!n) return '<td class="hm"></td>';
+      const share = n.played ? n.lost / n.played : 0;
+      return `<td class="hm" style="background:rgb(255 107 139/${(0.08 + share * 0.6).toFixed(2)})" title="Глава ${ante}, ${esc(NIGHT[night]!.toLowerCase())}: проиграли ${n.lost} из ${n.played}"><b>${pct(n.lost, n.played)}</b><span>${n.lost}/${n.played}</span></td>`;
+    });
+    return `<tr><th scope="row">Глава ${ante}</th>${cells.join('')}</tr>`;
+  });
+  return `<table class="heat"><thead><tr><th></th>${NIGHTS.map((n) => `<th>${esc(NIGHT[n]!)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>${foot('Доля проигранных ночей, рядом проиграли из сыгранных. Ярче, значит сложнее.')}`;
+}
+
+function quitsBlock(s: Stats): string {
+  const p = s.play;
+  if (!p.runsStarted) return empty('Забегов в этот период не было.');
+  const top = p.quits.slice(0, 6);
+  const max = Math.max(1, ...top.map((q) => q.runs));
+  const rows = top.map((q) => `<tr><td>Глава ${q.ante}, ${esc((NIGHT[q.night] ?? q.night).toLowerCase())}</td><td class="r">${fmt(q.runs)}</td><td class="w45">${bar(q.runs / max, 'mult')}</td></tr>`).join('');
+  const r = s.runs;
+  const won = r.reach.filter((x) => x.ante > FINAL_ANTE).reduce((a, x) => a + x.runs, 0);
+  return `${rows ? `<table><tbody>${rows}</tbody></table>` : ''}${foot(
+    `${fmt(p.runsCut)} из ${fmt(p.runsStarted)} забегов оборвались без итога: закрыли игру посреди ночи или сдались. Строка: последняя начатая ночь. Проиграли ${fmt(r.byResult.find((x) => x.result === 'lost')?.count ?? 0)}, прошли все ${FINAL_ANTE} глав ${fmt(won)}.`,
+  )}`;
+}
+
+function cohortsBlock(s: Stats): string {
+  const c = s.play.cohorts;
+  if (!c.length) return empty('Новых игроков в этот период не было.');
+  const rows = c.map((w) => {
+    const cells = w.cells.map((x) =>
+      x ? `<td class="hm" style="background:rgb(127 224 255/${(0.06 + (x.back / x.base) * 0.7).toFixed(2)})"><b>${pct(x.back, x.base)}</b><span>${x.back}/${x.base}</span></td>` : '<td class="hm empty"><span>ещё рано</span></td>',
+    );
+    return `<tr><th scope="row">с ${esc(dayLabel(w.week))}<span class="faint"> · ${w.players}</span></th>${cells.join('')}</tr>`;
+  });
+  return `<table class="heat"><thead><tr><th>Неделя прихода</th>${COHORT_DAYS.map((n, i) => `<th>${i ? `к ${n}-му` : `к ${n}-му дню`}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>${foot(
+    'Доля новичков недели, которые вернулись хоть раз за первые 1, 3 или 7 дней. Ярче, значит лучше.',
+  )}`;
+}
+
+function releasesBlock(s: Stats): string {
+  const list = s.play.releases.filter((r) => r.players >= 2).slice(-8);
+  if (!list.length) return empty('Новичков в этот период не было.');
+  const rows = list
+    .map(
+      (r) =>
+        `<tr><td><b>${esc(r.version)}</b></td><td class="r">${fmt(r.players)}${r.players < 5 ? ` ${few}` : ''}</td><td class="r">${pct(r.tutorial, r.players)}</td><td class="r">${pct(r.night1, r.players)}</td><td class="r">${
+          r.d1Base ? pct(r.d1, r.d1Base) : '<span class="faint">ещё рано</span>'
+        }</td><td class="r">${duration(r.firstDayMin)}</td></tr>`,
+    )
+    .join('');
+  return `<div class="scroll"><table><thead><tr><th>Первый вход на версии</th><th class="r">Новичков</th><th class="r">Прошли обучение</th><th class="r">Выиграли 1-ю ночь</th><th class="r">Вернулись на 2-й день</th><th class="r">В игре в 1-й день</th></tr></thead><tbody>${rows}</tbody></table></div>${foot(
+    'Стало ли лучше после выпуска: новички по версии, на которой впервые открыли игру. Версии, где пришли хотя бы двое; меньше 5 сравнивать рано.',
+  )}`;
+}
+
+function omensBlock(s: Stats): string {
+  const o = s.play.omens;
+  if (!o.length) return empty('Знамений в этот период не покупали.');
+  const rows = o.map((x) => `<tr><td>${esc(itemName('omen', x.id))}</td><td class="r">${fmt(x.bought)}</td><td class="r">${x.runs ? fmt(x.runs) : '–'}</td><td class="r">${dec(x.avgAnte)}</td></tr>`).join('');
+  const ended = s.runs.reach.reduce((a, x) => a + x.runs, 0);
+  const avg = ended ? Math.round((s.runs.reach.reduce((a, x) => a + Math.min(x.ante, FINAL_ANTE) * x.runs, 0) / ended) * 10) / 10 : null;
+  return `<table><thead><tr><th>Знамение</th><th class="r">Куплено</th><th class="r">Забегов с ним</th><th class="r">Средняя глава</th></tr></thead><tbody>${rows}</tbody></table>${foot(
+    `Средняя глава, до которой доходит забег с этим Знамением; по всем забегам ${dec(avg)}. Побед за период ${s.runs.victories}: долю побед по Знамению считать рано. Звёздную пыль покупают в обучении.`,
+  )}`;
+}
+
+function moneyBlock(s: Stats): string {
+  const m = s.play.money;
+  const ads = s.ads.length
+    ? `<table><thead><tr><th>Реклама</th><th>Где</th><th class="r">Запросов</th><th class="r">Досмотрели</th></tr></thead><tbody>${s.ads
+        .map(
+          (a) =>
+            `<tr><td>${esc(platformName(a.platform))}</td><td>${a.kind === 'interstitial' ? 'межстраничная' : 'за награду'}, ${esc(PLACEMENT[a.placement] ?? a.placement)}</td><td class="r">${fmt(a.requests)}</td><td class="r">${
+              a.kind === 'rewarded' ? pct(a.rewarded, a.requests) : '–'
+            }</td></tr>`,
+        )
+        .join('')}</tbody></table>`
+    : empty('Рекламы в этот период не было.');
+  return `<div class="trio"><div><span class="num mid">${fmt(m.storeOpen)}</span><span class="lab">открыли атлас</span></div><div><span class="num mid">${fmt(m.purchaseStart)}</span><span class="lab">нажали «Купить»</span></div><div><span class="num mid">${fmt(m.paid)}</span><span class="lab">оплат</span></div></div>${ads}`;
+}
+
+function healthBlock(s: Stats): string {
+  const p = s.play;
+  const when = (ts: number) => new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const errors = s.errors.length
+    ? s.errors
+        .map(
+          (e) =>
+            `<tr><td><code>${esc(e.message)}</code>${e.where ? `<span class="where">${esc(e.where)}</span>` : ''}<span class="where">версии: ${esc(e.versions.join(', '))}</span>${
+              e.stack ? `<details class="stack"><summary>Стек</summary><pre data-stack>${esc(e.stack)}</pre></details>` : ''
+            }</td><td class="r">${fmt(e.count)}</td><td class="r nowrap">${esc(when(e.last))}</td></tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="3" class="good">Ошибок нет</td></tr>';
+  const fps = s.perf.length
+    ? `<table><thead><tr><th>Плавность</th><th class="r">Кадров в секунду</th><th class="r">Замеров</th></tr></thead><tbody>${s.perf
+        .map((f) => `<tr><td>${esc(platformName(f.platform))}</td><td class="r ${f.medianFps >= 50 ? 'good' : f.medianFps >= 30 ? 'tick' : 'hot'}">${f.medianFps}</td><td class="r faint">${fmt(f.samples)}</td></tr>`)
+        .join('')}</tbody></table>`
+    : '';
+  return `<div class="trio"><div><span class="num mid">${p.crashFree === null ? '–' : `${dec(p.crashFree)}%`}</span><span class="lab">сессий без ошибок</span></div><div><span class="num mid">${fmt(
+    p.oldErrors,
+  )}</span><span class="lab">ошибок версий до ${ERRORS_SINCE} скрыто</span></div><div><span class="num mid">${fmt(s.versions[0]?.players ?? 0)}</span><span class="lab">на версии ${esc(s.versions[0]?.version ?? '–')}</span></div></div>
+<div class="scroll"><table><thead><tr><th>Ошибка, свежие сверху</th><th class="r">Раз</th><th class="r">Последняя</th></tr></thead><tbody>${errors}</tbody></table></div>${fps}`;
+}
+
+// ── Страница ────────────────────────────────────────────────────────────────
 
 /** site — адрес сайта игры: оттуда страница берёт карты исходников, чтобы расшифровать стек. */
 export function renderDashboard(s: Stats, opts: { site?: string } = {}): string {
   const t = s.totals;
+  const p = s.play;
   const updated = new Date(s.generatedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const periods: [number, string][] = [
     [1, 'Сегодня'],
@@ -100,222 +382,138 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
     [30, '30 дней'],
     [90, '90 дней'],
   ];
-  const tabs = periods.map(([d, label]) => `<a href="?days=${d}"${d === s.periodDays ? ' class="on" aria-current="page"' : ''}>${label}</a>`).join('');
+  const periodName = s.periodDays === 1 ? 'сегодня' : `${s.periodDays} дней`;
+  const tabs = periods.map(([d, label]) => `<a href="?days=${d}"${d === s.periodDays ? ' aria-current="page"' : ''}>${label}</a>`).join('');
 
-  const kpis = `<div class="kpis">
-    ${kpi(fmt(t.players), 'игроков за период', `всего за всё время — ${fmt(t.playersAll)}`)}
-    ${kpi(fmt(t.newPlayers), 'новых', 'впервые открыли игру в этот период')}
-    ${kpi(fmt(t.sessions), 'сессий', 'одна сессия — один запуск игры')}
-    ${kpi(t.medianSessionMin === null ? '—' : `${Math.round(t.medianSessionMin)} мин`, 'типичная сессия', 'половина сессий короче, половина — длиннее')}
-  </div>`;
+  const kpis: [string, string, string][] = [
+    [`Игроков, ${periodName}`, fmt(t.players), `<span class="dl">${fmt(t.newPlayers)} новых</span>`],
+    ['За неделю', fmt(p.week.players), delta(p.week.players, p.prevWeek.players)],
+    ['Сессия, в игре', duration(p.sessions.medianMin), `<span class="dl">среднее ${duration(p.sessions.meanMin)}</span>`],
+    ['На игрока за день', duration(p.perPlayerDayMin), `<span class="dl">за неделю ${duration(p.week.minPerDay)}</span>`],
+    ['Без ошибок', p.crashFree === null ? '–' : `${dec(p.crashFree)}%`, `<span class="dl">сессий с ${ERRORS_SINCE}</span>`],
+    ['Сейчас в игре', fmt(p.nowInGame), '<span class="dl">за последние 5 мин</span>'],
+  ];
 
-  const r = s.retention;
-  const retention = `<div class="kpis two">
-    ${kpi(pct(r.d1, r.d1Base), 'вернулись на следующий день', r.d1Base ? `${r.d1} из ${r.d1Base} игроков` : 'нужно, чтобы прошли сутки')}
-    ${kpi(pct(r.week, r.weekBase), 'вернулись в течение недели', r.weekBase ? `${r.week} из ${r.weekBase} игроков` : 'нужно, чтобы прошла неделя')}
-  </div>`;
-
-  const maxPlatform = Math.max(1, ...s.platforms.map((p) => p.players));
-  const platforms = s.platforms.length
-    ? `<ul class="rows">${s.platforms
-        .map((p) => `<li><span class="name">${esc(PLATFORM[p.platform] ?? p.platform)}</span>${bar(p.players, maxPlatform)}<span class="num">${fmt(p.players)}</span></li>`)
-        .join('')}</ul>`
-    : empty();
-
-  const tu = s.tutorial;
-  const tutorial = tu.started
-    ? `<p class="lead">Начали обучение <b>${fmt(tu.started)}</b>, прошли до конца <b>${fmt(tu.completed)}</b> (${pct(tu.completed, tu.started)}), пропустили <b>${fmt(tu.skipped)}</b>.</p>
-      <ol class="rows funnel">${tu.steps
-        .map((st) => `<li><span class="name"><span class="idx">${st.index}</span>${esc(tutorialLabel(st.step))}</span>${bar(st.players, tu.started)}<span class="num">${pct(st.players, tu.started)}</span></li>`)
-        .join('')}</ol>`
-    : empty('Обучение в этот период никто не начинал.');
-
-  const ru2 = s.runs;
-  const maxReach = Math.max(1, ...ru2.reach.map((x) => x.runs));
-  const runs = ru2.started
-    ? `<p class="lead">Начато забегов <b>${fmt(ru2.started)}</b>, закончено <b>${fmt(ru2.ended)}</b>, побед <b>${fmt(ru2.victories)}</b>.${
-        ru2.byResult.length ? ` Чем кончились: ${ru2.byResult.map((x) => `${RESULT[x.result] ?? x.result} — ${fmt(x.count)}`).join(', ')}.` : ''
-      }</p>
-      ${ru2.reach.length ? `<h3>До какого созвездия доходят</h3><ul class="rows">${ru2.reach.map((x) => `<li><span class="name">Созвездие ${x.ante}</span>${bar(x.runs, maxReach)}<span class="num">${fmt(x.runs)}</span></li>`).join('')}</ul>` : ''}`
-    : empty('Забегов в этот период не было.');
-
-  const nights = s.nights.length
-    ? table(
-        ['Ночь', 'Сыграно', 'Проиграно', 'Ходов в запасе'],
-        s.nights.map((n) => {
-          const lossShare = n.played ? n.lost / n.played : 0;
-          const tone = lossShare >= 0.4 ? 'bad' : lossShare >= 0.2 ? 'warn' : 'ok';
-          return [
-            `Созвездие ${n.ante} · ${esc(NIGHT[n.night] ?? n.night)}`,
-            fmt(n.played),
-            `<span class="pill ${tone}">${pct(n.lost, n.played)}</span>`,
-            n.movesLeft === null ? '—' : n.movesLeft.toFixed(1),
-          ];
-        }),
-      )
-    : empty('Ночей в этот период не сыграно.');
-
-  // Внутри вида — без приставки «Звёздная карта:», вид уже в заголовке
-  const shortName = (kind: string, id: string) => itemName(kind, id).replace(/^Звёздная карта: /, '');
-  const shop = s.shop.byKind.length
-    ? `<p class="lead">${s.shop.byKind.map((k) => `${esc(KIND[k.kind] ?? k.kind)} — <b>${fmt(k.count)}</b> (${fmt(k.players)} игр.)`).join(' · ')}</p>${s.shop.byKind
-        .map((k) => {
-          const items = s.shop.top.filter((x) => x.kind === k.kind);
-          const max = Math.max(1, ...items.map((x) => x.count));
-          return `<h3>${esc(KIND[k.kind] ?? k.kind)}</h3><ul class="rows">${items
-            .map((x) => `<li><span class="name">${esc(shortName(x.kind, x.id))}</span>${bar(x.count, max, 'gold')}<span class="num">${fmt(x.count)}</span></li>`)
-            .join('')}</ul>`;
-        })
-        .join('')}`
-    : empty('Покупок в этот период не было.');
-
-  const fu = s.funnel;
-  const top = fu[0]?.players ?? 0;
-  const funnel = top
-    ? `<ol class="rows funnel">${fu
-        .map((st, i) => `<li><span class="name"><span class="idx">${i + 1}</span>${esc(st.step)}</span>${bar(st.players, top)}<span class="num">${fmt(st.players)} · ${pct(st.players, top)}</span></li>`)
-        .join('')}</ol>`
-    : empty('Новых игроков в этот период не было.');
-
-  const g = s.growth;
-  const res = g.results;
-  const growth = `<div class="kpis four">
-    ${kpi(fmt(g.shared), 'вызовов отправлено', g.sharers ? `от ${fmt(g.sharers)} игр.` : 'кнопка «Бросить вызов»')}
-    ${kpi(fmt(g.opened), 'открыли по вызову', `из них новых — ${fmt(g.openedFresh)}`)}
-    ${kpi(fmt(g.accepted), 'приняли вызов', g.opened ? `${pct(g.accepted, g.opened)} открывших` : 'окно «Вызов от друга»')}
-    ${kpi(fmt(res.beat + res.tie + res.behind), 'доиграли вызов', `побили — ${fmt(res.beat)}, ничья — ${fmt(res.tie)}, друг впереди — ${fmt(res.behind)}`)}
-  </div>${
-    g.sources.length
-      ? `<h3>Метки источников</h3>${table(
-          ['Метка', 'Игроков', 'Из них новых'],
-          g.sources.map((x) => [`<code>${esc(x.source)}</code>`, fmt(x.players), fmt(x.fresh)]),
-        )}`
-      : '<p class="empty">Ссылок с меткой <code>startapp=src_…</code> пока не открывали.</p>'
-  }`;
-
-  const help = `<div class="kpis four">
-    ${kpi(fmt(s.help.guide), 'открыли справочник', 'кнопка «?» и ссылки на термины')}
-    ${kpi(fmt(s.help.scoring), 'открыли «Как считаются очки»', 'из паузы и Обсерватории')}
-    ${kpi(fmt(s.help.banish), 'убрали карту', 'услуга Обсерватории')}
-    ${kpi(fmt(s.help.rerolls), 'обновили витрину', 'кнопка «Обновить»')}
-  </div>`;
-
-  const ads = s.ads.length
-    ? table(
-        ['Где', 'Показов', 'Досмотрели'],
-        s.ads.map((a) => [`${esc(PLACEMENT[a.placement] ?? a.placement)} <small class="where">${esc(AD_KIND[a.kind] ?? a.kind)}</small>`, fmt(a.requests), a.kind === 'rewarded' ? pct(a.rewarded, a.requests) : '—']),
-      )
-    : empty('Рекламы пока нет: она будет в Яндекс Играх (между главами и за награду) и в Telegram через AdsGram.');
-
-  const tech = `${
-    s.perf.length
-      ? `<h3>Плавность (кадров в секунду, типичное значение)</h3><ul class="rows">${s.perf
-          .map((p) => `<li><span class="name">${esc(PLATFORM[p.platform] ?? p.platform)}</span>${bar(p.medianFps, 60, p.medianFps >= 50 ? 'ok' : p.medianFps >= 30 ? 'warn' : 'bad')}<span class="num">${p.medianFps}</span></li>`)
-          .join('')}</ul>`
-      : ''
-  }${
-    s.versions.length ? `<h3>Версии игры</h3><p class="lead">${s.versions.map((v) => `${esc(v.version)} — ${fmt(v.players)}`).join(' · ')}</p>` : ''
-  }<h3>Ошибки</h3>${
-    s.errors.length
-      ? table(
-          ['Сообщение', 'Раз', 'Последняя'],
-          s.errors.map((e) => [
-            `<code>${esc(e.message)}</code>${e.where ? `<br><small class="where">${esc(e.where)}</small>` : ''}${
-              e.versions.length ? `<br><small class="where">версии: ${esc(e.versions.join(', '))}</small>` : ''
-            }${e.stack ? `<details class="stack"><summary>Стек</summary><pre data-stack>${esc(e.stack)}</pre></details>` : ''}`,
-            fmt(e.count), esc(new Date(e.last).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))]),
-        )
-      : '<p class="empty good">Ошибок не было.</p>'
-  }`;
+  const watch = watchItems(s)
+    .map((w) => `<li><b class="${w.tone}">${esc(w.title)}</b><span>${esc(w.text)}</span></li>`)
+    .join('');
 
   return `<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Звёздное плетение — сводка</title>
-<style>${CSS}</style>
+<title>Звёздное плетение · сводка</title>
+<style>${FONTS}${CSS}</style>
 </head>
 <body data-site="${esc(opts.site ?? '')}">
+<div class="wrap">
 <header class="top">
-  <div>
-    <h1>Звёздное плетение <span>сводка</span></h1>
-    <p class="updated">Обновлено ${esc(updated)} по Москве · событий за период ${fmt(t.events)}</p>
-  </div>
-  <nav class="tabs" aria-label="Период">${tabs}</nav>
+  <div><h1>Звёздное плетение · сводка</h1><p class="faint">Обновлено ${esc(updated)} по Москве · событий за период ${fmt(t.events)}</p></div>
+  <nav class="period" aria-label="Период">${tabs}</nav>
 </header>
-<main>
-  ${section('Игроки', 'Сколько людей играло и как долго. Игрок — одно устройство: телефон и компьютер одного человека считаются двумя.', kpis + dailyChart(s.daily))}
-  ${section('Возвращаются ли', 'Главный признак, что игра цепляет. Ориентир для мобильных игр: на следующий день возвращаются 30–40%.', retention)}
-  ${section('Первые минуты', 'Новички этого периода: сколько дошли до каждого шага. «Закончили обучение» — прошли или пропустили. Самый большой провал — первое, что чинить.', funnel)}
-  ${section('Откуда играют', 'Игроки по площадкам за период.', platforms)}
-  ${section('Рост', 'Вызовы друзьям («Бросить вызов» после забега) и ссылки с меткой источника — какие каналы приводят людей.', growth)}
-  ${section('Обучение', 'Сколько игроков дошли до каждого шага, от числа начавших. Резкий провал между шагами — место, где непонятно или скучно.', tutorial)}
-  ${section('Забеги', 'Как далеко заходят игроки. Если почти все обрываются на одном созвездии — там слишком резкий скачок сложности.', runs)}
-  ${section('Где сложно', 'Каждая ночь: сколько раз её играли и как часто проигрывали. Красным — проигрывают 40% и чаще. «Ходов в запасе» — сколько ходов в среднем оставалось у победивших: меньше 3 — проходят на грани.', nights)}
-  ${section('Что покупают в Обсерватории', 'Сколько покупок каждого вида и самое популярное внутри вида. «Звёздную пыль» покупают и в обучении — она там обязательна.', shop)}
-  ${section('Пользуются ли подсказками', 'Если справочник открывают часто — какое-то правило объяснено плохо.', help)}
-  ${section('Реклама', 'Показы рекламы: межстраничная — между главами, за награду — «Второй шанс» и «Удвоить награду» (сколько досмотрели).', ads)}
-  ${section('Техника', 'Плавность на устройствах игроков, версии и ошибки в коде.', tech)}
+<div class="kpi">${kpis.map(([label, value, note]) => `<div><span class="lab">${esc(label)}</span><span class="num">${value}</span>${note}</div>`).join('')}</div>
+<main class="grid">
+  ${cell(7, 'На что смотреть', `<ul class="watch">${watch}</ul>`)}
+  ${cell(5, 'Игроки по дням', dailyBars(s.daily) + platformCards(s) + growthLine(s))}
+  ${cell(7, 'Первые минуты по площадкам', funnelTable(s))}
+  ${cell(5, 'Обучение', tutorialBlock(s))}
+  ${cell(7, 'Новые фичи', featuresBlock(s))}
+  ${cell(5, 'Время в игре', sessionBlock(s))}
+  ${cell(4, 'Сложность глав', chaptersBlock(s))}
+  ${cell(4, 'Где обрывают забег', quitsBlock(s))}
+  ${cell(4, 'Возвраты по неделям', cohortsBlock(s))}
+  ${cell(6, 'Выпуски', releasesBlock(s))}
+  ${cell(6, 'Знамения', omensBlock(s))}
+  ${cell(6, 'Деньги и реклама', moneyBlock(s))}
+  ${cell(6, 'Здоровье', healthBlock(s))}
 </main>
 <footer>Данные анонимные: случайный номер устройства, без имён, адресов и IP. Хранятся на сервере в Москве ${RETENTION_DAYS} дней.</footer>
+</div>
 ${s.errors.some((e) => e.stack) ? `<script>${STACK_SCRIPT}</script>` : ''}
 </body>
 </html>`;
 }
 
+/** Шрифты игры вшиты в страницу: внешних файлов сводка не грузит (CSP). Кириллица и латиница. */
+const font = (file: string) => `url(data:font/woff2;base64,${readFileSync(new URL(`./fonts/${file}`, import.meta.url)).toString('base64')}) format('woff2')`;
+const CYR = 'U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116';
+const LAT = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215';
+const FONTS = `
+@font-face{font-family:'Forum';font-display:swap;src:${font('forum-cyrillic.woff2')};unicode-range:${CYR}}
+@font-face{font-family:'Forum';font-display:swap;src:${font('forum-latin.woff2')};unicode-range:${LAT}}
+@font-face{font-family:'Manrope';font-display:swap;font-weight:200 800;src:${font('manrope-cyrillic.woff2')};unicode-range:${CYR}}
+@font-face{font-family:'Manrope';font-display:swap;font-weight:200 800;src:${font('manrope-latin.woff2')};unicode-range:${LAT}}`;
+
 const CSS = `
-:root{--bg:#f6f5fb;--card:#fff;--ink:#1b1a2e;--dim:#6b6888;--line:#e6e3f2;--accent:#6b56e8;--accent-2:#b9adf7;--gold:#e0a12e;--ok:#2f9e6b;--warn:#d98c1f;--bad:#d9465e;--chip:#f0eefb}
-@media (prefers-color-scheme:dark){:root{--bg:#0b0b1f;--card:#15142e;--ink:#eeecff;--dim:#a39fc7;--line:#29274a;--accent:#9d8cff;--accent-2:#4a3f9c;--gold:#f6c25b;--ok:#5fd39a;--warn:#f0ad4e;--bad:#ff6b85;--chip:#221f45}}
+:root{--n0:#05061a;--n1:#0c0d2c;--n2:#191641;--ink:#eae6ff;--dim:#a5a0cf;--faint:#8a85b8;--gold:#f6c25b;--gold-hi:#ffe6a8;
+--light:#7fe0ff;--mult:#ff6b8b;--ok:#7cf0b0;--hair:rgb(246 194 91/.16);--line:rgb(234 230 255/.08);
+--fd:'Forum','Times New Roman',serif;--fb:'Manrope',system-ui,sans-serif;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
-.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;max-width:1080px;margin:0 auto;padding:32px 20px 8px}
-h1{margin:0;font-size:28px;letter-spacing:-.01em}h1 span{color:var(--dim);font-weight:500}
-.updated{margin:4px 0 0;color:var(--dim);font-size:14px}
-.tabs{display:flex;gap:4px;background:var(--chip);padding:4px;border-radius:12px}
-.tabs a{padding:8px 14px;border-radius:9px;color:var(--dim);text-decoration:none;font-weight:600;font-size:14px}
-.tabs a.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-main{max-width:1080px;margin:0 auto;padding:8px 20px 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;min-width:0}
-.card:nth-child(1),.card:nth-child(4),.card:nth-child(5),.card:nth-child(6),.card:nth-child(10){grid-column:1/-1}
-h2{margin:0;font-size:19px}h3{margin:18px 0 8px;font-size:15px;color:var(--dim);font-weight:600}
-.hint{margin:4px 0 16px;color:var(--dim);font-size:14px;max-width:70ch}
-.lead{margin:0 0 12px}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
-.kpis.two{grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
-.kpis.four{margin:0}
-.kpi{background:var(--chip);border-radius:12px;padding:14px 16px}
-.kpi-value{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.kpi-label{font-weight:600;margin-top:2px}
-.kpi-note{color:var(--dim);font-size:13px;margin-top:2px}
-.chart{width:100%;height:auto;display:block}
-.chart text{font-size:11px;fill:var(--dim)}.chart text.v{fill:var(--ink);font-weight:600}
-.chart .ret{fill:var(--accent-2)}.chart .new{fill:var(--accent)}
-.legend{display:flex;gap:16px;color:var(--dim);font-size:13px;margin-top:6px}
-.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}.sw.new{background:var(--accent)}.sw.ret{background:var(--accent-2)}
-.rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.rows li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(80px,1fr) auto;gap:12px;align-items:center}
-.rows .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rows .num{font-variant-numeric:tabular-nums;font-weight:600;min-width:3ch;text-align:right}
-.idx{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--chip);color:var(--dim);font-size:12px;font-weight:700;margin-right:8px}
-.bar{display:block;height:10px;background:var(--chip);border-radius:6px;overflow:hidden}
-.fill{display:block;height:100%;border-radius:6px}.fill.accent{background:var(--accent)}.fill.gold{background:var(--gold)}.fill.ok{background:var(--ok)}.fill.warn{background:var(--warn)}.fill.bad{background:var(--bad)}
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:15px}
-th{text-align:left;color:var(--dim);font-weight:600;font-size:13px;padding:6px 8px;border-bottom:1px solid var(--line)}
-td{padding:9px 8px;border-bottom:1px solid var(--line)}tr:last-child td{border-bottom:0}
-.n{text-align:right;font-variant-numeric:tabular-nums}
-.pill{display:inline-block;min-width:48px;text-align:center;padding:2px 8px;border-radius:999px;font-weight:700;font-size:13px}
-.pill.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
-.pill.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
-.pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
-code{font-size:13px;word-break:break-word}
-.where{color:var(--dim);font-size:12px;font-family:ui-monospace,monospace;word-break:break-all}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:radial-gradient(120% 50% at 50% 0%,#191641 0%,#0c0d2c 40%,#05061a 100%) fixed,#05061a;color:var(--ink);
+font:400 14px/1.5 var(--fb);font-variant-numeric:tabular-nums;padding:0 max(24px,env(safe-area-inset-right)) 48px max(24px,env(safe-area-inset-left))}
+h1,h2{font-family:var(--fd);font-weight:400;margin:0;letter-spacing:.01em}
+a{color:var(--light)}
+.wrap{max-width:1360px;margin:0 auto}
+.num{font-family:var(--fd);color:var(--gold-hi);line-height:1}
+.num.big{font-size:44px}.num.mid{font-size:30px;display:block;margin:2px 0}
+.lab{display:block;font-size:12px;color:var(--dim)}
+.dl{display:block;font-size:12px;color:var(--faint);margin-top:4px}.dl.up{color:var(--ok)}.dl.down{color:var(--mult)}
+.few{color:var(--faint);font-size:12px;font-style:italic}
+.muted{color:var(--dim)}.faint{color:var(--faint)}.small{font-size:12px}.nowrap{white-space:nowrap}
+.need{color:var(--light)}.hot{color:var(--mult)}.good{color:var(--ok)}.tick{color:var(--gold)}
+.foot{font-size:12px;margin:8px 0 0;color:var(--faint)}
+.empty{color:var(--dim);margin:0;padding:8px 0}
+.lead{font-size:16px;margin:0 0 6px}
+.buckets{margin-top:14px}
+code{font-size:12px;color:var(--light);word-break:break-word}
+table{border-collapse:collapse;width:100%}
+th{font:600 11px/1.3 var(--fb);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:left;padding:6px 8px;border-bottom:1px solid var(--hair)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.r,th.r{text-align:right}td.w40{width:40%}td.w45{width:45%}
+.scroll{overflow-x:auto}
+.bar{height:6px;border-radius:3px;background:rgb(234 230 255/.07);overflow:hidden;min-width:48px;margin-top:7px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#e09a2f,#f6c25b)}
+.bar.light i{background:linear-gradient(90deg,#3aa6c9,#7fe0ff)}
+.bar.mult i{background:linear-gradient(90deg,#c9405f,#ff6b8b)}
+.fc{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.fc .bar{width:100%;max-width:120px;margin-top:0}
+.heat td.hm{text-align:center;border:2px solid var(--n0);border-radius:6px;padding:6px 4px}
+.heat td.hm b{display:block;font-weight:700}.heat td.hm span{font-size:11px;color:var(--dim)}
+.heat td.hm.empty span{color:var(--faint)}
+.heat th[scope]{white-space:nowrap;font:600 13px var(--fb);color:var(--ink);text-transform:none;letter-spacing:0;border:0}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 8px}
+.pcard .lab{font-size:13px;color:var(--gold)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--dim);margin-bottom:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.sw.new{background:var(--gold)}.days .new{fill:var(--gold)}.sw.all{background:rgb(127 224 255/.5)}.days .all{fill:rgb(127 224 255/.35)}
+.days text{font-size:11px;fill:var(--faint)}
+.watch{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 32px}
+.watch li{display:grid;gap:2px;align-content:start}.watch b{font-weight:700}.watch span{color:var(--dim)}
+.since{margin-left:6px;font-size:12px}
+.where{display:block;color:var(--faint);font-size:11px;font-family:ui-monospace,monospace;word-break:break-all}
 .stack{margin-top:6px}.stack summary{cursor:pointer;color:var(--dim);font-size:12px}
-.stack pre{margin:6px 0 0;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-all}
-.stack .decoded small{display:block;color:var(--dim);font-size:11px;margin-bottom:4px}
-.empty{color:var(--dim);margin:0;padding:12px 0}.empty.good{color:var(--ok)}
-footer{max-width:1080px;margin:0 auto;padding:8px 20px 40px;color:var(--dim);font-size:13px}
-@media (max-width:760px){main{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.top{padding-top:20px}h1{font-size:23px}.kpi-value{font-size:26px}.rows li{grid-template-columns:minmax(0,1fr) 72px auto}}
+.stack pre{margin:6px 0 0;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;word-break:break-all;color:var(--dim)}
+.stack .decoded small{display:block;color:var(--faint);font-size:11px;margin-bottom:4px}
+.top{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;padding:28px 0 18px;border-bottom:1px solid var(--hair)}
+.top h1{font-size:28px;color:var(--gold-hi)}.top p{margin:4px 0 0;font-size:13px}
+.period{display:flex;gap:4px;flex-wrap:wrap}.period a{padding:6px 12px;border-radius:999px;color:var(--dim);font-size:13px;text-decoration:none}
+.period a[aria-current]{color:var(--n0);background:var(--gold);font-weight:700}
+.kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-bottom:1px solid var(--hair)}
+.kpi>div{padding:18px 16px 18px 0;min-width:0}.kpi>div+div{padding-left:16px;border-left:1px solid var(--line)}
+.kpi .num{font-size:34px;display:block;margin:2px 0}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 32px}
+.cell{padding:22px 0;border-bottom:1px solid var(--line);min-width:0;overflow-x:auto}
+.cell h2{font-size:20px;color:var(--gold-hi);margin-bottom:12px}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}
+footer{padding:20px 0 0;color:var(--faint);font-size:12px}
+@media (max-width:1000px){.kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi>div:nth-child(4){border-left:0;padding-left:0}
+.grid{grid-template-columns:minmax(0,1fr);gap:0}.c4,.c5,.c6,.c7{grid-column:auto}.watch{grid-template-columns:1fr}}
+@media (max-width:640px){body{padding:0 max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi>div{padding:14px 12px 14px 0!important;border-left:0!important}
+.kpi>div:nth-child(even){padding-left:12px!important;border-left:1px solid var(--line)!important}.kpi .num{font-size:28px}
+.top h1{font-size:24px}td,th{padding:6px 4px}th{letter-spacing:.02em}.num.big{font-size:36px}
+.trio{grid-template-columns:1fr 1fr}.trio>div:last-child{grid-column:1/-1}
+.since{display:block;margin:0}.feat td:first-child{min-width:120px}}
 `;

@@ -3,7 +3,7 @@ import type { ComboId, Glyph } from '@/core/types';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
 import { drawGlyphBadge } from './card';
-import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
+import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelFeat, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -27,6 +27,11 @@ export function omenSigil(id: string, size: number, scale: number): HTMLCanvasEl
     const def = omenDef(id);
     drawEnamelOmen(ctx, id, def.rarity, def.kind, size);
   });
+}
+
+/** Медальон достижения «Зала славы»: розетка ордена, ступень — бусины и звезда. */
+export function featSigil(motif: string, fam: string, tier: 0 | 1 | 2 | 3, size: number, scale: number): HTMLCanvasElement {
+  return cached(`feat:${motif}:${fam}:${tier}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelFeat(ctx, motif, fam, tier, size));
 }
 
 /** Затмение: жемчужная оправа, чёрная эмаль, знак правила. */

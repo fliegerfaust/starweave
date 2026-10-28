@@ -1,7 +1,7 @@
 import { setCardBack } from '@/art/card';
 import { SKY_THEMES, isFreeCosmetic, skyTheme } from '@/art/cosmetics';
 import { track } from '@/analytics';
-import type { Platform, PurchaseResult } from '@/platform';
+import type { AdOutcome, Platform, PurchaseResult } from '@/platform';
 import { Entitlements } from '@/store/entitlements';
 import { interstitialAllowed } from './ad-pacing';
 import type { App } from './app';
@@ -15,22 +15,14 @@ export class Monetization {
   readonly purchases = new Entitlements();
   /** Идёт реклама или окно оплаты — звук молчит. */
   adPlaying = false;
-  /** Звук выключил сайт площадки (CrazyGames) — сильнее настроек игры. */
-  private platformMuted = false;
   /** Когда в этой сессии была последняя реклама — межстраничная выдерживает паузу после неё. */
   private lastAdAt: number | null = null;
 
   constructor(private readonly app: App) {
-    // Площадка без магазина (CrazyGames) выдаёт атлас и внешний вид даром
-    if (this.platform.grants) this.purchases.grant(this.platform.grants);
     // Покупка или возврат меняют, что можно носить
     this.purchases.onChange(() => this.applyCosmetics());
     this.platform.onPauseChange((paused) => {
       this.adPlaying = paused;
-      this.syncMute();
-    });
-    this.platform.onMuteChange?.((muted) => {
-      this.platformMuted = muted;
       this.syncMute();
     });
     document.addEventListener('visibilitychange', () => this.syncMute());
@@ -40,9 +32,9 @@ export class Monetization {
     return this.app.platform;
   }
 
-  /** Без фокуса, во время рекламы и когда звук выключила площадка, игра молчит. */
+  /** Без фокуса и во время рекламы игра молчит. */
   syncMute(): void {
-    this.app.svc.audio.setMuted(document.hidden || this.adPlaying || this.platformMuted);
+    this.app.svc.audio.setMuted(document.hidden || this.adPlaying);
   }
 
   /** Сверить купленное с площадкой (возвраты, покупки с другого устройства). */
@@ -88,13 +80,29 @@ export class Monetization {
     return this.purchases.paid('atlas');
   }
 
-  /** Реклама за награду с учётом в аналитике. */
+  /** Реклама за награду с учётом в аналитике: награда — только за досмотренный ролик. */
   async rewarded(placement: string): Promise<boolean> {
     track('ad_request', { kind: 'rewarded', placement });
     this.lastAdAt = Date.now();
-    const ok = await this.platform.showRewarded().catch(() => false);
-    track('ad_result', { kind: 'rewarded', placement, result: ok ? 'rewarded' : 'closed' });
-    return ok;
+    const outcome = await this.platform.showRewarded().catch((): AdOutcome => ({ result: 'error' }));
+    track('ad_result', { kind: 'rewarded', placement, ...outcome });
+    return outcome.result === 'rewarded';
+  }
+
+  /**
+   * Есть ли ролик за награду: без него кнопку не показываем (просьба Пикабу). Площадку
+   * спрашиваем в начале ночи, к экрану награды ответ уже есть и окно не перестраивается.
+   */
+  rewardedReady = true;
+
+  refreshRewarded(): void {
+    if (!this.platform.rewardedAvailable || !this.platform.canShowRewarded) return;
+    void this.platform.canShowRewarded().catch(() => false).then((ok) => (this.rewardedReady = ok));
+  }
+
+  /** Кнопку «за рекламу» показываем, только если ролик есть. */
+  get rewardedOffer(): boolean {
+    return this.platform.rewardedAvailable && this.rewardedReady;
   }
 
   /**
@@ -102,11 +110,13 @@ export class Monetization {
    * (раньше событие уходило и из Telegram, где рекламы нет: «32 показа» в сводке).
    * `null` — показывать нечего.
    */
-  interstitialBetweenAntes(): Promise<void> | null {
+  interstitialBetweenAntes(ante: number): Promise<void> | null {
     if (this.adFree || !this.platform.interstitialAvailable) return null;
-    if (!interstitialAllowed(Date.now(), this.app.profile.firstSeen ?? 0, this.lastAdAt)) return null;
+    if (!interstitialAllowed(Date.now(), ante, this.lastAdAt)) return null;
     track('ad_request', { kind: 'interstitial', placement: 'between_antes' });
     this.lastAdAt = Date.now();
-    return this.platform.showInterstitial();
+    return this.platform.showInterstitial()
+      .catch((): AdOutcome => ({ result: 'error' }))
+      .then((outcome) => track('ad_result', { kind: 'interstitial', placement: 'between_antes', ...outcome }));
   }
 }

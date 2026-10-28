@@ -2,7 +2,7 @@ import type { Lang } from '@/i18n';
 import { chunkKeys, INDEX_KEY, pack, unpack } from './telegram-cloud';
 import { StarsPayments, apiBase } from '@/store/stars-payments';
 import { FEATURES } from './features';
-import type { Payments, Platform } from './types';
+import type { Payments, AdOutcome, Platform } from './types';
 
 /** Часть Telegram Mini Apps API, которой пользуется игра (core.telegram.org/bots/webapps). */
 interface TelegramWebApp {
@@ -178,14 +178,17 @@ export class TelegramPlatform implements Platform {
   }
 
   /** Показ блока AdsGram на паузе игры и звука: true — досмотрен до конца. */
-  private async play(ads: Promise<AdsgramController | null> | null): Promise<boolean> {
+  private async play(ads: Promise<AdsgramController | null> | null, done: AdOutcome['result']): Promise<AdOutcome> {
     const controller = await ads;
-    if (!controller) return false;
+    if (!controller) return { result: 'nofill' };
     this.emitPause(true);
     try {
-      return (await controller.show()).done;
-    } catch {
-      return false; // пропустил, ошибка или рекламы сейчас нет
+      return (await controller.show()).done ? { result: done } : { result: 'closed' };
+    } catch (e) {
+      // AdsGram отвечает отказом: на загрузке — рекламы нет, позже — пропустил или сбой
+      const r = (e ?? {}) as { state?: string; error?: boolean; description?: string };
+      const result = r.state === 'load' ? 'nofill' : r.error ? 'error' : 'closed';
+      return { result, ...(r.description ? { reason: r.description.slice(0, 60) } : {}) };
     } finally {
       this.emitPause(false);
     }
@@ -198,12 +201,12 @@ export class TelegramPlatform implements Platform {
   gameplayStart(): void {}
   gameplayStop(): void {}
 
-  async showInterstitial(): Promise<void> {
-    await this.play(this.inter);
+  async showInterstitial(): Promise<AdOutcome> {
+    return this.play(this.inter, 'shown');
   }
 
-  async showRewarded(): Promise<boolean> {
-    return this.play(this.ads);
+  async showRewarded(): Promise<AdOutcome> {
+    return this.play(this.ads, 'rewarded');
   }
 
   language(): Lang | null {

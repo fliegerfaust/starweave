@@ -1,7 +1,7 @@
 import type { Lang } from '@/i18n';
 import { FakePayments } from '@/store/fake-payments';
 import { FEATURES } from './features';
-import type { Payments, Platform } from './types';
+import type { Payments, AdOutcome, Platform } from './types';
 
 /**
  * Обычный веб и PWA: ни рекламы, ни покупок. Для проверки интерфейса в разработке можно
@@ -33,14 +33,16 @@ export class WebPlatform implements Platform {
   gameplayStart(): void {}
   gameplayStop(): void {}
 
-  async showInterstitial(): Promise<void> {
-    if (this.rewardedAvailable) await this.fakeAd(1200);
+  async showInterstitial(): Promise<AdOutcome> {
+    if (!this.rewardedAvailable) return { result: 'nofill' };
+    await this.fakeAd(1200);
+    return { result: 'shown' };
   }
 
-  async showRewarded(): Promise<boolean> {
-    if (!this.rewardedAvailable) return false;
+  async showRewarded(): Promise<AdOutcome> {
+    if (!this.rewardedAvailable) return { result: 'nofill' };
     await this.fakeAd(1500);
-    return true;
+    return { result: 'rewarded' };
   }
 
   language(): Lang | null {

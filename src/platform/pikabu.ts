@@ -1,14 +1,15 @@
 import type { Lang } from '@/i18n';
 import { isPermanent } from '@/store/catalog';
 import { FEATURES } from './features';
-import type { Payments, Platform, PurchaseResult } from './types';
+import { track } from '@/analytics';
+import type { AdOutcome, Payments, Platform, PurchaseResult } from './types';
 
-type AdResult = { rendered: true; reward?: boolean } | { rendered: false; reason: string };
+type PkbShow = { rendered: true; reward?: boolean } | { rendered: false; reason: string };
 
 interface PkbAd {
   isSupported: boolean;
   canShow(): Promise<boolean>;
-  show(): Promise<AdResult>;
+  show(): Promise<PkbShow>;
 }
 
 interface PkbPurchase {
@@ -21,7 +22,7 @@ interface PkbPurchase {
 export interface PkbSDK {
   gameStarted(): void;
   player: { isAuthorized: boolean };
-  ads: { fullscreen: PkbAd; rewarded: PkbAd };
+  ads: { preloader?: PkbAd; fullscreen: PkbAd; rewarded: PkbAd };
   store: {
     getProducts(): Promise<{ id: string; formattedPrice: string }[]>;
     getPurchases(): Promise<PkbPurchase[]>;
@@ -94,7 +95,7 @@ class PikabuPayments implements Payments {
  * Пикабу Игры. Требования площадки, которые закрывает адаптер: SDK и `gameStarted()` после
  * первого экрана, реклама в паузах (полноэкранная между созвездиями, за награду — по кнопке)
  * с паузой игры и звука, облачные сохранения `sdk.storage`, покупки площадки, русский язык.
- * Рекламы при загрузке нет (решение Дениса). Без SDK (блокировщик рекламы, сборка вне
+ * Реклама при загрузке — со второго запуска (PK.17). Без SDK (блокировщик рекламы, сборка вне
  * площадки) игра работает как обычный веб: без рекламы и покупок.
  */
 export class PikabuPlatform implements Platform {
@@ -128,32 +129,54 @@ export class PikabuPlatform implements Platform {
     sdk.on('storageSaveError', (reason) => console.warn('Пикабу: сохранение не удалось', reason));
   }
 
-  ready(): void {
-    this.sdk?.gameStarted();
+  /**
+   * Перед стартом — реклама при загрузке (PK.17, решение Дениса): только со второго запуска,
+   * на первом никогда. Площадка показывает её лишь на телефонах и до `gameStarted()`; баннер
+   * закрывается сразу, на время показа — пауза и тишина. Нет баннера — игра стартует сразу.
+   */
+  async ready(returning: boolean): Promise<void> {
+    const sdk = this.sdk;
+    if (!sdk) return;
+    const pre = sdk.ads.preloader;
+    if (returning && pre?.isSupported) {
+      track('ad_request', { kind: 'preloader', placement: 'launch' });
+      const outcome = await this.ad(pre, 'shown');
+      track('ad_result', { kind: 'preloader', placement: 'launch', ...outcome });
+    }
+    sdk.gameStarted();
   }
 
   // Начало и конец игрового процесса площадке не нужны
   gameplayStart(): void {}
   gameplayStop(): void {}
 
-  async showInterstitial(): Promise<void> {
-    await this.ad(this.sdk?.ads.fullscreen);
+  async showInterstitial(): Promise<AdOutcome> {
+    return this.ad(this.sdk?.ads.fullscreen, 'shown');
   }
 
-  async showRewarded(): Promise<boolean> {
-    const result = await this.ad(this.sdk?.ads.rewarded);
-    // Награда — только за досмотренный ролик
-    return !!result?.rendered && result.reward === true;
+  async showRewarded(): Promise<AdOutcome> {
+    return this.ad(this.sdk?.ads.rewarded, 'rewarded');
   }
 
-  /** Ролик: перед показом спросить площадку; пока он идёт — пауза и тишина. */
-  private async ad(ad: PkbAd | undefined): Promise<AdResult | null> {
-    if (!ad?.isSupported || !(await ad.canShow().catch(() => false))) return null;
+  async canShowRewarded(): Promise<boolean> {
+    const ad = this.sdk?.ads.rewarded;
+    return !!ad?.isSupported && (await ad.canShow().catch(() => false));
+  }
+
+  /**
+   * Ролик: перед показом спросить площадку; пока он идёт — пауза и тишина. За награду —
+   * только досмотренный (`reward`); `rendered: false` — площадка не показала, её код в `reason`.
+   */
+  private async ad(ad: PkbAd | undefined, done: 'shown' | 'rewarded'): Promise<AdOutcome> {
+    if (!ad?.isSupported) return { result: 'nofill', reason: 'NOT_SUPPORTED' };
+    if (!(await ad.canShow().catch(() => false))) return { result: 'nofill', reason: 'CANNOT_SHOW' };
     this.emitPause(true);
     try {
-      return await ad.show();
+      const r = await ad.show();
+      if (!r.rendered) return { result: 'nofill', reason: r.reason };
+      return done === 'rewarded' && r.reward !== true ? { result: 'closed' } : { result: done };
     } catch {
-      return null;
+      return { result: 'error' };
     } finally {
       this.emitPause(false);
     }
@@ -182,7 +205,7 @@ export class PikabuPlatform implements Platform {
 
   /** Вызов друга ведёт на страницу игры на Пикабу: ссылки на свой сайт площадка запрещает. */
   inviteUrl(): string | null {
-    return import.meta.env.VITE_PIKABU_GAME_URL || 'https://games.pikabu.ru/';
+    return import.meta.env.VITE_PIKABU_GAME_URL || 'https://games.pikabu.ru/game/zvyozdnoe-pletenie';
   }
 
   private emitPause(paused: boolean): void {

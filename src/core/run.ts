@@ -5,7 +5,7 @@ import { buildDeck } from './deck';
 import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
 import { createRng, pick, type RngState } from './rng';
-import { allContent, type Unlocks } from './content/pools';
+import { allContent, ladderAt, type Unlocks } from './content/pools';
 import { currentNode, isLastNight, planChapter, walk } from './route';
 import { generateShop, omenOptions } from './shop';
 import { offer } from './choices';
@@ -94,7 +94,7 @@ export function newRun({ seed, skyId = 'classic', daily = false, dailyDate, arch
 
 /** Снимок открытий из журнала до 0.7 — без дара и тел, как и игрался. */
 function normalizeUnlocks(u: Unlocks): Unlocks {
-  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false, trophies: u.trophies ?? false, myths: u.myths ?? false, resonance: u.resonance ?? false };
+  return { ...structuredClone(u), gift: u.gift ?? false, bodies: [...(u.bodies ?? [])], routes: u.routes ?? false, wonders: u.wonders ?? false, trophies: u.trophies ?? false, myths: u.myths ?? false, resonance: u.resonance ?? false, ladder: u.ladder ?? false };
 }
 
 /**
@@ -139,6 +139,8 @@ export function leaveShop(run: RunState): void {
     return;
   }
   ensureBoss(run);
+  // Лестница по главам (LD.1): новая глава — новые открытия, ещё до плана главы
+  run.unlocks = ladderAt(run.unlocks, run.ante);
   run.chapter = planChapter(run);
   run.phase = 'map';
 }

@@ -24,6 +24,7 @@ import { resolveFeatures, type Features, type Platform } from '@/platform';
 import { cameraSystem } from './systems/camera';
 import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
+import { sendHallSnapshot } from '@/meta/hall-sync';
 import { Monetization } from './monetization';
 import { Router } from './router';
 import { RunController } from './run-controller';
@@ -178,7 +179,10 @@ export class App {
     };
     requestAnimationFrame(frame);
     // Новичок на площадке с `quickStart` попадает сразу в ночь, остальные — в меню
-    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready());
+    // Пришёл не впервые — профиль создан в прошлый запуск (Пикабу покажет рекламу при загрузке)
+    const p = this.profile;
+    const returning = p.firstSeen ? p.firstSeen < performance.timeOrigin : p.runs > 0 || p.tutorialDone;
+    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready(returning));
     void this.money.refreshPurchases();
   }
 
@@ -222,6 +226,8 @@ export async function startGame(platform: Platform): Promise<App> {
     ...(start.challenge ? { challenge: true } : {}),
   });
   app.start();
+  // Снимок для долей «Зала славы»: у давних игроков он уходит с первого же запуска
+  sendHallSnapshot(app.profile);
   // FPS меряем, когда игрок уже в игре, а не на загрузке
   window.setTimeout(() => measureFps(5), 30_000);
   return app;

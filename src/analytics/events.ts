@@ -59,8 +59,9 @@ export interface EventMap {
   wonder: { kind: string; ante: number };
 
   // ── Монетизация ────────────────────────────────────────────────────────
-  ad_request: { kind: 'rewarded' | 'interstitial'; placement: string };
-  ad_result: { kind: 'rewarded' | 'interstitial'; placement: string; result: 'rewarded' | 'closed' | 'error' };
+  ad_request: { kind: 'rewarded' | 'interstitial' | 'preloader'; placement: string };
+  /** Чем кончился показ (PK.15): `nofill` — у площадки не было ролика, `reason` — её код. */
+  ad_result: { kind: 'rewarded' | 'interstitial' | 'preloader'; placement: string; result: 'rewarded' | 'shown' | 'closed' | 'nofill' | 'error'; reason?: string };
   /** Открыт экран атласа (магазина): откуда пришли. */
   store_open: { from: string };
   purchase_start: { product: string };
@@ -70,6 +71,13 @@ export interface EventMap {
   guide_open: { focus: string };
   /** Коллекция (CL.2): с полки на главной, из Библиотеки или по фокусу находки. */
   collection_open: { focus: string };
+  // ── Зал славы (HF) ─────────────────────────────────────────────────────
+  /** Открыл «Зал славы»: сколько достижений открыто, пришли ли доли с сервера. */
+  hall_open: { feats: number; shares: boolean };
+  /** Снимок для долей игроков: маска открытых достижений и рекорды (см. meta/hall-sync.ts). */
+  hall_snap: { f: number; bm: number; ba: number; w: number; l: number; e: number; st: number };
+  /** Открыл достижение. */
+  feat_unlock: { id: string; runs: number };
   /** Крючок в Коллекцию (CL.3): из итогов забега или с баннера мифа. */
   collection_hook: { from: 'over' | 'banner'; kind: string; n: number };
 

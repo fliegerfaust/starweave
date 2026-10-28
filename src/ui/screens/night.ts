@@ -303,7 +303,7 @@ export class NightScreen implements Screen {
           const choice = currentChoice(this.run);
           if (choice?.kind === 'trophy') this.showTrophy(choice);
         }),
-        this.app.platform.rewardedAvailable && canDoubleReward(this.run)
+        this.app.money.rewardedOffer && canDoubleReward(this.run)
           ? this.adButton(t('ads.double'), async () => {
               if (await this.app.runs.doubleReward()) {
                 this.overlay?.close();
@@ -362,7 +362,7 @@ export class NightScreen implements Screen {
     const night = run.night;
     const reached = t('over.reached', { ante: run.ante, night: t(`night.${night?.kind ?? 'dusk'}`) });
     const isRecord = run.stats.bestPlacement > this.app.runs.bestBefore && run.stats.bestPlacement > 0;
-    const revive = canRevive(run) && (this.app.money.adFree || this.app.platform.rewardedAvailable);
+    const revive = canRevive(run) && (this.app.money.adFree || this.app.money.rewardedOffer);
     const again = () => {
       this.overlay?.close();
       this.app.runs.startRun(run.skyId);

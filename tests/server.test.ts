@@ -20,7 +20,7 @@ describe('сервер: приём событий', () => {
   });
 
   it('принимает пачки всех площадок, включая Пикабу Игры', () => {
-    for (const p of ['web', 'yandex', 'telegram', 'crazygames', 'pikabu']) expect(typeof parseBatch(body({ p }), NOW)).toBe('object');
+    for (const p of ['web', 'yandex', 'telegram', 'pikabu']) expect(typeof parseBatch(body({ p }), NOW)).toBe('object');
   });
 
   it('отклоняет мусор и лишнее', () => {
@@ -83,17 +83,60 @@ describe('сервер: сводка', () => {
     expect(s.shop.top[0]).toEqual({ kind: 'omen', id: 'pillar', count: 2, players: 2 });
   });
 
-  it('реклама: ложные межстраничные из Telegram и с сайта не считаются', () => {
+  it('реклама: ложные межстраничные до 0.4.10 не считаются, AdsGram в Telegram считается', () => {
     const db = openDb(':memory:');
-    const ad = (platform: string, kind: string) =>
-      insertBatch(db, { client: `client-${platform}`, session: `s-${platform}-${kind}`, platform, version: '1', lang: 'ru', events: [{ name: 'ad_request', params: { kind, placement: kind === 'interstitial' ? 'between_antes' : 'revive' }, at: NOW - DAY }] });
-    ad('telegram', 'interstitial');
-    ad('web', 'interstitial');
-    ad('yandex', 'interstitial');
-    ad('yandex', 'rewarded');
+    const ad = (platform: string, kind: string, version: string) =>
+      insertBatch(db, { client: `client-${platform}`, session: `s-${platform}-${kind}-${version}`, platform, version, lang: 'ru', events: [{ name: 'ad_request', params: { kind, placement: kind === 'interstitial' ? 'between_antes' : 'revive' }, at: NOW - DAY }] });
+    ad('telegram', 'interstitial', '0.4.9');
+    ad('web', 'interstitial', '0.4.9');
+    ad('yandex', 'interstitial', '0.4.9');
+    ad('yandex', 'rewarded', '0.4.9');
+    ad('telegram', 'interstitial', '0.5.9');
     const s = computeStats(db, NOW, 7);
-    expect(s.ads.map((a) => `${a.kind}:${a.requests}`).sort()).toEqual(['interstitial:1', 'rewarded:1']);
-    expect(renderDashboard(s)).toContain('Между главами');
+    expect(s.ads.map((a) => `${a.platform}:${a.kind}:${a.requests}`).sort()).toEqual(['telegram:interstitial:1', 'yandex:interstitial:1', 'yandex:rewarded:1']);
+    expect(renderDashboard(s)).toContain('межстраничная, между главами');
+  });
+
+  it('сессия: активное время без фона, мгновенные выходы отдельно, без обрезки границей', () => {
+    const db = openDb(':memory:');
+    const put = (session: string, times: number[], name = 'night_start') =>
+      insertBatch(db, { client: 'client-sess', session, platform: 'telegram', version: '0.7.10', lang: 'ru', events: times.map((at) => ({ name, params: {}, at })) });
+    const t0 = NOW - DAY;
+    const min = 60_000;
+    // 3 минуты игры, 2 часа в фоне, ещё 1 минута — сессия длиной 4 минуты, а не 124
+    put('s-long', [t0, t0 + 3 * min, t0 + 123 * min, t0 + 124 * min]);
+    put('s-mid', [t0, t0 + 30_000, t0 + 90_000]);
+    put('s-bounce', [t0], 'app_open');
+    // Запуск и автоматический замер FPS — тоже «открыли и закрыли»
+    put('s-idle', [t0, t0 + 5000], 'perf');
+    // Начата до периода — в длину не входит
+    put('s-edge', [NOW - 8 * DAY, NOW - 7 * DAY + 1000]);
+    const s = computeStats(db, NOW, 7);
+    expect(s.totals.bounceSessions).toBe(2);
+    expect(s.totals.medianSessionMin).toBeCloseTo((4 + 1.5) / 2);
+    const html = renderDashboard(s);
+    expect(html).toContain('2,8 мин');
+    expect(html).toContain('Ещё 2 сессий из 4 (50%) открыли и сразу закрыли');
+  });
+
+  it('обучение: короткое и полное не складываются по номеру шага', () => {
+    const db = openDb(':memory:');
+    const step = (c: string, steps: [string, number][]) =>
+      insertBatch(db, { client: c, session: `${c}-s`, platform: 'pikabu', version: '0.7.10', lang: 'ru', events: steps.map(([st, index], i) => ({ name: 'tutorial_step', params: { step: st, index }, at: NOW - DAY + i })) });
+    step('client-old1', [['board', 1], ['hand', 2], ['place1', 3], ['place2', 4], ['place3', 5]]);
+    step('client-new1', [['shortRow', 1], ['shortBurn', 5], ['shortCross', 6]]);
+    step('client-new2', [['shortRow', 1]]);
+    insertBatch(db, { client: 'client-new1', session: 'client-new1-s', platform: 'pikabu', version: '0.7.10', lang: 'ru', events: [{ name: 'tutorial_start', params: { source: 'auto' }, at: NOW - DAY - 1 }] });
+    const s = computeStats(db, NOW, 7);
+    expect(s.tutorial.track).toBe('short');
+    expect(s.tutorial.steps).toEqual([
+      { index: 1, step: 'shortRow', players: 2 },
+      { index: 2, step: 'shortBurn', players: 1 },
+      { index: 3, step: 'shortCross', players: 1 },
+    ]);
+    const html = renderDashboard(s);
+    expect(html).toContain('Короткое обучение');
+    expect(html).toContain('Пикабу Игры');
   });
 
   it('воронка новичков и рост', () => {
@@ -115,7 +158,9 @@ describe('сервер: сводка', () => {
   });
 
   it('страница экранирует то, что прислали клиенты', () => {
-    const html = renderDashboard(computeStats(seed(), NOW, 7));
+    const db = seed();
+    insertBatch(db, { client: 'client-bbbb', session: 's-xss', platform: 'web', version: '0.7.10', lang: 'ru', events: [{ name: 'js_error', params: { message: '<script>alert(1)</script>' }, at: NOW - DAY }] });
+    const html = renderDashboard(computeStats(db, NOW, 7));
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).toContain('Telegram');
@@ -125,12 +170,12 @@ describe('сервер: сводка', () => {
     const db = openDb(':memory:');
     const put = (version: string, at: number, params: Record<string, string>) =>
       insertBatch(db, { client: 'client-err1', session: `s-${version}-${at}`, platform: 'web', version, lang: 'ru', events: [{ name: 'js_error', params, at }] });
-    put('0.4.9', NOW - 3 * DAY, { message: 'boom', where: '/a.js:1:1', stack: 'old@/a.js:1:1' });
-    put('0.4.13', NOW - DAY, { message: 'boom', where: '/a.js:1:1', stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1' });
-    put('0.4.13', NOW - DAY + 1000, { message: 'boom', where: '/a.js:1:1' });
+    put('0.5.9', NOW - 3 * DAY, { message: 'boom', where: '/a.js:1:1', stack: 'old@/a.js:1:1' });
+    put('0.5.13', NOW - DAY, { message: 'boom', where: '/a.js:1:1', stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1' });
+    put('0.5.13', NOW - DAY + 1000, { message: 'boom', where: '/a.js:1:1' });
     const s = computeStats(db, NOW, 7);
     expect(s.errors).toEqual([
-      { message: 'boom', where: '/a.js:1:1', count: 3, last: NOW - DAY + 1000, stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1', versions: ['0.4.9', '0.4.13'] },
+      { message: 'boom', where: '/a.js:1:1', count: 3, last: NOW - DAY + 1000, stack: 'req@/a.js:2:5\n<img src=x>@/a.js:3:1', versions: ['0.5.9', '0.5.13'] },
     ]);
     const html = renderDashboard(s, { site: 'https://game.example' });
     expect(html).toContain('<pre data-stack>req@/a.js:2:5\n&lt;img src=x&gt;@/a.js:3:1</pre>');
@@ -138,6 +183,34 @@ describe('сервер: сводка', () => {
     expect(html).toContain('<script>');
     // Без стеков скрипт не нужен
     expect(renderDashboard(computeStats(seed(), NOW, 7))).not.toContain('<script>');
+  });
+
+  it('приборы: фичи, обрыв забега, возвраты, старые ошибки, «На что смотреть»', () => {
+    const db = openDb(':memory:');
+    const put = (c: string, session: string, version: string, at: number, events: [string, Record<string, string | number | boolean>][]) =>
+      insertBatch(db, { client: c, session, platform: 'pikabu', version, lang: 'ru', events: events.map(([name, params], i) => ({ name, params, at: at + i * 1000 })) });
+    // Взял Дар ночи, закрыл игру во 2-й главе (Полночь) — забег оборван
+    put('client-gift', 's-gift', '0.7.10', NOW - 3 * DAY, [['app_open', {}], ['run_start', { gift: true }], ['gift_take', { kind: 'glyph', id: 'x', ante: 1, deck: 20 }], ['night_start', { ante: 2, night: 'midnight' }]]);
+    // Вернулся на следующий день, сдался в 1-й главе
+    put('client-gift', 's-gift2', '0.7.10', NOW - 2 * DAY, [['run_start', {}], ['run_end', { result: 'abandon', ante: 1, omens: '' }]]);
+    // Ошибка старой версии в список не попадает, но считается
+    put('client-old2', 's-old', '0.4.11', NOW - DAY, [['js_error', { message: 'old boom' }]]);
+    const s = computeStats(db, NOW, 7);
+    const gift = s.play.features.find((f) => f.name === 'Дар ночи')!;
+    expect(gift).toMatchObject({ available: 1, met: 1, used: 1 });
+    expect(s.play.features.find((f) => f.name === 'Развилки')).toMatchObject({ need: 'route_pick' });
+    expect(s.play.runsStarted).toBe(2);
+    expect(s.play.quits).toEqual(expect.arrayContaining([{ ante: 2, night: 'midnight', runs: 1 }, { ante: 1, night: 'dusk', runs: 1 }]));
+    expect(s.play.cohorts.reduce((a, c) => a + c.players, 0)).toBe(2);
+    expect(s.play.platformFunnel[0]).toMatchObject({ platform: 'pikabu', d1: 1, d1Base: 2 });
+    expect(s.errors).toEqual([]);
+    expect(s.play.oldErrors).toBe(1);
+    const html = renderDashboard(s);
+    expect(html).toContain('Ничего тревожного');
+    expect(html).toContain('нужно событие <code>route_pick</code>');
+    // Шрифты вшиты: страница не ходит наружу
+    expect(html).toContain('data:font/woff2;base64,');
+    expect(html).not.toContain('googleapis');
   });
 
   it('пустая база не ломает страницу', () => {

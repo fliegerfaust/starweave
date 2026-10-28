@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** Площадка сборки: `yandex`, `crazygames`, `pikabu` или пусто (обычный веб). */
+  /** Площадка сборки: `yandex`, `pikabu` или пусто (обычный веб). */
   readonly VITE_PLATFORM?: string;
   /** Переключатели CQ по умолчанию в разработке, как `?ff=` (e2e: `none`). */
   readonly VITE_FF?: string;
@@ -20,9 +20,7 @@ interface ImportMetaEnv {
   readonly VITE_ADSGRAM_BLOCK_ID?: string;
   /** Блок AdsGram для межстраничной рекламы между главами (`int-…`). */
   readonly VITE_ADSGRAM_INTER_ID?: string;
-  /** `1` — реклама CrazyGames включена (Full Launch); иначе её нет (Basic Launch). */
-  readonly VITE_CG_ADS?: string;
-  /** Страница игры на Пикабу Играх — куда ведёт вызов друга в сборке Пикабу. */
+  /** Страница игры на Пикабу Играх — куда ведёт вызов друга в сборке Пикабу; без неё — zvyozdnoe-pletenie. */
   readonly VITE_PIKABU_GAME_URL?: string;
 }
 

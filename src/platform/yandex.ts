@@ -1,6 +1,6 @@
 import type { Lang } from '@/i18n';
 import { isPermanent } from '@/store/catalog';
-import type { Payments, Platform, PurchaseResult } from './types';
+import type { Payments, AdOutcome, Platform, PurchaseResult } from './types';
 
 /** Часть SDK Яндекс Игр, которой мы пользуемся. */
 interface YSDK {
@@ -121,29 +121,30 @@ export class YandexPlatform implements Platform {
     this.sdk?.features.GameplayAPI?.stop();
   }
 
-  showInterstitial(): Promise<void> {
+  showInterstitial(): Promise<AdOutcome> {
     const sdk = this.sdk;
-    if (!sdk) return Promise.resolve();
+    if (!sdk) return Promise.resolve({ result: 'nofill' });
     return new Promise((resolve) => {
       sdk.adv.showFullscreenAdv({
         callbacks: {
           onOpen: () => this.emitPause(true),
-          onClose: () => {
+          // wasShown: false — Яндекс не показал (частота, нет рекламы)
+          onClose: (wasShown?: boolean) => {
             this.emitPause(false);
-            resolve();
+            resolve({ result: wasShown === false ? 'nofill' : 'shown' });
           },
           onError: () => {
             this.emitPause(false);
-            resolve();
+            resolve({ result: 'error' });
           },
         },
       });
     });
   }
 
-  showRewarded(): Promise<boolean> {
+  showRewarded(): Promise<AdOutcome> {
     const sdk = this.sdk;
-    if (!sdk) return Promise.resolve(false);
+    if (!sdk) return Promise.resolve({ result: 'nofill' });
     return new Promise((resolve) => {
       let rewarded = false;
       sdk.adv.showRewardedVideo({
@@ -154,11 +155,11 @@ export class YandexPlatform implements Platform {
           },
           onClose: () => {
             this.emitPause(false);
-            resolve(rewarded);
+            resolve({ result: rewarded ? 'rewarded' : 'closed' });
           },
           onError: () => {
             this.emitPause(false);
-            resolve(false);
+            resolve({ result: 'error' });
           },
         },
       });
