@@ -857,6 +857,56 @@ body {
 .shelf-ghost .unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
 /* Узкий телефон (320 px): на полке три знака помещаются, четвёртого нет */
 @media (max-width: 359px) { .shelf-marks .shelf-mark:nth-child(n + 4) { display: none; } }
+
+/* ─── Вход в Зал славы на главной (HF.6, «строка гордости вместо слогана») ── */
+/* Медаль и одна фраза с числом цветом, без плашки. Строка гордости и полка находок — одна группа:
+   на телефоне столбиком по оси арки, вплотную (одна мысль: что у тебя есть); в широком окне —
+   парой через черту, по центрам, чтобы не громоздить табличку в высоту */
+.menu-feats { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 12px; font-size: 14px; }
+.menu-feats > .menu-shelf { margin-top: 0; }
+.observatory.has-pride .tagline { display: none; }
+.hall-pride {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--ink-dim);
+  font: 600 14.5px/1.25 var(--font-body);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.hall-pride:hover { background: rgb(var(--violet-rgb) / 0.08); color: var(--ink); }
+.hall-pride-medal { position: relative; display: grid; place-items: center; flex: none; }
+.hall-pride-medal canvas { display: block; filter: drop-shadow(0 0 8px rgb(var(--gold-rgb) / 0.45)); }
+.hall-pride { max-width: 100%; text-align: left; }
+/* Узкий телефон (320 px): фраза переносится ровными половинами, стрелка — с последним словом */
+.hall-pride-line { display: inline; text-wrap: balance; }
+.hall-pride-line .icon { display: inline-block; vertical-align: -2px; margin-left: 2px; }
+.hall-pride-line .icon { width: 14px; height: 14px; color: var(--gold); }
+.hall-entry-hook b { color: var(--gold-hi); font-weight: 800; font-variant-numeric: tabular-nums; }
+.hall-entry-empty { display: grid; place-items: center; color: var(--gold); }
+@media (min-aspect-ratio: 1/1) {
+  .menu-feats { flex-direction: row; justify-content: center; gap: 0; }
+  .menu-feats > .hall-pride { margin-right: 14px; }
+  .menu-feats > .hall-pride + .menu-shelf { position: relative; margin-left: 14px; }
+  .menu-feats > .hall-pride + .menu-shelf::before { content: ''; position: absolute; left: -15px; top: 8px; bottom: 8px; width: 1px; background: var(--hair); }
+}
+/* Новое достижение, которого игрок ещё не видел в зале: медаль дышит светом */
+.hall-pride.is-new .hall-pride-medal::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.45), transparent 62%);
+  animation: hall-new 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hall-new { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity: 0.8; } }
+html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity: 0.8; }
 /* Находки забега в итогах (CL.3): строка без плашки, как полка на главной — целиком кнопка */
 .over-finds {
   display: inline-flex;
@@ -934,6 +984,8 @@ body {
   .menu-pair, .menu-handle { grid-column: 1 / -1; justify-self: center; }
   .menu-handle { padding-top: 4px; }
   .menu-shelf { gap: 3px; margin-top: 4px; padding: 2px 10px; }
+  .menu-feats { margin-top: 4px; }
+  .menu-feats > .hall-pride { padding-top: 2px; padding-bottom: 2px; }
 }
 
 /* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */

@@ -7,6 +7,7 @@ import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
 import { findShelf } from '../find-shelf';
+import { hallPride, markHallSeen } from '../hall-entry';
 import { button, modal } from '../widgets';
 import { cardThumb, confirmNewRun, showCollection, showHelp, showSettings } from './common';
 import type { Card, Glyph, Suit } from '@/core/types';
@@ -257,15 +258,23 @@ export class MenuScreen implements Screen {
    */
   private render(): void {
     const app = this.app;
-    this.plate.replaceChildren(...[
+    const seasoned = app.profile.runs > 0;
+    // Строка гордости занимает место слогана: опытному игроку важнее его место среди игроков
+    this.el.classList.toggle('has-pride', seasoned);
+    const hall = () => {
+      app.svc.audio.click();
+      void this.openHall();
+    };
+    this.plate.replaceChildren(...([
       h('h1.logo', null, [
         h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-      // Полка находок (CL.1) — после первого забега, когда есть что показать
-      app.profile.runs > 0 ? findShelf(app.profile, (focus) => this.openCollection(focus)) : null,
-    ].filter((x): x is HTMLElement => !!x));
+      // Зал славы (HF.6) и полка находок (CL.1) — после первого забега, одной группой:
+      // на телефоне столбиком по оси арки, в ландшафте и на ПК парой через черту
+      seasoned ? h('div.menu-feats', null, [hallPride(app.profile, hall), findShelf(app.profile, (focus) => this.openCollection(focus))]) : null,
+    ] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x));
     if (this.figure) {
       const name = dict().constellation[this.figure.id] ?? this.figure.id;
       this.figureName.textContent = name;
@@ -352,6 +361,8 @@ export class MenuScreen implements Screen {
     const fresh = sync.fetchHallStats();
     const stats = await Promise.race([fresh, new Promise<null>((r) => window.setTimeout(() => r(null), 1200))]);
     showHall(this.app.profile, stats ?? sync.cachedHallStats());
+    markHallSeen(this.app.profile);
+    this.render();
   }
 
   /** Свайп вверх у нижнего края открывает библиотеку — если меню не прокручивается само. */
