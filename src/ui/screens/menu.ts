@@ -7,7 +7,7 @@ import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
 import { findShelf } from '../find-shelf';
-import { hallLite, hallPride, hallShelfCell, markHallSeen, type HallEntryKind } from '../hall-entry';
+import { hallLite, hallPride, hallShelfCell, markHallSeen, type HallEntryKind, type PrideLayout } from '../hall-entry';
 import { button, modal } from '../widgets';
 import { cardThumb, confirmNewRun, showCollection, showHelp, showSettings } from './common';
 import type { Card, Glyph, Suit } from '@/core/types';
@@ -65,7 +65,13 @@ let domeOpened = false;
 /** Вариант входа в Зал славы (HF.6); в DEV витрина переключает его `?hallv=a|b|c`. */
 function hallEntryKind(): HallEntryKind {
   const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('hallv') : null;
-  return v === 'a' || v === 'b' || v === 'c' ? v : 'c';
+  return v === 'a' || v === 'b' ? v : 'c';
+}
+
+/** Раскладка строки гордости (круг 2): `?hallv=c1|c2|c3`. */
+function prideLayout(): PrideLayout {
+  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('hallv') : null;
+  return v === 'c2' || v === 'c3' ? v : 'c1';
 }
 
 export class MenuScreen implements Screen {
@@ -266,23 +272,28 @@ export class MenuScreen implements Screen {
     const app = this.app;
     const seasoned = app.profile.runs > 0;
     const entry = hallEntryKind();
+    const layout = prideLayout();
+    this.el.classList.toggle('has-pride', seasoned && entry === 'c');
+    this.el.dataset.pride = layout;
+    this.scope.querySelector('.hall-pride')?.remove();
     const hall = () => {
       app.svc.audio.click();
       void this.openHall();
     };
-    this.plate.replaceChildren(...[
+    this.plate.replaceChildren(...([
       h('h1.logo', null, [
         h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-      // Зал славы на главной (HF.6): строка гордости под названием — вариант «c»
-      seasoned && entry === 'c' ? hallPride(app.profile, hall) : null,
-      // Полка находок (CL.1) — после первого забега, когда есть что показать; в «a» делится с Залом славы
-      seasoned && entry === 'a'
-        ? h('div.menu-shelves', null, [findShelf(app.profile, (focus) => this.openCollection(focus), true), hallShelfCell(app.profile, hall)])
-        : seasoned ? findShelf(app.profile, (focus) => this.openCollection(focus)) : null,
-    ].filter((x): x is HTMLElement => !!x));
+      // Зал славы (HF.6) и полка находок (CL.1) — одной группой: на телефоне столбиком по оси
+      // арки, в ландшафте и на ПК парой через черту. В «c3» строка гордости в небе купола,
+      // а здесь остаётся запасной для невысоких экранов
+      seasoned ? h(`div.menu-feats.feats-${entry === 'c' ? layout : entry}`, null, entry === 'a'
+        ? [h('div.menu-shelves', null, [findShelf(app.profile, (focus) => this.openCollection(focus), true), hallShelfCell(app.profile, hall)])]
+        : [entry === 'c' ? hallPride(app.profile, hall, layout === 'c3' ? 'c1' : layout) : null, findShelf(app.profile, (focus) => this.openCollection(focus))]) : null,
+    ] as (HTMLElement | null)[]).filter((x): x is HTMLElement => !!x));
+    if (seasoned && entry === 'c' && layout === 'c3') this.scope.append(hallPride(app.profile, hall, 'c3'));
     if (this.figure) {
       const name = dict().constellation[this.figure.id] ?? this.figure.id;
       this.figureName.textContent = name;

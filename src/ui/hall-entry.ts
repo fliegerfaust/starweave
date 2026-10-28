@@ -95,14 +95,21 @@ export function hallLite(p: Profile, open: () => void): HTMLElement {
   return b;
 }
 
-/** c — строка гордости под названием: медаль, имя зала и одна фраза с числом. */
-export function hallPride(p: Profile, open: () => void): HTMLElement {
+/** Раскладка строки гордости (HF.6, круг 2): c1 — вместо слогана, c2 — печать, c3 — в небе купола. */
+export type PrideLayout = 'c1' | 'c2' | 'c3';
+
+/** c — строка гордости: медаль и одна фраза с числом цветом. */
+export function hallPride(p: Profile, open: () => void, layout: PrideLayout = 'c1'): HTMLElement {
   const t = hallTeaser(p);
   const d = dict().hall;
-  const hook = hookLine(t.hook) ?? h('span.hall-entry-hook', null, format(d.opened, { n: t.done, total: t.total }));
-  const b = h(`button.hall-pride${t.fresh ? '.is-new' : ''}`, { type: 'button' }, [
-    h('span.hall-pride-medal', null, medal(t.medals[0], 34)),
-    h('span.hall-pride-text', null, [h('span.hall-pride-label', null, [d.title, t.fresh ? h('i.hall-new-dot', { attrs: { 'aria-label': d.entryNew } }) : null]), h('span.hall-pride-line', null, [hook, icon('chevron')])]),
+  const stacked = layout !== 'c1';
+  // Под подписью «Зал славы» фраза короче: «Лучше, чем 97% игроков» влезает в щель купола
+  const short = stacked && t.hook ? { tpl: t.hook.tpl === d.better ? d.entryBetter : d.entryRareShort, p: t.hook.p } : t.hook;
+  const hook = hookLine(short) ?? h('span.hall-entry-hook', null, format(d.opened, { n: t.done, total: t.total }));
+  const b = h(`button.hall-pride.pride-${layout}${t.fresh ? '.is-new' : ''}`, { type: 'button', attrs: { 'aria-label': `${d.title}. ${hook.textContent ?? ''}${t.fresh ? `. ${d.entryNew}` : ''}` } }, [
+    h('span.hall-pride-medal', null, medal(t.medals[0], stacked ? 40 : 26)),
+    stacked ? h('span.hall-pride-label', null, d.title) : null,
+    h('span.hall-pride-line', null, [hook, icon('chevron')]),
   ]);
   b.addEventListener('click', open);
   return b;
