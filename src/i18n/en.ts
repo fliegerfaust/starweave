@@ -788,7 +788,6 @@ export const en: Dict = {
     tabs: { atlas: 'Atlas', look: 'Wardrobe', support: 'Support' } as Record<string, string>,
     buy: 'Unlock the Atlas',
     owned: 'Atlas unlocked — thank you!',
-    ownedGift: 'The Atlas is open — free here.',
     openArchive: 'Open the archive',
     playAstrolabe: 'Play the Astrolabe deck',
     paying: 'Waiting for payment…',

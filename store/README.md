@@ -13,8 +13,6 @@
 | Shorts, Клипы, Reels | ролики 1080×1920, 60 fps | `clips/*-ru.mp4`, `-en.mp4` (`npm run clips`, в git нет; `clips/README.md`) |
 | Пикабу Игры | иконки 1024×1024 и 1920×1080 | `pikabu/icon-*.png` (`node scripts/pikabu-covers.mjs`, арт `pikabu/art/`, промпты `pikabu/art-prompts.md`) |
 | | скриншоты 1920×1080 и 1080×1920 с заголовками | `pikabu/screens/*.jpg` (`node scripts/pikabu-screens.mjs <адрес dev-сервера>`) |
-| CrazyGames | обложки 1920×1080, 800×1200, 800×800 | `crazygames/cover-*.png` (`node scripts/crazygames-covers.mjs`, арт `crazygames/art/`) |
-| | видео 16:9 и 2:3 без звука | `crazygames/video-*.mp4` (`node scripts/crazygames-video.mjs`); тексты `crazygames/listing.md` |
 | Яндекс Игры | иконка 512×512, обложка 800×470 | `yandex/icon-512.png`, `yandex/cover-800x470-ru.png`, `-en.png`; тексты `yandex/listing.md` |
 | FindMini | англ. портретные снимки в JPEG (до 1 МБ), аватар | `findmini/*`; заявка `findmini/listing.md` |
 | Google Play, RuStore | баннер 1024×500 | `google-play/feature-1024x500-ru.png`, `-en.png` |

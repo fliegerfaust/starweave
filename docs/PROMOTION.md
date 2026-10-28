@@ -23,7 +23,6 @@
 |---|---|
 | «Бросить вызов» (GR.1): `startapp=c_…`, события `challenge_*` | работает |
 | Пикабу Игры | вышли 27.10; пост в день выхода PK.9 (CG-102), Денис |
-| CrazyGames | повторная отправка CQ.9 (CG-86), Денис ([CRAZYGAMES.md](CRAZYGAMES.md)) |
 | Витрина в BotFather (FP.9 / CG-7) | Денис, [TELEGRAM.md](TELEGRAM.md) |
 | Каталоги мини-приложений (GR.3 / CG-40): FindMini, позже tApps Center | Денис |
 | Девлог и сообщества (GR.5 / CG-27): канал игры, DTF, Пикабу; для en r/roguelikes, r/WebGames | не начато |

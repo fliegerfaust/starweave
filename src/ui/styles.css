@@ -2500,7 +2500,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 @media (min-width: 900px) and (min-height: 561px) {
   .atlas { max-width: 1060px; padding: calc(28px + var(--safe-top)) 40px calc(28px + var(--safe-bottom)); gap: 18px; justify-content: safe center; }
   .atl-body { flex: 0 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; -webkit-mask-image: none; mask-image: none; padding-bottom: 0; }
-  /* Невысокое окно ПК (планшетное окно CrazyGames 1080×607): обложка ужимается, а не уходит под кнопку */
+  /* Невысокое окно ПК (например 1080×607): обложка ужимается, а не уходит под кнопку */
   .atl-hero { min-height: clamp(290px, calc(100dvh - 300px), 470px); }
   .atl-stack { --bw: 150px; --fw: 120px; width: 260px; height: 260px; }
   .atl-title { font-size: 40px; }

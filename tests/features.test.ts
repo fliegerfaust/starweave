@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES, resolveFeatures } from '../src/platform/features';
-import { CrazyGamesPlatform } from '../src/platform/crazygames';
+import { PikabuPlatform } from '../src/platform/pikabu';
 
 describe('переключатели площадки', () => {
   it('без площадки всё выключено', () => {
     expect(Object.values(resolveFeatures())).toEqual(FEATURES.map(() => false));
   });
 
-  it('CrazyGames включает всё новое', () => {
-    expect(Object.values(resolveFeatures(new CrazyGamesPlatform(false).features)).every(Boolean)).toBe(true);
+  it('Пикабу включает всё новое', () => {
+    expect(Object.values(resolveFeatures(new PikabuPlatform().features)).every(Boolean)).toBe(true);
   });
 
   it('?ff= включает и выключает поверх площадки', () => {
