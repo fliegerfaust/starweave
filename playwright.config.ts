@@ -32,5 +32,7 @@ export default defineConfig({
     // Окно Пикабу Игр на ПК (фрейм страницы игры): широкое и низкое — своя раскладка между ПК и телефоном боком
     { name: 'pikabu-desktop', use: { viewport: { width: 1394, height: 580 }, channel: 'chrome' } },
     { name: 'pikabu-laptop', use: { viewport: { width: 1180, height: 540 }, channel: 'chrome' } },
+    // Живое окно Пикабу на ПК по снимку Дениса 29.10: выше 600 — раскладка ПК
+    { name: 'pikabu-real', use: { viewport: { width: 1392, height: 633 }, channel: 'chrome' } },
   ],
 });

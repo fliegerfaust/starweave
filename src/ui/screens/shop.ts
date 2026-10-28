@@ -118,28 +118,17 @@ export class ShopScreen implements Screen {
       return row;
     };
     const omenRows = shop.omens.map((item, i) => mark(tag(this.wareRow(item, () => this.buyOmen(item, i)), `omen-${i}`), `omen-${i}`, item));
-    if (this.giving !== null) omenRows[this.giving]?.classList.add('giving');
     const itemRows = shop.items.map((item, i) => mark(this.wareRow(item, () => this.buyItem(item, i)), `item-${i}`, item));
     const packRows = shop.packs.map((item, i) => mark(this.wareRow(item, () => this.act({ c: 'buyPack', slot: i }, 'coin', () => this.trackBuy(item)) || this.afterPackBuy()), `pack-${i}`, item));
 
     // Свои Знамения: только знаки, порядок — слева направо; касание — лист с бонусом и «Продать»
     const owned = h('div.owned-omens', { dataset: { shop: 'owned' }, style: `--slots: ${slots}` });
     const misordered = misorderedOmens(run.omens);
-    const givingItem = this.giving !== null ? shop.omens[this.giving] : undefined;
-    const giving = givingItem?.kind === 'omen' && !givingItem.sold ? { slot: this.giving!, item: givingItem } : null;
-    if (!giving) this.giving = null;
     run.omens.forEach((o, i) => {
-      const medal = h('button.omen-slot.draggable', { type: 'button', dataset: { dragHandle: '' }, ariaLabel: named('omen', o.id).name, onclick: () => (giving ? this.giveFor(giving.slot, o.uid) : this.showOwned(o.uid)) },
+      const medal = h('button.omen-slot.draggable', { type: 'button', dataset: { dragHandle: '' }, ariaLabel: named('omen', o.id).name, onclick: () => (this.giving !== null ? this.giveFor(this.giving, o.uid) : this.showOwned(o.uid)) },
         // Рисуется крупно, размер задаёт раскладка: на ПК и в ландшафте медали больше (OB, 29.10)
         canvasImg(omenSigil(o.id, 64, dpr()), 48));
       const chip = h(`div.owned-omen${prev && !prev.omenUids.has(o.uid) ? '.fresh' : ''}`, { dataset: { omen: String(i) } }, medal);
-      // Замена: над медалью цена продажи; не хватает золота с этой продажей — медаль тусклая
-      if (giving) {
-        const left = goldAfter(run, o, giving.item.price) ?? 0;
-        chip.classList.add('give', ...(left < 0 ? ['short'] : []));
-        medal.disabled = left < 0;
-        chip.append(h('span.give-badge', null, withCoin(`+${sellPrice(o.id)}`)));
-      }
       if (misordered && o.id === misordered.xmult && run.omens.findIndex((x) => x.id === misordered.xmult) === i) chip.classList.add('misplaced');
       owned.append(chip);
     });
@@ -148,12 +137,8 @@ export class ShopScreen implements Screen {
     // Резонанс (RS.2): пара рядом — между медалями нить и строка «Слить»; пара врозь — совет
     const resAt = resonanceAt(run);
     const resHint = this.resonanceHint(owned, resAt);
-    const ownedHint = giving
-      ? h('div.give-hint', null, [
-          h('p.hint', null, t('shop.replaceHint', { name: named('omen', giving.item.omenId).name })),
-          h('button.link-btn', { type: 'button', onclick: () => { this.giving = null; this.render(); } }, t('shop.replaceCancel')),
-        ])
-      : resHint ?? (misordered
+    // Подсказка под рядом при замене не меняется: меняется только строка заголовка ряда (ничего не скачет)
+    const ownedHint = resHint ?? (misordered
       ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
       : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint')));
 
@@ -183,8 +168,8 @@ export class ShopScreen implements Screen {
           : null,
       ]),
       h('div.shop-lower', null, [
-        h(`section.shop-section.shop-owned${giving ? '.giving' : ''}`, null, [
-          h('div.shop-label-row', null, [h('h2.shop-label', null, t('shop.yourOmens')), h('span.shop-count', null, `${run.omens.length}/${slots}`)]),
+        h('section.shop-section.shop-owned', null, [
+          h('div.shop-label-row', { dataset: { shop: 'owned-label' } }, [h('h2.shop-label', null, t('shop.yourOmens')), h('span.shop-count', null, `${run.omens.length}/${slots}`)]),
           owned,
           ownedHint,
         ]),
@@ -202,6 +187,7 @@ export class ShopScreen implements Screen {
     this.el.classList.toggle('short', this.availHeight() < 700);
     this.el.querySelector('.shop-body')?.scrollTo({ top: keepScroll });
     this.prev = { gold: run.gold, omenUids: new Set(run.omens.map((o) => o.uid)), offers };
+    this.paintGiving();
   }
 
   /** Высота экрана без системных зон (вырез, кнопки Telegram): по ней включается плотный вид. */
@@ -333,8 +319,59 @@ export class ShopScreen implements Screen {
       return;
     }
     this.giving = this.giving === slot ? null : slot;
-    this.render();
-    this.el.querySelector('.shop-owned')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    this.paintGiving();
+    // Ряд спрятан под краем прокрутки — показать его; виден — ничего не двигать (ничего не скачет)
+    const row = this.el.querySelector('.shop-owned .owned-omens')?.getBoundingClientRect();
+    const box = this.el.querySelector('.shop-body')?.getBoundingClientRect();
+    if (row && box && (row.bottom > box.bottom + 8 || row.top < box.top - 8)) this.el.querySelector('.shop-owned')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  /**
+   * Замена на месте, без пересборки экрана (ничего не скачет, даже прокрутка): подсветка товара и
+   * ряда, цены продажи на медалях, «Что отдать? · Отмена» вместо «Твои Знамения · 5/5». Вызывается
+   * в конце `render` и при «Заменить» / «Отмена».
+   */
+  private paintGiving(): void {
+    const run = this.run;
+    const shop = run.shop;
+    const item = this.giving !== null ? shop?.omens[this.giving] : undefined;
+    const giving = item?.kind === 'omen' && !item.sold ? item : null;
+    if (!giving) this.giving = null;
+    this.el.querySelectorAll<HTMLElement>('.ware[data-shop^="omen-"]').forEach((row) => row.classList.toggle('giving', !!giving && row.dataset.shop === `omen-${this.giving}`));
+    this.el.querySelector('.shop-owned')?.classList.toggle('giving', !!giving);
+    this.el.querySelectorAll<HTMLElement>('.owned-omen:not(.empty)').forEach((chip, i) => {
+      const o = run.omens[i];
+      const medal = chip.querySelector<HTMLButtonElement>('.omen-slot');
+      chip.querySelector('.give-badge')?.remove();
+      if (!o || !medal) return;
+      const left = giving ? (goldAfter(run, o, giving.price) ?? 0) : 0;
+      chip.classList.toggle('give', !!giving);
+      chip.classList.toggle('short', left < 0);
+      medal.disabled = left < 0;
+      // Цена продажи — слоем на нижнем краю медали: ряд не сдвигается
+      if (giving) chip.append(h('span.give-badge', null, withCoin(`+${sellPrice(o.id)}`)));
+    });
+    const label = this.el.querySelector<HTMLElement>('[data-shop="owned-label"]');
+    label?.replaceChildren(...(giving
+      ? [h('h2.shop-label.give-label', null, t('shop.replaceTitle')), this.cancelGive()]
+      : [h('h2.shop-label', null, t('shop.yourOmens')), h('span.shop-count', null, `${run.omens.length}/${omenSlots(run)}`)]));
+  }
+
+  /** «Отмена» замены — тем же текстовым элементом, что счётчик «5/5»: строка не меняет высоту. */
+  private cancelGive(): HTMLElement {
+    const cancel = () => {
+      this.giving = null;
+      this.paintGiving();
+    };
+    return h('span.shop-count.give-cancel', {
+      attrs: { role: 'button', tabindex: '0' },
+      onclick: cancel,
+      onkeydown: (e: KeyboardEvent) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        cancel();
+      },
+    }, t('shop.replaceCancel'));
   }
 
   /** Замена: своё `uid` продано, Знамение с места `slot` встало на его место. */
