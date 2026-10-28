@@ -111,7 +111,7 @@ async function boot(): Promise<void> {
     run.shop = generateShop(run);
     await app.router.route();
   }
-  // OB.0: полный ряд Знамений (`?full=shop|pack`, `&replace=row` — вариант Б): замена своего
+  // OB: полный ряд Знамений (`?full=shop|pack|trophy`): замена своего
   if (dev && params.has('full')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
     app.runs.startRun('classic', false, 0, 4242);
@@ -129,6 +129,10 @@ async function boot(): Promise<void> {
       rerollCost: 5,
     };
     if (params.get('full') === 'pack') run.pending = [{ kind: 'pack', pack: 'omen', options: ['cometTrail', 'moonTide', 'pillar'] }];
+    if (params.get('full') === 'trophy') {
+      const [{ rollTrophy }, { TROPHY_LIST }] = await Promise.all([import('./core/trophy'), import('./core/content/trophies')]);
+      run.pending = [{ kind: 'trophy', options: rollTrophy(run, TROPHY_LIST[0]!.id) }];
+    }
     await app.router.route();
   }
   // ON.1: открытие Развилок (`?routesfx=open|fork`)

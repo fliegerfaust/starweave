@@ -1,7 +1,7 @@
 import { TROPHY_SLOTS, trophyDef } from './content/trophies';
 import { RuleError } from './errors';
 import { createOmen } from './omen-instance';
-import { omenSlots } from './shop';
+import { omenSlots, replaceOmen } from './shop';
 import type { RunState } from './types';
 
 /**
@@ -25,16 +25,21 @@ export function rollTrophy(run: RunState, bossId: string): TrophyOffer[] {
   return owned ? [{ k: 'trophy', id: bossId }] : [{ k: 'trophy', id: bossId }, { k: 'omen', id: omen }];
 }
 
-/** Можно ли взять вариант: Знамению нужен свободный слот, трофей встаёт всегда. */
-export function canTakeTrophy(run: RunState, offer: TrophyOffer): boolean {
-  return offer.k === 'trophy' || run.omens.length < omenSlots(run);
+/**
+ * Можно ли взять вариант: Знамению нужен свободный слот или своё на замену (`replace` — uid, OB),
+ * трофей встаёт всегда.
+ */
+export function canTakeTrophy(run: RunState, offer: TrophyOffer, replace?: number): boolean {
+  return offer.k === 'trophy' || run.omens.length < omenSlots(run) || replace !== undefined;
 }
 
 /** Взять вариант: трофей занимает слот (новый вытесняет самый старый) или Знамение — в пояс. */
-export function takeTrophy(run: RunState, offer: TrophyOffer): void {
-  if (!canTakeTrophy(run, offer)) throw new RuleError('noSlots');
+export function takeTrophy(run: RunState, offer: TrophyOffer, replace?: number): void {
+  if (!canTakeTrophy(run, offer, replace)) throw new RuleError('noSlots');
   if (offer.k === 'omen') {
-    run.omens.push(createOmen(run, offer.id));
+    // Полный ряд: своё Знамение продаётся, парное Затмению встаёт на его место (OB)
+    if (replace !== undefined) replaceOmen(run, replace, offer.id);
+    else run.omens.push(createOmen(run, offer.id));
     return;
   }
   run.trophies = [...trophiesOf(run).filter((id) => id !== offer.id), offer.id].slice(-TROPHY_SLOTS);

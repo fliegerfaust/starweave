@@ -23,7 +23,7 @@ import { coach, layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { rich } from '../rich';
-import { canReplaceFor, giveSheet, goldAfter, replaceStyle } from '../omen-replace';
+import { canReplaceFor, goldAfter } from '../omen-replace';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -43,7 +43,7 @@ function offerId(item: ShopItem): string {
 export class ShopScreen implements Screen {
   private el!: HTMLElement;
   private prev: ShopSnapshot | null = null;
-  /** Вариант Б замены (OB.0): место товара, за который сейчас выбирают, что отдать. */
+  /** Замена (OB): место товара, за который сейчас выбирают, какое своё Знамение отдать. */
   private giving: number | null = null;
 
   constructor(
@@ -130,9 +130,10 @@ export class ShopScreen implements Screen {
     if (!giving) this.giving = null;
     run.omens.forEach((o, i) => {
       const medal = h('button.omen-slot.draggable', { type: 'button', dataset: { dragHandle: '' }, ariaLabel: named('omen', o.id).name, onclick: () => (giving ? this.giveFor(giving.slot, o.uid) : this.showOwned(o.uid)) },
-        canvasImg(omenSigil(o.id, 48, dpr()), 48));
+        // Рисуется крупно, размер задаёт раскладка: на ПК и в ландшафте медали больше (OB, 29.10)
+        canvasImg(omenSigil(o.id, 64, dpr()), 48));
       const chip = h(`div.owned-omen${prev && !prev.omenUids.has(o.uid) ? '.fresh' : ''}`, { dataset: { omen: String(i) } }, medal);
-      // Вариант Б: над медалью цена продажи; не хватает золота с этой продажей — медаль тусклая
+      // Замена: над медалью цена продажи; не хватает золота с этой продажей — медаль тусклая
       if (giving) {
         const left = goldAfter(run, o, giving.item.price) ?? 0;
         chip.classList.add('give', ...(left < 0 ? ['short'] : []));
@@ -324,15 +325,11 @@ export class ShopScreen implements Screen {
     void playResonance(a!.id, b!.id, res.id, [chips[at] ?? null, chips[at + 1] ?? null], () => this.act({ c: 'fuse', at }, 'click'));
   }
 
-  /** Купить Знамение; ряд полон — выбрать, что отдать (OB): листом (А) или касанием своего ряда (Б). */
+  /** Купить Знамение; ряд полон — свой ряд становится целью: касание медали и есть замена (OB). */
   private buyOmen(item: ShopItem, slot: number): void {
     if (item.kind !== 'omen') return;
     if (this.run.omens.length < omenSlots(this.run)) {
       this.act({ c: 'buyOmen', slot }, 'coin', () => this.trackBuy(item));
-      return;
-    }
-    if (replaceStyle() === 'sheet') {
-      giveSheet(this.run, { newId: item.omenId, price: item.price, onPick: (uid) => this.giveFor(slot, uid) });
       return;
     }
     this.giving = this.giving === slot ? null : slot;
@@ -499,7 +496,7 @@ export class ShopScreen implements Screen {
         foot: null,
         root: null,
         from: null,
-        take: (index) => this.app.runs.shopAction({ c: 'choose', index }),
+        take: (index, replace) => this.app.runs.shopAction({ c: 'choose', index, ...(replace !== undefined ? { replace } : {}) }),
         landing: () => null,
         done: () => {
           this.render();

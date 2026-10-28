@@ -1,14 +1,14 @@
 import { bossSigil, omenSigil } from '@/art/sigil';
 import type { Choice } from '@/core/choices';
 import { omenDef } from '@/core/content/omens';
-import { omenSlots } from '@/core/shop';
-import { canTakeTrophy, trophiesOf, type TrophyOffer } from '@/core/trophy';
+import { omenSlots, sellPrice } from '@/core/shop';
+import { trophiesOf, type TrophyOffer } from '@/core/trophy';
 import type { RunState } from '@/core/types';
 import { named, t } from '@/i18n';
 import { bonusLine } from './bonus';
 import { canvasImg, dpr, h } from './dom';
 import { sceneRibbon } from './scene-window';
-import { button } from './widgets';
+import { button, withCoin } from './widgets';
 
 type TrophyChoice = Extract<Choice, { kind: 'trophy' }>;
 
@@ -22,8 +22,8 @@ export interface TrophySceneHost {
   root: HTMLElement | null;
   /** Откуда спускается сигил: правило Затмения в раме. */
   from: HTMLElement | null;
-  /** Взять вариант; false — не вышло (ошибка уже показана). */
-  take(index: number): boolean;
+  /** Взять вариант; `replace` — своё Знамение на замену при полном ряде (OB). false — не вышло. */
+  take(index: number, replace?: number): boolean;
   /** После взятия: знак в раме, куда долететь (рама уже обновлена). */
   landing(offer: TrophyOffer): HTMLElement | null;
   done(): void;
@@ -76,7 +76,34 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
   const go = button(t('trophyScene.pick'), () => void take(), { className: 'ts-go', disabled: true });
   const replace = old ? h('div.ts-replace', null, [canvasImg(bossSigil(old, 24, dpr()), 24), h('span', null, t('trophyScene.replaces', { name: named('trophy', old).name }))]) : null;
   const note = h('div.ts-note', null, t('trophyScene.beaten', { name: named('boss', bossId).name }));
-  const foot = h('div.ts-foot', null, [note, replace, go]);
+  // Полный ряд (OB): Знамение берётся заменой своего — ряд с ценами продажи. Место под ряд
+  // держится с начала, чтобы кнопка не прыгала, когда выбирают Знамение
+  const omenOffer = choice.options.find((o) => o.k === 'omen');
+  const full = !!omenOffer && run.omens.length >= omenSlots(run);
+  let give: number | undefined;
+  const giveRow = full ? h('div.ts-give') : null;
+  const paintGive = (on: boolean) => {
+    if (!giveRow || !omenOffer) return;
+    giveRow.classList.toggle('on', on);
+    giveRow.replaceChildren(
+      h('p.hint', null, t('shop.replaceHint', { name: named('omen', omenOffer.id).name })),
+      h('div.owned-omens', null, run.omens.map((o) => h(`div.owned-omen.give${give === o.uid ? '.picked' : ''}`, null, [
+        h('button.omen-slot', {
+          type: 'button',
+          ariaLabel: named('omen', o.id).name,
+          disabled: !on,
+          onclick: () => {
+            give = o.uid;
+            paintGive(true);
+            go.disabled = false;
+          },
+        }, canvasImg(omenSigil(o.id, 44, dpr()), 44)),
+        h('span.give-badge', null, withCoin(`+${sellPrice(o.id)}`)),
+      ]))),
+    );
+  };
+  paintGive(false);
+  const foot = h('div.ts-foot', null, [note, replace, giveRow, go]);
   const layer = h('div.trophy-scene', { attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': t('trophyScene.pick') } }, [veil, field, foot]);
   placeFoot(foot, host.foot);
   // Рядом с рамой и раньше неё в DOM: рама рисуется поверх слоя, в неё прилетает знак
@@ -89,23 +116,21 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
   field.append(medal);
 
   // Медальоны выбора: строятся сразу (место держится), проявляются после переворота
-  const cards = choice.options.map((offer, i) => optionCard(run, offer, i));
+  const cards = choice.options.map((offer, i) => optionCard(offer, i));
   const pair = h('div.ts-pair', null, cards.length > 1 ? [cards[0]!, h('span.ts-or', null, t('trophyScene.or')), cards[1]!] : cards);
   const head = h('div.ts-head', null, [h('b', null, t('trophyScene.pick')), h('small', null, t(cards.length > 1 ? 'trophyScene.pickSub' : 'trophyScene.pickOnly')), h('i')]);
   const pickBox = h('div.ts-pick', null, [head, pair]);
 
-  function optionCard(run: RunState, offer: TrophyOffer, i: number): HTMLButtonElement {
-    const canTake = canTakeTrophy(run, offer);
+  function optionCard(offer: TrophyOffer, i: number): HTMLButtonElement {
     const icon = offer.k === 'trophy' ? goldSigil(offer.id, SIG) : canvasImg(omenSigil(offer.id, SIG, dpr()), SIG);
     const info = offer.k === 'trophy' ? named('trophy', offer.id) : named('omen', offer.id, omenDef(offer.id).vars?.(omenDef(offer.id).initialData?.() ?? {}) ?? {});
-    const desc = !canTake ? h('small.ts-full', null, t('trophyScene.full', { n: omenSlots(run) })) : h('small', null, bonusLine(info.desc));
+    const desc = h('small', null, bonusLine(info.desc));
     const el = h('button.ts-card', { type: 'button', dataset: { k: offer.k } }, [
       h('span.ts-kind', null, t(offer.k === 'trophy' ? 'trophyScene.kindTrophy' : 'trophyScene.kindOmen')),
       h('span.ts-icon', null, icon),
       h('b', null, info.name),
       desc,
     ]) as HTMLButtonElement;
-    el.disabled = !canTake;
     el.addEventListener('click', () => select(i));
     return el;
   }
@@ -115,8 +140,12 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
     pick = i;
     cards.forEach((c, j) => c.classList.toggle('on', j === i));
     const offer = choice.options[i]!;
-    go.disabled = false;
-    go.querySelector('.btn-label')!.textContent = t(offer.k === 'trophy' ? 'trophyScene.tame' : 'trophyScene.takeOmen');
+    // Знамение при полном ряде: сначала выбрать, какое своё отдать
+    const giving = full && offer.k === 'omen';
+    if (!giving) give = undefined;
+    paintGive(giving);
+    go.disabled = giving && give === undefined;
+    go.querySelector('.btn-label')!.textContent = t(offer.k === 'trophy' ? 'trophyScene.tame' : giving ? 'shop.replace' : 'trophyScene.takeOmen');
     replace?.classList.toggle('off', offer.k !== 'trophy');
   }
 
@@ -164,7 +193,7 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
     const offer = choice.options[pick]!;
     const icon = cards[pick]!.querySelector('.ts-icon') as HTMLElement;
     const a = icon.getBoundingClientRect();
-    if (!host.take(pick)) return;
+    if (!host.take(pick, offer.k === 'omen' ? give : undefined)) return;
     busy = true;
     go.disabled = true;
     replace?.classList.add('gone');

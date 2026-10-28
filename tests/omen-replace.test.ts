@@ -71,3 +71,22 @@ describe('замена Знамения при полном ряде (OB)', () =
     expect(run.omens[1]!.id).toBe('tripod');
   });
 });
+
+describe('трофей Затмения при полном ряде (OB)', () => {
+  it('Знамение трофея встаёт на место отданного, трофей берётся как раньше', async () => {
+    const { rollTrophy } = await import('../src/core/trophy');
+    const { TROPHY_LIST } = await import('../src/core/content/trophies');
+    const run = fullShop(5);
+    const options = rollTrophy(run, TROPHY_LIST[0]!.id);
+    const omenAt = options.findIndex((o) => o.k === 'omen');
+    expect(omenAt).toBeGreaterThanOrEqual(0);
+    run.pending = [{ kind: 'trophy', options }];
+    expect(() => apply(run, { c: 'choose', index: omenAt })).toThrow();
+    const old = run.omens[3]!;
+    const gold = run.gold;
+    apply(run, { c: 'choose', index: omenAt, replace: old.uid });
+    expect(run.omens[3]!.id).toBe(options[omenAt]!.id);
+    expect(run.omens).toHaveLength(5);
+    expect(run.gold).toBe(gold + sellPrice(old.id));
+  });
+});
