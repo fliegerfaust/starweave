@@ -92,3 +92,60 @@ test('окна ночи: всё на экране, кнопки видны, ни
   expect(failures, failures.slice(0, 10).join('\n')).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * «Бросить вызов» во фрейме площадки (PK.20): на Пикабу политика фрейма запрещает и
+ * системное «Поделиться», и буфер обмена — кнопка молча ничего не делала, а в сводку уходило
+ * «NotAllowedError». Теперь: копирование старым способом, а если и оно запрещено — окно с уже
+ * выделенным текстом. Отмена системного окна игроком — не ошибка, ничего не показываем.
+ */
+test('вызов друга: без share и буфера обмена текст в окне, без ошибок', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  await page.evaluate(() => {
+    const w = window as unknown as { __rejections: string[] };
+    w.__rejections = [];
+    addEventListener('unhandledrejection', (e) => w.__rejections.push(String(e.reason)));
+  });
+  const blocked = () => Promise.reject(new DOMException('blocked by permissions policy', 'NotAllowedError'));
+  const cases = [
+    // ПК во фрейме Пикабу: нет share, clipboard запрещён, execCommand тоже не сработал
+    { name: 'всё запрещено', share: 'none', exec: false, expect: 'box' },
+    // Телефон во фрейме: share есть, но запрещён политикой
+    { name: 'share запрещён', share: 'blocked', exec: false, expect: 'box' },
+    { name: 'execCommand сработал', share: 'none', exec: true, expect: 'toast' },
+    { name: 'игрок отменил share', share: 'abort', exec: false, expect: 'nothing' },
+  ] as const;
+  for (const c of cases) {
+    await open(page, 'ru', 'lost');
+    await page.evaluate(({ share, exec, blockedSrc }) => {
+      const reject = new Function(`return (${blockedSrc})`)() as () => Promise<never>;
+      const abort = () => Promise.reject(new DOMException('cancelled', 'AbortError'));
+      Object.defineProperty(navigator, 'share', { configurable: true, value: share === 'none' ? undefined : share === 'abort' ? abort : reject });
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: reject } });
+      document.execCommand = () => exec;
+    }, { share: c.share, exec: c.exec, blockedSrc: blocked.toString() });
+    await page.locator('.scene-light', { hasText: 'Бросить вызов' }).click();
+    await page.waitForTimeout(400);
+    const res = await page.evaluate(() => {
+      const box = document.querySelector<HTMLTextAreaElement>('.copy-box');
+      const toast = document.querySelector('.toast')?.textContent ?? '';
+      return {
+        box: box ? { text: box.value, selected: box.selectionEnd - box.selectionStart, focused: document.activeElement === box } : null,
+        toast,
+        rejections: (window as unknown as { __rejections: string[] }).__rejections.splice(0),
+      };
+    });
+    expect(res.rejections, c.name).toEqual([]);
+    if (c.expect === 'box') {
+      expect(res.box, c.name).not.toBeNull();
+      expect(res.box!.text, c.name).toContain('startapp=');
+      expect(res.box!.selected, c.name).toBe(res.box!.text.length);
+      expect(res.box!.focused, c.name).toBe(true);
+      await page.screenshot({ path: `e2e-results/${test.info().project.name}/copy-box.png` });
+    } else {
+      expect(res.box, c.name).toBeNull();
+      expect(res.toast.includes('Скопировано'), c.name).toBe(c.expect === 'toast');
+    }
+  }
+});
