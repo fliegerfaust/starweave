@@ -389,7 +389,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
   // ─── Коллекция (бывший Кодекс) ───────────────────────────────────────────
   const c = dict().codex;
   /** Знак на доске: в широком окне (ПК) крупнее — доске есть где. */
-  const bigSize = () => (document.body.classList.contains('landscape') && matchMedia('(min-width: 900px) and (min-height: 561px)').matches ? 128 : 56);
+  const bigSize = () => (document.body.classList.contains('landscape') && matchMedia('(min-width: 900px) and (min-height: 600px)').matches ? 128 : 56);
   const collSigil = (kind: 'omen' | 'boss', id: string, size: number) => canvasImg(kind === 'omen' ? omenSigil(id, size, dpr()) : bossSigil(id, size, dpr()), size);
   /** Описание без «(сейчас +{x})» — вне забега текущего значения нет. */
   const effect = (text: string) => text.replace(/\s*\([^)]*\{x\}[^)]*\)/, '').replace('{x}', '…');

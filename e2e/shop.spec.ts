@@ -64,8 +64,8 @@ test('Обсерватория: строки товаров, бонус стро
         const shop = document.querySelector<HTMLElement>('.shop')!;
         const bar = shop.querySelector('.shop-actions')!.getBoundingClientRect();
         const body = shop.querySelector('.shop-body')!.getBoundingClientRect();
-        const land = matchMedia('(orientation: landscape) and (max-height: 560px)').matches;
-        const wide = matchMedia('(min-width: 900px) and (min-height: 561px)').matches;
+        const land = matchMedia('(orientation: landscape) and (max-height: 599px)').matches;
+        const wide = matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
         const cs = getComputedStyle(shop);
         const avail = shop.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
         if (state === 'pack') return { out, shown: !!document.querySelector('.pack-scene') };

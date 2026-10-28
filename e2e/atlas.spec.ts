@@ -153,7 +153,7 @@ test('атлас: вкладки и состояния без вылезаний
           if (body.bottom > cta.top + 1) out.push('середина под кнопкой');
           const stage = root.querySelector('.atl-stage')?.getBoundingClientRect();
           if (stage && (stage.top < -1 || stage.bottom > cta.top + 1)) out.push('сцена не на экране');
-          if (matchMedia('(min-width: 900px) and (min-height: 561px)').matches) {
+          if (matchMedia('(min-width: 900px) and (min-height: 600px)').matches) {
             const top = root.querySelector('.atl-top')!.getBoundingClientRect().top;
             const gap = innerHeight - cta.bottom;
             if (Math.abs(top - gap) > 90 && Math.min(top, gap) > 60) out.push(`ПК: пусто сверху ${Math.round(top)}, снизу ${Math.round(gap)}`);
@@ -232,7 +232,7 @@ test('архив: состояния без вылезаний, прокрутк
         const body = root.querySelector('.arc-body')!.getBoundingClientRect();
         if (cta.bottom > innerHeight + 1) out.push('кнопка за экраном');
         if (body.bottom > cta.top + 1) out.push('середина под кнопкой');
-        if (matchMedia('(min-width: 900px) and (min-height: 561px)').matches) {
+        if (matchMedia('(min-width: 900px) and (min-height: 600px)').matches) {
           const top = root.querySelector('.arc-top')!.getBoundingClientRect().top;
           const gap = innerHeight - cta.bottom;
           if (Math.abs(top - gap) > 90 && Math.min(top, gap) > 60) out.push(`ПК: пусто сверху ${Math.round(top)}, снизу ${Math.round(gap)}`);

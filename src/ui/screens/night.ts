@@ -409,7 +409,7 @@ export class NightScreen implements Screen {
 
   /** На ПК открытка «Мой путь» — отдельной колонкой слева от итогов (крупно и читаемо). */
   private placePath(path: HTMLElement | null): void {
-    if (!path || !this.overlay || !matchMedia('(min-width: 900px) and (min-height: 561px)').matches) return;
+    if (!path || !this.overlay || !matchMedia('(min-width: 900px) and (min-height: 600px)').matches) return;
     this.overlay.el.querySelector('.scene-inner')?.prepend(path);
   }
 
