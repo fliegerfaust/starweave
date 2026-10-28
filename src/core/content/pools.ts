@@ -29,6 +29,26 @@ export interface Unlocks {
   myths: boolean;
   /** Резонанс: пары Знамений сливаются в легендарное (ступень 8). */
   resonance: boolean;
+  /** Личный забег: открытия догоняют по главам (`CHAPTER_LADDER`); у общих наборов — нет. */
+  ladder?: boolean;
+}
+
+/**
+ * Лестница по главам (LD.1, вариант A, решение Дениса 28.10.2026): в личном забеге новое
+ * открывается прямо по ходу, уже в первом забеге — глава 1 учит, во 2-й развилки, в 3-й дар
+ * ночи, в 4-й Комета, Телескоп и два Затмения. Дальше ступени профиля открывают их с 1-й главы.
+ */
+export const CHAPTER_LADDER = { routes: 2, gift: 3, wonders: 4 } as const;
+
+/** Открытия забега на главе `ante`: личный забег догоняет лестницу, общий — как есть. */
+export function ladderAt(u: Unlocks, ante: number): Unlocks {
+  if (!u.ladder) return u;
+  return {
+    ...u,
+    routes: u.routes || ante >= CHAPTER_LADDER.routes,
+    gift: u.gift || ante >= CHAPTER_LADDER.gift,
+    wonders: u.wonders || ante >= CHAPTER_LADDER.wonders,
+  };
 }
 
 /** Контент с правилом открытия. Без `unlock` — открыт с первого забега. */
@@ -37,11 +57,11 @@ interface Unlockable {
   unlock?: Unlock;
 }
 
-/** Ступень «Комета и Телескоп»: дойти до 5-й главы. */
-export const WONDERS_UNLOCK: Unlock = { kind: 'reachAnte', ante: 5 };
+/** Ступень «Комета и Телескоп»: дойти до 4-й главы — там они впервые и встретились (LD.1). */
+export const WONDERS_UNLOCK: Unlock = { kind: 'reachAnte', ante: CHAPTER_LADDER.wonders };
 
-/** Ступень «Развилки»: дойти до 3-й главы. */
-export const ROUTES_UNLOCK: Unlock = { kind: 'reachAnte', ante: 3 };
+/** Ступень «Развилки»: дойти до 2-й главы — там они впервые и встретились (LD.1). */
+export const ROUTES_UNLOCK: Unlock = { kind: 'reachAnte', ante: CHAPTER_LADDER.routes };
 
 /** Ступень «Дар ночи»: закончить первый забег. */
 export const GIFT_UNLOCK: Unlock = { kind: 'runsDone', runs: 1 };
@@ -79,6 +99,7 @@ export function contentPools(open: (unlock: Unlock) => boolean, shared = false):
     myths: !shared && open(MYTHS_UNLOCK),
     resonance: !shared && open(RESONANCE_UNLOCK),
     bodies: BODY_IDS.filter((b) => open(BODY_UNLOCKS[b])),
+    ladder: !shared,
   };
 }
 

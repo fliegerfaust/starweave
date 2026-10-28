@@ -1,4 +1,6 @@
 import { describe, it } from 'vitest';
+import { emptyProfile } from '../src/meta/profile';
+import { unlocksFor } from '../src/meta/progress';
 import { bestMove, giftGreedy, enterNight, shopGreedy, wonderGreedy } from '../src/core/ai/bot';
 import { allContent } from '../src/core/content/pools';
 import { collectReward, leaveShop, newRun } from '../src/core/run';
@@ -24,7 +26,10 @@ describe.skipIf(!process.env.SIM)('баланс', () => {
     // это и есть сложность. ~0.5 — «прошёл не думая», ~0.85+ — на грани.
     const used: Record<string, number[]> = {};
     const depth = process.env.SIM_DEPTH ?? 'all';
-    const unlocks = { ...allContent(), myths: process.env.SIM_MYTHS !== '0', resonance: process.env.SIM_RESONANCE !== '0', ...(depth === 'off' ? { gift: false, bodies: [], routes: false } : depth === 'gift' ? { bodies: [], routes: false } : depth === 'routes' ? { bodies: [] } : {}) };
+    // `novice` — первый забег новичка с лестницей по главам (LD.1), `novice-old` — как до неё
+    const novice = unlocksFor(emptyProfile(), false);
+    const unlocks = depth === 'novice' ? novice : depth === 'novice-old' ? { ...novice, ladder: false }
+      : { ...allContent(), myths: process.env.SIM_MYTHS !== '0', resonance: process.env.SIM_RESONANCE !== '0', ...(depth === 'off' ? { gift: false, bodies: [], routes: false } : depth === 'gift' ? { bodies: [], routes: false } : depth === 'routes' ? { bodies: [] } : {}) };
     // Дар ночи (GF.6): сколько раз бот взял, сколько пропустил, какой стала колода к концу
     const gifts = { take: 0, skip: 0, deck: [] as number[] };
     // Экономика и длина забега (RT.6): ночей и лавок за забег, шагов без ночи, золото
