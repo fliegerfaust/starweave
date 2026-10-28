@@ -109,18 +109,20 @@ test('Telegram: реклама за награду через AdsGram', async ({
   );
   await page.goto('/#tgWebAppData=x&tgWebAppVersion=8.0&tgWebAppPlatform=ios');
   await page.waitForFunction(() => !!document.querySelector('.menu-buttons .btn'));
-  type P = { platform: { rewardedAvailable: boolean; interstitialAvailable: boolean; showRewarded(): Promise<boolean>; showInterstitial(): Promise<void> }; money: { adPlaying: boolean } };
+  type Outcome = { result: string };
+  type P = { platform: { rewardedAvailable: boolean; interstitialAvailable: boolean; showRewarded(): Promise<Outcome>; showInterstitial(): Promise<Outcome> }; money: { adPlaying: boolean } };
   const res = await page.evaluate(async () => {
     const app = (window as unknown as { starweave: P }).starweave;
     const available = [app.platform.rewardedAvailable, app.platform.interstitialAvailable];
-    const first = await app.platform.showRewarded();
-    const second = await app.platform.showRewarded();
-    await app.platform.showInterstitial();
+    const first = (await app.platform.showRewarded()).result;
+    const second = (await app.platform.showRewarded()).result;
+    const inter = (await app.platform.showInterstitial()).result;
     const ads = (window as unknown as { __ads: { inits: string[] } }).__ads;
-    return { available, first, second, after: app.money.adPlaying, ads: { ...ads, inits: [...ads.inits].sort() } };
+    return { available, first, second, inter, after: app.money.adPlaying, ads: { ...ads, inits: [...ads.inits].sort() } };
   });
   expect(res).toEqual({
-    available: [true, true], first: true, second: false, after: false,
+    // Исходы PK.15: досмотрел, закрыл раньше, межстраничная закрыта во время показа
+    available: [true, true], first: 'rewarded', second: 'closed', inter: 'closed', after: false,
     ads: { inits: ['e2e', 'int-e2e'], shows: ['e2e', 'e2e', 'int-e2e'], muted: [true, true, true] },
   });
 });

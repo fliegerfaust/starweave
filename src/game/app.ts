@@ -179,7 +179,10 @@ export class App {
     };
     requestAnimationFrame(frame);
     // Новичок на площадке с `quickStart` попадает сразу в ночь, остальные — в меню
-    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready());
+    // Пришёл не впервые — профиль создан в прошлый запуск (Пикабу покажет рекламу при загрузке)
+    const p = this.profile;
+    const returning = p.firstSeen ? p.firstSeen < performance.timeOrigin : p.runs > 0 || p.tutorialDone;
+    void (this.runs.firstLaunch() ? Promise.resolve() : this.router.goMenu()).then(() => this.platform.ready(returning));
     void this.money.refreshPurchases();
   }
 
