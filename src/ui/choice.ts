@@ -8,11 +8,14 @@ import { named, t } from '@/i18n';
 import { bonusLine } from './bonus';
 import { canvasImg, dpr, h } from './dom';
 import { lightButton, sceneRibbon, sceneWindow } from './scene-window';
-import { button, type ModalHandle } from './widgets';
+import { button, withCoin, type ModalHandle } from './widgets';
+import { giveSheet, replaceStyle } from './omen-replace';
+import { sellPrice } from '@/core/shop';
 
 /** Что делать с вариантом: решает экран, на котором выбор открыт (ритуалу нужны цели). */
 export interface ChoiceHandlers {
-  take(index: number, option: string, close: () => void): void;
+  /** `replace` — uid своего Знамения, которое отдаётся за выбранное при полном ряде (OB). */
+  take(index: number, option: string, close: () => void, replace?: number): void;
   skip(): void;
 }
 
@@ -69,26 +72,54 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
   if (!choice || choice.kind !== 'pack') return null;
   app.svc.audio.ignite(1);
   let handle: ModalHandle | null = null;
-  const blocked = !canTakeChoice(run);
+  // Ряд Знамений полон: вариант берётся заменой своего (OB) — листом (А) или касанием ряда внизу (Б)
+  const full = !canTakeChoice(run) && choice.pack === 'omen';
+  const style = replaceStyle();
   const view = OPTION_VIEWS[choice.kind] as (run: RunState, choice: RowChoice, id: string) => OptionView;
+  let picked: number | null = null;
+  const strip = full && style === 'row' ? h('div.give-strip') : null;
+  const close = () => handle?.close();
+  const paintStrip = () => {
+    if (!strip) return;
+    rows.forEach((r, i) => r.classList.toggle('giving', i === picked));
+    strip.classList.toggle('on', picked !== null);
+    strip.replaceChildren(
+      h('p.hint', null, picked === null ? t('shop.slotsFull') : t('shop.replaceHint', { name: named('omen', choice.options[picked]!).name })),
+      h('div.owned-omens', null, run.omens.map((o) => {
+        const chip = h(`div.owned-omen${picked !== null ? '.give' : ''}`, null, [
+          h('button.omen-slot', {
+            type: 'button',
+            ariaLabel: named('omen', o.id).name,
+            disabled: picked === null,
+            onclick: () => picked !== null && handlers.take(picked, choice.options[picked]!, close, o.uid),
+          }, canvasImg(omenSigil(o.id, 44, dpr()), 44)),
+          picked !== null ? h('span.give-badge', null, withCoin(`+${sellPrice(o.id)}`)) : null,
+        ]);
+        return chip;
+      })),
+    );
+  };
   const rows = choice.options.map((id, i) => {
     const v = view(run, choice, id);
+    const take = () => {
+      if (!full) return handlers.take(i, id, close);
+      if (style === 'sheet') return void giveSheet(run, { newId: id, price: null, onPick: (uid) => handlers.take(i, id, close, uid) });
+      picked = picked === i ? null : i;
+      paintStrip();
+    };
     return h('article.ware', { style: { animationDelay: `${i * 0.08}s` } }, [
       h('div.ware-icon', null, v.icon),
       h('div.ware-name', null, [v.name, v.level ? h('span.ware-level', null, v.level) : null]),
       h('div.ware-bonus', null, bonusLine(v.bonus)),
-      button(blocked ? t('shop.noSlotsShort') : t('shop.take'), () => handlers.take(i, id, () => handle?.close()), {
-        disabled: blocked,
-        title: blocked ? t('shop.slotsFull') : '',
-        className: 'take',
-      }),
+      button(full ? t('shop.replace') : t('shop.take'), take, { className: `take${full ? ' replace' : ''}` }),
     ]);
   });
+  paintStrip();
   const [title, sub] = ribbon(choice);
   handle = sceneWindow({
     className: 'pack-scene',
     label: title,
-    mid: [sceneRibbon(title, sub), h('div.ware-list', null, rows)],
+    mid: [sceneRibbon(title, sub), h('div.ware-list', null, rows), strip],
     acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
       handle?.close();
       handlers.skip();

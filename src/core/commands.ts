@@ -26,7 +26,7 @@ export type Command =
   | { c: 'revive' }
   | { c: 'leaveShop' }
   | { c: 'continueEndless' }
-  | { c: 'buyOmen'; slot: number }
+  | { c: 'buyOmen'; slot: number; replace?: number }
   | { c: 'sellOmen'; uid: number }
   | { c: 'moveOmen'; from: number; to: number }
   /** Резонанс: слить пару Знамений с места `at` и соседнего (RS.1). */
@@ -34,7 +34,7 @@ export type Command =
   | { c: 'buyItem'; slot: number; targets?: number[] }
   | { c: 'buyPack'; slot: number }
   /** Взять вариант текущего выбора из очереди (пакет, дар ночи; позже трофей, Комета). */
-  | { c: 'choose'; index: number; targets?: number[] }
+  | { c: 'choose'; index: number; targets?: number[]; replace?: number }
   | { c: 'skip' }
   | { c: 'banish'; card: number }
   | { c: 'reroll' };
@@ -100,7 +100,7 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
       continueEndless(run);
       return [];
     case 'buyOmen':
-      buyOmen(run, cmd.slot);
+      buyOmen(run, cmd.slot, cmd.replace);
       return [];
     case 'sellOmen':
       sellOmen(run, cmd.uid);
@@ -118,7 +118,7 @@ function execute(run: RunState, cmd: Command): GameEvent[] {
       buyPack(run, cmd.slot);
       return [];
     case 'choose':
-      choose(run, cmd.index, cmd.targets);
+      choose(run, cmd.index, cmd.targets, cmd.replace);
       return [];
     case 'skip':
       skipChoice(run);

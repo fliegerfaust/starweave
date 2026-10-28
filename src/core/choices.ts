@@ -4,7 +4,7 @@ import { walk } from './route';
 import { canTakeTrophy, takeTrophy, type TrophyOffer } from './trophy';
 import { takeComet, takeScope, type CometTrade, type ScopeUpgrade } from './wonders';
 import { createOmen } from './omen-instance';
-import { applyRitual, omenSlots } from './shop';
+import { applyRitual, omenSlots, replaceOmen } from './shop';
 import type { ComboId, PackKind, RunState } from './types';
 
 /**
@@ -24,9 +24,9 @@ export type Choice =
 
 /** Как взять вариант выбора каждого вида. `targets` — карты колоды для ритуала. */
 interface ChoiceKindDef<C extends Choice> {
-  /** Можно ли взять хоть что-то (Знамений некуда ставить — нельзя). */
-  canTake(run: RunState, choice: C): boolean;
-  take(run: RunState, choice: C, index: number, targets: number[]): void;
+  /** Можно ли взять хоть что-то (Знамений некуда ставить и нечего заменить — нельзя). */
+  canTake(run: RunState, choice: C, replace?: number): boolean;
+  take(run: RunState, choice: C, index: number, targets: number[], replace?: number): void;
   /** Что даёт отказ: у дара — золото «чистого неба». */
   skip?(run: RunState, choice: C): void;
   /** После выбора или отказа: Комета и Телескоп — шаг пути пройден. */
@@ -36,10 +36,12 @@ interface ChoiceKindDef<C extends Choice> {
 /** `Record` по видам: новый вид выбора без правил взятия — ошибка типов. */
 const CHOICE_KINDS: { [K in Choice['kind']]: ChoiceKindDef<Extract<Choice, { kind: K }>> } = {
   pack: {
-    canTake: (run, choice) => choice.pack !== 'omen' || run.omens.length < omenSlots(run),
-    take(run, choice, index, targets) {
+    canTake: (run, choice, replace) => choice.pack !== 'omen' || run.omens.length < omenSlots(run) || replace !== undefined,
+    take(run, choice, index, targets, replace) {
       const option = choice.options[index]!;
-      if (choice.pack === 'omen') run.omens.push(createOmen(run, option));
+      // Полный ряд: своё Знамение продаётся, новое встаёт на его место (OB)
+      if (choice.pack === 'omen' && replace !== undefined) replaceOmen(run, replace, option);
+      else if (choice.pack === 'omen') run.omens.push(createOmen(run, option));
       else if (choice.pack === 'chart') run.comboLevels[option as ComboId] += 1;
       // Ритуал из пакета бесплатен, но требует целей
       else applyRitual(run, option, targets);
@@ -87,12 +89,12 @@ export function canTakeChoice(run: RunState): boolean {
 }
 
 /** Взять вариант `index` текущего выбора. */
-export function choose(run: RunState, index: number, targets: number[] = []): void {
+export function choose(run: RunState, index: number, targets: number[] = [], replace?: number): void {
   const choice = currentChoice(run);
   if (!choice || !Number.isInteger(index) || index < 0 || index >= choice.options.length) throw new RuleError('nothing');
   const def = kindOf(choice);
-  if (!def.canTake(run, choice)) throw new RuleError('noSlots');
-  def.take(run, choice, index, targets);
+  if (!def.canTake(run, choice, replace)) throw new RuleError('noSlots');
+  def.take(run, choice, index, targets, replace);
   run.pending.shift();
   def.done?.(run);
 }
