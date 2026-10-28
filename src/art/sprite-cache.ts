@@ -1,3 +1,5 @@
+import { forget } from '@/engine/canvas-life';
+
 /**
  * Кэш спрайтов с вытеснением самого давнего (LRU). Без потолка кэш рос весь сеанс: каждый
  * размер карты, DPR и рубашка — новый холст, на телефоне это сотни мегабайт видеопамяти.
@@ -28,6 +30,7 @@ export class SpriteCache {
       const oldest = this.map.keys().next().value as string;
       const gone = this.map.get(oldest)!;
       this.map.delete(oldest);
+      forget(gone);
       // Освободить буфер сразу, не дожидаясь сборщика (Safari держит его долго)
       gone.width = gone.height = 0;
     }

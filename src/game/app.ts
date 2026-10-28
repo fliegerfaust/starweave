@@ -1,4 +1,5 @@
 import { clearCardCache } from '@/art/card';
+import { simulateCanvasLoss, watchCanvasLife } from '@/engine/canvas-life';
 import { clearSigilCache } from '@/art/sigil';
 import type { RunState } from '@/core/types';
 import { Synth } from '@/engine/audio';
@@ -211,10 +212,15 @@ export class App {
 
 export async function startGame(platform: Platform): Promise<App> {
   initAnalytics(platform.id);
+  // Холсты, выброшенные браузером в фоне, перерисовываются при возврате (BG.1)
+  watchCanvasLife((canvases, by) => track('canvas_restore', { canvases, by }));
   await restoreFromCloud(platform);
   const app = new App(platform);
   // Доступ к игре из консоли — только для разработки и e2e (SEC.7)
-  if (import.meta.env.DEV) (window as unknown as { starweave: App }).starweave = app;
+  if (import.meta.env.DEV) {
+    (window as unknown as { starweave: App }).starweave = app;
+    (window as unknown as { simulateCanvasLoss: (silent?: boolean) => number }).simulateCanvasLoss = simulateCanvasLoss;
+  }
   // Ссылка с вызовом друга или с меткой рекламного источника (`startapp=src_<канал>`)
   const start = parseStartParam(platform.startParam?.());
   app.pendingChallenge = start.challenge ?? null;

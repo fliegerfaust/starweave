@@ -1,3 +1,5 @@
+import { keepPainted, paintOf } from '@/engine/canvas-life';
+
 /** Крошечный hyperscript: h('div.panel', { onclick }, ['text', child]). */
 
 export type Child = Node | string | number | null | undefined | false;
@@ -51,6 +53,9 @@ export function canvasImg(canvas: HTMLCanvasElement, cssW: number, cssH = cssW, 
   const copy = document.createElement('canvas');
   copy.width = canvas.width;
   copy.height = canvas.height;
+  // Копия рисуется тем же способом, что исходник: исходник могут вытеснить из кэша (BG.1)
+  const paint = paintOf(canvas) ?? ((c: HTMLCanvasElement) => c.getContext('2d')!.drawImage(canvas, 0, 0));
+  keepPainted(copy, paint);
   copy.getContext('2d')!.drawImage(canvas, 0, 0);
   copy.style.width = `${cssW}px`;
   copy.style.height = `${cssH}px`;

@@ -1,5 +1,6 @@
 import { omenDef } from '@/core/content/omens';
 import type { ComboId, Glyph } from '@/core/types';
+import { keepPainted } from '@/engine/canvas-life';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
 import { drawGlyphBadge } from './card';
@@ -13,10 +14,13 @@ const cache = new SpriteCache(160);
 function cached(key: string, w: number, h: number, scale: number, draw: (ctx: Ctx) => void): HTMLCanvasElement {
   const hit = cache.get(key);
   if (hit) return hit;
-  const canvas = makeCanvas(w, h, scale);
-  const ctx = canvas.getContext('2d')!;
-  ctx.scale(scale, scale);
-  draw(ctx);
+  const paint = (c: HTMLCanvasElement) => {
+    const ctx = c.getContext('2d')!;
+    ctx.scale(scale, scale);
+    draw(ctx);
+  };
+  const canvas = keepPainted(makeCanvas(w, h, scale), paint);
+  paint(canvas);
   cache.set(key, canvas);
   return canvas;
 }

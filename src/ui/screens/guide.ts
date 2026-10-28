@@ -1,3 +1,4 @@
+import { keepPainted } from '@/engine/canvas-life';
 import { bossSigil, chartIcon, comboScheme, omenSigil, ritualIcon } from '@/art/sigil';
 import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
@@ -84,14 +85,18 @@ function suitMarks(): HTMLCanvasElement {
   const c = document.createElement('canvas');
   c.width = 72 * r;
   c.height = 16 * r;
-  const ctx = c.getContext('2d')!;
-  ctx.scale(r, r);
-  (['sun', 'moon', 'star', 'comet'] as Suit[]).forEach((suit, i) => {
-    suitPath(ctx, suit, 9 + i * 18, 8, 6.5);
-    ctx.fillStyle = SUIT_COLORS[suit].main;
-    ctx.fill();
-  });
-  return canvasImg(c, 72, 16);
+  const draw = (c: HTMLCanvasElement) => {
+    const ctx = c.getContext('2d')!;
+    ctx.scale(r, r);
+    (['sun', 'moon', 'star', 'comet'] as Suit[]).forEach((suit, i) => {
+      suitPath(ctx, suit, 9 + i * 18, 8, 6.5);
+      ctx.fillStyle = SUIT_COLORS[suit].main;
+      ctx.fill();
+    });
+  
+  };
+  draw(c);
+  return canvasImg(keepPainted(c, draw), 72, 16);
 }
 
 /** Число цветом формулы: свет, множитель, итог, золото. */
