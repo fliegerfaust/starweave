@@ -1,7 +1,7 @@
 import { chartIcon, omenSigil } from '@/art/sigil';
 import type { Choice } from '@/core/choices';
 import { MAX_RANK, MIN_RANK, type Card, type ComboId, type RunState } from '@/core/types';
-import { COMET_RANK, type CometTrade, type ScopeUpgrade } from '@/core/wonders';
+import type { CometTrade, ScopeUpgrade } from '@/core/wonders';
 import type { App } from '@/game/app';
 import { named, t } from '@/i18n';
 import { canvasImg, dpr, h } from './dom';
@@ -77,15 +77,11 @@ function cometRow(run: RunState, tr: CometTrade): Row {
     case 'rankShift': {
       const down = card(tr.down);
       const up = card(tr.up);
-      const gain = tr.gain ?? 2;
-      const loss = tr.loss ?? 2;
-      const downTo = Math.max(MIN_RANK, down.rank - loss);
-      const upTo = Math.min(MAX_RANK, up.rank + gain);
-      // Варианты витрины CM.0: переливание (растёт старшая) и выгода (+3 против −2)
-      const key = COMET_RANK.mode === 'gain' ? 'rankGain' : 'rankPour';
-      // «Отдай одно, получи другое» (CM.0): слева карта, которая отдаёт ранг, как есть; справа
+      const downTo = Math.max(MIN_RANK, down.rank - 2);
+      const upTo = Math.min(MAX_RANK, up.rank + 2);
+      // «Отдай одно, получи другое» (CM): слева карта, которая отдаёт ранг, как есть; справа
       // карта, которая получилась, уже в новом ранге: «3 −2 → 7 +2»
-      return { give: [item.card(down, badge(`−${loss}`, true))], get: [item.card({ ...up, rank: upTo }, badge(`+${gain}`))], ...w(key, { down: cardName(down), up: cardName(up), downTo, upTo, gain, loss }) };
+      return { give: [item.card(down, badge('−2', true))], get: [item.card({ ...up, rank: upTo }, badge('+2'))], ...w('rankShift', { down: cardName(down), up: cardName(up), downTo, upTo }) };
     }
     case 'suitShift': {
       const cs = tr.cards.map(card);
