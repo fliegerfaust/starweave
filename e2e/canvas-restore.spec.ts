@@ -6,7 +6,7 @@ import { expect, test, type Page } from '@playwright/test';
  * выбрасываются нарочно (`simulateCanvasLoss`), как это делает браузер, с событиями и молча, и
  * после возврата из фона все холсты на экране и в кэше спрайтов должны быть нарисованы снова.
  */
-type App = { profile: Record<string, unknown>; run: Record<string, unknown>; runs: { startRun(s: string, daily?: boolean, stake?: number, seed?: number): void; beginNight(): void; collectReward(): void }; router: { route(): Promise<void> } };
+type App = { profile: Record<string, unknown>; run: Record<string, unknown>; runs: { startRun(s: string, daily?: boolean, stake?: number, seed?: number): void; beginNight(node?: number): void; collectReward(): void }; router: { route(): Promise<void> } };
 
 /** Холсты интерфейса, на которых нет ни одного видимого пикселя (проверка сеткой 9×9). */
 async function blankCanvases(page: Page): Promise<string[]> {
@@ -102,9 +102,11 @@ for (const silent of [false, true]) {
       await new Promise((r) => setTimeout(r, 300));
       const run = app.run as never as { omens: unknown[] };
       run.omens = ['horizon', 'pyre'].map((id) => createOmen(run as never, id));
-      app.runs.beginNight();
+      // Опытный игрок: сначала карта главы, ночь — по первому узлу пути
+      app.runs.beginNight(0);
     });
-    await page.waitForSelector('.hud');
+    await page.waitForFunction(() => (window as unknown as { starweave: App }).starweave.run.phase === 'night');
+    await page.waitForSelector('.hud .omen-slot canvas, .hud canvas');
     await page.waitForTimeout(900);
     // Спрайт из того же кэша, из которого рисуется рука на основном холсте
     await page.evaluate(async () => {

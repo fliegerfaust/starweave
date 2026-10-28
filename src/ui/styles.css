@@ -2089,6 +2089,11 @@ body.landscape .coach:is([data-step="shop"], [data-step="boss"], [data-step="rou
 .card-info.show { display: block; animation: fade-in 0.15s ease; }
 .card-info.clickable { pointer-events: auto; cursor: help; border-color: rgb(var(--gold-rgb) / 0.5); }
 .card-info .more { color: var(--gold); }
+/* Узкий телефон (KW.3): ранг и масть видны на самой карте — строка отдаёт место правилу тела или глифа */
+@media (max-width: 400px) {
+  body:not(.landscape) .card-info.has-rule .ci-card { display: none; }
+  body:not(.landscape) .card-info { max-width: calc(100vw - 12px); padding-inline: 10px; }
+}
 body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--safe-bottom)); max-width: 280px; white-space: normal; border-radius: 12px; }
 
 .ritual-result { display: flex; flex-direction: column; gap: 10px; align-items: center; }

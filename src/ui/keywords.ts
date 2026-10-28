@@ -5,7 +5,7 @@ import { h } from './dom';
  * Ключевые слова механики (RT.4, витрина d8-route-wonders, выбор Дениса 22.10.2026).
  * Разметка в строках словаря:
  *   [слово|ключ|цвет] — выделенное слово; касание открывает подсказку. Ключ — id глифа
- *     (`glass`), правило из `kw.rule` (`mult`) или Знамение (`omen.crossroads`). Цвет
+ *     (`glass`), правило из `kw.rule` (`mult`), Знамение (`omen.crossroads`) или тело (`body.meteor`). Цвет
  *     необязателен: `light`, `mult`, `xmult`, `gold` — как плашки формулы.
  *   {-Глагол} / {+Глагол} — глагол цены в начале строки: платишь розовым, получаешь золотым.
  * Слово внутри подсказки открывает следующую в той же табличке; «← Назад» возвращает.
@@ -34,8 +34,10 @@ const AUTO: { re: string; key: string; cls?: string }[] = [
   { re: `${L}(?:разбиться|разобьётся|разбивается|разбилась|shatters?|shattered)${R}`, key: 'shatter' },
   { re: `${L}(?:ранг|ранга|рангу|рангом|ранги|рангов|рангам|rank|ranks)${R}`, key: 'rank' },
   // KW.1, KW.2 (отзыв Андрея 28.10): «что такое миф?», «что такое проценты?»
-  { re: `${L}(?:миф|мифа|мифу|мифом|мифе|мифы|мифов|мифам|мифами|мифах|myth|myths)${R}`, key: 'myth' },
-  { re: `${L}(?:проценты|процентов|процентам|процентами|процентах|interest)${R}`, key: 'interest' },
+  { re: `${L}(?:миф|мифа|мифу|мифом|мифе|мифы|мифов|мифам|мифами|мифах|[Mm]yths?)${R}`, key: 'myth' },
+  { re: `${L}(?:проценты|процентов|процентам|процентами|процентах|[Ii]nterest)${R}`, key: 'interest' },
+  // KW.3: «небесное тело» в любом падеже; имя тела — разметкой [Метеор|body.meteor]
+  { re: `${L}(?:[Нн]ебесн(?:ое|ого|ому|ым|ом|ые|ых|ыми) тел(?:о|а|у|ом|е|ами|ах|ам)|[Cc]elestial bod(?:y|ies))${R}`, key: 'body' },
 ];
 const AUTO_RE = new RegExp(AUTO.map((a) => `(${a.re})`).join('|'), 'g');
 
@@ -81,6 +83,11 @@ interface Def {
 
 function define(key: string): Def | null {
   const d = dict();
+  if (key.startsWith('body.')) {
+    const id = key.slice(5);
+    const desc = (d.bodyDesc as Record<string, string | undefined>)[id];
+    return desc ? { kind: d.kw.kinds.body, name: (d.body as Record<string, string | undefined>)[id] ?? id, body: kwText(desc, true) } : null;
+  }
   if (key.startsWith('omen.')) {
     const { name, desc } = named('omen', key.slice(5));
     return desc ? { kind: d.kw.kinds.omen, name, body: kwText(desc, true) } : null;

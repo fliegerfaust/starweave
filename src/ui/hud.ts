@@ -4,7 +4,7 @@ import { omenDef, type OmenKind } from '@/core/content/omens';
 import { comboBase } from '@/core/content/combos';
 import { omenSlots } from '@/core/shop';
 import { trophiesOf } from '@/core/trophy';
-import { COMBO_IDS, type Card, type ComboId, type Glyph, type NightKind, type NightState, type OmenInstance, type RunState } from '@/core/types';
+import { COMBO_IDS, type Card, type ComboId, type NightKind, type NightState, type OmenInstance, type RunState } from '@/core/types';
 import { dict, getLang, named, num, t } from '@/i18n';
 import { canvasImg, clear, dpr, h } from './dom';
 import { rich } from './rich';
@@ -98,7 +98,8 @@ export class Hud {
   /** Невидимая строка для скринридера: выбор карты, клетка, итог хода. */
   private readonly live: HTMLElement;
   private readonly cardInfo: HTMLElement;
-  private cardInfoGlyph: Glyph | null = null;
+  /** Раздел Справочника, который открывает касание подписи карты: `glyph-echo`, `body-meteor`. */
+  private cardInfoFocus: string | null = null;
   readonly actions: HTMLElement;
   readonly guideBtn: HTMLButtonElement;
   readonly burnBtn: HTMLButtonElement;
@@ -146,7 +147,7 @@ export class Hud {
     const guideBtn = (this.guideBtn = h('button.icon-btn.medal.q', { type: 'button', ariaLabel: t('guide.title'), onclick: () => cb.onGuide() }, '?'));
     this.cardInfo = h('div.card-info');
     this.cardInfo.addEventListener('click', () => {
-      if (this.cardInfoGlyph) cb.onGuide(`glyph-${this.cardInfoGlyph}`);
+      if (this.cardInfoFocus) cb.onGuide(this.cardInfoFocus);
     });
     this.ribbon = h('div.combo-ribbon', { attrs: { 'aria-hidden': 'true' } }, [h('b'), h('small')]);
     // «Рама» (RD.1): всё о ночи в одной латунной раме — табличка главы, правило Затмения,
@@ -522,20 +523,23 @@ export class Hud {
     this.preview.classList.add('show');
   }
 
-  /** Подпись о выбранной карте: ранг, масть и глиф простыми словами. */
+  /** Подпись о выбранной карте: ранг, масть и правило глифа или небесного тела простыми словами. */
   setCardInfo(card: Card | null, hideRank = false): void {
     clear(this.cardInfo);
-    this.cardInfoGlyph = card?.glyph ?? null;
+    this.cardInfoFocus = card?.body ? `body-${card.body}` : card?.glyph ? `glyph-${card.glyph}` : null;
     if (!card) {
       this.cardInfo.classList.remove('show');
       return;
     }
+    // Небесное тело объясняется так же, как глиф (KW.3, отзыв Андрея 28.10). Глиф на теле не
+    // действует (traitOf: тело важнее), поэтому и не показывается
+    const rule = card.body ? [t(`body.${card.body}`), dict().bodyShort[card.body]] : card.glyph ? [t(`glyph.${card.glyph}`), dict().glyphDesc[card.glyph]] : null;
     const name = `${hideRank ? '?' : card.rank} · ${t(`suitPl.${card.suit}`)}`;
-    this.cardInfo.append(h('b', null, name));
-    if (card.glyph) {
-      this.cardInfo.append(h('span', null, ` · ${t(`glyph.${card.glyph}`)}: `), rich(dict().glyphDesc[card.glyph]), h('span.more', null, ' ⓘ'));
-    }
-    this.cardInfo.classList.toggle('clickable', !!card.glyph);
+    this.cardInfo.append(h('span.ci-card', null, [h('b', null, name), rule ? ' · ' : '']));
+    if (rule) this.cardInfo.append(h('span', null, `${rule[0]}: `), rich(rule[1]!));
+    if (this.cardInfoFocus) this.cardInfo.append(h('span.more', null, ' ⓘ'));
+    this.cardInfo.classList.toggle('clickable', !!this.cardInfoFocus);
+    this.cardInfo.classList.toggle('has-rule', !!rule);
     this.cardInfo.classList.add('show');
   }
 
