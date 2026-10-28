@@ -79,7 +79,9 @@ function cometRow(run: RunState, tr: CometTrade): Row {
       const up = card(tr.up);
       const downTo = Math.max(MIN_RANK, down.rank - 2);
       const upTo = Math.min(MAX_RANK, up.rank + 2);
-      return { give: [item.card(down, badge('−2', true))], get: [item.card(up, badge('+2'))], ...w('rankShift', { down: cardName(down), up: cardName(up), downTo, upTo }) };
+      // «Отдай одно, получи другое» (CM): слева карта, которая отдаёт ранг, как есть; справа
+      // карта, которая получилась, уже в новом ранге: «3 −2 → 7 +2»
+      return { give: [item.card(down, badge('−2', true))], get: [item.card({ ...up, rank: upTo }, badge('+2'))], ...w('rankShift', { down: cardName(down), up: cardName(up), downTo, upTo }) };
     }
     case 'suitShift': {
       const cs = tr.cards.map(card);
