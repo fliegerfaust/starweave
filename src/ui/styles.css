@@ -857,6 +857,63 @@ body {
 .shelf-ghost .unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
 /* Узкий телефон (320 px): на полке три знака помещаются, четвёртого нет */
 @media (max-width: 359px) { .shelf-marks .shelf-mark:nth-child(n + 4) { display: none; } }
+
+/* ─── Вход в Зал славы на главной (HF.6) ──────────────────────────────── */
+/* a — «Две полки»: Коллекция и Зал славы рядом, через тонкую черту, подпись разделом сверху */
+.menu-shelves { display: flex; justify-content: center; align-items: stretch; margin-top: 12px; }
+.menu-shelves .menu-shelf { margin-top: 0; }
+.menu-shelves .shelf-cell + .shelf-cell { position: relative; }
+.menu-shelves .shelf-cell + .shelf-cell::before { content: ''; position: absolute; left: -1px; top: 14px; bottom: 10px; width: 1px; background: var(--hair); }
+.shelf-label { font: 400 12px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: rgb(255 230 168 / 0.72); }
+.shelf-cell .shelf-marks { gap: 4px; }
+.shelf-cell .shelf-top { gap: 8px; }
+@media (max-width: 429px) { .shelf-cell .shelf-mark:nth-child(n + 3) { display: none; } }
+.menu-plate > .hall-pride, .menu-plate > .menu-shelf { vertical-align: middle; }
+
+/* b — «Пульт»: медаль вместо значка, рядом с вызовом дня */
+.hall-lite-medal { display: grid; place-items: center; width: 24px; height: 24px; flex: none; }
+.hall-lite-medal canvas { display: block; }
+
+/* c — «Строка гордости»: медаль и одна фраза с числом цветом, без плашки */
+.hall-pride {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 6px 14px 6px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--ink-dim);
+  font: 600 14px/1.25 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.hall-pride:hover { background: rgb(var(--violet-rgb) / 0.08); color: var(--ink); }
+.hall-pride-medal { position: relative; display: grid; place-items: center; flex: none; }
+.hall-pride-medal canvas { display: block; filter: drop-shadow(0 0 8px rgb(var(--gold-rgb) / 0.45)); }
+.hall-pride-text { display: grid; gap: 3px; }
+.hall-pride-label { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px/1 var(--font-display); letter-spacing: 0.22em; text-transform: uppercase; color: rgb(255 230 168 / 0.8); }
+.hall-pride-line { display: inline-flex; align-items: center; gap: 2px; }
+.hall-pride-line .icon, .hall-entry-hook + .icon { width: 14px; height: 14px; color: var(--gold); }
+.hall-entry-hook b { color: var(--gold-hi); font-weight: 800; font-variant-numeric: tabular-nums; }
+.hall-entry-empty { display: grid; place-items: center; color: var(--gold); }
+.hall-new-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.9); }
+
+/* Новое достижение, которого игрок ещё не видел в зале: медаль дышит светом и лучами */
+.is-new .hall-pride-medal::after, .is-new .hall-lite-medal::after, .hall-cell.is-new .shelf-mark.fresh::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--gold-rgb) / 0.45), transparent 62%);
+  animation: hall-new 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+.hall-lite-medal, .shelf-mark { position: relative; }
+@keyframes hall-new { 0%, 100% { opacity: 0.35; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .is-new .hall-pride-medal::after, .is-new .hall-lite-medal::after, .hall-cell.is-new .shelf-mark.fresh::after { animation: none; opacity: 0.8; } }
 /* Находки забега в итогах (CL.3): строка без плашки, как полка на главной — целиком кнопка */
 .over-finds {
   display: inline-flex;
@@ -934,6 +991,9 @@ body {
   .menu-pair, .menu-handle { grid-column: 1 / -1; justify-self: center; }
   .menu-handle { padding-top: 4px; }
   .menu-shelf { gap: 3px; margin-top: 4px; padding: 2px 10px; }
+  .menu-shelves { margin-top: 4px; }
+  .menu-shelves .menu-shelf { margin-top: 0; }
+  .hall-pride { margin-top: 4px; padding: 2px 12px 2px 6px; }
 }
 
 /* ─── Обсерватория: «Прилавок» (RD.4) ────────────────────────────────── */

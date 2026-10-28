@@ -994,6 +994,8 @@ export const en: Dict = {
     record: { bestMove: 'Best move', bestAnte: 'Furthest', wins: 'Wins', lines: 'Constellations lit', eclipses: 'Eclipses beaten', streak: 'Daily streak' } as Record<string, string>,
     chapter: 'chapter {n}',
     days: 'd',
+    entryRare: 'Your medal is held by {p} of players',
+    entryNew: 'New achievement',
     offline: 'Your place among players appears when the game is online',
     feat: {
       firstRun: ['First Glance', 'Play your first run'],

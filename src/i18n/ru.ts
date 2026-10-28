@@ -1003,6 +1003,8 @@ export const ru = {
     record: { bestMove: 'Лучший ход', bestAnte: 'Дальше всего', wins: 'Победы', lines: 'Созвездий зажжено', eclipses: 'Затмений побеждено', streak: 'Вызов дня подряд' } as Record<string, string>,
     chapter: 'глава {n}',
     days: 'дн.',
+    entryRare: 'Твоя медаль есть у {p} игроков',
+    entryNew: 'Новое достижение',
     offline: 'Твоё место среди игроков появится, когда игра будет в сети',
     feat: {
       firstRun: ['Первый взгляд', 'Сыграть первый забег'],

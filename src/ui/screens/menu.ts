@@ -7,6 +7,7 @@ import { track } from '@/analytics';
 import { h } from '../dom';
 import { icon, type IconName } from '../icons';
 import { findShelf } from '../find-shelf';
+import { hallLite, hallPride, hallShelfCell, markHallSeen, type HallEntryKind } from '../hall-entry';
 import { button, modal } from '../widgets';
 import { cardThumb, confirmNewRun, showCollection, showHelp, showSettings } from './common';
 import type { Card, Glyph, Suit } from '@/core/types';
@@ -61,6 +62,12 @@ let domeOpened = false;
  * созвездия. Под куполом одна главная кнопка, атлас вторым, два лёгких режима,
  * всё служебное — в «Библиотеке» (нижний лист).
  */
+/** Вариант входа в Зал славы (HF.6); в DEV витрина переключает его `?hallv=a|b|c`. */
+function hallEntryKind(): HallEntryKind {
+  const v = import.meta.env.DEV ? new URLSearchParams(location.search).get('hallv') : null;
+  return v === 'a' || v === 'b' || v === 'c' ? v : 'c';
+}
+
 export class MenuScreen implements Screen {
   private el!: HTMLElement;
   private scroller!: HTMLElement;
@@ -257,14 +264,24 @@ export class MenuScreen implements Screen {
    */
   private render(): void {
     const app = this.app;
+    const seasoned = app.profile.runs > 0;
+    const entry = hallEntryKind();
+    const hall = () => {
+      app.svc.audio.click();
+      void this.openHall();
+    };
     this.plate.replaceChildren(...[
       h('h1.logo', null, [
         h('span.logo-main', null, t('game.title').split(' ').map((word) => h('span.logo-word', null, word))),
         t('game.subtitle') ? h('span.logo-sub', null, t('game.subtitle')) : null,
       ]),
       h('p.tagline', null, t('game.tagline')),
-      // Полка находок (CL.1) — после первого забега, когда есть что показать
-      app.profile.runs > 0 ? findShelf(app.profile, (focus) => this.openCollection(focus)) : null,
+      // Зал славы на главной (HF.6): строка гордости под названием — вариант «c»
+      seasoned && entry === 'c' ? hallPride(app.profile, hall) : null,
+      // Полка находок (CL.1) — после первого забега, когда есть что показать; в «a» делится с Залом славы
+      seasoned && entry === 'a'
+        ? h('div.menu-shelves', null, [findShelf(app.profile, (focus) => this.openCollection(focus), true), hallShelfCell(app.profile, hall)])
+        : seasoned ? findShelf(app.profile, (focus) => this.openCollection(focus)) : null,
     ].filter((x): x is HTMLElement => !!x));
     if (this.figure) {
       const name = dict().constellation[this.figure.id] ?? this.figure.id;
@@ -301,6 +318,7 @@ export class MenuScreen implements Screen {
     const pair = h('div.menu-pair', null, [
       primaryKind !== 'newRun' ? lite('play', t('menu.newRun'), newRun) : null,
       lite('daily', dailyDone ? t('menu.dailyDone') : t('menu.daily'), daily, { disabled: dailyDone, title: `№ ${dailyNumber()} · ${humanDate(todayKey())}` }),
+      seasoned && entry === 'b' ? hallLite(app.profile, hall) : null,
     ]);
     const handle = h('button.menu-handle', { type: 'button', attrs: { 'aria-haspopup': 'dialog', 'aria-label': t('menu.libraryOpen') } }, t('menu.library'));
     handle.addEventListener('click', () => {
@@ -352,6 +370,8 @@ export class MenuScreen implements Screen {
     const fresh = sync.fetchHallStats();
     const stats = await Promise.race([fresh, new Promise<null>((r) => window.setTimeout(() => r(null), 1200))]);
     showHall(this.app.profile, stats ?? sync.cachedHallStats());
+    markHallSeen(this.app.profile);
+    this.render();
   }
 
   /** Свайп вверх у нижнего края открывает библиотеку — если меню не прокручивается само. */
