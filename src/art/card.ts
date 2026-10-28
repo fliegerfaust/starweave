@@ -1,5 +1,6 @@
 import type { Card, Glyph } from '@/core/types';
 import { BODY_COLORS, drawBodyWindow } from './bodies';
+import { keepPainted } from '@/engine/canvas-life';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
 import { roundRect, sparklePath, suitPath } from './glyphs';
@@ -75,11 +76,16 @@ export function cardFace(card: Pick<Card, 'suit' | 'rank' | 'glyph' | 'body'>, w
   const hit = cache.get(key);
   if (hit) return hit;
   const pad = Math.ceil(w * 0.12);
-  const canvas = makeCanvas(w + pad * 2, h + pad * 2, scale);
-  const ctx = canvas.getContext('2d')!;
-  ctx.scale(scale, scale);
-  ctx.translate(pad, pad);
-  drawFace(ctx, card, w, h, opts);
+  // Копия: карту из руки могут поменять, а холст должен уметь перерисоваться (BG.1)
+  const face = { suit: card.suit, rank: card.rank, glyph: card.glyph, body: card.body };
+  const paint = (c: HTMLCanvasElement) => {
+    const ctx = c.getContext('2d')!;
+    ctx.scale(scale, scale);
+    ctx.translate(pad, pad);
+    drawFace(ctx, face, w, h, opts);
+  };
+  const canvas = keepPainted(makeCanvas(w + pad * 2, h + pad * 2, scale), paint);
+  paint(canvas);
   cache.set(key, canvas);
   return canvas;
 }
@@ -463,11 +469,14 @@ export function cardBack(w: number, scale: number, styleId = activeBack): HTMLCa
   if (hit) return hit;
   const h = Math.round(w / CARD_ASPECT);
   const pad = Math.ceil(w * CARD_PAD);
-  const canvas = makeCanvas(w + pad * 2, h + pad * 2, scale);
-  const ctx = canvas.getContext('2d')!;
-  ctx.scale(scale, scale);
-  ctx.translate(pad, pad);
-  drawEngravedBack(ctx, style, w, h);
+  const paint = (c: HTMLCanvasElement) => {
+    const ctx = c.getContext('2d')!;
+    ctx.scale(scale, scale);
+    ctx.translate(pad, pad);
+    drawEngravedBack(ctx, style, w, h);
+  };
+  const canvas = keepPainted(makeCanvas(w + pad * 2, h + pad * 2, scale), paint);
+  paint(canvas);
   cache.set(key, canvas);
   return canvas;
 }
