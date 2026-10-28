@@ -550,9 +550,17 @@ export const en: Dict = {
     nebula: 'Nebula',
     blackhole: 'Black hole',
   },
+  bodyShort: {
+    polaris: 'never fades after ignition',
+    meteor: 'knocks out a weak neighbour',
+    pulsar: '+2 to multiplier for all lines',
+    twin: 'its rank and the next',
+    nebula: 'any rank',
+    blackhole: 'line ×2, leaves the deck',
+  },
   bodyDesc: {
     polaris: 'Never fades: stays on the sky after its line ignites',
-    meteor: 'Knocks its weakest neighbour to the discard — never a card of its own line',
+    meteor: 'Knocks its weakest neighbour to the discard, never a card of its own line',
     pulsar: 'A line ignites next to it: +2 to multiplier for every line this night',
     twin: 'Counts as its rank and the next one',
     nebula: 'Any rank: takes whichever suits the line best',
@@ -620,7 +628,7 @@ export const en: Dict = {
     },
   },
   kw: {
-    kinds: { glyph: 'Glyph', rule: 'Rule', omen: 'Omen' },
+    kinds: { glyph: 'Glyph', rule: 'Rule', omen: 'Omen', body: 'Celestial body' },
     glyph: {
       gilded: '[+2 gold|gold|gold] each time the card ignites.',
       blazing: '[+4 to multiplier|mult|mult] while the card is in a line.',
@@ -644,6 +652,7 @@ export const en: Dict = {
       rank: ['Rank', 'The number on a card. Adds to the line’s [light|light|light]: the higher the rank, the more points.'],
       shatter: ['Shatter', 'A [Glass|glass] card: when its line ignites, after scoring it shatters with a 25% chance. It leaves the sky and the deck for the rest of the run.'],
       level: ['Constellation level', 'Permanently adds [light|light|light] and [multiplier|mult|mult] to a constellation. Grows with star charts.'],
+      body: ['Celestial body', 'A card with its own placement rule: Polaris, Meteor, Pulsar and others. Comes from the Night gift. Pick such a card in your hand and its rule shows under the sky.'],
       myth: ['Myth', 'A star figure hidden in the sky with its own condition: one suit, ranks in order and so on. Fill it with cards and it flares on its own for big points. All myths are in the Collection.'],
       interest: ['Interest', 'A reward for saving: at the end of a night +1 [gold|gold|gold] for every 5 coins in your pocket, usually up to +5. Miser and Treasury raise the cap.'],
     },
