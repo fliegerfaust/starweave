@@ -640,10 +640,12 @@ export const en: Dict = {
     rule: {
       mult: ['Multiplier', 'How many times a constellation’s score grows. Score = [light|light|light] × multiplier.'],
       light: ['Light', 'The constellation base plus the ranks of the line’s cards. Score = light × [multiplier|mult|mult].'],
-      gold: ['Gold', 'Spent at the Observatory and the Comet. Earned for nights and from the [Gilded|gilded] glyph.'],
+      gold: ['Gold', 'Spent at the Observatory and the Comet. Earned for nights, [interest|interest] and from the [Gilded|gilded] glyph.'],
       rank: ['Rank', 'The number on a card. Adds to the line’s [light|light|light]: the higher the rank, the more points.'],
       shatter: ['Shatter', 'A [Glass|glass] card: when its line ignites, after scoring it shatters with a 25% chance. It leaves the sky and the deck for the rest of the run.'],
       level: ['Constellation level', 'Permanently adds [light|light|light] and [multiplier|mult|mult] to a constellation. Grows with star charts.'],
+      myth: ['Myth', 'A star figure hidden in the sky with its own condition: one suit, ranks in order and so on. Fill it with cards and it flares on its own for big points. All myths are in the Collection.'],
+      interest: ['Interest', 'A reward for saving: at the end of a night +1 [gold|gold|gold] for every 5 coins in your pocket, usually up to +5. Miser and Treasury raise the cap.'],
     },
   },
   journey: {
@@ -694,7 +696,7 @@ export const en: Dict = {
     abacus: ['Abacus', '+3 moves each night'],
     pyre: ['Pyre', '+2 burns each night'],
     ember: ['Ember', '+3 to multiplier per burn this night (now +{x})'],
-    miser: ['Miser', 'Interest cap +5 gold'],
+    miser: ['Miser', 'Interest cap is 5 gold higher'],
     evenKeel: ['Even Keel', 'All ranks in the line even: multiplier ×2'],
     oddity: ['Oddity', 'All ranks in the line odd: multiplier ×2'],
     crossroads: ['Crossroads', 'Chain multiplier +1: a cross gives ×3'],
@@ -728,7 +730,7 @@ export const en: Dict = {
     milkyWay: ['Milky Way', 'A straight may have one gap. Any straight: +8 multiplier and ×1.5'],
     pureSpectrum: ['Pure Spectrum', 'Flush needs one card fewer. Flush: +10 multiplier'],
     wildfire: ['Wildfire', '+2 burns. Each burn this night: +5 line multiplier (now +{x})'],
-    treasury: ['Treasury', '+1 line multiplier per 5 gold. Interest cap +3'],
+    treasury: ['Treasury', '+1 line multiplier per 5 gold. Interest cap is 3 gold higher'],
   },
   boss: {
     void: ['The Void', 'Two sky cells are sealed'],
