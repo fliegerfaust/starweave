@@ -224,6 +224,7 @@ export class RunController {
     if (run.tutorial) applyTutorialNight(run, run.chapter.path.length);
     else track('night_start', { ante: run.ante, night: run.night!.kind, boss: run.night!.bossId ?? '', gentle: !!run.night!.gentle });
     this.progress({ e: 'nightStart' });
+    this.app.money.refreshRewarded();
     this.save();
     this.route();
   }
@@ -344,7 +345,7 @@ export class RunController {
     }
     this.save();
     // Межстраничная реклама — только в паузе между созвездиями
-    const ad = run.phase === 'map' && run.chapter.path.length === 0 ? this.app.money.interstitialBetweenAntes() : null;
+    const ad = run.phase === 'map' && run.chapter.path.length === 0 ? this.app.money.interstitialBetweenAntes(run.ante) : null;
     if (ad) {
       void ad.then(() => this.route());
       return;

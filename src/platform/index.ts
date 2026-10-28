@@ -1,7 +1,7 @@
 import type { Platform } from './types';
 import { WebPlatform } from './web';
 
-export type { Payments, Platform, PurchaseResult } from './types';
+export type { AdOutcome, AdResult, Payments, Platform, PurchaseResult } from './types';
 export { FEATURES, resolveFeatures, type Feature, type Features } from './features';
 
 /**
