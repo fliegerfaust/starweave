@@ -74,7 +74,7 @@ test('окна ночи: всё на экране, кнопки видны, ни
           .filter((el) => !el.closest('svg') && !el.matches('.coin, .scene-bar, .scene-bar i, .scene-gold .coin'))
           .filter((el) => { const bg = getComputedStyle(el).backgroundColor; const a = /rgba?\(([^)]+)\)/.exec(bg)?.[1]?.split(',')[3]; return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && (a === undefined || Number(a) > 0.02); })
           .map((el) => el.className);
-        const wide = document.body.classList.contains('landscape') && innerHeight > 560
+        const wide = document.body.classList.contains('landscape') && innerHeight >= 600
           ? [...document.querySelectorAll<HTMLElement>('.scene-acts > .btn')].filter((b) => b.getBoundingClientRect().width > 360).length : 0;
         return { out, shown, plates, wide };
       });

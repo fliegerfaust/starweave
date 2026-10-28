@@ -901,6 +901,20 @@ body {
   .menu-buttons { width: min(520px, 100%); padding-top: 28px; }
   .menu-buttons .menu-primary { width: calc(var(--slit-px, 300px) + 24px); }
 }
+/* Порог «ПК» по высоте во всех экранах — 600 px; широкое окно ниже 600 (Пикабу на ПК) получает
+   раскладку невысокого ландшафта (до 599 px) — проверено на 1394×580 и 1180×540. */
+/* Невысокое широкое окно ПК (Пикабу на ПК: ~1400×580 — между раскладкой ПК от 600 px и телефона
+   боком до 520 px): та же узкая щель по центру и название в одну строку, только всё компактнее.
+   Без этого правила срабатывала раскладка портрета: щель в полэкрана, название под аркой */
+@media (min-width: 860px) and (min-aspect-ratio: 1/1) and (min-height: 521px) and (max-height: 599px) {
+  .observatory { --slit-w: min(240px, 22vw); --slit-h: 30dvh; }
+  .menu-plate { font-size: clamp(40px, 4vw, 56px); }
+  .logo-word { display: inline; }
+  .logo-word + .logo-word::before { content: ' '; }
+  .dome-name { bottom: calc(clamp(40px, 4vw, 56px) * 0.9 + 12px); }
+  .menu-buttons { width: min(520px, 100%); gap: 8px; padding-top: 14px; }
+  .menu-buttons .menu-primary { width: calc(var(--slit-px, 240px) + 24px); }
+}
 /* Телефон в ландшафте: щель узкая и низкая, название в одну строку */
 @media (max-height: 520px) and (min-aspect-ratio: 1/1) {
   .observatory { --slit-w: min(220px, 26vw); --slit-h: 30dvh; }
@@ -1015,7 +1029,7 @@ body {
 .res-scene { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: rgb(6 5 20 / 0); transition: background 0.35s ease; pointer-events: auto; }
 .res-stack { display: grid; justify-items: center; gap: 18px; margin-top: -6vh; }
 .res-slot { position: relative; width: 120px; height: 120px; }
-@media (orientation: landscape) and (max-height: 560px) { .res-stack { grid-auto-flow: column; align-items: center; gap: 28px; margin-top: 0; } .res-text { justify-items: start; text-align: left; } }
+@media (orientation: landscape) and (max-height: 599px) { .res-stack { grid-auto-flow: column; align-items: center; gap: 28px; margin-top: 0; } .res-text { justify-items: start; text-align: left; } }
 .res-scene.on { background: rgb(6 5 20 / 0.82); }
 .res-scene.out { animation: fade-out 0.22s ease forwards; }
 .res-fly { position: fixed; width: 72px; height: 72px; margin: -36px 0 0 -36px; transform: scale(0.67); transition: left 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease; }
@@ -1078,7 +1092,7 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
 .pack-scene .ware-list { width: 100%; }
 
 /* ПК: собранный блок по центру экрана, без пустого поля; кнопки — сразу под содержимым */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   .shop { max-width: 980px; padding: calc(32px + var(--safe-top)) 40px calc(32px + var(--safe-bottom)); gap: 22px; justify-content: safe center; }
   .shop-body { flex: 0 1 auto; gap: 22px; }
   .shop-goods, .shop-lower { grid-template-columns: 1fr 1fr; gap: 28px; }
@@ -1098,7 +1112,7 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .shop-actions { grid-template-columns: auto minmax(0, 340px); justify-content: center; padding-top: 16px; }
 }
 /* Невысокий ландшафт: товары двумя колонками, своё и кнопки — строкой внизу */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .shop { max-width: none; gap: 6px; padding-top: calc(6px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
   /* Свободная высота — поровну сверху и снизу, без пустого поля над кнопками (RD.13) */
   .shop-body { gap: 10px; align-content: safe center; }
@@ -1474,7 +1488,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 }
 @media (max-width: 360px) { .scene .stats-grid { column-gap: 14px; } .scene .stat-item-value { font-size: 13px; } }
 /* Невысокий ландшафт: середина слева, кнопки колонкой справа */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .scene-inner { width: min(760px, 100%); grid-template-columns: minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); column-gap: 24px; align-items: center; }
   .scene-mid { gap: 10px; }
   .scene-tip { display: none; }
@@ -1688,7 +1702,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 /* Комета и Телескоп открываются поверх карты — фон плотнее, чтобы она не просвечивала */
 .modal-backdrop.scene:has(.wonder-scene) { background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.97), rgb(3 3 14 / 0.99)); }
 /* Невысокий ландшафт: строки слева во всю высоту, заголовок и кнопки — колонкой справа */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .wonder-scene .scene-inner { grid-template-columns: minmax(0, 1fr) 270px; grid-template-rows: auto auto; align-content: center; row-gap: 14px; }
   .wonder-scene .scene-mid { display: contents; }
   .wonder-scene .wd-rows { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
@@ -1697,7 +1711,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
   .wonder-scene .scene-acts { grid-column: 2; grid-row: 2; align-self: start; }
 }
 /* ПК: полноценная сцена в две колонки — слева эмблема, название, пояснение и кнопки, справа крупные строки */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   .wonder-scene .scene-inner { width: min(1224px, 100%); grid-template-columns: 380px minmax(0, 780px); grid-template-rows: auto auto auto auto; grid-template-areas: "emb list" "rib list" "lead list" "acts list"; justify-content: center; align-content: center; column-gap: 64px; row-gap: 18px; }
   .wonder-scene .scene-mid { display: contents; }
   .wonder-scene .wd-emblem { display: block; grid-area: emb; justify-self: center; width: 168px; height: 168px; color: var(--gold); filter: drop-shadow(0 0 18px rgb(var(--gold-rgb) / 0.25)); }
@@ -1784,7 +1798,7 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
   .over.with-path .scene-ribbon b { font-size: 24px; }
 }
 /* ПК: открытка крупно и читаемо — 560 px слева, итоги и кнопки справа */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   .over.with-path .scene-inner { width: min(1040px, 100%); grid-template-columns: 560px 400px; grid-template-rows: minmax(0, 1fr) auto; justify-content: center; column-gap: 56px; }
   .over.with-path .scene-mid { grid-column: 2; grid-row: 1; align-self: end; }
   .over.with-path .scene-acts { grid-column: 2; grid-row: 2; }
@@ -2279,7 +2293,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 }
 
 /* ПК: журнал слева, панель дня и сводка справа; блок по центру, кнопка пилюлей под ним */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   .archive { max-width: 1060px; padding: calc(28px + var(--safe-top)) 40px calc(28px + var(--safe-bottom)); gap: 18px; justify-content: safe center; }
   .arc-body { flex: 0 1 auto; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 36px; align-items: start; overflow: hidden; -webkit-mask-image: none; mask-image: none; padding-bottom: 0; }
   .arc-log { max-height: min(600px, calc(100vh - 230px)); overflow-y: auto; overscroll-behavior: contain; padding-right: 6px;
@@ -2299,7 +2313,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   .arc-cta .btn { max-width: 440px; }
 }
 /* Невысокий ландшафт: журнал слева, панель дня справа закреплена, кнопка справа внизу */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .archive { max-width: none; gap: 6px; padding-top: calc(4px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
   .arc-top { padding-bottom: 4px; }
   .arc-body { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px 24px; align-items: start; }
@@ -2497,7 +2511,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 }
 
 /* ПК: собранный блок по центру, обложка слева, кнопка — пилюлей под содержимым */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   .atlas { max-width: 1060px; padding: calc(28px + var(--safe-top)) 40px calc(28px + var(--safe-bottom)); gap: 18px; justify-content: safe center; }
   .atl-body { flex: 0 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; -webkit-mask-image: none; mask-image: none; padding-bottom: 0; }
   /* Невысокое окно ПК (например 1080×607): обложка ужимается, а не уходит под кнопку */
@@ -2512,12 +2526,12 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   .atl-cta .btn, .atl-cta .atl-two { max-width: 440px; }
   .atl-cta .atl-two { width: 100%; }
 }
-@media (min-width: 900px) and (min-height: 561px) and (max-height: 700px) {
+@media (min-width: 900px) and (min-height: 600px) and (max-height: 700px) {
   .atl-stack { --bw: 118px; --fw: 94px; width: 205px; height: 205px; }
   .atl-title { font-size: 34px; }
 }
 /* Невысокий ландшафт: вкладки в строку шапки, обложка слева закреплена, кнопка справа внизу */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .atlas { max-width: none; gap: 6px; padding-top: calc(4px + var(--safe-top)); padding-bottom: calc(6px + var(--safe-bottom)); }
   .atl-top { grid-template-columns: auto auto 1fr; justify-items: start; gap: 18px; }
   .atl-tabs { grid-column: 3; grid-row: 1; justify-self: end; box-shadow: none; padding: 0; }
@@ -2539,6 +2553,14 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   .atl-cta > :not(.btn) { grid-row: 1; }
   .atl-promise { text-align: left; }
   .atl-tips .atl-tip { min-height: 46px; }
+}
+/* Широкое невысокое окно ПК (Пикабу на ПК, 1394×580): та же раскладка, но обложка и примерочная
+   забирают свободную высоту — без пустого поля под ними */
+@media (orientation: landscape) and (min-width: 900px) and (min-height: 480px) and (max-height: 599px) {
+  .atl-hero { height: calc(100dvh - 150px - var(--safe-top) - var(--safe-bottom)); }
+  .atl-stack { --bw: 110px; --fw: 88px; width: 220px; height: 200px; }
+  .atl-title { display: block; font-size: 28px; }
+  .atl-stage { height: calc(100dvh - 190px - var(--safe-top) - var(--safe-bottom)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2628,7 +2650,7 @@ html.calm .atl-stack canvas, html.calm .atl-stack::before, html.calm .atl-stack 
 /* Ландшафт и ПК: настройки — двумя колонками, без прокрутки */
 body.landscape .modal-panel.settings-modal { width: min(980px, 100%); }
 body.landscape .st-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; }
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .st-row { min-height: 44px; padding: 4px 2px; }
   .st-body, .st-col { gap: 8px; }
 }
@@ -2832,7 +2854,7 @@ body.landscape .modal-panel.sheet.board-modal { height: auto; }
 body.landscape .modal-panel.board-modal:not(.sheet) { width: min(1040px, 100%); height: auto; max-height: min(720px, 100%); }
 .modal-backdrop:has(> .modal-panel.board-modal:not(.sheet)) { place-items: start center; }
 /* Низкий ландшафт: доске нужна вся высота — окно во весь экран */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   body.landscape .modal-panel.board-modal:not(.sheet) { height: 100%; }
   body.landscape .gb-tab { min-height: 40px; }
 }
@@ -2840,7 +2862,7 @@ body.landscape .modal-backdrop:has(> .modal-panel.board-modal:not(.sheet)) { pad
 body.landscape .modal-panel.board-modal:not(.sheet) .gb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
 body.landscape .modal-panel.board-modal:not(.sheet) .gb-pin { align-self: start; }
 body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-board { min-height: 380px; align-content: center; padding: 22px; gap: 22px; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-board { --cw: 50px; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-sky { gap: 5px; }
@@ -2856,7 +2878,7 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll > .coll-block { display: none; }
 }
 /* ПК: большое окно по центру экрана, а не выпавшее меню */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   body.landscape .modal-panel.collection-modal:not(.sheet) { width: min(1120px, 100% - 64px); height: min(720px, 100% - 48px); max-height: none; }
   body.landscape .modal-backdrop:has(> .modal-panel.collection-modal:not(.sheet)) { place-items: center; padding-top: var(--safe-top); }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb { grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); }
@@ -2870,12 +2892,12 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-sigils { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 4px; }
 }
 /* Низкий ландшафт телефона: итоги под доской плотнее */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   body.landscape .modal-panel.collection-modal:not(.sheet) .coll-block { gap: 6px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-stat { padding: 5px 0; }
 }
 /* Невысокий ландшафт телефона: доска ниже, чтобы поместиться в окно и в боковой лист */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   .gb-board { --cw: 24px; padding: 10px; gap: 10px; }
   .gb-sky { gap: 3px; }
   .gb-tally h3 { font-size: 18px; }
@@ -3295,7 +3317,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 .gb-ecl b { font-weight: 800; color: var(--ink); }
 /* Правило Затмения — только в широком окне: на телефоне доска не растёт ради него */
 .gb-ecl span { display: none; }
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-ecl span { display: inline; }
 }
 
@@ -3305,7 +3327,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 .gb-formula canvas.unknown, .gb-legends canvas.unknown { filter: grayscale(1) brightness(0.45); opacity: 0.6; }
 .gb-plus { font: 600 15px/1 var(--font-body); color: var(--ink-faint); }
 /* На широкой доске восемь легендарных — одной строкой */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-legends { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
 
@@ -3373,7 +3395,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
 }
 @media (prefers-reduced-motion: reduce) { .hall-sky.flare, .hall-sky.flare * { animation: none !important; } }
 /* ПК: доска во всю левую колонку над рекордами, небо и число крупнее; достижения в две колонки */
-@media (min-width: 900px) and (min-height: 561px) {
+@media (min-width: 900px) and (min-height: 600px) {
   /* Колонки ровно по высоте окна: доска сжимается, рекорды под ней видны целиком */
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { min-height: 0; }
@@ -3389,7 +3411,7 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap-line b { font-size: 20px; }
 }
 /* Низкий ландшафт телефона: доска во всю высоту левой колонки, рекорды — в списке справа */
-@media (orientation: landscape) and (max-height: 560px) {
+@media (orientation: landscape) and (max-height: 599px) {
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { height: 100%; min-height: 0; display: flex; flex-direction: column; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin > .coll-block { display: none; }

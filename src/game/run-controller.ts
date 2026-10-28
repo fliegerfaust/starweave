@@ -61,8 +61,12 @@ export class RunController {
    * облако, открытые небеса — тостом (`announce: false` — молча, как у сданного забега).
    */
   progress(ev: ProgressEvent, run: RunState = this.run!, announce = true): ProgressResult {
-    // Достижения считаются по профилю: открытые до события запоминаем, чтобы найти новые
-    this.featsDone ??= this.doneFeats();
+    // Достижения считаются по профилю: открытые до события запоминаем, чтобы найти новые.
+    // Профиль сменился (сброс прогресса) — список считается заново, без тостов за старое
+    if (this.featsProfile !== this.app.profile) {
+      this.featsProfile = this.app.profile;
+      this.featsDone = this.doneFeats();
+    }
     const result = recordEvent(this.app.profile, run, ev);
     if (result.changed) {
       this.persistProfile();
@@ -73,8 +77,9 @@ export class RunController {
     return result;
   }
 
-  /** Открытые достижения на момент последней проверки (HF.4). */
-  private featsDone: Set<string> | null = null;
+  /** Открытые достижения на момент последней проверки (HF.4) и профиль, к которому они относятся. */
+  private featsDone: Set<string> = new Set();
+  private featsProfile: object | null = null;
 
   private doneFeats(): Set<string> {
     return new Set(featStates(this.app.profile).filter((s) => s.done).map((s) => s.def.id));
@@ -83,7 +88,7 @@ export class RunController {
   /** Новые достижения — тостом с медальоном после подсчёта хода, по одному. */
   private checkFeats(announce: boolean): void {
     const now = featStates(this.app.profile).filter((s) => s.done);
-    const fresh = now.filter((s) => !this.featsDone!.has(s.def.id));
+    const fresh = now.filter((s) => !this.featsDone.has(s.def.id));
     this.featsDone = new Set(now.map((s) => s.def.id));
     fresh.forEach((s, i) => {
       track('feat_unlock', { id: s.def.id, runs: this.app.profile.runs });
