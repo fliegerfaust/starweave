@@ -1,5 +1,6 @@
 import { BRIGHT_TARGET_SCALE, FINAL_ANTE, GENTLE_NIGHT } from './content/balance';
 import { BOSS_LIST } from './content/bosses';
+import { ladderAt } from './content/pools';
 import { runNightReward, runNightTarget } from './content/stakes';
 import { RuleError } from './errors';
 import { offer } from './choices';
@@ -204,7 +205,7 @@ export function nextStop(run: RunState): { ante: number; chapter: Chapter } {
     return { ante: run.ante, chapter };
   }
   const ante = run.ante + 1;
-  return { ante, chapter: planChapter({ ...run, ante }) };
+  return { ante, chapter: planChapter({ ...run, ante, unlocks: ladderAt(run.unlocks, ante) }) };
 }
 
 /** Есть ли куда идти после этой ночи (иначе впереди победа). */
