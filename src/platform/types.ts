@@ -13,6 +13,17 @@ export interface Payments {
 }
 
 /**
+ * Чем кончился показ рекламы (PK.15): `rewarded` — досмотрел ролик за награду, `shown` —
+ * межстраничная показана, `closed` — закрыл раньше, `nofill` — у площадки нет ролика (или
+ * показ запрещён частотой), `error` — сбой. `reason` — код площадки, если она его дала.
+ */
+export type AdResult = 'rewarded' | 'shown' | 'closed' | 'nofill' | 'error';
+export interface AdOutcome {
+  result: AdResult;
+  reason?: string;
+}
+
+/**
  * Площадка, на которой запущена игра: веб, Яндекс Игры, Пикабу Игры, позже — сторы.
  * Игра знает только этот интерфейс; конкретный SDK живёт в адаптере.
  */
@@ -32,15 +43,21 @@ export interface Platform {
   /** Новое поведение, включённое на площадке (см. `features.ts`); остальные площадки его не видят. */
   readonly features?: readonly Feature[];
   init(): Promise<void>;
-  /** Игра загрузилась и готова к игре. */
-  ready(): void;
+  /**
+   * Игра загрузилась и готова к игре. `returning` — игрок пришёл не впервые: площадка может
+   * перед стартом показать рекламу при загрузке (Пикабу, со второго запуска).
+   */
+  ready(returning: boolean): void | Promise<void>;
   /** Игрок играет / не играет — порталы учитывают это для рекламы и аналитики. */
   gameplayStart(): void;
   gameplayStop(): void;
   /** Межстраничная реклама в паузе между созвездиями. */
-  showInterstitial(): Promise<void>;
-  /** Реклама за награду: true — досмотрел, награду выдаём. */
-  showRewarded(): Promise<boolean>;
+  showInterstitial(): Promise<AdOutcome>;
+  /** Реклама за награду: награду выдаём только при `rewarded`. */
+  showRewarded(): Promise<AdOutcome>;
+  /** Есть ли ролик за награду прямо сейчас; без метода — считаем, что есть. */
+  canShowRewarded?(): Promise<boolean>;
+
   /** Язык, который определила площадка. */
   language(): Lang | null;
   /**

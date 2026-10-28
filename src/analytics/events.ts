@@ -59,8 +59,9 @@ export interface EventMap {
   wonder: { kind: string; ante: number };
 
   // ── Монетизация ────────────────────────────────────────────────────────
-  ad_request: { kind: 'rewarded' | 'interstitial'; placement: string };
-  ad_result: { kind: 'rewarded' | 'interstitial'; placement: string; result: 'rewarded' | 'closed' | 'error' };
+  ad_request: { kind: 'rewarded' | 'interstitial' | 'preloader'; placement: string };
+  /** Чем кончился показ (PK.15): `nofill` — у площадки не было ролика, `reason` — её код. */
+  ad_result: { kind: 'rewarded' | 'interstitial' | 'preloader'; placement: string; result: 'rewarded' | 'shown' | 'closed' | 'nofill' | 'error'; reason?: string };
   /** Открыт экран атласа (магазина): откуда пришли. */
   store_open: { from: string };
   purchase_start: { product: string };

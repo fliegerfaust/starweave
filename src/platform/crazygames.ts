@@ -1,5 +1,5 @@
 import type { Lang } from '@/i18n';
-import type { Platform } from './types';
+import type { AdOutcome, Platform } from './types';
 import { FEATURES } from './features';
 
 type AdType = 'midgame' | 'rewarded';
@@ -116,28 +116,29 @@ export class CrazyGamesPlatform implements Platform {
     this.sdk?.game.happytime();
   }
 
-  async showInterstitial(): Promise<void> {
-    if (this.interstitialAvailable) await this.ad('midgame');
+  async showInterstitial(): Promise<AdOutcome> {
+    if (!this.interstitialAvailable) return { result: 'nofill' };
+    return this.ad('midgame');
   }
 
-  async showRewarded(): Promise<boolean> {
-    if (!this.rewardedAvailable) return false;
+  async showRewarded(): Promise<AdOutcome> {
+    if (!this.rewardedAvailable) return { result: 'nofill' };
     return this.ad('rewarded');
   }
 
   /** Ролик: на время показа игра на паузе и без звука; награда — только за досмотренный. */
-  private ad(type: AdType): Promise<boolean> {
+  private ad(type: AdType): Promise<AdOutcome> {
     const sdk = this.sdk;
-    if (!sdk) return Promise.resolve(false);
+    if (!sdk) return Promise.resolve({ result: 'nofill' });
     // Сайт сам решает, показывать ли ролик (не чаще раза в 3 минуты): если не покажет,
     // ответит adError — игра продолжает без паузы
     const wasPlaying = this.playing;
     return new Promise((resolve) => {
       let started = false;
-      const done = (ok: boolean) => {
+      const done = (outcome: AdOutcome) => {
         if (started) this.emitPause(false);
         if (started && wasPlaying) this.gameplayStart();
-        resolve(ok);
+        resolve(outcome);
       };
       sdk.ad.requestAd(type, {
         adStarted: () => {
@@ -145,13 +146,14 @@ export class CrazyGamesPlatform implements Platform {
           this.gameplayStop();
           this.emitPause(true);
         },
-        adFinished: () => done(true),
+        adFinished: () => done({ result: type === 'rewarded' ? 'rewarded' : 'shown' }),
         adError: (error) => {
           if (error?.code === 'adsDisabledBasicLaunch') {
             this.rewardedAvailable = false;
             this.interstitialAvailable = false;
           }
-          done(false);
+          // Ролик не начался — сайт его не дал (частота, нет рекламы); начался и сорвался — сбой
+          done({ result: started ? 'error' : 'nofill', ...(error?.code ? { reason: String(error.code) } : {}) });
         },
       });
     });

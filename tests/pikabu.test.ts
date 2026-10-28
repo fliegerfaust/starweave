@@ -16,7 +16,7 @@ function fakeSdk(over: Partial<{ canShow: boolean; reward: boolean; purchase: Aw
   const sdk: PkbSDK = {
     gameStarted: () => calls.push('gameStarted'),
     player: { isAuthorized: false },
-    ads: { fullscreen: ad('fullscreen'), rewarded: ad('rewarded', over.reward ?? true) },
+    ads: { preloader: ad('preloader'), fullscreen: ad('fullscreen'), rewarded: ad('rewarded', over.reward ?? true) },
     store: {
       getProducts: async () => [{ id: 'atlas', formattedPrice: '299 ₽' }],
       getPurchases: async () => [
@@ -51,27 +51,38 @@ afterEach(() => {
 describe('площадка Пикабу Игры', () => {
   it('готовность — gameStarted, язык русский, все переключатели CQ включены', async () => {
     const { p, sdk } = await platform();
-    p.ready();
+    await p.ready(false);
     expect(sdk.calls).toEqual(['gameStarted']);
     expect(p.language()).toBe('ru');
     expect(p.features).toEqual(FEATURES);
   });
 
-  it('реклама на паузе игры; награда — только за досмотренный ролик', async () => {
+  it('реклама при загрузке — только со второго запуска и до gameStarted (PK.17)', async () => {
+    const first = await platform();
+    await first.p.ready(false);
+    expect(first.sdk.calls).toEqual(['gameStarted']);
+    const again = await platform();
+    await again.p.ready(true);
+    expect(again.sdk.calls).toEqual(['show:preloader', 'gameStarted']);
+    expect(again.pauses).toEqual([true, false]);
+  });
+
+  it('реклама на паузе игры; награда — только за досмотренный ролик (PK.15)', async () => {
     const { p, sdk, pauses } = await platform();
-    await p.showInterstitial();
-    expect(await p.showRewarded()).toBe(true);
+    expect(await p.showInterstitial()).toEqual({ result: 'shown' });
+    expect(await p.showRewarded()).toEqual({ result: 'rewarded' });
     expect(sdk.calls).toEqual(['show:fullscreen', 'show:rewarded']);
     expect(pauses).toEqual([true, false, true, false]);
 
     const skipped = await platform({ reward: false });
-    expect(await skipped.p.showRewarded()).toBe(false);
+    expect(await skipped.p.showRewarded()).toEqual({ result: 'closed' });
   });
 
-  it('площадка не даёт показать ролик — без паузы и без награды', async () => {
+  it('площадка не даёт показать ролик — «нет ролика», без паузы и без кнопки награды', async () => {
     const { p, sdk, pauses } = await platform({ canShow: false });
-    await p.showInterstitial();
-    expect(await p.showRewarded()).toBe(false);
+    expect((await p.showInterstitial()).result).toBe('nofill');
+    expect((await p.showRewarded()).result).toBe('nofill');
+    expect(await p.canShowRewarded()).toBe(false);
     expect(sdk.calls).toEqual([]);
     expect(pauses).toEqual([]);
   });
@@ -108,9 +119,9 @@ describe('площадка Пикабу Игры', () => {
     delete (globalThis as { document?: unknown }).document;
     expect(p.payments).toBeNull();
     expect(p.rewardedAvailable).toBe(false);
-    expect(await p.showRewarded()).toBe(false);
+    expect((await p.showRewarded()).result).toBe('nofill');
     expect(await p.cloudLoad()).toBeNull();
-    p.ready();
+    await p.ready(true);
   });
 
   it('вызов друга ведёт на Пикабу, не на свой сайт', async () => {
