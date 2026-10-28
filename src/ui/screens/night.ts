@@ -331,8 +331,8 @@ export class NightScreen implements Screen {
       foot: foot.width ? foot : null,
       root: this.hud.el.parentElement,
       from: this.hud.bossSigilEl(),
-      take: (index) => {
-        const ok = this.app.runs.shopAction({ c: 'choose', index });
+      take: (index, replace) => {
+        const ok = this.app.runs.shopAction({ c: 'choose', index, ...(replace !== undefined ? { replace } : {}) });
         if (ok) {
           this.hud.syncBelt(this.run);
           const offer = choice.options[index]!;

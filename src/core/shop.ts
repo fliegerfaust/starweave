@@ -118,7 +118,7 @@ export function buyPack(run: RunState, slot: number): void {
   const item = shop.packs[slot];
   if (!item || item.kind !== 'pack' || item.sold) throw new RuleError('nothing');
   if (run.pending.length) throw new RuleError('nothing');
-  if (item.pack === 'omen' && run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
+  // Пакет Знамений при полном ряде можно купить: при выборе своё Знамение заменяется (OB)
   pay(run, item.price);
   item.sold = true;
   offer(run, { kind: 'pack', pack: item.pack, options: packOptions(run, item.pack) });
@@ -138,14 +138,43 @@ export function omenSlots(run: RunState): number {
   return buildRules(run, null).omenSlots;
 }
 
-export function buyOmen(run: RunState, slot: number): void {
+/**
+ * Купить Знамение. `replace` — uid своего Знамения на замену (OB, отзыв Андрея 28.10): оно
+ * продаётся, его цена идёт в оплату, новое встаёт на его место — порядок срабатывания не ломается.
+ */
+export function buyOmen(run: RunState, slot: number, replace?: number): void {
   const shop = requireShop(run);
   const item = shop.omens[slot];
   if (!item || item.kind !== 'omen' || item.sold) throw new RuleError('nothing');
-  if (run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
+  if (replace === undefined) {
+    if (run.omens.length >= omenSlots(run)) throw new RuleError('noSlots');
+    pay(run, item.price);
+    item.sold = true;
+    run.omens.push(createOmen(run, item.omenId));
+    return;
+  }
+  const at = ownedIndex(run, replace);
+  if (run.gold + sellPrice(run.omens[at]!.id) < item.price) throw new RuleError('noGold');
+  replaceOmenAt(run, at, item.omenId);
   pay(run, item.price);
   item.sold = true;
-  run.omens.push(createOmen(run, item.omenId));
+}
+
+function ownedIndex(run: RunState, uid: number): number {
+  const at = run.omens.findIndex((o) => o.uid === uid);
+  if (at < 0) throw new RuleError('noOmen');
+  return at;
+}
+
+/** Своё Знамение на месте `at` продано, на его место встаёт новое `omenId`. */
+function replaceOmenAt(run: RunState, at: number, omenId: string): void {
+  run.gold += sellPrice(run.omens[at]!.id);
+  run.omens[at] = createOmen(run, omenId);
+}
+
+/** Заменить своё Знамение (по uid) новым на том же месте, с продажей старого. Для пакета Знамений. */
+export function replaceOmen(run: RunState, uid: number, omenId: string): void {
+  replaceOmenAt(run, ownedIndex(run, uid), omenId);
 }
 
 export function sellPrice(omenId: string): number {

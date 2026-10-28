@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { apply } from '../src/core/commands';
 import { buildRules } from '../src/core/rules';
 import { newRun } from '../src/core/run';
 import { createOmen } from '../src/core/omen-instance';
@@ -18,14 +19,17 @@ describe('регрессии ревью', () => {
     expect(g.diagonals).toBe(false);
   });
 
-  it('пакет Знамений нельзя купить без свободного слота', () => {
+  it('пакет Знамений при полном ряде не съедает золото даром: взять можно заменой своего (OB)', () => {
     const run = newRun({ seed: 2, unlocks: LINEAR });
     run.phase = 'shop';
     run.gold = 50;
     for (const id of ['stardust', 'pyre', 'abacus', 'miser', 'horizon']) run.omens.push(createOmen(run, id));
     run.shop = { omens: [], items: [], packs: [{ kind: 'pack', pack: 'omen', price: 6, sold: false }], rerollCost: 5 };
-    expect(() => buyPack(run, 0)).toThrow(RuleError);
-    expect(run.gold).toBe(50);
+    buyPack(run, 0);
+    expect(() => apply(run, { c: 'choose', index: 0 })).toThrow(RuleError);
+    apply(run, { c: 'choose', index: 0, replace: run.omens[0]!.uid });
+    expect(run.omens).toHaveLength(5);
+    expect(run.pending).toHaveLength(0);
   });
 
   it('Изгнание не берёт больше карт, чем можно убрать', () => {
