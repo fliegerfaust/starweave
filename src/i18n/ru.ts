@@ -623,7 +623,7 @@ export const ru = {
       cardForGlyph: { gain: '{target} получит глиф [{glyph}|{glyphId}]', cost: '{-Отдашь} карту {give}' },
       omenForGold: { gain: 'Продать Знамение «[{omen}|omen.{id}]»', cost: '{+Получишь} {gold} золота' },
       goldForChart: { gain: '{combo}: +2 [уровня|level]', cost: '{-Заплатишь} {gold} золота' },
-      rankShift: { gain: '{up}: [ранг|rank] вырастет до {upTo}', cost: '{-Взамен} {down} упадёт до {downTo}' },
+      rankShift: { gain: '{up}: [ранг|rank] вырастет до {upTo}', cost: '{-Отдаст} {down}: упадёт до {downTo}. Сила соберётся в одной карте' },
       suitShift: { gain: 'Две карты станут масти «{suit}»', cost: '{a} и {b} сменят масть' },
       goldForBanish: { gain: 'Убрать из колоды {a} и {b}', cost: '{-Заплатишь} {gold} золота' },
       chartSwap: { gain: '{to}: +2 [уровня|level]', cost: '{-Взамен} {from} потеряет 1 уровень' },
