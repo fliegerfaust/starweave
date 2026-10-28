@@ -29,5 +29,8 @@ export default defineConfig({
     { name: 'ipad-mini', use: { ...devices['iPad Mini'], browserName: 'webkit' } },
     { name: 'phone-landscape', use: { ...devices['Pixel 7 landscape'], channel: 'chrome' } },
     { name: 'desktop', use: { viewport: { width: 1366, height: 768 }, channel: 'chrome' } },
+    // Окно Пикабу Игр на ПК (фрейм страницы игры): широкое и низкое — своя раскладка между ПК и телефоном боком
+    { name: 'pikabu-desktop', use: { viewport: { width: 1394, height: 580 }, channel: 'chrome' } },
+    { name: 'pikabu-laptop', use: { viewport: { width: 1180, height: 540 }, channel: 'chrome' } },
   ],
 });

@@ -31,7 +31,7 @@ interface Row {
 
 /** Размер элементов по форме экрана: рисуются в своём размере, растр не растягивается. */
 const SIZES = (): [number, number, number] => {
-  if (matchMedia('(min-width: 900px) and (min-height: 561px)').matches) return [60, 68, 62];
+  if (matchMedia('(min-width: 900px) and (min-height: 600px)').matches) return [60, 68, 62];
   if (matchMedia('(min-height: 740px) and (max-width: 899px)').matches) return [44, 50, 48];
   return [34, 38, 36];
 };
