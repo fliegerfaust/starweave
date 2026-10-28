@@ -64,8 +64,8 @@ const CHOICE_KINDS: { [K in Choice['kind']]: ChoiceKindDef<Extract<Choice, { kin
   },
   trophy: {
     // Приручить можно всегда; Знамение без свободного слота не возьмётся (проверка в take)
-    canTake: (run, choice) => choice.options.some((o) => canTakeTrophy(run, o)),
-    take: (run, choice, index) => takeTrophy(run, choice.options[index]!),
+    canTake: (run, choice, replace) => choice.options.some((o) => canTakeTrophy(run, o, replace)),
+    take: (run, choice, index, _targets, replace) => takeTrophy(run, choice.options[index]!, replace),
   },
 };
 

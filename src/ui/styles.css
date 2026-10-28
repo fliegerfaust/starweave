@@ -1077,7 +1077,7 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .owned-omens { display: flex; justify-content: space-between; gap: 6px; }
 .owned-omen { position: relative; width: 48px; height: 48px; transition: transform 0.15s ease; }
 .owned-omen .omen-slot { width: 48px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: grab; pointer-events: auto; }
-.owned-omen .omen-slot canvas { pointer-events: none; }
+.owned-omen .omen-slot canvas { pointer-events: none; width: 100% !important; height: 100% !important; }
 .owned-omen.empty .omen-slot { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); cursor: default; }
 .owned-omen.empty .omen-slot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.3); }
 .owned-omen.misplaced::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(var(--mult-rgb) / 0.8); pointer-events: none; }
@@ -1161,27 +1161,13 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
 /* Замена Знамения при полном ряде (OB, витрина OB.0) */
 .ware .btn.price.replace { white-space: nowrap; padding: 0 14px; font-size: 14px; }
 .ware .btn.take.replace { color: var(--gold-hi); background: rgb(14 12 34 / 0.6); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); }
-.ware.giving { box-shadow: inset 3px 0 0 var(--gold); background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.08), transparent 70%); border-radius: 4px; }
-/* А · лист «Что отдать?» */
-.give-sub { margin: -4px 0 12px; color: var(--ink-dim); font-size: 13.5px; line-height: 1.4; text-wrap: balance; }
-.give-list { display: grid; max-height: min(58vh, 460px); overflow-y: auto; overscroll-behavior: contain; margin: 0 -6px; padding: 0 6px; }
-.give-row { appearance: none; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 1px 12px; align-items: center; padding: 8px 6px; border-radius: 12px; animation: rise-in 0.3s ease both; transition: background 0.15s ease; }
-.give-row + .give-row { box-shadow: inset 0 1px 0 var(--hair); }
-.give-row:hover:not(:disabled), .give-row:focus-visible { background: rgb(var(--gold-rgb) / 0.07); }
-.give-row:active:not(:disabled) { transform: scale(0.99); }
-.give-row:disabled { cursor: not-allowed; }
-.give-row:disabled > :not(.give-note) { opacity: 0.45; }
-.give-icon { grid-row: span 2; width: 40px; height: 40px; display: grid; place-items: center; }
-.give-name { font: 700 14.5px/1.2 var(--font-body); color: var(--ink); min-width: 0; }
-.give-bonus { grid-column: 2; min-width: 0; font-size: 12.5px; }
-.give-bonus .bonus-line { font-size: 12.5px; }
-.give-note { grid-column: 3; grid-row: 1 / span 2; display: grid; justify-items: end; gap: 4px; font: 800 15px/1.1 var(--font-body); color: var(--gold-hi); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.give-left { font: 600 12px/1.1 var(--font-body); color: var(--ink-dim); }
-.give-note.short .give-left { color: var(--mult); }
-.give-acts { display: grid; margin-top: 14px; }
-.give-acts .btn { min-height: 48px; }
-/* Б · свой ряд как цель */
-.shop-owned.giving { padding: 8px 10px 10px; margin-inline: -10px; border-radius: 16px; box-shadow: 0 0 0 1px rgb(var(--gold-rgb) / 0.35), 0 0 28px -8px rgb(var(--gold-rgb) / 0.35); }
+/* Товар, за который выбирают: ровная золотая подложка с тонкой рамкой, без боковой полосы */
+.ware.giving { position: relative; isolation: isolate; }
+.ware.giving::before { content: ''; position: absolute; inset: 2px -8px; z-index: -1; border-radius: 14px; background: rgb(var(--gold-rgb) / 0.07); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); pointer-events: none; }
+/* Свой ряд как цель: касание медали — замена */
+/* Подсветка ряда — слоем под ним, чуть шире блока: раскладка не сдвигается, когда ряд становится целью */
+.shop-owned { position: relative; isolation: isolate; }
+.shop-owned.giving::before { content: ''; position: absolute; inset: -8px -10px; z-index: -1; border-radius: 16px; background: rgb(var(--gold-rgb) / 0.05); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35), 0 0 30px -4px rgb(var(--gold-rgb) / 0.2); pointer-events: none; }
 .shop-owned.giving .owned-omens { margin-top: 16px; }
 .owned-omen.give .omen-slot { cursor: pointer; animation: give-pulse 1.6s ease-in-out infinite; border-radius: 50%; }
 .owned-omen.give.short .omen-slot { animation: none; opacity: 0.4; cursor: not-allowed; }
@@ -1191,13 +1177,14 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
 .give-hint .hint { margin: 0; color: var(--gold-hi); }
 .give-hint .link-btn { flex: none; margin: -12px 0; }
 @keyframes give-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0); } 50% { box-shadow: 0 0 0 4px rgb(var(--gold-rgb) / 0.35); } }
-.give-strip { display: grid; gap: 14px; margin-top: 14px; padding-top: 22px; box-shadow: inset 0 1px 0 var(--hair); }
+.give-strip { display: grid; gap: 14px; padding-top: 16px; width: 100%; }
 .give-strip .hint { margin: 0; text-align: center; color: var(--ink-dim); font-size: 13px; }
 .give-strip.on .hint { color: var(--gold-hi); }
 .give-strip .owned-omens { justify-content: center; gap: 14px; }
 .give-strip .owned-omen { width: 44px; height: 44px; }
 .give-strip .omen-slot { width: 44px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; }
 .give-strip .omen-slot:disabled { cursor: default; }
+.ts-give .omen-slot:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.5); } }
 
 /* Пакет — сцена «Выбери одно» */
@@ -1214,6 +1201,9 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .ware-icon canvas { width: 56px !important; height: 56px !important; }
   .ware-name { font-size: 16px; }
   .bonus-line { font-size: 14px; }
+  /* Свои Знамения крупнее: ряд занимает колонку, а не теряется в промежутках (Денис, 29.10) */
+  .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 64px; height: 64px; }
+  .shop-owned .owned-omens { justify-content: flex-start; gap: 22px; }
   .shop-actions { padding-top: 18px; grid-template-columns: auto minmax(0, 340px); justify-content: end; }
 }
 /* Планшет в портрете: блок по центру по высоте, кнопки по своей ширине — без пустого поля
@@ -1235,8 +1225,17 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .ware-name { font-size: 14px; }
   .bonus-line { font-size: 12.5px; }
   .shop-lower { display: grid; padding-top: 6px; }
+  /* Свои Знамения крупнее и ближе друг к другу: и в окне Пикабу, и на телефоне боком (Денис, 29.10) */
+  .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 56px; height: 56px; }
+  .shop-owned .owned-omens { justify-content: flex-start; gap: 18px; }
   .shop-actions { grid-template-columns: auto minmax(0, 340px); justify-content: end; align-items: center; padding-top: 6px; }
   .shop-actions .btn { min-height: 46px; }
+}
+
+/* Окно Пикабу на ПК (широкое и низкое): свои Знамения ещё крупнее — места хватает (Денис, 29.10) */
+@media (orientation: landscape) and (max-height: 599px) and (min-width: 1100px) {
+  .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 68px; height: 68px; }
+  .shop-owned .owned-omens { gap: 22px; }
 }
 
 /* ─── Карта главы: «Восхождение» (RD.2) ───────────────────────────────── */
@@ -3383,6 +3382,14 @@ body.landscape .ts-foot .ts-go, body.pc-wide .ts-foot .ts-go { width: auto; min-
 .ts-note { font: 600 12.5px/1.35 var(--font-body); color: var(--ink-faint); text-align: center; text-wrap: balance; }
 .ts-replace { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 26px; font: 600 12.5px/1.3 var(--font-body); color: var(--ink-dim); transition: opacity 0.25s; }
 .ts-replace.off { opacity: 0; }
+/* Полный ряд (OB): своё Знамение на замену. Место держится всегда — кнопка не прыгает */
+.ts-give { display: grid; gap: 10px; justify-items: center; padding-top: 14px; visibility: hidden; opacity: 0; transition: opacity 0.25s ease; }
+.ts-give.on { visibility: visible; opacity: 1; }
+.ts-give .hint { margin: 0; font: 600 12.5px/1.35 var(--font-body); color: var(--gold-hi); text-align: center; text-wrap: balance; }
+.ts-give .owned-omens { justify-content: center; gap: 14px; }
+.ts-give .owned-omen, .ts-give .omen-slot { width: 44px; height: 44px; }
+.ts-give .omen-slot { padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto; }
+.owned-omen.picked .omen-slot { animation: none; box-shadow: 0 0 0 2px var(--gold), 0 0 16px rgb(var(--gold-rgb) / 0.6); }
 .ts-replace.gone canvas { animation: ts-away 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 /* Выбор сделан: подписи и кнопка уходят, остаётся лента над небом */
 .ts-foot { transition: opacity 0.35s ease 0.3s; }

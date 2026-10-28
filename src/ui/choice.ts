@@ -9,7 +9,6 @@ import { bonusLine } from './bonus';
 import { canvasImg, dpr, h } from './dom';
 import { lightButton, sceneRibbon, sceneWindow } from './scene-window';
 import { button, withCoin, type ModalHandle } from './widgets';
-import { giveSheet, replaceStyle } from './omen-replace';
 import { sellPrice } from '@/core/shop';
 
 /** Что делать с вариантом: решает экран, на котором выбор открыт (ритуалу нужны цели). */
@@ -72,12 +71,11 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
   if (!choice || choice.kind !== 'pack') return null;
   app.svc.audio.ignite(1);
   let handle: ModalHandle | null = null;
-  // Ряд Знамений полон: вариант берётся заменой своего (OB) — листом (А) или касанием ряда внизу (Б)
+  // Ряд Знамений полон: вариант берётся заменой своего (OB) — касанием своего Знамения в ряду внизу
   const full = !canTakeChoice(run) && choice.pack === 'omen';
-  const style = replaceStyle();
   const view = OPTION_VIEWS[choice.kind] as (run: RunState, choice: RowChoice, id: string) => OptionView;
   let picked: number | null = null;
-  const strip = full && style === 'row' ? h('div.give-strip') : null;
+  const strip = full ? h('div.give-strip') : null;
   const close = () => handle?.close();
   const paintStrip = () => {
     if (!strip) return;
@@ -103,7 +101,6 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
     const v = view(run, choice, id);
     const take = () => {
       if (!full) return handlers.take(i, id, close);
-      if (style === 'sheet') return void giveSheet(run, { newId: id, price: null, onPick: (uid) => handlers.take(i, id, close, uid) });
       picked = picked === i ? null : i;
       paintStrip();
     };
@@ -119,8 +116,9 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
   handle = sceneWindow({
     className: 'pack-scene',
     label: title,
-    mid: [sceneRibbon(title, sub), h('div.ware-list', null, rows), strip],
-    acts: [h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
+    mid: [sceneRibbon(title, sub), h('div.ware-list', null, rows)],
+    // Свой ряд — в нижней панели сцены: виден всегда, даже на низком экране, где список прокручивается
+    acts: [strip, h('div.scene-lights', null, lightButton('again', t('shop.skip'), () => {
       handle?.close();
       handlers.skip();
     }, true))],
