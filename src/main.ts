@@ -111,6 +111,24 @@ async function boot(): Promise<void> {
     run.shop = generateShop(run);
     await app.router.route();
   }
+  // CM.0: Комета с обменом ранга (`?comet=pour|gain`)
+  if (dev && params.has('comet')) {
+    const { COMET_RANK } = await import('./core/wonders');
+    COMET_RANK.mode = params.get('comet') === 'gain' ? 'gain' : 'pour';
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    run.ante = 4;
+    run.gold = 2;
+    const sun = (rank: number) => run.deck.find((c) => c.suit === 'sun' && c.rank === rank)!;
+    // Пара как на снимке Андрея (5 и 3 Солнца); остальные обмены те, что есть
+    const [hi, lo] = [sun(5), sun(3)];
+    const trade = COMET_RANK.mode === 'gain' ? { e: 'rankShift', up: lo.id, down: hi.id, gain: 3, loss: 2 } : { e: 'rankShift', up: hi.id, down: lo.id, gain: 2, loss: 2 };
+    const plain = run.deck.filter((c) => !c.glyph && !c.body && c.id !== hi.id && c.id !== lo.id);
+    run.pending = [{ kind: 'comet', options: [{ e: 'cardForGlyph', give: plain[0]!.id, target: plain[1]!.id, glyph: 'echo' }, { e: 'suitShift', cards: [plain[2]!.id, plain[3]!.id], suit: 'moon' }, trade] } as never];
+    run.phase = 'map';
+    await app.router.route();
+  }
   // ON.1: открытие Развилок (`?routesfx=open|fork`)
   if (dev && params.has('routesfx')) {
     const { showRoutesNotice } = await import('./dev/routes-notice');

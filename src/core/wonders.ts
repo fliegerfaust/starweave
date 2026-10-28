@@ -21,7 +21,8 @@ export type CometTrade =
   /** Золото → два уровня созвездия. */
   | { e: 'goldForChart'; gold: number; combo: ComboId }
   /** Одна карта −2 ранга, другая +2. */
-  | { e: 'rankShift'; down: number; up: number }
+  /** `gain`/`loss` — на сколько вырастет и упадёт ранг (старые сохранения: оба 2). */
+  | { e: 'rankShift'; down: number; up: number; gain?: number; loss?: number }
   /** Две карты меняют масть на одну. */
   | { e: 'suitShift'; cards: number[]; suit: Suit }
   /** Золото → убрать две слабые карты. */
@@ -61,6 +62,37 @@ const plain = (c: Card) => !c.glyph && !c.body;
 const byRank = (a: Card, b: Card) => a.rank - b.rank || a.id - b.id;
 const charts = COMBO_IDS.filter((c) => c !== 'scatter');
 
+/**
+ * Обмен ранга в Комете (CM, отзыв Андрея 28.10). Раньше бралась случайная карта на −2 и случайная
+ * на +2: «5 Солнца → 3, 3 Солнца → 5» — карты просто менялись местами. Витрина CM.0 сравнивает:
+ *  - `pour` (А, «переливание») — растёт старшая карта пары, младшая отдаёт ей 2 ранга: сила
+ *    собирается в одной карте;
+ *  - `gain` (Б, «выгода») — одна карта +3, другая −2: колода в сумме сильнее на ранг.
+ * В обоих перестановка невозможна: растёт старшая (А) или прибавка больше потери (Б).
+ */
+export const COMET_RANK: { mode: 'pour' | 'gain' } = { mode: 'pour' };
+
+function rankShift(run: RunState): CometTrade | null {
+  const free = run.deck.filter((c) => c.body !== 'nebula');
+  if (COMET_RANK.mode === 'gain') {
+    const ups = free.filter((c) => c.rank <= MAX_RANK - 3);
+    if (!ups.length) return null;
+    const up = pick(run.rng, ups);
+    const downs = free.filter((c) => c.id !== up.id && c.rank >= MIN_RANK + 2);
+    if (!downs.length) return null;
+    return { e: 'rankShift', up: up.id, down: pick(run.rng, downs).id, gain: 3, loss: 2 };
+  }
+  // Пара одной масти с разными рангами: старшая ещё может вырасти на 2, младшая — упасть на 2
+  const ups = free.filter((c) => c.rank <= MAX_RANK - 2);
+  const up = ups.length ? pick(run.rng, ups) : null;
+  if (!up) return null;
+  const lower = (c: Card) => c.id !== up.id && c.rank < up.rank && c.rank >= MIN_RANK + 2;
+  const downs = free.filter((c) => lower(c) && c.suit === up.suit);
+  const any = downs.length ? downs : free.filter(lower);
+  if (!any.length) return null;
+  return { e: 'rankShift', up: up.id, down: pick(run.rng, any).id, gain: 2, loss: 2 };
+}
+
 /** Обмены, возможные сейчас (хватает золота, карт, Знамений), — разыгранные от ГПСЧ забега. */
 function cometCandidates(run: RunState): CometTrade[] {
   const out: CometTrade[] = [];
@@ -81,13 +113,8 @@ function cometCandidates(run: RunState): CometTrade[] {
     if (rarer.length) out.push({ e: 'omenForOmen', uid: o.uid, omen: pick(run.rng, rarer).id });
   }
   if (run.gold >= COMET_PRICE.chart) out.push({ e: 'goldForChart', gold: COMET_PRICE.chart, combo: pick(run.rng, charts) });
-  const downs = deck.filter((c) => c.rank > MIN_RANK + 1 && c.body !== 'nebula');
-  const ups = deck.filter((c) => c.rank < MAX_RANK - 1 && c.body !== 'nebula');
-  if (downs.length && ups.length) {
-    const down = pick(run.rng, downs);
-    const rest = ups.filter((c) => c.id !== down.id);
-    if (rest.length) out.push({ e: 'rankShift', down: down.id, up: pick(run.rng, rest).id });
-  }
+  const shift = rankShift(run);
+  if (shift) out.push(shift);
   const suit = pick(run.rng, SUITS);
   const others = deck.filter((c) => c.suit !== suit);
   if (others.length >= 2) out.push({ e: 'suitShift', cards: shuffle(run.rng, [...others]).slice(0, 2).map((c) => c.id), suit });
@@ -159,8 +186,8 @@ export function takeComet(run: RunState, t: CometTrade): void {
     case 'rankShift': {
       const down = card(run, t.down);
       const up = card(run, t.up);
-      down.rank = Math.max(MIN_RANK, down.rank - 2);
-      up.rank = Math.min(MAX_RANK, up.rank + 2);
+      down.rank = Math.max(MIN_RANK, down.rank - (t.loss ?? 2));
+      up.rank = Math.min(MAX_RANK, up.rank + (t.gain ?? 2));
       return;
     }
     case 'suitShift':
