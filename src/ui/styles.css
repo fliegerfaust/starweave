@@ -1168,18 +1168,26 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
 /* Подсветка ряда — слоем под ним, чуть шире блока: раскладка не сдвигается, когда ряд становится целью */
 .shop-owned { position: relative; isolation: isolate; }
 .shop-owned.giving::before { content: ''; position: absolute; inset: -8px -10px; z-index: -1; border-radius: 16px; background: rgb(var(--gold-rgb) / 0.05); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.35), 0 0 30px -4px rgb(var(--gold-rgb) / 0.2); pointer-events: none; }
-.shop-owned.giving .owned-omens { margin-top: 16px; }
 .owned-omen.give .omen-slot { cursor: pointer; animation: give-pulse 1.6s ease-in-out infinite; border-radius: 50%; }
 .owned-omen.give.short .omen-slot { animation: none; opacity: 0.4; cursor: not-allowed; }
-.owned-omen .give-badge { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); padding: 2px 6px; border-radius: 999px; background: rgb(10 9 30 / 0.92); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); font: 800 11px/1.2 var(--font-body); color: var(--gold-hi); white-space: nowrap; pointer-events: none; }
+.owned-omen .give-badge { position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%); padding: 2px 6px; border-radius: 999px; background: rgb(10 9 30 / 0.92); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.5); font: 800 11px/1.2 var(--font-body); color: var(--gold-hi); white-space: nowrap; pointer-events: none; }
+.owned-omen .give-badge { display: inline-flex; align-items: center; line-height: 1; padding: 3px 7px; }
+.give-badge .with-coin { display: inline-flex; align-items: center; gap: 3px; }
 .owned-omen.give.short .give-badge { color: var(--ink-faint); box-shadow: inset 0 0 0 1px var(--hair); }
-.give-hint { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.give-hint .hint { margin: 0; color: var(--gold-hi); }
-.give-hint .link-btn { flex: none; margin: -12px 0; }
+/* «Что отдать? · Отмена» — в строке заголовка ряда, тем же размером: строка не меняет высоту */
+.shop-label.give-label { color: var(--gold-hi); }
+/* Подсказка о порядке во время выбора не нужна — приглушена, место за ней остаётся */
+.shop-owned.giving > .hint { opacity: 0.35; transition: opacity 0.2s ease; }
+.give-cancel { position: relative; color: var(--gold); cursor: pointer; pointer-events: auto; }
+.give-cancel:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 4px; border-radius: 4px; }
+.give-cancel::after { content: ''; position: absolute; inset: -14px -10px; }
+.give-cancel:hover { color: var(--gold-hi); }
 @keyframes give-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--gold-rgb) / 0); } 50% { box-shadow: 0 0 0 4px rgb(var(--gold-rgb) / 0.35); } }
 .give-strip { display: grid; gap: 14px; padding-top: 16px; width: 100%; }
-.give-strip .hint { margin: 0; text-align: center; color: var(--ink-dim); font-size: 13px; }
-.give-strip.on .hint { color: var(--gold-hi); }
+.give-hints { display: grid; }
+.give-hints > .hint { grid-area: 1 / 1; margin: 0; text-align: center; color: var(--ink-dim); font-size: 13px; text-wrap: balance; }
+.give-hints > .hint.on { color: var(--gold-hi); }
+.give-hints > .hint.off { visibility: hidden; }
 .give-strip .owned-omens { justify-content: center; gap: 14px; }
 .give-strip .owned-omen { width: 44px; height: 44px; }
 .give-strip .omen-slot { width: 44px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; }
@@ -1202,6 +1210,9 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .ware-name { font-size: 16px; }
   .bonus-line { font-size: 14px; }
   /* Свои Знамения крупнее: ряд занимает колонку, а не теряется в промежутках (Денис, 29.10) */
+  /* Подсказка под рядом видна и на невысоком окне: справа под колодой те же две строки, высота не растёт,
+     а под Знамениями не остаётся пустоты (живое окно Пикабу 1392×633) */
+  .shop.short .shop-owned > .hint:not(.order-warn):not(.res-hint) { display: block; }
   .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 64px; height: 64px; }
   .shop-owned .owned-omens { justify-content: flex-start; gap: 22px; }
   .shop-actions { padding-top: 18px; grid-template-columns: auto minmax(0, 340px); justify-content: end; }
@@ -1232,11 +1243,30 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .shop-actions .btn { min-height: 46px; }
 }
 
-/* Окно Пикабу на ПК (широкое и низкое): свои Знамения ещё крупнее — места хватает (Денис, 29.10) */
+/* Окно Пикабу на ПК (широкое и низкое, 1394×580): та же собранная Обсерватория, что на ПК, только
+   пропорционально уменьшенная под высоту окна — товары, свои Знамения и кнопки в тех же
+   соотношениях (Денис, 29.10: «на ПК органично и собрано, в Пикабу разрозненно») */
 @media (orientation: landscape) and (max-height: 599px) and (min-width: 1100px) {
-  .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 68px; height: 68px; }
-  .shop-owned .owned-omens { gap: 22px; }
+  .shop { zoom: 0.76; max-width: 980px; padding: calc(24px + var(--safe-top)) 40px calc(24px + var(--safe-bottom)); gap: 22px; justify-content: safe center; }
+  .shop-top { padding-bottom: 0; }
+  .shop-body { flex: 0 1 auto; gap: 22px; align-content: normal; }
+  .shop-goods, .shop-lower { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .shop-lower { padding-top: 0; }
+  .ware { grid-template-columns: 56px minmax(0, 1fr) auto; padding: 13px 2px; gap: 3px 14px; }
+  .ware-icon, .ware-icon canvas { width: 56px !important; height: 56px !important; }
+  .ware-name { font-size: 16px; }
+  .bonus-line { font-size: 14px; }
+  .shop-owned .owned-omen, .shop-owned .owned-omen .omen-slot { width: 64px; height: 64px; }
+  .shop-owned .owned-omens { justify-content: flex-start; gap: 22px; }
+  .shop.short .shop-owned > .hint:not(.order-warn):not(.res-hint) { display: block; }
+  .shop-actions { padding-top: 18px; grid-template-columns: auto minmax(0, 340px); justify-content: end; }
+  .shop-actions .btn { min-height: 52px; }
 }
+/* Живое окно Пикабу (1392×633) и другие невысокие ПК-окна: раскладка ПК, чуть уменьшенная, чтобы и
+   длинная лавка (Резонанс, три товара) вставала целиком без прокрутки */
+@media (min-width: 900px) and (min-height: 600px) and (max-height: 719px) { .shop { zoom: 0.9; } }
+/* Масштаб — по высоте окна: лавка ПК высотой ~710 px с полями встаёт в 580 и 540 */
+@media (orientation: landscape) and (max-height: 599px) and (min-height: 560px) and (min-width: 1100px) { .shop { zoom: 0.82; } }
 
 /* ─── Карта главы: «Восхождение» (RD.2) ───────────────────────────────── */
 /* Три ночи — звёзды на одной линии, снизу Сумерки, наверху Затмение; небо к нему темнеет.

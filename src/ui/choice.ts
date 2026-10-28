@@ -81,8 +81,12 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
     if (!strip) return;
     rows.forEach((r, i) => r.classList.toggle('giving', i === picked));
     strip.classList.toggle('on', picked !== null);
+    // Обе подсказки в одной ячейке, видна одна: высота строки не меняется при выборе (ничего не скачет)
     strip.replaceChildren(
-      h('p.hint', null, picked === null ? t('shop.slotsFull') : t('shop.replaceHint', { name: named('omen', choice.options[picked]!).name })),
+      h('div.give-hints', null, [
+        h(`p.hint${picked === null ? '' : '.off'}`, null, t('shop.replacePick')),
+        h(`p.hint.on${picked === null ? '.off' : ''}`, null, t('shop.replaceHint', { name: named('omen', choice.options[picked ?? 0]!).name })),
+      ]),
       h('div.owned-omens', null, run.omens.map((o) => {
         const chip = h(`div.owned-omen${picked !== null ? '.give' : ''}`, null, [
           h('button.omen-slot', {
