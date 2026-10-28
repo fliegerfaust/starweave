@@ -172,8 +172,9 @@ export class SkyMap {
     place();
     // Не в самом колбэке: steady() меняет высоту плашки, а с ней и карты, — в том же кадре
     // браузер сообщил бы «ResizeObserver loop» (61 раз у игрока Пикабу, PK.19). Плашку
-    // перемеряем, только когда сменилось окно: её собственная смена снова будит наблюдателя
-    let view = `${innerWidth}x${innerHeight}`;
+    // перемеряем, только когда сменилось окно: её собственная смена снова будит наблюдателя.
+    // Первый вызов перемеряет всегда: steady() выше шёл до классов раскладки (ПК, ландшафт)
+    let view = '';
     this.resize = new ResizeObserver(() => {
       cancelAnimationFrame(this.resizeFrame);
       this.resizeFrame = requestAnimationFrame(() => {
