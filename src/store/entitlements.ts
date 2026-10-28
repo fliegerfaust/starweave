@@ -7,8 +7,6 @@ import { expandOwned, isPermanent } from './catalog';
  */
 export class Entitlements {
   private bought: string[];
-  /** Открытое площадкой даром (CrazyGames): не хранится и не считается покупкой. */
-  private granted: string[] = [];
   private all: Set<string>;
   private paidAll: Set<string>;
   private listeners: (() => void)[] = [];
@@ -40,13 +38,6 @@ export class Entitlements {
     return this.paidAll.has(id);
   }
 
-  /** Товары, которые площадка открывает бесплатно. */
-  grant(ids: readonly string[]): void {
-    this.granted = ids.filter(isPermanent);
-    this.recount();
-    for (const fn of this.listeners) fn();
-  }
-
   /** Список от площадки заменяет копию целиком (возвраты тоже учитываются). */
   replace(list: readonly string[]): void {
     this.set(list.filter(isPermanent));
@@ -74,6 +65,6 @@ export class Entitlements {
 
   private recount(): void {
     this.paidAll = expandOwned(this.bought);
-    this.all = expandOwned([...this.bought, ...this.granted]);
+    this.all = this.paidAll;
   }
 }

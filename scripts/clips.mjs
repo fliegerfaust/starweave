@@ -4,7 +4,7 @@
 //   npm run clips -- --lang ru         — один язык
 //   npm run clips -- --raw             — только запись игры, без оформления
 //   npm run clips -- --reuse           — только оформление, запись игры — прошлая
-//   npm run clips -- --raw --view 960x540 --scale 2 — запись в другом кадре (CrazyGames: 16:9 и 360x540 ×3 для 2:3)
+//   npm run clips -- --raw --view 960x540 --scale 2 — запись в другом кадре (16:9 и 360x540 ×3 для 2:3)
 //   npm run clips -- --raw --ff wideDesktop,brightFlare — с переключателями площадки (?ff=, см. src/platform/features.ts)
 // 1. Игра идёт в Chrome без окна на виртуальном времени (scripts/clips/virtual-time.js):
 //    шаг 1/60 с → снимок → ffmpeg. Звук — тем же кодом в OfflineAudioContext.

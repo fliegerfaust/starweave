@@ -218,7 +218,7 @@ test('первый запуск с quickStart: «Пропустить» ведё
   expect(errors).toEqual([]);
 });
 
-test('короткая первая ночь, как в сборке CrazyGames: ряд, сжечь, крест без «Далее» (CQ.4, CQ.6)', async ({ page }) => {
+test('короткая первая ночь (quickStart): ряд, сжечь, крест без «Далее» (CQ.4, CQ.6)', async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));

@@ -26,7 +26,6 @@ npm run sim          # баланс: бот гонит забеги
 npm run e2e          # Playwright на 8 устройствах (e2e-results/)
 npm run build        # сборка в dist/ (PWA, работает офлайн)
 npm run build:pikabu       # сборка Пикабу Игр в dist-pikabu/
-npm run build:crazygames   # CrazyGames: release/starweave-crazygames.zip
 npm run build:yandex       # Яндекс Игры: release/starweave-yandex.zip
 npm run legal        # public/legal/*.html из legal/*.md
 ```
@@ -48,7 +47,7 @@ src/game       сцена ночи, презентер событий, раск�
 src/ui         DOM-интерфейс: HUD, экраны, окна
 src/meta       профиль, прогресс, Коллекция, настройки, вызов дня
 src/i18n       ru / en
-src/platform   веб, Telegram, Пикабу, CrazyGames, Яндекс: реклама, покупки, облако, переключатели
+src/platform   веб, Telegram, Пикабу, Яндекс: реклама, покупки, облако, переключатели
 src/store      каталог покупок и оплата
 src/analytics  события: Метрика, аналитика Telegram, свой сервер
 src/tutorial   обучение
@@ -67,5 +66,5 @@ docs/vitrines  витрины-прототипы экранов
 - Правила и баланс: [docs/GDD.md](docs/GDD.md); устройство кода: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - Продукт: [PRODUCT.md](PRODUCT.md); дизайн-система: [DESIGN.md](DESIGN.md)
 - Деньги: [docs/MONETIZATION.md](docs/MONETIZATION.md), реклама: [docs/ADS.md](docs/ADS.md), аналитика: [docs/ANALYTICS.md](docs/ANALYTICS.md)
-- Площадки: [Telegram](docs/TELEGRAM.md), [Пикабу](docs/PIKABU.md), [CrazyGames](docs/CRAZYGAMES.md), [Яндекс](docs/YANDEX.md), [itch.io](docs/ITCH.md)
+- Площадки: [Telegram](docs/TELEGRAM.md), [Пикабу](docs/PIKABU.md), [Яндекс](docs/YANDEX.md), [itch.io](docs/ITCH.md)
 - Продвижение: [docs/PROMOTION.md](docs/PROMOTION.md); сервер: [server/README.md](server/README.md)

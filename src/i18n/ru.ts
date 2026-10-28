@@ -796,7 +796,6 @@ export const ru = {
     tabs: { atlas: 'Атлас', look: 'Примерочная', support: 'Поддержать' } as Record<string, string>,
     buy: 'Открыть атлас',
     owned: 'Атлас открыт — спасибо!',
-    ownedGift: 'Атлас открыт — здесь бесплатно.',
     openArchive: 'Открыть архив',
     playAstrolabe: 'Играть колодой «Астролябия»',
     paying: 'Ждём оплату…',

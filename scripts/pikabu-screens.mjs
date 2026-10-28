@@ -12,7 +12,7 @@ const out = path.join(root, 'store/pikabu/screens');
 await mkdir(out, { recursive: true });
 
 const font = (await readFile(path.join(root, 'node_modules/@fontsource/forum/files/forum-cyrillic-400-normal.woff2'))).toString('base64');
-const nebula = (await readFile(path.join(root, 'store/crazygames/art/key-16x9.webp'))).toString('base64');
+const nebula = (await readFile(path.join(root, 'store/pikabu/art/key-16x9.png'))).toString('base64');
 
 /** Формы: размер окна игры и плотность — снимок выходит 1920×1080 или 1080×1920. */
 const FORMS = {
@@ -123,7 +123,7 @@ async function compose(browser, form, shot, caption, file) {
   await page.setContent(`<!doctype html><style>
     @font-face { font-family: Forum; src: url(data:font/woff2;base64,${font}) format('woff2'); }
     html, body { margin: 0; width: ${f.w}px; height: ${f.h}px; overflow: hidden; background: #05051a; }
-    .bg { position: absolute; inset: -40px; background: url(data:image/webp;base64,${nebula}) 0% 30% / auto 260%; filter: blur(6px) brightness(0.55) saturate(1.1); }
+    .bg { position: absolute; inset: -40px; background: url(data:image/png;base64,${nebula}) 0% 30% / auto 260%; filter: blur(6px) brightness(0.55) saturate(1.1); }
     .cap { position: absolute; left: 0; right: 0; top: 0; height: ${f.h - sh - Math.round(f.h * 0.04)}px; display: grid; place-items: center; padding: 0 60px; box-sizing: border-box; }
     h1 { margin: 0; text-align: center; font: 400 ${size}px/1.08 Forum, serif; letter-spacing: 0.02em; text-wrap: balance;
       background: linear-gradient(180deg, #fff6d8 10%, #ffd98a 55%, #d9a441 95%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;

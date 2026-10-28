@@ -20,7 +20,7 @@ describe('сервер: приём событий', () => {
   });
 
   it('принимает пачки всех площадок, включая Пикабу Игры', () => {
-    for (const p of ['web', 'yandex', 'telegram', 'crazygames', 'pikabu']) expect(typeof parseBatch(body({ p }), NOW)).toBe('object');
+    for (const p of ['web', 'yandex', 'telegram', 'pikabu']) expect(typeof parseBatch(body({ p }), NOW)).toBe('object');
   });
 
   it('отклоняет мусор и лишнее', () => {
