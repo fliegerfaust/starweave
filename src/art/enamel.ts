@@ -459,130 +459,139 @@ export function drawEnamelBoss(ctx: Ctx, id: string, size: number): void {
   ctx.restore();
 }
 
-// ─── Схема созвездия ─────────────────────────────────────────────────────────
+// ─── Звёздная карта ──────────────────────────────────────────────────────────
 
-/** Пример линии для схемы: ранг и масть четырёх карт. */
-const EX: Record<ComboId, [number, Suit][]> = {
-  scatter: [[2, 'sun'], [5, 'moon'], [9, 'star'], [7, 'comet']],
-  pair: [[3, 'sun'], [3, 'moon'], [7, 'star'], [5, 'comet']],
-  twoPair: [[4, 'sun'], [8, 'moon'], [4, 'star'], [8, 'comet']],
-  mirror: [[2, 'sun'], [6, 'moon'], [6, 'star'], [2, 'comet']],
-  triple: [[7, 'sun'], [7, 'moon'], [2, 'star'], [7, 'comet']],
-  straight: [[5, 'sun'], [3, 'moon'], [6, 'star'], [4, 'comet']],
-  flush: [[2, 'sun'], [9, 'sun'], [4, 'sun'], [7, 'sun']],
-  cascade: [[3, 'sun'], [4, 'moon'], [5, 'star'], [6, 'comet']],
-  quartet: [[8, 'sun'], [8, 'moon'], [8, 'star'], [8, 'comet']],
-  starFlush: [[6, 'moon'], [4, 'moon'], [7, 'moon'], [5, 'moon']],
-  supernova: [[3, 'star'], [4, 'star'], [5, 'star'], [6, 'star']],
-};
-
-interface Scheme {
-  stars: { x: number; y: number; su: Suit; on: boolean }[];
-  links: string[];
-  dashed: boolean;
-  burst: boolean;
-  flushBar: boolean;
-  bot: number;
+/**
+ * Иконка созвездия (CN.1, вариант A Дениса): фигура показывает правило. Пара — две звезды,
+ * две пары — две двойные, зеркало — дуга в дуге, тройка — треугольник, стрит — лесенка,
+ * флеш — звёзды одной масти, каскад — линия со стрелкой «по порядку», квартет — ромб,
+ * звёздный флеш — лесенка одной масти, сверхновая — линия одной масти со вспышкой.
+ * Цвет эмали растёт с силой созвездия.
+ */
+interface ChartStar {
+  x: number;
+  y: number;
+  su: Suit;
+  /** Размер: 1 — обычная звезда фигуры. */
+  r: number;
+  dim?: boolean;
 }
 
-/** Четыре карты линии: высота звезды — ранг, цвет — масть, дуги — что совпало. */
-function scheme(combo: ComboId, W: number, H: number, pad: number): Scheme {
-  const ex = EX[combo] ?? EX.scatter;
-  const xs = ex.map((_, i) => pad + (i * (W - 2 * pad)) / 3);
-  const top = H * 0.2;
-  const bot = H * 0.84;
-  const y = (r: number) => bot - ((r - 1) / 8) * (bot - top);
-  const stars = ex.map(([r, su], i) => ({ x: xs[i]!, y: y(r), su, on: true }));
-  const links: string[] = [];
-  let dashed = false;
-  const arc = (i: number, j: number, lift: number) => {
-    const a = stars[i]!;
-    const b = stars[j]!;
-    return `M${pt(a.x, a.y)}Q${pt((a.x + b.x) / 2, a.y - lift)} ${pt(b.x, b.y)}`;
-  };
-  const L = H * 0.2;
-  const byRank = (idx: number[]) => idx.slice().sort((a, b) => ex[a]![0] - ex[b]![0]);
+interface ChartFigure {
+  stars: ChartStar[];
+  /** Линии фигуры в квадрате [-50, 50]. */
+  links: string[];
+  /** Ореол масти за фигурой: «одна масть». */
+  glow?: Suit;
+  /** Вспышка за звездой с этим номером: Сверхновая. */
+  burst?: number;
+}
+
+const cs = (x: number, y: number, su: Suit, r = 1, dim = false): ChartStar => ({ x, y, su, r, dim });
+const cLine = (p: ChartStar[], closed = false) => 'M' + p.map((q) => pt(q.x, q.y)).join('L') + (closed ? 'Z' : '');
+const cBow = (a: ChartStar, b: ChartStar, lift: number) => `M${pt(a.x, a.y)}Q${pt((a.x + b.x) / 2, (a.y + b.y) / 2 - lift)} ${pt(b.x, b.y)}`;
+
+/** Ступени лесенки и звёзды над ними. */
+const STEPS = 'M-33 28H-16V15H1V2H16V-11H33';
+const stairs = (su: Suit[]) => [cs(-23.5, 16, su[0]!, 0.85), cs(-7.5, 3, su[1]!, 0.85), cs(7.5, -10, su[2]!, 0.85), cs(23.5, -23, su[3]!, 0.85)];
+/** Стрелка «по порядку» после последней звезды каскада. */
+const ARROW = 'M26 -32L35 -33L34 -24';
+
+function chartFigure(combo: ComboId): ChartFigure {
   switch (combo) {
     case 'scatter':
-      stars.forEach((s) => (s.on = false));
-      break;
-    case 'pair':
-      links.push(arc(0, 1, L * 0.8));
-      stars[2]!.on = stars[3]!.on = false;
-      break;
-    case 'twoPair':
-      links.push(arc(0, 2, L), arc(1, 3, L));
-      break;
-    case 'mirror':
-      links.push(arc(1, 2, L * 0.8), arc(0, 3, L * 1.1));
-      break;
-    case 'triple':
-      links.push(arc(0, 1, L * 0.8), arc(1, 3, L * 0.9));
-      stars[2]!.on = false;
-      break;
-    case 'quartet':
-    case 'cascade':
-    case 'supernova':
-      links.push(line(stars.map((s) => [s.x, s.y])));
-      break;
+      return { stars: [cs(-22, -14, 'sun', 0.8, true), cs(17, -22, 'moon', 0.7, true), cs(-9, 20, 'star', 0.7, true), cs(24, 13, 'comet', 0.8, true)], links: [] };
+    case 'pair': {
+      const a = cs(-13, 4, 'sun', 1.1), b = cs(13, -6, 'moon', 1.1);
+      return { stars: [cs(-26, -22, 'star', 0.6, true), cs(26, 22, 'comet', 0.6, true), a, b], links: [cLine([a, b])] };
+    }
+    case 'twoPair': {
+      const a = cs(-27, -2, 'sun'), b = cs(-9, -20, 'moon'), c = cs(9, 20, 'star'), d = cs(27, 2, 'comet');
+      return { stars: [a, b, c, d], links: [cLine([a, b]), cLine([c, d])] };
+    }
+    case 'mirror': {
+      const a = cs(-30, 18, 'sun', 0.9), b = cs(-11, 18, 'moon', 0.9), c = cs(11, 18, 'star', 0.9), d = cs(30, 18, 'comet', 0.9);
+      return { stars: [a, b, c, d], links: [cBow(a, d, 72), cBow(b, c, 34)] };
+    }
+    case 'triple': {
+      const st = [cs(0, -24, 'sun'), cs(-24, 17, 'moon'), cs(24, 17, 'comet')];
+      return { stars: st, links: [cLine(st, true)] };
+    }
     case 'straight':
+      return { stars: stairs(['sun', 'moon', 'star', 'comet']), links: [STEPS] };
+    case 'flush': {
+      const st = [cs(-27, 8, 'sun'), cs(-9, -6, 'sun'), cs(9, 8, 'sun'), cs(27, -6, 'sun')];
+      return { stars: st, links: [cLine(st)], glow: 'sun' };
+    }
+    case 'cascade': {
+      const st = [cs(-28, 23, 'sun'), cs(-11, 9, 'moon'), cs(6, -5, 'star'), cs(23, -19, 'comet')];
+      return { stars: st, links: [cLine(st) + 'L33 -27', ARROW] };
+    }
+    case 'quartet': {
+      const st = [cs(0, -27, 'sun'), cs(27, 0, 'moon'), cs(0, 27, 'star'), cs(-27, 0, 'comet')];
+      return { stars: [...st, cs(0, 0, 'sun', 0.45)], links: [cLine(st, true)] };
+    }
     case 'starFlush':
-      links.push(line(byRank([0, 1, 2, 3]).map((i) => [stars[i]!.x, stars[i]!.y])));
-      dashed = true;
-      break;
-    case 'flush':
-      break;
+      return { stars: stairs(['moon', 'moon', 'moon', 'moon']), links: [STEPS], glow: 'moon' };
+    case 'supernova': {
+      const st = [cs(-28, 23, 'star'), cs(-11, 9, 'star'), cs(6, -5, 'star'), cs(23, -19, 'star', 1.3)];
+      return { stars: st, links: [cLine(st)], glow: 'star', burst: 3 };
+    }
   }
-  return { stars, links, dashed, burst: combo === 'supernova', flushBar: combo === 'flush' || combo === 'starFlush' || combo === 'supernova', bot };
 }
 
-function drawScheme(ctx: Ctx, sc: Scheme, k: number): void {
-  if (sc.flushBar) {
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = SUIT_PAINT[sc.stars[0]!.su][0];
-    ctx.lineWidth = 2.4 * k;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(sc.stars[0]!.x - 4, sc.bot + 7);
-    ctx.lineTo(sc.stars[3]!.x + 4, sc.bot + 7);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  ctx.strokeStyle = stops(ctx.createLinearGradient(0, 0, 0, 70), [[0, '#ffe6a8'], [1, '#d99a35']]);
-  ctx.lineWidth = 2 * k;
+/** Сила созвездия → эмаль: серебро у Россыпи, лазурит у пар, фиолет, вино, золото у вершины. */
+const CHART_FAM: Record<ComboId, string> = {
+  scatter: 'silver', pair: 'lapis', twoPair: 'lapis', triple: 'star', straight: 'star', mirror: 'star', flush: 'star',
+  cascade: 'wine', quartet: 'wine', starFlush: 'gold', supernova: 'gold',
+};
+
+/** Фигура: ореол масти, вспышка, линии с тенью, звёзды мастей. `k` — толщина для мелких размеров. */
+function drawChartFigure(ctx: Ctx, f: ChartFigure, k: number): void {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.setLineDash(sc.dashed ? [3 * k, 3 * k] : []);
-  for (const d of sc.links) ctx.stroke(path(d));
-  ctx.setLineDash([]);
-  for (const s of sc.stars) {
-    const r = (s.on ? 7.6 : 5.2) * k;
-    ctx.globalAlpha = s.on ? 1 : 0.45;
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fill(path(sparkle(s.x, s.y + 1, r, 4, 0.3)));
-    ctx.fillStyle = SUIT_PAINT[s.su][0];
-    ctx.fill(path(sparkle(s.x, s.y, r, 4, 0.3)));
+  if (f.glow) {
+    const col = SUIT_PAINT[f.glow][0];
+    ctx.fillStyle = stops(ctx.createRadialGradient(0, 0, 0, 0, 0, 42), [[0, col + '66'], [0.6, col + '22'], [1, col + '00']]);
+    ctx.fillRect(-50, -50, 100, 100);
+  }
+  if (f.burst !== undefined) {
+    const b = f.stars[f.burst]!;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = stops(ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, 24), [[0, '#fff6d6'], [0.5, '#ffe6a8aa'], [1, '#ffe6a800']]);
+    ctx.fill(path(sparkle(b.x, b.y, 24, 8, 0.2)));
+    ctx.globalAlpha = 1;
+  }
+  const lw = 3.2 * k;
+  const gold = stops(ctx.createLinearGradient(0, -40, 0, 40), [[0, '#fff2c8'], [0.5, '#f6c25b'], [1, '#d08a2a']]);
+  for (const d of f.links) {
+    ctx.save();
+    ctx.translate(0, 1.6);
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = lw;
+    ctx.stroke(path(d));
+    ctx.restore();
+    ctx.strokeStyle = gold;
+    ctx.lineWidth = lw;
+    ctx.stroke(path(d));
+  }
+  for (const st of f.stars) {
+    const r = (st.dim ? 7 : 10.5) * st.r * k;
+    const [base, hi] = SUIT_PAINT[st.su];
+    ctx.globalAlpha = st.dim ? 0.42 : 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fill(path(sparkle(st.x, st.y + 1.6, r, 4, 0.32)));
+    ctx.fillStyle = base;
+    ctx.fill(path(sparkle(st.x, st.y, r, 4, 0.32)));
+    ctx.fillStyle = hi;
+    ctx.fill(path(sparkle(st.x, st.y - r * 0.05, r * 0.5, 4, 0.36)));
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(s.x, s.y, r * 0.22, 0, PI * 2);
+    ctx.arc(st.x, st.y, r * 0.17, 0, PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  if (sc.burst) {
-    const t = sc.stars[3]!;
-    ctx.globalAlpha = 0.8;
-    ctx.strokeStyle = '#ffe6a8';
-    ctx.lineWidth = 1;
-    ctx.stroke(path(sparkle(t.x, t.y, 13, 8, 0.25)));
-    ctx.globalAlpha = 1;
-  }
-}
-
-function lapisField(ctx: Ctx, x: number, y: number, w: number, h: number, light: number, mid: number): CanvasGradient {
-  const f = FAM.lapis!;
-  const cx = x + w / 2;
-  const cy = y + h * 0.22;
-  return stops(ctx.createRadialGradient(cx, cy, 0, cx, cy, max(w, h) * 0.95), [[0, mix(f.base, '#ffffff', light)], [mid, mix(f.base, f.deep, 0.55)], [1, f.deep]]);
 }
 
 function roundedRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
@@ -590,9 +599,10 @@ function roundedRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: nu
   roundRect(ctx, x, y, w, h, r);
 }
 
-/** Звёздная карта: латунная рамка, лазурит, схема созвездия. */
+/** Звёздная карта: латунная рамка, эмаль цвета силы, фигура созвездия. */
 export function drawEnamelChart(ctx: Ctx, combo: ComboId, size: number): void {
-  const small = size < 40;
+  const fam = CHART_FAM[combo];
+  const f = FAM[fam]!;
   ctx.save();
   stage(ctx, size);
   ctx.globalAlpha = 0.35;
@@ -600,35 +610,17 @@ export function drawEnamelChart(ctx: Ctx, combo: ComboId, size: number): void {
   roundedRect(ctx, -47, -45.8, 94, 94, 16);
   ctx.fill();
   ctx.globalAlpha = 1;
-  ctx.fillStyle = brassBezel(ctx, -46, -46, 46, 46);
+  ctx.fillStyle = brassBezel(ctx, -46, -46, 46, 46, fam === 'gold');
   roundedRect(ctx, -46, -46, 92, 92, 15);
   ctx.fill();
-  ctx.fillStyle = lapisField(ctx, -40, -40, 80, 80, 0.06, 0.55);
+  ctx.fillStyle = stops(ctx.createRadialGradient(0, -22, 0, 0, -10, 70), [[0, mix(f.base, '#ffffff', 0.08)], [0.5, mix(f.base, f.deep, 0.6)], [1, f.deep]]);
   roundedRect(ctx, -40, -40, 80, 80, 10);
   ctx.fill();
   ctx.strokeStyle = '#2a1804';
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  ctx.translate(-32, -29);
-  drawScheme(ctx, scheme(combo, 64, 54, 9), small ? 1.45 : 1.2);
-  ctx.restore();
-}
-
-/** Схема созвездия для строки Справочника: w×(w·68/116). */
-export function drawComboScheme(ctx: Ctx, combo: ComboId, w: number): void {
-  ctx.save();
-  ctx.scale(w / 116, w / 116);
-  ctx.fillStyle = brassBezel(ctx, 1, 1, 115, 67);
-  roundedRect(ctx, 1, 1, 114, 66, 12);
-  ctx.fill();
-  ctx.fillStyle = lapisField(ctx, 4.5, 4.5, 107, 59, 0.04, 0.5);
-  roundedRect(ctx, 4.5, 4.5, 107, 59, 9);
-  ctx.fill();
-  ctx.strokeStyle = '#2a1804';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.translate(2, 3);
-  drawScheme(ctx, scheme(combo, 112, 62, 16), 1);
+  ctx.scale(0.92, 0.92);
+  drawChartFigure(ctx, chartFigure(combo), size < 40 ? 1.3 : 1);
   ctx.restore();
 }
 
@@ -853,3 +845,4 @@ export function drawEnamelFeat(ctx: Ctx, motif: string, fam: string, tier: 0 | 1
   }
   ctx.restore();
 }
+

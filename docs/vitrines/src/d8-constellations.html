@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Иконки созвездий · Starweave 0.7.17</title>
+<!--KIT-->
+<style>
+.ctl { display: grid; gap: 8px; justify-items: center; margin: 22px 0 6px; }
+.seg { display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 100%; padding: 3px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--brass); background: rgb(14 12 34 / 0.7); }
+.seg button { appearance: none; border: 0; background: none; min-height: 40px; padding: 0 14px; border-radius: 999px; color: var(--ink-dim); font: 700 13.5px/1 var(--font-body); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { color: #1a1206; background: linear-gradient(180deg, #ffe09a, #f6c25b 60%, #e09a2f); }
+.seg button:hover:not([aria-pressed="true"]) { color: var(--gold-hi); }
+.seg button:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.vlead { max-width: 640px; margin: 4px auto 0; text-align: center; font: 600 14px/1.5 var(--font-body); color: var(--ink-dim); text-wrap: balance; min-height: 3em; }
+.vlead b { color: var(--gold-hi); }
+
+.sheet { width: 100%; height: 470px; border: 0; border-radius: 20px; box-shadow: inset 0 0 0 1px var(--brass); background: var(--night-0); display: block; }
+.devices { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 1100px) { .devices.top { grid-template-columns: 393px minmax(0, 1fr); } }
+.dev { display: grid; gap: 10px; min-width: 0; }
+.dev h3 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 400 13px/1 var(--font-display); letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-hi); }
+.dev h3 small { font: 600 12px/1 var(--font-body); letter-spacing: 0; text-transform: none; color: var(--ink-faint); }
+.dev .again { justify-self: center; }
+.fit { position: relative; width: 100%; }
+.frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; border: 0; border-radius: 28px; clip-path: inset(0 round 28px); box-shadow: inset 0 0 0 1px var(--brass); background: var(--night-0); }
+.cmp { display: grid; }
+.cmp .r { display: grid; grid-template-columns: 150px repeat(4, minmax(0, 1fr)); gap: 14px; padding: 11px 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-dim); }
+.cmp .r + .r { box-shadow: 0 -1px 0 var(--hair); }
+.cmp .r > span:first-child { font: 800 11px/1.5 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
+.cmp .head { font: 400 12px/1 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+@media (max-width: 860px) { .cmp .r { grid-template-columns: 1fr; gap: 3px; } .cmp .r.hd { display: none; } .cmp .r > span[data-v]::before { content: attr(data-v) ' · '; color: var(--gold-hi); font-weight: 700; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ctl">
+    <div class="seg" id="seg"></div>
+    <p class="vlead" id="vlead"></p>
+  </div>
+
+  <div class="label">Все 11 созвездий <small>крупно, затем в размерах игры: 48 — Обсерватория и выбор из пакета, 36 — Чудеса, 30 — вкладка Справочника</small></div>
+  <iframe class="sheet" id="sheet" title="Все созвездия"></iframe>
+
+  <div class="ctl">
+    <div class="seg" id="where"></div>
+  </div>
+  <div class="label">Попробуй сам <small id="whereNote"></small></div>
+  <div class="devices top">
+    <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><button class="btn btn-secondary again" data-f="0">Сначала</button></div>
+    <div class="dev"><h3>Ландшафт <small>915 × 412</small></h3><div class="fit" id="fL"></div><button class="btn btn-secondary again" data-f="1">Сначала</button></div>
+  </div>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div>
+
+  <div class="label">Чем различаются <small>одни и те же 11 созвездий</small></div>
+  <div class="cmp" id="cmp"></div>
+
+  <div class="split">
+    <div class="aside" id="aside"></div>
+  </div>
+  <p class="foot">Витрина 0.7.17 · иконки созвездий (CN.1) · 29.10.2026 · экраны текущей игры, ветка feature/constellation-icons · выбрано A · Эмаль</p>
+</div>
+<!--KITJS-->
+<script>
+shell({ id: 'constellations', lead: 'Иконка созвездия есть в Обсерватории, в пакете Звёздных карт, в Чудесах и в Справочнике. Сейчас все 11 — <b>одинаковые синие квадраты</b> с мелкими звёздочками, на телефоне их не различить. Новая иконка показывает <b>фигуру правила</b>: пара — две звезды, тройка — треугольник, квартет — ромб, стрит — лесенка.' });
+
+const VARIANTS = [
+  ['now', 'Сейчас', 'Как в игре сейчас: высота звезды — ранг, цвет — масть, дуги — что совпало. Точно, но <b>мелко и одинаково</b>: различить можно только вблизи.'],
+  ['a', 'A · Эмаль', 'Латунная плашка остаётся, внутри <b>крупная фигура</b> правила. <b>Цвет эмали растёт с силой</b>: серебро у Россыпи, лазурит у пар, фиолет, вино, золото у Звёздного флеша и Сверхновой.'],
+  ['b', 'B · Карты', 'Пример линии прямо на иконке: <b>четыре карты с рангами</b>, совпавшие в золотой рамке. Понятно без знания покера, но <b>цифры мелкие</b> на 30–36 точках.'],
+  ['c', 'C · Без рамки', 'Та же фигура, что в A, <b>светится прямо на небе</b>, без латуни. Сила — <b>золотые метки</b> на кольце сверху. Спокойнее в списках, легче на фоне Знамений.'],
+];
+const WHERE = [
+  ['shop', 'Обсерватория', 'Обсерватория: две Звёздные карты и пакет. Уйти из Обсерватории в витрине нельзя'],
+  ['pack', 'Пакет карт', 'Открытый пакет Звёздных карт: выбери одну из трёх'],
+  ['guide', 'Справочник', 'Справочник, вкладка «Созвездия»: схема у каждой строки. Закрыть Справочник в витрине нельзя'],
+];
+let variant = VARIANTS.some(([id]) => id === location.hash.slice(1)) ? location.hash.slice(1) : 'a';
+let where = 'shop';
+
+const BLOCK = '[data-shop="next"], .icon-btn:has(.burger), .board-modal .modal-close';
+function frameIn(fit, W, H) {
+  const frame = h('iframe', { class: 'frame', title: 'Экран игры', width: W, height: H });
+  frame.style.width = W + 'px'; frame.style.height = H + 'px';
+  fit.append(frame);
+  const fs = () => { const s = Math.min(1, fit.clientWidth / W); frame.style.transform = `scale(${s})`; fit.style.height = H * s + 'px'; };
+  new ResizeObserver(fs).observe(fit); fs();
+  // Витрина одного экрана: «Следующая ночь», меню и крестик Справочника молчат
+  frame.addEventListener('load', () => {
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    doc.head.append(Object.assign(doc.createElement('style'), { textContent: `${BLOCK} { pointer-events: none; }` }));
+    doc.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest?.(BLOCK) || (t.classList?.contains('modal-backdrop') && t.querySelector(':scope > .board-modal'))) { e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+    doc.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  });
+  return frame;
+}
+const load = (frame) => (frame.src = `game/index.html?charts=${variant}&at=${where}`);
+const frames = [[q('#fP'), 393, 852], [q('#fL'), 915, 412], [q('#fD'), 1366, 768]].map(([fit, W, H]) => frameIn(fit, W, H));
+qa('.again').forEach((b) => (b.onclick = () => load(frames[+b.dataset.f])));
+// Лист созвездий по высоте содержимого: без пустоты под иконками и без прокрутки внутри
+q('#sheet').addEventListener('load', () => {
+  const fit = () => { const ui = q('#sheet').contentDocument?.getElementById('ui'); if (ui?.children.length) q('#sheet').style.height = ui.scrollHeight + 'px'; };
+  [300, 900, 2000].forEach((ms) => setTimeout(fit, ms));
+});
+function render() {
+  qa('#seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === variant)));
+  qa('#where button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === where)));
+  q('#vlead').innerHTML = VARIANTS.find(([id]) => id === variant)[2];
+  q('#whereNote').textContent = WHERE.find(([id]) => id === where)[2];
+  q('#sheet').src = `game/index.html?chartsheet=${variant}`;
+  frames.forEach(load);
+}
+q('#seg').append(...VARIANTS.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { variant = id; history.replaceState(null, '', `#${id}`); render(); } }, name)));
+q('#where').append(...WHERE.map(([id, name]) => h('button', { type: 'button', 'data-v': id, onclick: () => { where = id; render(); } }, name)));
+render();
+
+q('#cmp').append(
+  h('div', { class: 'r hd' }, h('span', {}), ...VARIANTS.map(([, n]) => h('span', { class: 'head' }, n))),
+  ...[
+    ['Различить на 48', 'С трудом: все одинаковые', 'Сразу: своя фигура и цвет', 'Да, по цифрам', 'Сразу: своя фигура'],
+    ['Различить на 30', 'Нет', 'Да, по фигуре и цвету', 'Нет, цифры сливаются', 'Да, по фигуре'],
+    ['Видна сила', 'Нет', 'Цвет эмали', 'Нет', 'Метки на кольце'],
+    ['Учит правилу', 'Если вглядеться', 'Фигура-подсказка', 'Лучше всех: пример линии', 'Фигура-подсказка'],
+    ['Рядом со Знамениями', 'Одна семья «Эмали»', 'Одна семья «Эмали»', 'Своё, похоже на карты', 'Легче, не спорит с медалями'],
+  ].map(([k, ...v]) => h('div', { class: 'r' }, h('span', {}, k), ...v.map((x, i) => h('span', { 'data-v': VARIANTS[i][1] }, x)))));
+
+facts(q('#aside'), [
+  ['Фигуры', 'Россыпь — тусклые звёзды без линий. Пара — две звезды. Две пары — две двойные. Зеркало — дуга в дуге. Тройка — треугольник. Стрит — лесенка. Флеш — звёзды одной масти. Каскад — ровная линия со стрелкой «по порядку». Квартет — ромб. Звёздный флеш — лесенка одной масти. Сверхновая — линия одной масти со вспышкой.'],
+  ['Где меняется', 'Звёздная карта в Обсерватории и в пакете, Чудеса, строки и вкладка Справочника. Одна иконка на все места, в Справочнике вместо широкой схемы.'],
+  ['Что не меняется', 'Пакет Звёздных карт (конверт с печатью) и названия созвездий.'],
+], [
+  ['CN.1', 'Выбрано A · Эмаль (29.10), в игре'],,
+]);
+</script>
+</body>
+</html>
