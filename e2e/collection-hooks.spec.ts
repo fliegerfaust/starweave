@@ -40,3 +40,24 @@ for (const over of ['lost', 'win'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+/**
+ * Знак на доске Коллекции стоит на месте (CL.4, замечание Дениса): описание в одну строку или
+ * в две, найденное знамение или нет — знак не прыгает при переключении.
+ */
+test('Коллекция: знак на доске не скачет при переключении', async ({ page }) => {
+  await page.goto('/?collection');
+  await expect(page.locator('.collection-modal .gb-board')).toBeVisible();
+  await page.waitForTimeout(600);
+  const tops = await page.evaluate(async () => {
+    const out = new Set<number>();
+    for (const b of document.querySelectorAll<HTMLElement>('.collection-modal .gb-scroll .gb-sigils button')) {
+      b.click();
+      await new Promise((r) => setTimeout(r, 20));
+      const big = document.querySelector('.collection-modal .gb-board .gb-big, .collection-modal .gb-board canvas')!;
+      out.add(Math.round(big.getBoundingClientRect().top));
+    }
+    return [...out];
+  });
+  expect(tops).toHaveLength(1);
+});

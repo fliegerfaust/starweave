@@ -3033,7 +3033,8 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   /* Витрина: доска заполняет колонку над итогами, знак крупно, всё по центру */
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-board { min-height: 0; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 14px; padding: 28px; text-align: center; }
-  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; gap: 6px; }
+  /* Подпись под знаком — сверху своего места: строкой короче описание, а знак не сдвинулся */
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; align-content: start; gap: 6px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-kindrow { justify-content: center; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally h3 { font-size: 32px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally p { max-width: 34ch; font-size: 15px; text-wrap: balance; }
