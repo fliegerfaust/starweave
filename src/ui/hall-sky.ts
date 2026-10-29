@@ -5,6 +5,7 @@
  * Достижение: горят те, у кого оно есть, — россыпью, связанные одной линией; если оно есть
  * у тебя, твоя звезда среди них. Небо дышит: тусклые мерцают, твоя звезда пульсирует.
  */
+import { keepPainted } from '@/engine/canvas-life';
 
 const N = 100;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('calm');
@@ -57,6 +58,8 @@ export class PlayerSky {
     this.el.setAttribute('aria-hidden', 'true');
     this.ctx = this.el.getContext('2d')!;
     new ResizeObserver(() => this.resize()).observe(this.el);
+    // После сворачивания (BG.1): размер и масштаб заново, кадр заново
+    keepPainted(this.el, () => this.resize());
   }
 
   /** Подписка на счётчик процента: число набегает вместе с зажиганием звёзд. */

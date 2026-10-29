@@ -86,6 +86,8 @@ export interface EventMap {
   /** where — файл:строка:колонка; пусто у «Script error.» (чужой скрипт без CORS). */
   /** stack — короткий стек (`функция@файл:строка:колонка` по строкам), только у первых повторов. */
   js_error: { message: string; where: string; stack?: string };
+  /** Браузер выбросил холсты в фоне, игра их перерисовала (BG.1): сколько и чем замечено. */
+  canvas_restore: { canvases: number; by: 'event' | 'canary' };
 }
 
 export type EventName = keyof EventMap;

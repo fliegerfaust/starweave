@@ -12,7 +12,8 @@ export function bonusLine(text: string): HTMLElement {
   // Условие — до первого двоеточия, если оно короткое («Вспыхнувший ряд», «Каждую ночь»)
   const colon = text.indexOf(':');
   if (colon > 0 && colon <= 48) {
-    return h('div.bonus-line', null, [h('span.bn-when', null, `${text.slice(0, colon + 1)} `), kwText(text.slice(colon + 1).trim(), true)]);
+    // В условии тоже бывают слова механики («Каждый миф:») — их объясняет подсказка (KW.1)
+    return h('div.bonus-line', null, [h('span.bn-when', null, [kwText(text.slice(0, colon + 1), true), ' ']), kwText(text.slice(colon + 1).trim(), true)]);
   }
   return h('div.bonus-line', null, kwText(text, true));
 }

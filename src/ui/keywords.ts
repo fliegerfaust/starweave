@@ -1,39 +1,21 @@
 import { dict, named } from '@/i18n';
 import { h } from './dom';
+import { AUTO, AUTO_RE, MARK } from './keyword-registry';
 
 /**
  * Ключевые слова механики (RT.4, витрина d8-route-wonders, выбор Дениса 22.10.2026).
  * Разметка в строках словаря:
  *   [слово|ключ|цвет] — выделенное слово; касание открывает подсказку. Ключ — id глифа
- *     (`glass`), правило из `kw.rule` (`mult`) или Знамение (`omen.crossroads`). Цвет
+ *     (`glass`), правило из `kw.rule` (`mult`), Знамение (`omen.crossroads`) или тело (`body.meteor`). Цвет
  *     необязателен: `light`, `mult`, `xmult`, `gold` — как плашки формулы.
  *   {-Глагол} / {+Глагол} — глагол цены в начале строки: платишь розовым, получаешь золотым.
  * Слово внутри подсказки открывает следующую в той же табличке; «← Назад» возвращает.
+ * Сами слова и шаблоны — в keyword-registry.ts.
  */
-const MARK = /\[([^|\]]+)\|([^|\]]+)(?:\|([^\]]+))?\]|\{([+-])([^}]+)\}/g;
 
 /** Число не отрывается ни от своего слова, ни от короткого предлога перед ним. */
 const glue = (s: string) => s.replace(/(^|\s)(\S{1,3}) (\d)/g, '$1$2 $3').replace(/(\d) (\S)/g, '$1 $2');
 
-/**
- * Слова механики в описаниях Знамений, Затмений, глифов и ритуалов находятся сами (FX.4): числа
- * эффектов («+6 к множителю», «множитель ×3», «+30 света», «+2 золота»), «ранг», «разбиться».
- * Цвет — как у коробок формулы ночи. Названия (Знамения, глифа) рядом со своим описанием не
- * выделяются — их объясняет описание (правило Дениса).
- */
-const L = '(?<![А-Яа-яЁёA-Za-z])';
-const R = '(?![А-Яа-яЁёA-Za-z])';
-const AUTO: { re: string; key: string; cls?: string }[] = [
-  { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:к множителю|to multiplier)', key: 'mult', cls: 'mult' },
-  { re: '(?:[Мм]ножитель|[Mm]ultiplier)[^.,:;()]{0,30}?×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
-  // «крест даёт ×3» — в описаниях × про множитель; «4×4» (размер неба) — нет
-  { re: '(?<!\\d\\s?)×\\d+(?:[.,]\\d+)?', key: 'mult', cls: 'xmult' },
-  { re: '[+−-]\\d+(?:[.,]\\d+)?\\s(?:света|light)', key: 'light', cls: 'light' },
-  { re: '[+−-]\\d+\\s?(?:золота|золото|gold)', key: 'gold', cls: 'gold' },
-  { re: `${L}(?:разбиться|разобьётся|разбивается|разбилась|shatters?|shattered)${R}`, key: 'shatter' },
-  { re: `${L}(?:ранг|ранга|рангу|рангом|ранги|рангов|рангам|rank|ranks)${R}`, key: 'rank' },
-];
-const AUTO_RE = new RegExp(AUTO.map((a) => `(${a.re})`).join('|'), 'g');
 
 function word(text: string, key: string, cls?: string): HTMLElement {
   return h(`span.kw${cls ? `.${cls}` : ''}`, { attrs: { 'data-kw': key, role: 'button', tabindex: '0' } }, text);
@@ -77,6 +59,11 @@ interface Def {
 
 function define(key: string): Def | null {
   const d = dict();
+  if (key.startsWith('body.')) {
+    const id = key.slice(5);
+    const desc = (d.bodyDesc as Record<string, string | undefined>)[id];
+    return desc ? { kind: d.kw.kinds.body, name: (d.body as Record<string, string | undefined>)[id] ?? id, body: kwText(desc, true) } : null;
+  }
   if (key.startsWith('omen.')) {
     const { name, desc } = named('omen', key.slice(5));
     return desc ? { kind: d.kw.kinds.omen, name, body: kwText(desc, true) } : null;

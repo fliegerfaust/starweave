@@ -111,6 +111,46 @@ async function boot(): Promise<void> {
     run.shop = generateShop(run);
     await app.router.route();
   }
+  // OB: полный ряд Знамений (`?full=shop|pack|trophy`): замена своего
+  if (dev && params.has('full')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const { createOmen } = await import('./core/omen-instance');
+    run.ante = 3;
+    // 9 золота, как у Андрея: на Треножник за 7 хватает сразу, на Астролога за 12 — только с продажей Совы
+    run.gold = 9;
+    run.omens = ['horizon', 'starlight', 'sunWorship', 'stardust', 'nightOwl'].map((id) => createOmen(run, id));
+    run.phase = 'shop';
+    run.shop = {
+      omens: [{ kind: 'omen', omenId: 'tripod', price: 7, sold: false }, { kind: 'omen', omenId: 'astrologer', price: 12, sold: false }],
+      items: [{ kind: 'chart', combo: 'pair', price: 3, sold: false }],
+      packs: [{ kind: 'pack', pack: 'omen', price: 4, sold: false }],
+      rerollCost: 5,
+    };
+    if (params.get('full') === 'pack') run.pending = [{ kind: 'pack', pack: 'omen', options: ['cometTrail', 'moonTide', 'pillar'] }];
+    if (params.get('full') === 'trophy') {
+      const [{ rollTrophy }, { TROPHY_LIST }] = await Promise.all([import('./core/trophy'), import('./core/content/trophies')]);
+      run.pending = [{ kind: 'trophy', options: rollTrophy(run, TROPHY_LIST[0]!.id) }];
+    }
+    await app.router.route();
+  }
+  // CM: Комета с обменом ранга (`?comet`)
+  if (dev && params.has('comet')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    run.ante = 4;
+    run.gold = 2;
+    const sun = (rank: number) => run.deck.find((c) => c.suit === 'sun' && c.rank === rank)!;
+    // Пара как на снимке Андрея (5 и 3 Солнца); остальные обмены те, что есть
+    const [hi, lo] = [sun(5), sun(3)];
+    const trade = { e: 'rankShift', up: hi.id, down: lo.id };
+    const plain = run.deck.filter((c) => !c.glyph && !c.body && c.id !== hi.id && c.id !== lo.id);
+    run.pending = [{ kind: 'comet', options: [{ e: 'cardForGlyph', give: plain[0]!.id, target: plain[1]!.id, glyph: 'echo' }, { e: 'suitShift', cards: [plain[2]!.id, plain[3]!.id], suit: 'moon' }, trade] } as never];
+    run.phase = 'map';
+    await app.router.route();
+  }
   // ON.1: открытие Развилок (`?routesfx=open|fork`)
   if (dev && params.has('routesfx')) {
     const { showRoutesNotice } = await import('./dev/routes-notice');

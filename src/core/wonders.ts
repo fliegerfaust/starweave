@@ -61,6 +61,24 @@ const plain = (c: Card) => !c.glyph && !c.body;
 const byRank = (a: Card, b: Card) => a.rank - b.rank || a.id - b.id;
 const charts = COMBO_IDS.filter((c) => c !== 'scatter');
 
+/**
+ * Обмен ранга в Комете — «переливание» (CM, отзыв Андрея 28.10, выбор Дениса 29.10). Раньше
+ * бралась случайная карта на −2 и случайная на +2: «5 Солнца → 3, 3 Солнца → 5» — карты просто
+ * менялись местами. Теперь растёт старшая карта пары, младшая отдаёт ей 2 ранга: сила собирается
+ * в одной карте, и перестановки не бывает. Пара — одной масти, если такая найдётся.
+ */
+function rankShift(run: RunState): CometTrade | null {
+  const free = run.deck.filter((c) => c.body !== 'nebula');
+  const ups = free.filter((c) => c.rank <= MAX_RANK - 2);
+  if (!ups.length) return null;
+  const up = pick(run.rng, ups);
+  const lower = (c: Card) => c.id !== up.id && c.rank < up.rank && c.rank >= MIN_RANK + 2;
+  const same = free.filter((c) => lower(c) && c.suit === up.suit);
+  const downs = same.length ? same : free.filter(lower);
+  if (!downs.length) return null;
+  return { e: 'rankShift', up: up.id, down: pick(run.rng, downs).id };
+}
+
 /** Обмены, возможные сейчас (хватает золота, карт, Знамений), — разыгранные от ГПСЧ забега. */
 function cometCandidates(run: RunState): CometTrade[] {
   const out: CometTrade[] = [];
@@ -81,13 +99,8 @@ function cometCandidates(run: RunState): CometTrade[] {
     if (rarer.length) out.push({ e: 'omenForOmen', uid: o.uid, omen: pick(run.rng, rarer).id });
   }
   if (run.gold >= COMET_PRICE.chart) out.push({ e: 'goldForChart', gold: COMET_PRICE.chart, combo: pick(run.rng, charts) });
-  const downs = deck.filter((c) => c.rank > MIN_RANK + 1 && c.body !== 'nebula');
-  const ups = deck.filter((c) => c.rank < MAX_RANK - 1 && c.body !== 'nebula');
-  if (downs.length && ups.length) {
-    const down = pick(run.rng, downs);
-    const rest = ups.filter((c) => c.id !== down.id);
-    if (rest.length) out.push({ e: 'rankShift', down: down.id, up: pick(run.rng, rest).id });
-  }
+  const shift = rankShift(run);
+  if (shift) out.push(shift);
   const suit = pick(run.rng, SUITS);
   const others = deck.filter((c) => c.suit !== suit);
   if (others.length >= 2) out.push({ e: 'suitShift', cards: shuffle(run.rng, [...others]).slice(0, 2).map((c) => c.id), suit });
