@@ -259,3 +259,31 @@ test('архив: состояния без вылезаний, прокрутк
   expect(failures).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+/**
+ * Ореол за картами обложки при входе не моргает (AT.11, замечание Дениса): в задержке он уже в
+ * первом кадре дыхания, а подгрузка цен и покупок не начинает его анимацию сначала.
+ */
+test('атлас: ореол за картами дышит без рывка при входе', async ({ page }) => {
+  const errors = await boot(page);
+  const res = await page.evaluate(async () => {
+    void (window as unknown as W).starweave.router.goAtlas('test');
+    const opacities: number[] = [];
+    const nodes = new Set<Element>();
+    const starts = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 75));
+      const st = document.querySelector('.atl-stack');
+      if (!st) continue;
+      nodes.add(st);
+      if (i < 12) opacities.push(Number(getComputedStyle(st, '::before').opacity));
+      for (const a of document.getAnimations()) if ((a as CSSAnimation).animationName === 'atl-breathe' && a.startTime != null) starts.add(Math.round(Number(a.startTime)));
+    }
+    return { opacities, nodes: nodes.size, starts: [...starts] };
+  });
+  // Первая секунда — тихое начало дыхания, без полной силы
+  expect(Math.max(...res.opacities)).toBeLessThan(0.9);
+  expect(res.nodes).toBe(1);
+  expect(res.starts.length).toBeLessThanOrEqual(1);
+  expect(errors).toEqual([]);
+});

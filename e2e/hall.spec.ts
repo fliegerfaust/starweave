@@ -122,6 +122,9 @@ test('Зал славы: вёрстка, строки и доска на все�
       const p = panel.getBoundingClientRect();
       const b = board.getBoundingClientRect();
       if (b.top < p.top - 1 || b.bottom > p.bottom + 1) out.push('доска не в окне');
+      // Небо не схлопывается в линию (окно Пикабу 1394×640 сжимало его до 10px)
+      const sky = panel.querySelector<HTMLElement>('.hall-skycanvas')!.getBoundingClientRect().height;
+      if (sky < 110) out.push(`небо ${Math.round(sky)}px`);
       return { out, height: b.height };
     });
     // Достижение на доске — та же высота, что у рекорда
