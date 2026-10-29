@@ -148,7 +148,13 @@ export class AtlasScreen implements Screen {
         [...body.children].forEach((child, i) => {
           if (child !== fresh) oldBody.children[i]?.replaceWith(child);
         });
-        this.el.replaceChildren(this.top(), oldBody, cta);
+        // Обложку не переставляем: вынутый из документа узел начинает анимации сначала, и
+        // ореол за картами вспыхивал заново при подгрузке цен (AT.11). Меняем шапку и кнопки вокруг
+        const [top, , oldCta] = [...this.el.children];
+        if (top && oldCta && oldBody.parentElement === this.el) {
+          top.replaceWith(this.top());
+          oldCta.replaceWith(cta);
+        } else this.el.replaceChildren(this.top(), oldBody, cta);
       } else this.el.replaceChildren(this.top(), body, cta);
     } else {
       this.el.className = `atlas tab-${this.tab}${this.shown.has(this.tab) ? ' settled' : ''}`;

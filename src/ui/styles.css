@@ -2540,9 +2540,11 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 @keyframes atl-rise { from { transform: translateY(18px) scale(0.95); opacity: 0; } }
 @keyframes atl-bob { 0%, 100% { transform: rotate(var(--r)) translateY(-8px); } 50% { transform: rotate(calc(var(--r) * 1.12)) translateY(-15px); } }
 @keyframes atl-hover { 50% { transform: translateY(-6px); } }
-/* Живая обложка: за стопкой дышит свечение, по рубашке изредка идёт блик */
+/* Живая обложка: за стопкой дышит свечение, по рубашке изредка идёт блик. Свечение с `both`:
+   пока идёт задержка, оно уже в первом кадре дыхания, а не во всю силу — иначе через секунду
+   ореол моргал и начинал нарастать заново (AT.11) */
 .atl-stack::before { content: ''; position: absolute; left: 50%; top: 50%; width: min(170%, 76vw); aspect-ratio: 1.25; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
-  background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.75), rgb(var(--gold-rgb) / 0.26) 48%, transparent); animation: atl-breathe 4.8s ease-in-out 1s infinite; }
+  background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.75), rgb(var(--gold-rgb) / 0.26) 48%, transparent); animation: atl-breathe 4.8s ease-in-out 1s infinite both; }
 .hero-support .atl-stack::before { background: radial-gradient(closest-side, rgb(255 214 140 / 0.7), rgb(var(--gold-rgb) / 0.26) 48%, transparent); }
 @keyframes atl-breathe { 0%, 100% { opacity: 0.45; scale: 0.9; } 50% { opacity: 1; scale: 1.06; } }
 .atl-stack .atl-glint { position: absolute; display: block; left: 50%; bottom: 0; height: calc(var(--bw) * var(--gh, 1.77)); z-index: 3; pointer-events: none; mix-blend-mode: screen;
