@@ -2540,9 +2540,11 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
 @keyframes atl-rise { from { transform: translateY(18px) scale(0.95); opacity: 0; } }
 @keyframes atl-bob { 0%, 100% { transform: rotate(var(--r)) translateY(-8px); } 50% { transform: rotate(calc(var(--r) * 1.12)) translateY(-15px); } }
 @keyframes atl-hover { 50% { transform: translateY(-6px); } }
-/* Живая обложка: за стопкой дышит свечение, по рубашке изредка идёт блик */
+/* Живая обложка: за стопкой дышит свечение, по рубашке изредка идёт блик. Свечение с `both`:
+   пока идёт задержка, оно уже в первом кадре дыхания, а не во всю силу — иначе через секунду
+   ореол моргал и начинал нарастать заново (AT.11) */
 .atl-stack::before { content: ''; position: absolute; left: 50%; top: 50%; width: min(170%, 76vw); aspect-ratio: 1.25; translate: -50% -50%; border-radius: 50%; pointer-events: none; mix-blend-mode: screen;
-  background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.75), rgb(var(--gold-rgb) / 0.26) 48%, transparent); animation: atl-breathe 4.8s ease-in-out 1s infinite; }
+  background: radial-gradient(closest-side, rgb(var(--gold-rgb) / 0.75), rgb(var(--gold-rgb) / 0.26) 48%, transparent); animation: atl-breathe 4.8s ease-in-out 1s infinite both; }
 .hero-support .atl-stack::before { background: radial-gradient(closest-side, rgb(255 214 140 / 0.7), rgb(var(--gold-rgb) / 0.26) 48%, transparent); }
 @keyframes atl-breathe { 0%, 100% { opacity: 0.45; scale: 0.9; } 50% { opacity: 1; scale: 1.06; } }
 .atl-stack .atl-glint { position: absolute; display: block; left: 50%; bottom: 0; height: calc(var(--bw) * var(--gh, 1.77)); z-index: 3; pointer-events: none; mix-blend-mode: screen;
@@ -3019,8 +3021,9 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-sigils { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 /* Коллекция в широком окне: под доской итоги — левая колонка без пустого поля */
-/* Ниже 400 px высоты итоги под доской не помещаются — остаются первым разделом списка */
-@media (min-height: 400px) {
+/* Ниже 720 px высоты итоги под доской не помещаются (доска держит высоту самого большого знака,
+   и строки итогов уходили за край без прокрутки, CL.5) — остаются первым разделом списка */
+@media (min-height: 720px) {
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; gap: 12px; align-content: start; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin > .coll-block { display: grid; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll > .coll-block { display: none; }
@@ -3031,9 +3034,10 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-backdrop:has(> .modal-panel.collection-modal:not(.sheet)) { place-items: center; padding-top: var(--safe-top); }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb { grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); }
   /* Витрина: доска заполняет колонку над итогами, знак крупно, всё по центру */
-  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-board { min-height: 0; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 14px; padding: 28px; text-align: center; }
-  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; gap: 6px; }
+  /* Подпись под знаком — сверху своего места: строкой короче описание, а знак не сдвинулся */
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; align-content: start; gap: 6px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-kindrow { justify-content: center; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally h3 { font-size: 32px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally p { max-width: 34ch; font-size: 15px; text-wrap: balance; }
@@ -3566,6 +3570,15 @@ canvas.gb-big.gold { filter: sepia(1) saturate(2.6) hue-rotate(-14deg) brightnes
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap-line { font-size: 16px; }
   body.landscape .modal-panel.hall-modal:not(.sheet) .hall-cap-line b { font-size: 20px; }
 }
+/* Невысокое окно ПК (Пикабу ~1394×640): доска с рекордами под ней сжимала небо в линию.
+   Рекорды уходят в список справа, доска — во всю высоту колонки, небу не меньше 140px */
+@media (min-width: 900px) and (min-height: 600px) and (max-height: 939px) {
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin { height: 100%; display: flex; flex-direction: column; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-pin > .coll-block { display: none; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-scroll > .coll-block { display: grid; }
+  body.landscape .modal-panel.hall-modal:not(.sheet) .gb-board.hall-sky { flex: 1 1 auto; }
+}
+body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height: 120px; }
 /* Низкий ландшафт телефона: доска во всю высоту левой колонки, рекорды — в списке справа */
 @media (orientation: landscape) and (max-height: 599px) {
   body.landscape .modal-panel.hall-modal:not(.sheet) .gb { grid-template-rows: minmax(0, 1fr); }

@@ -583,7 +583,8 @@ function openBoard(opts: GuideOptions, only: boolean): void {
    * окна примеряем все варианты — созвездия, шаги ночи, разделы Обсерватории, глифы, всю
    * коллекцию — и держим высоту самого большого.
    */
-  const steadyHeights = new Map<string, number>();
+  /** Высота доски и подписи под знаком: подпись тоже под самую длинную, иначе знак скачет. */
+  const steadyHeights = new Map<string, [number, number]>();
   /**
    * Доска Коллекции одной высоты у любого игрока (замечание Дениса): меряем не то, что открыто
    * у него, а всю Коллекцию — найденной целиком и ненайденной, со ступенями и без.
@@ -593,6 +594,8 @@ function openBoard(opts: GuideOptions, only: boolean): void {
     const steps = { eclipses: 99, combosFound: [...COMBO_IDS] };
     const all = { seenOmens: OMEN_LIST.map((x) => x.id), seenBosses: BOSS_LIST.map((x) => x.id), mythsFound: MYTHS.map((x) => x.id) };
     return [
+      // И профиль самого игрока: у него бывают подписи, каких нет в примерках (свои приручения)
+      p,
       { ...p, ...steps, ...all, tamed: Object.fromEntries(BOSS_LIST.map((x) => [x.id, 2])) },
       { ...p, ...steps, ...all, tamed: {} },
       // Затмение до ступени трофеев — своя доска, со своим правилом
@@ -610,6 +613,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
   function steadyBoard(board: HTMLElement): void {
     const key = `${tab}:${body.clientWidth}`;
     let max = steadyHeights.get(key);
+    const tallyOf = () => board.querySelector<HTMLElement>('.gb-tally')!;
     if (max === undefined) {
       const saved = { combo, step, shopSel, glyph, bodyId, showBody, pick };
       const variants: (() => void)[] =
@@ -625,19 +629,27 @@ function openBoard(opts: GuideOptions, only: boolean): void {
           ]);
       const live = [...board.childNodes];
       const profile = opts.profile;
-      max = board.offsetHeight;
+      let most = board.offsetHeight;
+      // offsetHeight, а не getBoundingClientRect: окно открывается с увеличением, transform
+      // сжал бы замер; +1 — запас на округление дробной высоты
+      const tallyH = () => tallyOf().offsetHeight + 1;
+      let tallyMost = tallyH();
       for (const apply of variants) {
         apply();
         const [vis, tally] = boardOf(tab);
         board.replaceChildren(vis, h('div.gb-tally', null, tally));
-        max = Math.max(max, board.offsetHeight);
+        most = Math.max(most, board.offsetHeight);
+        tallyMost = Math.max(tallyMost, tallyH());
       }
+      max = [most, tallyMost];
       opts.profile = profile;
       ({ combo, step, shopSel, glyph, bodyId, showBody, pick } = saved);
       board.replaceChildren(...live);
       steadyHeights.set(key, max);
     }
-    board.style.minHeight = `${max}px`;
+    board.style.minHeight = `${max[0]}px`;
+    // Знак Коллекции стоит на месте (CL.4); в других вкладках меняется и сцена — там только доска
+    if (tab === 'collection') tallyOf().style.minHeight = `${max[1]}px`;
   }
 
   let shownTab: GuideTab | null = null;
