@@ -853,3 +853,6 @@ export function drawEnamelFeat(ctx: Ctx, motif: string, fam: string, tier: 0 | 1
   }
   ctx.restore();
 }
+
+// Витрина CN.1: варианты иконок созвездий рисуются теми же средствами «Эмали»
+export { sparkle, path, stops, mix, FAM, SUIT_PAINT, brassBezel, stage, roundedRect, line as linePath, circ as circPath };

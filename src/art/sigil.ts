@@ -3,6 +3,7 @@ import type { ComboId, Glyph } from '@/core/types';
 import { keepPainted } from '@/engine/canvas-life';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
+import { chartStyle, drawChartVariant } from './constellation-icons';
 import { drawGlyphBadge } from './card';
 import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelFeat, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
 
@@ -45,6 +46,8 @@ export function bossSigil(id: string, size: number, scale: number): HTMLCanvasEl
 
 /** Иконка Звёздной карты (прокачка созвездия): схема созвездия на лазурите. */
 export function chartIcon(combo: ComboId, size: number, scale: number): HTMLCanvasElement {
+  const style = chartStyle();
+  if (style) return cached(`chart-${style}:${combo}:${size}:${scale}`, size, size, scale, (ctx) => drawChartVariant(ctx, combo, size, style));
   return cached(`chart:${combo}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelChart(ctx, combo, size));
 }
 

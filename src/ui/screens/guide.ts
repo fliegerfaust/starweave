@@ -1,5 +1,6 @@
 import { keepPainted } from '@/engine/canvas-life';
 import { bossSigil, chartIcon, comboScheme, omenSigil, ritualIcon } from '@/art/sigil';
+import { chartStyle } from '@/art/constellation-icons';
 import { COMBO_EXAMPLES, comboBase } from '@/core/content/combos';
 import { BODY_IDS, COMBO_IDS, GLYPHS, type BodyId, type Card, type ComboId, type Glyph, type Suit } from '@/core/types';
 import { BODY_UNLOCKS } from '@/core/content/pools';
@@ -222,7 +223,7 @@ function openBoard(opts: GuideOptions, only: boolean): void {
         h('small', null, rich(dict().comboDesc[id])),
       ], h('span.gb-base', null, [h('span.light-text', null, String(b.light)), h('span.gb-x', null, '×'), h('span.mult-text', null, String(b.mult))]), () => { combo = id; render(); },
       // Схема созвездия: высота звезды — ранг, цвет — масть, дуги — что совпало
-      h('span.gb-scheme', null, canvasImg(comboScheme(id, 52, dpr()), 52, Math.round((52 * 68) / 116)))));
+      h('span.gb-scheme', null, chartStyle() ? canvasImg(chartIcon(id, 40, dpr()), 40) : canvasImg(comboScheme(id, 52, dpr()), 52, Math.round((52 * 68) / 116)))));
     }
     return [section(g.allCombos, found ? t('discovery.collected', { n: found.length, total: COLLECTIBLE_COMBOS.length }) : null), list];
   };

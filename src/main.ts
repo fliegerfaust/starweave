@@ -49,6 +49,11 @@ async function boot(): Promise<void> {
     showIcon(ui, params.has('rounded'));
     return;
   }
+  if (dev && params.has('chartsheet')) {
+    const { showChartSheet } = await import('./dev/charts');
+    showChartSheet(ui, params.get('chartsheet') || null);
+    return;
+  }
   if (dev && params.has('gallery')) {
     const { showGallery } = await import('./dev/gallery');
     showGallery(ui);
@@ -110,6 +115,31 @@ async function boot(): Promise<void> {
     run.phase = 'shop';
     run.shop = generateShop(run);
     await app.router.route();
+  }
+  // CN.1: иконки созвездий на настоящих экранах (`?charts=a|b|c&at=shop|pack|guide`)
+  if (dev && params.has('at')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const { createOmen } = await import('./core/omen-instance');
+    run.ante = 3;
+    run.gold = 14;
+    run.comboLevels.pair = 2;
+    run.comboLevels.flush = 3;
+    run.omens = ['horizon', 'starlight', 'sunWorship'].map((id) => createOmen(run, id));
+    run.phase = 'shop';
+    run.shop = {
+      omens: [{ kind: 'omen', omenId: 'tripod', price: 7, sold: false }, { kind: 'omen', omenId: 'stardust', price: 6, sold: false }],
+      items: [{ kind: 'chart', combo: 'pair', price: 3, sold: false }, { kind: 'chart', combo: 'flush', price: 3, sold: false }],
+      packs: [{ kind: 'pack', pack: 'chart', price: 4, sold: false }],
+      rerollCost: 5,
+    };
+    if (params.get('at') === 'pack') run.pending = [{ kind: 'pack', pack: 'chart', options: ['triple', 'straight', 'supernova'] }];
+    await app.router.route();
+    if (params.get('at') === 'guide') {
+      const { showGuide } = await import('./ui/screens/guide');
+      showGuide({ tab: 'combos', levels: run.comboLevels, profile: app.profile });
+    }
   }
   // OB: полный ряд Знамений (`?full=shop|pack|trophy`): замена своего
   if (dev && params.has('full')) {

@@ -24,6 +24,7 @@ const VITRINES = [
   { id: 'patrons', title: 'Покровители', file: 'd8-patrons.html', step: 10 },
   { id: 'heart', title: 'Сердце неба', file: 'd8-heart.html', step: 11 },
   { id: 'skyvault', title: 'Небосвод', file: 'd8-skyvault.html', step: 0 },
+  { id: 'constellations', title: 'Иконки созвездий', file: 'd8-constellations.html', release: '0.7.17' },
 ];
 const LADDER = [
   ['Первый свет', 'первый забег', 'игра как сейчас'],
