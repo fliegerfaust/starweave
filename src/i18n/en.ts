@@ -999,6 +999,7 @@ export const en: Dict = {
     players: 'of players',
     legend: 'On the right: the share of players with this award. The smaller, the rarer.',
     rarest: 'Your rarest',
+    firstStep: 'Beat this record to pass your first players',
     noRecord: 'Play a run to see where you stand among players',
     secretShare: 'The share of players is revealed with the achievement',
     nearest: 'Closest',

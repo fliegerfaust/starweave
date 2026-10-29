@@ -86,6 +86,10 @@ export function showHall(profile: Profile, raw: HallStats | null): void {
         countEl = null;
         // Нет числа: либо ещё нечего сравнивать, либо нет связи с сервером
         cap.replaceChildren(h('span.hall-cap-line.off', null, stats && !recordValue(profile, id) ? d.noRecord : noShare));
+      } else if (p === 0) {
+        // Наравне с самыми первыми (глава I у всех): «лучше 0%» звучит обидно, зовём дальше
+        countEl = null;
+        cap.replaceChildren(h('span.hall-cap-line.off', null, d.firstStep));
       } else {
         const line = withNum(d.better, '0%');
         countEl = line.n;
@@ -93,7 +97,7 @@ export function showHall(profile: Profile, raw: HallStats | null): void {
         cap.replaceChildren(h('span.hall-cap-line', null, line.el));
       }
       sky.set({ kind: 'record', percent: p });
-      if (p != null) flareTimer = window.setTimeout(() => board.classList.add('flare'), 900);
+      if (p) flareTimer = window.setTimeout(() => board.classList.add('flare'), 900);
     } else {
       const s = pick.state;
       const p = share(s);
@@ -146,7 +150,7 @@ export function showHall(profile: Profile, raw: HallStats | null): void {
     const p = better(id);
     const b = h('button.hall-row.rec', { type: 'button' }, [
       h('span.hall-row-text', null, [h('b', null, d.record[id])]),
-      h('span.hall-row-side', null, [h('em', null, recordText(id)), p != null ? h('small', null, format(d.betterShort, { p: `${p}%` })) : null]),
+      h('span.hall-row-side', null, [h('em', null, recordText(id)), p ? h('small', null, format(d.betterShort, { p: `${p}%` })) : null]),
     ]);
     b.addEventListener('click', () => choose({ kind: 'record', id }));
     rows.push({ el: b, is: (x) => x.kind === 'record' && x.id === id });
