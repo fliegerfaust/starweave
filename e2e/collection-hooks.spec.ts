@@ -61,3 +61,16 @@ test('Коллекция: знак на доске не скачет при пе
   });
   expect(tops).toHaveLength(1);
 });
+
+/** Итоги Коллекции видны целиком (CL.5): под доской — только если влезают, иначе первым разделом списка. */
+test('Коллекция: итоги под доской не уходят за край окна', async ({ page }) => {
+  await page.goto('/?collection');
+  await expect(page.locator('.collection-modal .gb-board')).toBeVisible();
+  await page.waitForTimeout(600);
+  const over = await page.evaluate(() => {
+    const gb = document.querySelector('.collection-modal .gb')!.getBoundingClientRect();
+    const pinned = [...document.querySelectorAll<HTMLElement>('.collection-modal .gb-pin .gb-stat')].filter((x) => x.offsetParent);
+    return pinned.map((x) => Math.round(x.getBoundingClientRect().bottom - gb.bottom)).filter((d) => d > 1);
+  });
+  expect(over).toEqual([]);
+});

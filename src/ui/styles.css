@@ -3019,8 +3019,9 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-panel.board-modal:not(.sheet) .gb-sigils { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 /* Коллекция в широком окне: под доской итоги — левая колонка без пустого поля */
-/* Ниже 400 px высоты итоги под доской не помещаются — остаются первым разделом списка */
-@media (min-height: 400px) {
+/* Ниже 720 px высоты итоги под доской не помещаются (доска держит высоту самого большого знака,
+   и строки итогов уходили за край без прокрутки, CL.5) — остаются первым разделом списка */
+@media (min-height: 720px) {
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; gap: 12px; align-content: start; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin > .coll-block { display: grid; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-scroll > .coll-block { display: none; }
@@ -3031,7 +3032,7 @@ body.landscape .modal-panel.board-modal:not(.sheet) .gb-scroll { height: 100%; }
   body.landscape .modal-backdrop:has(> .modal-panel.collection-modal:not(.sheet)) { place-items: center; padding-top: var(--safe-top); }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb { grid-template-columns: minmax(380px, 5fr) minmax(0, 7fr); }
   /* Витрина: доска заполняет колонку над итогами, знак крупно, всё по центру */
-  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
+  body.landscape .modal-panel.collection-modal:not(.sheet) .gb-pin { display: grid; height: 100%; grid-template-rows: minmax(0, 1fr) auto; gap: 16px; }
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-board { min-height: 0; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: center; row-gap: 14px; padding: 28px; text-align: center; }
   /* Подпись под знаком — сверху своего места: строкой короче описание, а знак не сдвинулся */
   body.landscape .modal-panel.collection-modal:not(.sheet) .gb-tally { justify-items: center; align-content: start; gap: 6px; }
