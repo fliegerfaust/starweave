@@ -3,9 +3,8 @@ import type { ComboId, Glyph } from '@/core/types';
 import { keepPainted } from '@/engine/canvas-life';
 import { makeCanvas } from '@/engine/renderer';
 import { SpriteCache } from './sprite-cache';
-import { chartStyle, drawChartVariant } from './constellation-icons';
 import { drawGlyphBadge } from './card';
-import { drawComboScheme, drawEnamelBoss, drawEnamelChart, drawEnamelFeat, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
+import { drawEnamelBoss, drawEnamelChart, drawEnamelFeat, drawEnamelMark, drawEnamelOmen, drawEnamelPack, drawEnamelRitual } from './enamel';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -44,17 +43,9 @@ export function bossSigil(id: string, size: number, scale: number): HTMLCanvasEl
   return cached(`boss:${id}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelBoss(ctx, id, size));
 }
 
-/** Иконка Звёздной карты (прокачка созвездия): схема созвездия на лазурите. */
+/** Иконка созвездия: Звёздная карта, Чудеса, Справочник — фигура правила на эмали цвета силы. */
 export function chartIcon(combo: ComboId, size: number, scale: number): HTMLCanvasElement {
-  const style = chartStyle();
-  if (style) return cached(`chart-${style}:${combo}:${size}:${scale}`, size, size, scale, (ctx) => drawChartVariant(ctx, combo, size, style));
   return cached(`chart:${combo}:${size}:${scale}`, size, size, scale, (ctx) => drawEnamelChart(ctx, combo, size));
-}
-
-/** Схема созвездия для строки Справочника, ширина `w`. */
-export function comboScheme(combo: ComboId, w: number, scale: number): HTMLCanvasElement {
-  const h = Math.round((w * 68) / 116);
-  return cached(`scheme:${combo}:${w}:${scale}`, w, h, scale, (ctx) => drawComboScheme(ctx, combo, w));
 }
 
 /** Иконка ритуала: карта в латунной рамке; у ритуала глифа — его значок. */

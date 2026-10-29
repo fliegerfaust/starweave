@@ -51,7 +51,7 @@ async function boot(): Promise<void> {
   }
   if (dev && params.has('chartsheet')) {
     const { showChartSheet } = await import('./dev/charts');
-    showChartSheet(ui, params.get('chartsheet') || null);
+    showChartSheet(ui);
     return;
   }
   if (dev && params.has('gallery')) {
@@ -116,7 +116,7 @@ async function boot(): Promise<void> {
     run.shop = generateShop(run);
     await app.router.route();
   }
-  // CN.1: иконки созвездий на настоящих экранах (`?charts=a|b|c&at=shop|pack|guide`)
+  // CN.1: иконки созвездий на настоящих экранах (`?at=shop|pack|guide`)
   if (dev && params.has('at')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
     app.runs.startRun('classic', false, 0, 4242);
