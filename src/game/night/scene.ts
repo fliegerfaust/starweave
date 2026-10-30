@@ -168,6 +168,11 @@ export class NightScene {
     return this.view.cellsRect(cells);
   }
 
+  /** Прямоугольник выбранной карты руки (с выдвижением) или null. */
+  selectedRect(): Rect | null {
+    return this.view.selectedRect();
+  }
+
   /** Прямоугольник всей руки. */
   handAreaRect(): Rect {
     return this.view.handAreaRect();

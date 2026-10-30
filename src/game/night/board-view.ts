@@ -355,6 +355,14 @@ export class BoardView {
     return { x: p.x - this.scene.layout.handW / 2, y: p.y - this.scene.layout.handH / 2, w: this.scene.layout.handW, h: this.scene.layout.handH };
   }
 
+  /** Прямоугольник выбранной карты руки там, где она стоит: с выдвижением. */
+  selectedRect(): Rect | null {
+    const i = this.scene.selected;
+    const r = i === null ? null : this.handRect(this.scene.hand[i] ?? -1);
+    if (!r) return null;
+    return this.scene.layout.mode === 'landscape' ? { ...r, x: r.x - this.liftAmount } : { ...r, y: r.y - this.liftAmount };
+  }
+
   /** Общий прямоугольник нескольких клеток. */
   cellsRect(cells: readonly number[]): Rect {
     const rects = cells.map((c) => this.cellRect(c));

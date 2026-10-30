@@ -2166,6 +2166,9 @@ body.landscape .coach:is([data-step="shop"], [data-step="boss"], [data-step="rou
   body:not(.landscape) .card-info { max-width: calc(100vw - 12px); padding-inline: 10px; }
 }
 body.landscape .card-info { left: calc(12px + 140px); bottom: calc(70px + var(--safe-bottom)); max-width: 280px; white-space: normal; border-radius: 12px; }
+/* У карты (FB.3): правый край — у выбранной карты руки, по её середине, носик указывает на карту */
+body.landscape .card-info.at-card { bottom: auto; transform: translate(-100%, -50%); width: max-content; max-width: 260px; padding: 8px 12px; overflow: visible; }
+body.landscape .card-info.at-card::after { content: ''; position: absolute; right: -6px; top: 50%; width: 10px; height: 10px; transform: translateY(-50%) rotate(45deg); background: inherit; border: inherit; border-left: 0; border-bottom: 0; }
 
 .ritual-result { display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .ritual-row { display: flex; align-items: center; gap: 10px; animation: rise-in 0.4s ease both; }

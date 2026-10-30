@@ -56,7 +56,7 @@ export class NightScreen implements Screen {
         onSelect: (i) => {
           this.hud.setBurnEnabled(i !== null && (this.run.night?.burnsLeft ?? 0) > 0);
           const n = this.run.night;
-          this.hud.setCardInfo(i !== null && n ? (n.hand[i] ?? null) : null, n?.rules.hideRanks);
+          this.hud.setCardInfo(i !== null && n ? (n.hand[i] ?? null) : null, n?.rules.hideRanks, this.scene?.selectedRect() ?? null);
         },
         wide: this.app.features.wideDesktop,
         flare: this.app.features.brightFlare,
