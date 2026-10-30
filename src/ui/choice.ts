@@ -8,7 +8,8 @@ import { named, t } from '@/i18n';
 import { bonusLine } from './bonus';
 import { canvasImg, dpr, h } from './dom';
 import { lightButton, sceneRibbon, sceneWindow } from './scene-window';
-import { button, withCoin, type ModalHandle } from './widgets';
+import { omenTooltip } from './hud';
+import { attachTooltip, button, hideTooltip, withCoin, type ModalHandle } from './widgets';
 import { sellPrice } from '@/core/shop';
 
 /** Что делать с вариантом: решает экран, на котором выбор открыт (ритуалу нужны цели). */
@@ -79,6 +80,7 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
   const close = () => handle?.close();
   const paintStrip = () => {
     if (!strip) return;
+    hideTooltip();
     rows.forEach((r, i) => r.classList.toggle('giving', i === picked));
     strip.classList.toggle('on', picked !== null);
     // Обе подсказки в одной ячейке, видна одна: высота строки не меняется при выборе (ничего не скачет)
@@ -88,16 +90,32 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
         h(`p.hint.on${picked === null ? '.off' : ''}`, null, t('shop.replaceHint', { name: named('omen', choice.options[picked ?? 0]!).name })),
       ]),
       h('div.owned-omens', null, run.omens.map((o) => {
-        const chip = h(`div.owned-omen${picked !== null ? '.give' : ''}`, null, [
-          h('button.omen-slot', {
-            type: 'button',
-            ariaLabel: named('omen', o.id).name,
-            disabled: picked === null,
-            onclick: () => picked !== null && handlers.take(picked, choice.options[picked]!, close, o.uid),
-          }, canvasImg(omenSigil(o.id, 44, dpr()), 44)),
+        const give = () => {
+          hideTooltip();
+          if (picked !== null) handlers.take(picked, choice.options[picked]!, close, o.uid);
+        };
+        // Своё Знамение можно рассмотреть до замены (FB.5): мышью — наведением, пальцем — касанием.
+        // Мышью нажатие отдаёт сразу, на телефоне отдаёт кнопка в табличке: первое касание — посмотреть
+        const slot = h('button.omen-slot', {
+          type: 'button',
+          ariaLabel: named('omen', o.id).name,
+          onclick: () => {
+            if (picked !== null && matchMedia('(hover: hover) and (pointer: fine)').matches) give();
+          },
+        }, canvasImg(omenSigil(o.id, 44, dpr()), 44));
+        attachTooltip(slot, () => {
+          const tip = omenTooltip(o);
+          if (picked !== null) {
+            // За что отдаёшь — уже сказано строкой над рядом; в кнопке только действие и выручка
+            const label = h('span', null, [t('shop.give'), ' · ', withCoin(`+${sellPrice(o.id)}`)]);
+            tip.append(button(label, give, { className: 'tip-give', variant: 'secondary' }));
+          }
+          return tip;
+        });
+        return h(`div.owned-omen${picked !== null ? '.give' : ''}`, null, [
+          slot,
           picked !== null ? h('span.give-badge', null, withCoin(`+${sellPrice(o.id)}`)) : null,
         ]);
-        return chip;
       })),
     );
   };
