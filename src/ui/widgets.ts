@@ -210,6 +210,8 @@ export function toast(text: string, kind: 'info' | 'warn' = 'info', lead?: Node)
 let activeTip: HTMLElement | null = null;
 
 let hideTimer = 0;
+/** Последнее нажатие пришлось на табличку: фокус ушёл с элемента в неё, закрывать рано (FB.5). */
+let downInTip = false;
 
 export function hideTooltip(): void {
   window.clearTimeout(hideTimer);
@@ -259,7 +261,11 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
     });
   }
   el.addEventListener('focus', () => show());
-  el.addEventListener('blur', () => hideTooltip());
+  // Касание кнопки в табличке уводит фокус с элемента — табличку не закрываем, иначе кнопка
+  // исчезнет до своего клика
+  el.addEventListener('blur', () => {
+    if (!downInTip) hideTooltip();
+  });
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (activeTip && activeTip.dataset.owner === String(el.dataset.tipId)) hideTooltip();
@@ -273,7 +279,8 @@ export function attachTooltip(el: HTMLElement, render: () => Node): void {
 
 document.addEventListener('pointerdown', (e) => {
   const el = e.target as HTMLElement;
-  if (activeTip && !el.closest?.('.tooltip') && !el.closest?.('.kw-hint')) hideTooltip();
+  downInTip = !!el.closest?.('.tooltip');
+  if (activeTip && !downInTip && !el.closest?.('.kw-hint')) hideTooltip();
 });
 
 /** Плавный счётчик числа в элементе. */
