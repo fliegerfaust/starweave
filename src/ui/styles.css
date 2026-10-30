@@ -1655,6 +1655,12 @@ html.calm .scene-chain g { animation: none; opacity: 1; }
 .deck-legend i.used { background: rgb(var(--violet-rgb) / 0.3); }
 .deck-back { position: sticky; bottom: calc(-18px - var(--safe-bottom)); display: grid; margin: 14px -20px calc(-18px - var(--safe-bottom)); padding: 12px 20px calc(18px + var(--safe-bottom)); background: linear-gradient(180deg, rgb(11 10 36 / 0), #0b0a24 40%); }
 .deck-back .btn { width: 100%; }
+/* Ландшафт и ПК: лист во всю высоту — «Назад» прижат к низу, где плашка совпадает с цветом листа,
+   и не наезжает на латунную кромку. Короткая колода не оставляет полосу посреди листа (FB.2) */
+body.landscape .modal-panel.sheet.deck { display: flex; flex-direction: column; }
+body.landscape .modal-panel.sheet.deck > * { flex-shrink: 0; }
+body.landscape .deck-back { margin: auto 0 calc(-18px - var(--safe-bottom)); padding-inline: 0; padding-top: 16px; justify-items: center; }
+body.landscape .deck-back .btn { width: auto; min-width: 220px; }
 /* В листе масть — ровно девять карт в ряд по ширине листа */
 .modal-panel.deck .deck-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 4px; }
 .modal-panel.deck .deck-card { width: 100%; height: auto; aspect-ratio: 0.7; }
