@@ -87,6 +87,14 @@ test('Пакет Знамений: при полном ряде «Заменит
   // Ряд в нижней панели сцены: виден целиком на любом экране
   expect((await audit(page, false)).filter((p) => p.includes('give-strip') || p.includes('omen-slot'))).toEqual([]);
   await page.locator('.give-strip .omen-slot').nth(0).click();
+  // FB.5: мышью клик отдаёт сразу; пальцем первое касание показывает Знамение, отдаёт кнопка в табличке
+  const touch = await page.evaluate(() => !matchMedia('(hover: hover) and (pointer: fine)').matches);
+  if (touch) {
+    expect(await run(page)).toEqual(before);
+    await expect(page.locator('.tooltip .tip-give')).toBeVisible();
+    expect((await audit(page, false)).filter((p) => p.includes('tooltip'))).toEqual([]);
+    await page.locator('.tooltip .tip-give').click();
+  }
   await page.waitForTimeout(500);
   const after = await run(page);
   expect(after.ids[0]).toBe('moonTide');

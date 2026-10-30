@@ -6,6 +6,7 @@ import { omenSlots } from '@/core/shop';
 import { trophiesOf } from '@/core/trophy';
 import { COMBO_IDS, type Card, type ComboId, type NightKind, type NightState, type OmenInstance, type RunState } from '@/core/types';
 import { dict, getLang, named, num, t } from '@/i18n';
+import type { Rect } from '@/game/layout';
 import { canvasImg, clear, dpr, h } from './dom';
 import { rich } from './rich';
 import { attachTooltip, button } from './widgets';
@@ -523,8 +524,12 @@ export class Hud {
     this.preview.classList.add('show');
   }
 
-  /** Подпись о выбранной карте: ранг, масть и правило глифа или небесного тела простыми словами. */
-  setCardInfo(card: Card | null, hideRank = false): void {
+  /**
+   * Подпись о выбранной карте: ранг, масть и правило глифа или небесного тела простыми словами.
+   * В ландшафте и на ПК рука справа — подпись встаёт слева от самой карты, носиком к ней (FB.3):
+   * в углу под созвездиями её не связать с картой.
+   */
+  setCardInfo(card: Card | null, hideRank = false, at: Rect | null = null): void {
     clear(this.cardInfo);
     this.cardInfoFocus = card?.body ? `body-${card.body}` : card?.glyph ? `glyph-${card.glyph}` : null;
     if (!card) {
@@ -541,6 +546,17 @@ export class Hud {
     this.cardInfo.classList.toggle('clickable', !!this.cardInfoFocus);
     this.cardInfo.classList.toggle('has-rule', !!rule);
     this.cardInfo.classList.add('show');
+    const side = !!at && document.body.classList.contains('landscape');
+    this.cardInfo.classList.toggle('at-card', side);
+    if (side) {
+      // На широком ПК подпись масштабируется через zoom — координаты делим на тот же коэффициент
+      const k = parseFloat(getComputedStyle(this.cardInfo).zoom) || 1;
+      this.cardInfo.style.left = `${(at.x - 12) / k}px`;
+      this.cardInfo.style.top = `${(at.y + at.h / 2) / k}px`;
+    } else {
+      this.cardInfo.style.left = '';
+      this.cardInfo.style.top = '';
+    }
   }
 
   /** Подсветить «?», пока новичок её ни разу не открыл. */
