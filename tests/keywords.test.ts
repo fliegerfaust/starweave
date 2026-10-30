@@ -25,6 +25,12 @@ const VOCABULARY: { ru: RegExp; en: RegExp; key: string }[] = [
   { ru: /(?<![а-яё])уров(?:ень|ня|ню|нем|не|ни|ней)(?![а-яё])/i, en: /\blevels?\b/i, key: 'level' },
   { ru: /(?<![а-яё])ранг(?:а|у|ом|и|ов|ам)?(?![а-яё])/i, en: /\branks?\b/i, key: 'rank' },
   { ru: /разби/i, en: /\bshatter/i, key: 'shatter' },
+  { ru: /(?<![а-яё])маст(?:ь|и|ью|ей|ям|ями|ях)(?![а-яё])/i, en: /\bsuits?\b/i, key: 'suit' },
+  // Масти — с заглавной: строчные «звёзды» — это звёзды неба, не масть
+  { ru: /(?<![а-яё])Солнц(?:е|а|у|ем)(?![а-яё])/, en: /\bSuns?\b/, key: 'sun' },
+  { ru: /(?<![а-яё])Лун(?:а|ы|е|у|ой)(?![а-яё])/, en: /\bMoons?\b/, key: 'moon' },
+  { ru: /(?<![а-яё])Звезд(?:а|ы|е|у|ой)(?![а-яё])/, en: /\bStars?\b(?! (?:[Cc]harts?|Atlas|Catalog|[Pp]acks?))/, key: 'star' },
+  { ru: /(?<![а-яё])Комет(?:а|ы|е|у|ой)(?![а-яё])/, en: /\bComets?\b/, key: 'comet' },
 ];
 
 function texts(v: unknown): string[] {
@@ -76,5 +82,14 @@ describe('реестр ключевых слов (KW.4)', () => {
     expect(keywordKeys('Множитель цепи +1: крест даёт ×3')).toContain('cross');
     expect(keywordKeys('Each myth: +2 multiplier')).toContain('myth');
     expect(keywordKeys('Interest cap is 5 gold higher')).toContain('interest');
+  });
+
+  it('масти объясняются, а звёзды неба и Звёздные карты — нет (FB.1)', () => {
+    expect(keywordKeys('До 3 карт становятся Кометой')).toContain('comet');
+    expect(keywordKeys('Карты Солнца 7–9: +6 к множителю. Другие Солнца: +3')).toContain('sun');
+    expect(keywordKeys('Карта считается любой мастью.')).toContain('suit');
+    expect(keywordKeys('Небо подсказывает миф, когда ему не хватает двух звёзд')).not.toContain('star');
+    expect(keywordKeys('+2 to multiplier per Star Chart level')).not.toContain('star');
+    expect(keywordKeys('Up to 3 cards become Comet')).toContain('comet');
   });
 });
