@@ -273,6 +273,8 @@ body {
 .tooltip::after { content: ''; position: absolute; left: var(--nose, 50%); width: 12px; height: 12px; margin-left: -6px; transform: rotate(45deg); background: #120f33; }
 .tooltip.above::after { bottom: -6px; box-shadow: inset -1px -1px 0 rgb(var(--gold-rgb) / 0.3); }
 .tooltip.below::after { top: -6px; box-shadow: inset 1px 1px 0 rgb(var(--gold-rgb) / 0.3); }
+/* Замена Знамения (FB.5): кнопка «Отдать за …» в табличке своего Знамения — по ширине текста */
+.tooltip .tip-give { display: flex; margin: 10px auto 0; width: auto; }
 .tip-title { font: 400 20px/1.1 var(--font-display); margin-bottom: 2px; }
 .tip-title.boss { color: #ff9cb0; }
 .tip-rarity { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }

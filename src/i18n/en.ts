@@ -302,6 +302,7 @@ export const en: Dict = {
     replacePick: 'No free slots: pick an Omen above, then one of yours to replace',
     replaceHint: 'Tap the Omen you give up for “{name}”',
     replaceCancel: 'Cancel',
+    give: 'Trade',
     noGoldShort: 'Too little gold',
     ownedHint: 'They fire left to right: put the ones that multiply on the right. Drag to change the order.',
     ownedTap: 'Tap an omen to sell it.',
