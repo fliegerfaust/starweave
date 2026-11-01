@@ -1,9 +1,9 @@
 import { comboFeatures } from '../combos';
 import { activeCells, buildLines } from '../grid';
-import { nearMyths } from '../myths';
+import { mythsOn, nearMyths } from '../myths';
 import { mythDef } from '../content/myths';
 import { burnCard, placeCard, startNight } from '../night';
-import { buyItem, buyOmen, fuseOmens, moveOmen, omenSlots, resonanceAt, sellOmen, sellPrice } from '../shop';
+import { buyItem, buyOmen, fuseOmens, moveOmen, omenSlots, resonanceApart, resonanceAt, sellOmen, sellPrice } from '../shop';
 import { resonanceOf } from '../content/resonance';
 import { omenDef } from '../content/omens';
 import { choose, currentChoice, skipChoice } from '../choices';
@@ -92,7 +92,7 @@ function evaluate(run: RunState, handIndex: number, cell: number): { value: numb
   let value = ignite && ignite.t === 'ignite' ? ignite.score.total : 0;
   if (sim.night && sim.phase === 'night') {
     value += positionalValue(sim.night, cell) * (1 + run.ante * 0.5);
-    if (run.unlocks.myths && !run.tutorial) value += mythValue(sim.night) * (1 + run.ante * 0.5);
+    if (mythsOn(run)) value += mythValue(sim.night) * (1 + run.ante * 0.5);
   }
   return { value, sim };
 }
@@ -261,11 +261,9 @@ export function fuseGreedy(run: RunState): void {
     let at = resonanceAt(run);
     if (at < 0) {
       // Пара есть, но не рядом: вторую половину — к первой
-      const ids = run.omens.map((o) => o.id);
-      const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
-      if (i < 0) return;
-      const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
-      moveOmen(run, j, i + 1);
+      const apart = resonanceApart(run);
+      if (!apart) return;
+      moveOmen(run, apart[1], apart[0] + 1);
       at = resonanceAt(run);
       if (at < 0) return;
     }

@@ -95,6 +95,16 @@ describe('сохранение забега (TD.1)', () => {
     expect(deserializeRun(JSON.stringify(broken))).toBeNull();
   });
 
+  it('забег до мифов и Резонанса (0.7.8) доигрывается без них (MY.6)', () => {
+    const run = newLoggedRun({ seed: 5, unlocks: LINEAR });
+    const raw = JSON.parse(serializeRun(run));
+    delete raw.unlocks.myths;
+    delete raw.unlocks.resonance;
+    const back = deserializeRun(JSON.stringify(raw))!;
+    expect(back.unlocks.myths).toBe(false);
+    expect(back.unlocks.resonance).toBe(false);
+  });
+
   it('сохранение от более новой сборки не открывается и не роняет игру', () => {
     const run = JSON.parse(fixture('save-0.5.9-shop.json'));
     expect(deserializeRun(JSON.stringify({ ...run, version: SAVE_VERSION + 1 }))).toBeNull();

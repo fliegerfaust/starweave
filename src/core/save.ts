@@ -205,6 +205,9 @@ export function deserializeRun(text: string | null): RunState | null {
     if (isObj(run.unlocks)) run.unlocks.trophies ??= false;
     // Лестница по главам (LD.1): забег до неё доигрывается по старым правилам
     if (isObj(run.unlocks)) run.unlocks.ladder ??= false;
+    // Мифы и Резонанс (MY, RS) — тоже мягко: забег до них играет без них
+    if (isObj(run.unlocks)) run.unlocks.myths ??= false;
+    if (isObj(run.unlocks)) run.unlocks.resonance ??= false;
     // Битый журнал не должен стоить игроку забега: забег открываем без журнала
     if (run.log !== undefined && !isLog(run.log)) delete run.log;
     // Снимок находок (CL.3) — только для строки итогов: битый просто не показываем
