@@ -5,6 +5,7 @@ import type { Card } from '../src/core/types';
 import { placeCard, previewTurn } from '../src/core/night';
 import { emptyProfile, sanitizeProfile } from '../src/meta/profile';
 import { generateShop } from '../src/core/shop';
+import { omenDef } from '../src/core/content/omens';
 import { recordEvent } from '../src/meta/progress';
 import { c, cards, nightRun, setGrid, setHand } from './helpers';
 
@@ -185,6 +186,23 @@ describe('Знамения про мифы (MY.5)', () => {
     setGrid(run, { 0: '2m', 5: '5m', 2: '7m' });
     setHand(run, '9m 1s 1c');
     expect(myth(run)).toMatchObject({ mult: 5 });
+  });
+
+  it('золото из onMythScored приходит в итог хода (MY.6)', () => {
+    // Знамения с золотом за миф пока нет: на время теста Звездочёт платит 3 золота
+    const def = omenDef('stargazer');
+    const hook = def.onMythScored!;
+    def.onMythScored = (ctx) => ctx.gold(3);
+    try {
+      const run = ready(['stargazer']);
+      const gold = run.gold;
+      const e = placeCard(run, 0, 7).find((x) => x.t === 'ignite');
+      expect(e?.t === 'ignite' && e.score.gold).toBe(3);
+      expect(e?.t === 'ignite' && 'gold' in e.score.myths[0]!).toBe(false);
+      expect(run.gold).toBe(gold + 3);
+    } finally {
+      def.onMythScored = hook;
+    }
   });
 
   it('Звездочёт: +30 света мифу и подсказка за две звезды', () => {

@@ -105,7 +105,7 @@ function scoreLine(
  * Миф как формация (MY.2): база — свет за каждую звезду, множитель — множитель мифа, к ним
  * ранги карт. Карты под пятном Затмения света не дают, как и в линии.
  */
-function scoreMyth(run: RunState, night: NightState, found: MythPlacement, effects: ActiveEffect[], rng: RngState): MythScore {
+function scoreMyth(run: RunState, night: NightState, found: MythPlacement, effects: ActiveEffect[], rng: RngState): MythScore & { gold: number } {
   const def = mythDef(found.myth);
   const tally = new Tally();
   tally.push({ kind: 'myth', myth: def.id }, { light: MYTH_STAR_LIGHT * found.cells.length, mult: def.x });
@@ -119,7 +119,7 @@ function scoreMyth(run: RunState, night: NightState, found: MythPlacement, effec
   }
   const light = Math.max(0, tally.light);
   const mult = Math.max(0, tally.mult);
-  return { myth: def.id, cells: found.cells, steps: tally.steps, light, mult, total: Math.floor(light * mult) };
+  return { myth: def.id, cells: found.cells, steps: tally.steps, light, mult, total: Math.floor(light * mult), gold: tally.gold };
 }
 
 function withCell(source: EffectSource, cell: number): EffectSource {
@@ -140,7 +140,8 @@ export function scorePlacement(run: RunState, night: NightState, lines: Line[], 
 
   const steps: ScoreStep[] = [];
   const sum = scored.reduce((s, l) => s + l.total, 0) + myths.reduce((s, m) => s + m.total, 0);
-  let gold = scored.reduce((s, l) => s + l.gold, 0);
+  // Золото мифа (ctx.gold в onMythScored) — в итог хода, как у линий (MY.6)
+  let gold = scored.reduce((s, l) => s + l.gold, 0) + myths.reduce((s, m) => s + m.gold, 0);
   let xMult = 1;
 
   const chainMult = lines.length >= 2 ? lines.length + night.rules.chainBonus : 1;
@@ -174,7 +175,7 @@ export function scorePlacement(run: RunState, night: NightState, lines: Line[], 
 
   return {
     lines: scored.map(({ gold: _gold, ...rest }) => rest),
-    myths,
+    myths: myths.map(({ gold: _gold, ...rest }) => rest),
     steps,
     chainMult,
     xMult,

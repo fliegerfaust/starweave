@@ -198,6 +198,18 @@ export function resonanceAt(run: RunState): number {
   return run.omens.findIndex((o, i) => i + 1 < run.omens.length && !!resonanceOf(o.id, run.omens[i + 1]!.id));
 }
 
+/**
+ * Пара Резонанса есть, но врозь: места `[i, j]` первой такой пары (`j > i + 1`), иначе `null`.
+ * Бот подвигает вторую к первой, лавка подсказывает поставить рядом.
+ */
+export function resonanceApart(run: RunState): [number, number] | null {
+  if (!run.unlocks.resonance) return null;
+  const ids = run.omens.map((o) => o.id);
+  const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
+  if (i < 0) return null;
+  return [i, ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other))];
+}
+
 /** Сливает пару с места `index` и соседнего в легендарное; второе место освобождается. */
 export function fuseOmens(run: RunState, index: number): void {
   requireShop(run);
