@@ -72,7 +72,8 @@ export interface LineInfo {
   cards: Card[];
 }
 
-export interface CardCtx extends BaseCtx, Contrib, LineInfo {
+/** Карта засчитывается — в линии или в мифе (MY.6): правило карты не знает, где она вспыхнула. */
+export interface CardCtx extends BaseCtx, Contrib {
   card: Card;
   cell: number;
 }
