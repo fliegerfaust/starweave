@@ -81,7 +81,13 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
   const paintStrip = () => {
     if (!strip) return;
     hideTooltip();
-    rows.forEach((r, i) => r.classList.toggle('giving', i === picked));
+    rows.forEach((r, i) => {
+      r.classList.toggle('giving', i === picked);
+      // Выбранная строка снимает выбор той же кнопкой — и так и называется (FB.6)
+      const [replace, cancel] = r.querySelectorAll('.take .swap > span');
+      replace?.classList.toggle('off', i === picked);
+      cancel?.classList.toggle('off', i !== picked);
+    });
     strip.classList.toggle('on', picked !== null);
     // Обе подсказки в одной ячейке, видна одна: высота строки не меняется при выборе (ничего не скачет)
     strip.replaceChildren(
@@ -95,12 +101,16 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
           if (picked !== null) handlers.take(picked, choice.options[picked]!, close, o.uid);
         };
         // Своё Знамение можно рассмотреть до замены (FB.5): мышью — наведением, пальцем — касанием.
-        // Мышью нажатие отдаёт сразу, на телефоне отдаёт кнопка в табличке: первое касание — посмотреть
+        // Мышью и с клавиатуры (Enter даёт клик с detail 0) нажатие отдаёт сразу, на телефоне отдаёт
+        // кнопка в табличке: первое касание — посмотреть (FB.6)
         const slot = h('button.omen-slot', {
           type: 'button',
           ariaLabel: named('omen', o.id).name,
-          onclick: () => {
-            if (picked !== null && matchMedia('(hover: hover) and (pointer: fine)').matches) give();
+          onclick: (e: MouseEvent) => {
+            if (picked === null || !(e.detail === 0 || matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
+            // Знамение уже отдано: табличке attachTooltip открываться незачем
+            e.stopImmediatePropagation();
+            give();
           },
         }, canvasImg(omenSigil(o.id, 44, dpr()), 44));
         attachTooltip(slot, () => {
@@ -130,7 +140,8 @@ export function showChoice(app: App, run: RunState, handlers: ChoiceHandlers): M
       h('div.ware-icon', null, v.icon),
       h('div.ware-name', null, [v.name, v.level ? h('span.ware-level', null, v.level) : null]),
       h('div.ware-bonus', null, bonusLine(v.bonus)),
-      button(full ? t('shop.replace') : t('shop.take'), take, { className: `take${full ? ' replace' : ''}` }),
+      // Оба слова в одной ячейке, видно одно: ширина кнопки не меняется при выборе (ничего не скачет)
+      button(full ? h('span.swap', null, [h('span', null, t('shop.replace')), h('span.off', null, t('shop.replaceCancel'))]) : t('shop.take'), take, { className: `take${full ? ' replace' : ''}` }),
     ]);
   });
   paintStrip();

@@ -6,7 +6,7 @@ import { ritualDef } from '@/core/content/rituals';
 import { misorderedOmens } from '@/core/omen-order';
 import { currentChoice, type Choice } from '@/core/choices';
 import type { Command } from '@/core/commands';
-import { banishServicePrice, omenSlots, resonanceAt, ritualMaxTargets, sellPrice } from '@/core/shop';
+import { banishServicePrice, omenSlots, resonanceApart, resonanceAt, ritualMaxTargets, sellPrice } from '@/core/shop';
 import { resonanceOf } from '@/core/content/resonance';
 import type { Card, RunState, ShopItem } from '@/core/types';
 import type { App, Screen } from '@/game/app';
@@ -288,15 +288,13 @@ export class ShopScreen implements Screen {
       });
       const text = t('resonance.ready', { a: named('omen', a.id).name, b: named('omen', b.id).name, c: named('omen', res.id).name });
       return h('div.res-line', null, [
-        h('span', null, text),
+        h('span', null, rich(text)),
         button(t('resonance.fuse'), () => this.fuse(at), { className: 'res-go' }),
       ]);
     }
-    const ids = run.omens.map((o) => o.id);
-    const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
-    if (i < 0) return null;
-    const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
-    return h('p.hint.res-hint', null, t('resonance.apart', { a: named('omen', ids[i]!).name, b: named('omen', ids[j]!).name }));
+    const apart = resonanceApart(run);
+    if (!apart) return null;
+    return h('p.hint.res-hint', null, rich(t('resonance.apart', { a: named('omen', run.omens[apart[0]]!.id).name, b: named('omen', run.omens[apart[1]]!.id).name })));
   }
 
   /** Слияние пары с места `at`: сцена Резонанса, слияние в забеге, когда медали встретились. */

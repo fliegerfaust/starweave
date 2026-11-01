@@ -9,7 +9,7 @@ import { shuffle, weightedPick } from './rng';
 import { currentNode, isWonder, planNight } from './route';
 import { activeEffects, type ActiveEffect } from './effect-sources';
 import { scorePlacement } from './scoring';
-import { completedMyths, type MythPlacement } from './myths';
+import { completedMyths, mythsOn, type MythPlacement } from './myths';
 import { COMBO_IDS, type Card, type GameEvent, type Line, type NightState, type PlacementScore, type RunState } from './types';
 
 import { RuleError } from './errors';
@@ -184,7 +184,7 @@ const placed: Stage = (turn) => {
 const formations: Stage = (turn) => {
   const { run, night, cell } = turn;
   turn.lines = ignitedLines(buildLines(night.rules), night.grid, night.sealed, cell);
-  turn.myths = run.unlocks.myths && !run.tutorial ? completedMyths(night.grid, night.sealed, cell, night.rules.gridSize) : [];
+  turn.myths = mythsOn(run) ? completedMyths(night.grid, night.sealed, cell, night.rules.gridSize) : [];
 };
 
 /** Подсчёт: свет, золото и счётчики Знамений; без вспышки — тихий ход. */

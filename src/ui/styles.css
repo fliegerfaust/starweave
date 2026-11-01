@@ -1196,6 +1196,11 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
 .give-strip .omen-slot:disabled { cursor: default; }
 .ts-give .omen-slot:disabled { cursor: default; }
 @media (prefers-reduced-motion: reduce) { .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.5); } }
+/* То же по настройке «Меньше тряски»: пульс там проигрывается раз, а цель «отдай одно» должна остаться (FB.6) */
+html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.5); }
+.take .swap { display: inline-grid; }
+.take .swap > span { grid-area: 1 / 1; text-align: center; }
+.take .swap > .off { visibility: hidden; }
 
 /* Пакет — сцена «Выбери одно» */
 .pack-scene .ware-list { width: 100%; }
