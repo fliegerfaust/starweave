@@ -38,6 +38,55 @@ function isDebuffed(card: Card, night: NightState): boolean {
   return night.rules.debuffSuit !== null && card.suit === night.rules.debuffSuit;
 }
 
+/**
+ * Карты вспыхнувшей фигуры — линии или мифа (MY.6), одинаково: ранг в свет, черта карты (глиф,
+ * небесное тело), повторы и Знамения «на каждую карту». Карты под пятном Затмения молчат.
+ */
+function scoreCards(
+  run: RunState,
+  night: NightState,
+  cells: readonly number[],
+  cards: readonly Card[],
+  effects: ActiveEffect[],
+  tally: Tally,
+  rng: RngState,
+  shattered: Set<number>,
+  rolled: Set<number>,
+): void {
+  cells.forEach((cell, i) => {
+    const card = cards[i] as Card;
+    if (isDebuffed(card, night)) return;
+    const cardSource: StepSource = { kind: 'card', cell, cardId: card.id };
+    const traitSource = (): StepSource =>
+      card.body ? { kind: 'body', cell, cardId: card.id, body: card.body } : { kind: 'glyph', cell, cardId: card.id, glyph: card.glyph! };
+    const cardCtx = (fx: ActiveEffect): CardCtx => ({
+      run,
+      night,
+      rules: night.rules,
+      rng,
+      data: fx.data,
+      ...tally.contrib(withCell(fx.source, cell)),
+      card,
+      cell,
+    });
+
+    const trait = traitOf(card);
+    let times = 1 + (trait?.retriggers ?? 0);
+    for (const fx of effects) times += fx.hooks.retriggers?.(cardCtx(fx)) ?? 0;
+
+    for (let t = 0; t < times; t++) {
+      tally.push(cardSource, { light: card.rank });
+      if (trait?.onScored) trait.onScored({ ...tally.contrib(traitSource()), card, cell });
+      for (const fx of effects) fx.hooks.onCardScored?.(cardCtx(fx));
+    }
+    // Один бросок на карту за ход, даже если она в двух линиях креста или ещё и в мифе
+    if (trait?.breaks && !rolled.has(card.id)) {
+      rolled.add(card.id);
+      if (trait.breaks(rng)) shattered.add(card.id);
+    }
+  });
+}
+
 function scoreLine(
   run: RunState,
   night: NightState,
@@ -62,35 +111,7 @@ function scoreLine(
 
   const baseCtx = (fx: ActiveEffect): BaseCtx => ({ run, night, rules: night.rules, rng, data: fx.data });
 
-  cells.forEach((cell, i) => {
-    const card = cards[i] as Card;
-    if (isDebuffed(card, night)) return;
-    const cardSource: StepSource = { kind: 'card', cell, cardId: card.id };
-    const traitSource = (): StepSource =>
-      card.body ? { kind: 'body', cell, cardId: card.id, body: card.body } : { kind: 'glyph', cell, cardId: card.id, glyph: card.glyph! };
-    const cardCtx = (fx: ActiveEffect): CardCtx => ({
-      ...baseCtx(fx),
-      ...info,
-      ...tally.contrib(withCell(fx.source, cell)),
-      card,
-      cell,
-    });
-
-    const trait = traitOf(card);
-    let times = 1 + (trait?.retriggers ?? 0);
-    for (const fx of effects) times += fx.hooks.retriggers?.(cardCtx(fx)) ?? 0;
-
-    for (let t = 0; t < times; t++) {
-      tally.push(cardSource, { light: card.rank });
-      if (trait?.onScored) trait.onScored({ ...tally.contrib(traitSource()), card, cell });
-      for (const fx of effects) fx.hooks.onCardScored?.(cardCtx(fx));
-    }
-    // Один бросок на карту за ход, даже если она в двух линиях креста
-    if (trait?.breaks && !rolled.has(card.id)) {
-      rolled.add(card.id);
-      if (trait.breaks(rng)) shattered.add(card.id);
-    }
-  });
+  scoreCards(run, night, cells, cards, effects, tally, rng, shattered, rolled);
 
   for (const fx of effects) {
     fx.hooks.onLineScored?.({ ...baseCtx(fx), ...info, ...tally.contrib(fx.source) });
@@ -103,17 +124,23 @@ function scoreLine(
 
 /**
  * Миф как формация (MY.2): база — свет за каждую звезду, множитель — множитель мифа, к ним
- * ранги карт. Карты под пятном Затмения света не дают, как и в линии.
+ * карты — как в линии (MY.6): ранги, глифы, тела, Знамения «на каждую карту». Карты под пятном
+ * Затмения молчат, как и в линии. Пульсар и цепь — про линии, миф их не берёт.
  */
-function scoreMyth(run: RunState, night: NightState, found: MythPlacement, effects: ActiveEffect[], rng: RngState): MythScore & { gold: number } {
+function scoreMyth(
+  run: RunState,
+  night: NightState,
+  found: MythPlacement,
+  effects: ActiveEffect[],
+  rng: RngState,
+  shattered: Set<number>,
+  rolled: Set<number>,
+): MythScore & { gold: number } {
   const def = mythDef(found.myth);
   const tally = new Tally();
   tally.push({ kind: 'myth', myth: def.id }, { light: MYTH_STAR_LIGHT * found.cells.length, mult: def.x });
-  for (const cell of found.cells) {
-    const card = night.grid[cell] as Card;
-    if (!isDebuffed(card, night)) tally.push({ kind: 'card', cell, cardId: card.id }, { light: card.rank });
-  }
   const cards = found.cells.map((cell) => night.grid[cell] as Card);
+  scoreCards(run, night, found.cells, cards, effects, tally, rng, shattered, rolled);
   for (const fx of effects) {
     fx.hooks.onMythScored?.({ run, night, rules: night.rules, rng, data: fx.data, myth: def.id, cells: found.cells, cards, ...tally.contrib(fx.source) });
   }
@@ -136,7 +163,7 @@ export function scorePlacement(run: RunState, night: NightState, lines: Line[], 
   const shattered = new Set<number>();
   const rolled = new Set<number>();
   const scored = lines.map((line) => scoreLine(run, night, line, effects, rng, shattered, rolled));
-  const myths = found.map((m) => scoreMyth(run, night, m, effects, rng));
+  const myths = found.map((m) => scoreMyth(run, night, m, effects, rng, shattered, rolled));
 
   const steps: ScoreStep[] = [];
   const sum = scored.reduce((s, l) => s + l.total, 0) + myths.reduce((s, m) => s + m.total, 0);

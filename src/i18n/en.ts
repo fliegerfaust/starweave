@@ -661,7 +661,7 @@ export const en: Dict = {
       cross: ['Cross', 'One move ignites two lines at once: the move total is multiplied by 2. Look for the cell where two almost full lines meet.'],
       eclipse: ['Eclipse', 'A special night of the chapter with a rule against you: rows do not ignite, for example. Beating an Eclipse brings a trophy.'],
       body: ['Celestial body', 'A card with its own placement rule: Polaris, Meteor, Pulsar and others. Comes from the Night gift. Pick such a card in your hand and its rule shows under the sky.'],
-      myth: ['Myth', 'A star figure hidden in the sky with its own condition: one suit, ranks in order and so on. Fill it with cards and it flares on its own for big points. All myths are in the Collection.'],
+      myth: ['Myth', 'A star figure hidden in the sky with its own condition: one suit, ranks in order and so on. Fill it with cards and it flares on its own for big points. Cards in a myth work as in a line, glyphs and per-card Omens included. All myths are in the Collection.'],
       interest: ['Interest', 'A reward for saving: at the end of a night +1 [gold|gold|gold] for every 5 coins in your pocket, usually up to +5. Miser and Treasury raise the cap.'],
       suit: ['Suit', 'The sign on a card: [Sun|sun], [Moon|moon], [Star|star] or [Comet|comet]. Cards of one suit in a line make pricier constellations, and Omens and Eclipses often affect just one suit.'],
       sun: ['Sun', 'One of the four card [suits|suit]. The Sun Cult and High Noon Sun Omens play to it.'],
