@@ -288,7 +288,7 @@ export class ShopScreen implements Screen {
       });
       const text = t('resonance.ready', { a: named('omen', a.id).name, b: named('omen', b.id).name, c: named('omen', res.id).name });
       return h('div.res-line', null, [
-        h('span', null, text),
+        h('span', null, rich(text)),
         button(t('resonance.fuse'), () => this.fuse(at), { className: 'res-go' }),
       ]);
     }
@@ -296,7 +296,7 @@ export class ShopScreen implements Screen {
     const i = ids.findIndex((id, k) => ids.some((other, j) => j > k + 1 && !!resonanceOf(id, other)));
     if (i < 0) return null;
     const j = ids.findIndex((other, k) => k > i + 1 && !!resonanceOf(ids[i]!, other));
-    return h('p.hint.res-hint', null, t('resonance.apart', { a: named('omen', ids[i]!).name, b: named('omen', ids[j]!).name }));
+    return h('p.hint.res-hint', null, rich(t('resonance.apart', { a: named('omen', ids[i]!).name, b: named('omen', ids[j]!).name })));
   }
 
   /** Слияние пары с места `at`: сцена Резонанса, слияние в забеге, когда медали встретились. */

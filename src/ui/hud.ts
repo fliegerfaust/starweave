@@ -26,7 +26,8 @@ export function omenTooltip(omen: { id: string; data?: Record<string, number> })
   const kindDesc = dict().omenKind[def.kind][1];
   return h('div.tip-body', null, [
     h('div.tip-title', null, name),
-    h(`div.tip-rarity.r${def.rarity}`, null, t(`rarity.${def.rarity}`)),
+    // Слитое Резонансом — не «Редкое», а легендарное (KW.5)
+    h(`div.tip-rarity.r${def.rarity}`, null, t(`rarity.${def.pair ? 'legend' : def.rarity}`)),
     h('div.tip-desc', null, rich(desc)),
     h('div.tip-kind', null, [omenBadge(def.kind), h('span', null, kindDesc)]),
   ]);
