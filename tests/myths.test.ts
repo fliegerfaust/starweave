@@ -188,6 +188,26 @@ describe('Знамения про мифы (MY.5)', () => {
     expect(myth(run)).toMatchObject({ mult: 5 });
   });
 
+  it('карты в мифе работают как в линии: Знамения на карту и глифы (MY.6)', () => {
+    // Лунный прилив: +25 света каждой Луне — 39 + 100 = 139, ×2 Кассиопеи
+    expect(myth(ready(['moonTide']))).toMatchObject({ light: 139, mult: 2, total: 278 });
+    // Позолота на карте мифа платит золото, Пламя даёт +4 к множителю
+    const run = ready([]);
+    setGrid(run, { 0: '2m*gilded', 5: '5m*blazing', 2: '7m' });
+    const gold = run.gold;
+    const e = placeCard(run, 0, 7).find((x) => x.t === 'ignite');
+    expect(e?.t === 'ignite' && e.score.myths[0]).toMatchObject({ light: 39, mult: 6, total: 234 });
+    expect(e?.t === 'ignite' && e.score.gold).toBe(2);
+    expect(run.gold).toBe(gold + 2);
+  });
+
+  it('Эхо в мифе засчитывает карту дважды', () => {
+    const run = ready([]);
+    setGrid(run, { 0: '2m', 5: '5m*echo', 2: '7m' });
+    // ранг 5 ещё раз: 39 + 5 = 44, ×2
+    expect(myth(run)).toMatchObject({ light: 44, total: 88 });
+  });
+
   it('золото из onMythScored приходит в итог хода (MY.6)', () => {
     // Знамения с золотом за миф пока нет: на время теста Звездочёт платит 3 золота
     const def = omenDef('stargazer');
