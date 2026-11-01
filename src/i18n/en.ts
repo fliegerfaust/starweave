@@ -300,7 +300,7 @@ export const en: Dict = {
     replace: 'Replace',
     replaceTitle: 'What to give up?',
     replacePick: 'No free slots: pick an Omen above, then one of yours to replace',
-    replaceHint: 'Tap the Omen you give up for “{name}”',
+    replaceHint: 'Pick the Omen you give up for “{name}”',
     replaceCancel: 'Cancel',
     give: 'Trade',
     noGoldShort: 'Too little gold',

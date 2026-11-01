@@ -100,6 +100,29 @@ test('Пакет Знамений: при полном ряде «Заменит
   expect(after.ids[0]).toBe('moonTide');
   expect(after.ids.slice(1)).toEqual(before.ids.slice(1));
   expect(after.gold).toBeGreaterThan(before.gold);
+  // FB.6: отданное Знамение не оставляет висящую табличку
+  await expect(page.locator('.tooltip')).toHaveCount(0);
+});
+
+test('Пакет Знамений: «Отмена» той же кнопкой, отдать с клавиатуры (FB.6)', async ({ page }) => {
+  await open(page, 'pack');
+  const before = await run(page);
+  const take = page.locator('.pack-scene .btn.take').nth(1);
+  await take.click();
+  await expect(take.locator('.swap > span:not(.off)')).toHaveText(/Отмена|Cancel/);
+  // Повторное нажатие снимает выбор, кнопка снова «Заменить»
+  await take.click();
+  await expect(page.locator('.give-strip.on')).toHaveCount(0);
+  await expect(take.locator('.swap > span:not(.off)')).toHaveText(/Заменить|Replace/);
+  // С клавиатуры: Enter на своём Знамении отдаёт его и на телефоне, и на ПК
+  await take.click();
+  await page.locator('.give-strip .omen-slot').nth(0).focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(500);
+  const after = await run(page);
+  expect(after.ids[0]).toBe('moonTide');
+  expect(after.gold).toBeGreaterThan(before.gold);
+  await expect(page.locator('.tooltip')).toHaveCount(0);
 });
 
 test('Трофей Затмения: Знамение берётся заменой, кнопка ждёт выбора своего', async ({ page }) => {

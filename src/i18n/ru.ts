@@ -305,7 +305,7 @@ export const ru = {
     replace: 'Заменить',
     replaceTitle: 'Что отдать?',
     replacePick: 'Мест нет: выбери Знамение выше, затем своё на замену',
-    replaceHint: 'Коснись Знамения, которое отдашь за «{name}»',
+    replaceHint: 'Выбери своё Знамение, которое отдашь за «{name}»',
     replaceCancel: 'Отмена',
     give: 'Отдать',
     noGoldShort: 'Мало золота',
