@@ -2,7 +2,7 @@ import { roundRect } from '@/art/glyphs';
 import { SUIT_COLORS, rgba } from '@/art/palette';
 import { mythDef, mythEdges } from '@/core/content/myths';
 import { buildLines, closingLines } from '@/core/grid';
-import { nearMyths } from '@/core/myths';
+import { mythsOn, nearMyths } from '@/core/myths';
 import { mythHintLayer, type MythHintState } from './figures';
 import { t } from '@/i18n';
 import { previewPlacement, type PlacementPreview } from './preview';
@@ -46,7 +46,7 @@ export class Forecast {
   /** Миф, который закроет карта из руки: фигура без одной звезды. В «Тумане» ранги скрыты — подсказки нет. */
   private refreshMythHint(): void {
     const { run, night: n } = this.scene;
-    const near = run.unlocks.myths && !run.tutorial && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand, n.rules.mythHint ?? 1)[0] : undefined;
+    const near = mythsOn(run) && !n.rules.hideRanks && n.result === 'playing' && !this.off ? nearMyths(n.grid, n.sealed, n.rules.gridSize, n.hand, n.rules.mythHint ?? 1)[0] : undefined;
     if (this.mythHintEntity === null || !this.scene.world.isAlive(this.mythHintEntity)) {
       this.mythHintEntity = mythHintLayer(this.scene.world, this.mythHint, () => this.scene.layout);
     }

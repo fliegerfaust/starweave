@@ -1,6 +1,6 @@
 import { MYTHS, type MythCond, type MythDef } from './content/myths';
 import { cardSuits } from './deck';
-import type { Card } from './types';
+import type { Card, RunState } from './types';
 import { SUITS } from './types';
 
 /** Фигура мифа на небе: клетки в порядке фигуры. */
@@ -76,6 +76,11 @@ const COND: Record<MythCond, (cards: readonly Card[]) => boolean> = {
   same: (cards) => cards.every((c) => c.rank === cards[0]!.rank),
   any: () => true,
 };
+
+/** Мифы в этом забеге: ступень открыта, и это не обучение. Ход, бот и подсказка неба спрашивают одно. */
+export function mythsOn(run: Pick<RunState, 'unlocks' | 'tutorial'>): boolean {
+  return run.unlocks.myths && !run.tutorial;
+}
 
 /** Карты выполняют условие мифа (в порядке фигуры). */
 export function mythHolds(def: MythDef, cards: readonly Card[]): boolean {
