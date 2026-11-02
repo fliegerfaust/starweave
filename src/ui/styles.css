@@ -2230,6 +2230,13 @@ body.landscape .card-info.at-card::after { content: ''; position: absolute; righ
 .tut-bubble.on { display: flex; flex-direction: column; justify-content: center; }
 .tut-text { font: 600 14.5px/1.4 var(--font-body); color: var(--ink); text-align: center; text-wrap: balance; }
 .tut-text b { color: #ffe6a8; }
+/* Действие в подсказке (GO.2): глаз цепляется за то, что сделать */
+:is(.tut-text, .coach-text) b.tut-act { color: var(--gold-hi); font-weight: 800; }
+/* Цель ночи светится, пока обучение называет её первой фразой (GO.1) */
+.hud-score-wrap.tut-goal { border-radius: 10px; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.55), 0 0 18px rgb(var(--gold-rgb) / 0.35); animation: tut-goal 1.6s ease-in-out infinite alternate; }
+@keyframes tut-goal { from { box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.35), 0 0 10px rgb(var(--gold-rgb) / 0.2); } }
+@media (prefers-reduced-motion: reduce) { .hud-score-wrap.tut-goal { animation: none; } }
+html.calm .hud-score-wrap.tut-goal { animation: none; }
 .tut-bubble.pop { animation: bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
