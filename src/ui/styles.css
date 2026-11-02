@@ -3634,6 +3634,22 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 .mentor-line { display: grid; gap: 2px; min-width: 0; }
 .mentor-name { font: 400 12px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
 .mentor-say :is(.tut-text, .coach-text) { text-align: left; text-wrap: pretty; }
+/* Узкий или невысокий телефон: медальон меньше, чтобы подсказка с Лебедем помещалась между небом
+   и рукой и не наезжала на цель (Galaxy 320 × 658, iPhone SE) */
+@media (max-width: 360px), (max-height: 700px) {
+  .mentor { width: 44px; height: 44px; }
+  .mentor canvas { width: 44px !important; height: 44px !important; }
+  .mentor-say { gap: 10px; }
+}
+/* Совсем узкий телефон (320 px): плашка «Нити» шире, медальон без имени, «Понятно» ниже —
+   иначе на ночи она выше шапки и закрывает небо */
+@media (max-width: 340px) {
+  .coach { width: calc(100vw - 16px); padding: 10px 12px 4px; }
+  .coach .mentor { width: 40px; height: 40px; }
+  .coach .mentor canvas { width: 40px !important; height: 40px !important; }
+  .coach .mentor-name { display: none; }
+  .coach .coach-ok { min-height: 34px; }
+}
 .coach:has(.mentor-say) { justify-items: stretch; }
 /* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
 .coach:has(.mentor-say) .coach-ok { justify-self: center; }
