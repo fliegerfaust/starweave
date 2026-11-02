@@ -12,6 +12,7 @@ import { icon } from '../icons';
 import { ChartLayout, layoutMode, type Placed } from '../map-layout';
 import { coach } from '../tutorial';
 import { attachTooltip, button } from '../widgets';
+import { runPathStrip, runPathVariant, showRunPrologue } from '../run-path';
 import { showDeck, showHelp, showRunMenu } from './common';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -71,7 +72,11 @@ export class MapScreen implements Screen {
     const title = run.endless
       ? h('div.map-plaque', null, t('night.endless'))
       : h('div.map-plaque', null, [t('map.chapter', { n: roman(ante) }), ' ', h('span.of', null, t('map.of', { total: roman(FINAL_ANTE) }))]);
-    const ticks = total
+    // GO.5, витрина: путь до рассвета вместо делений
+    const path8 = runPathVariant();
+    const ticks = total && path8
+      ? runPathStrip(ante, total)
+      : total
       ? h('div.map-ticks', { attrs: { 'aria-label': t('night.constellationOf', { n: ante, total }) } }, Array.from({ length: total }, (_, i) => h(`i${i < ante - 1 ? '.done' : i === ante - 1 ? '.now' : ''}`)))
       : null;
     const stake = run.stake
@@ -124,6 +129,15 @@ export class MapScreen implements Screen {
     this.resize.observe(path);
 
     if (!this.peek && currentNode(run).bossId) coach(this.app, 'boss');
+    // GO.5, витрина: зачем идём — один раз в первых забегах, на первой карте главы
+    const profile = this.app.profile;
+    if (!this.peek && path8 && total && !profile.tutorial.includes('runGoal')) {
+      if (path8 === 'a') coach(this.app, 'runGoal');
+      else {
+        profile.tutorial.push('runGoal');
+        showRunPrologue(ante, total, () => undefined);
+      }
+    }
   }
 
   private node(p: NightPlan, i: number, at: number, base: Rules): HTMLElement {

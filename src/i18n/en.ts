@@ -47,6 +47,12 @@ export const en: Dict = {
     } as Record<string, Record<string, string>>,
   },
   foe: { beat: 'Drive it back: {n} points' },
+  runPath: {
+    aria: 'Chapter {n} of {total}, each ends with an Eclipse, dawn at the end of the road',
+    title: 'The road to dawn',
+    say: 'Stargazer, *{total} chapters* until dawn. Each one ends with an Eclipse: *drive them all back* and the sky is yours.',
+    go: 'Set off',
+  },
   mentor: { name: 'Swan' },
   constellation: {
     ursaMajor: 'Ursa Major',
@@ -937,6 +943,7 @@ export const en: Dict = {
     burn: 'Bad card? *Drag it onto “Burn”*.',
     shop: 'The Observatory: *buy Omens* here, bonuses for the whole run.',
     boss: 'The third night of a chapter: an Eclipse with a special rule.',
+    runGoal: '*8 chapters* until dawn. Each one ends with an Eclipse: *drive them all back* and the sky is yours.',
     routes: 'New: a fork. *Choose the night*: a regular one or a Bright one, with a higher goal and an Omen as the reward.',
     gotIt: 'Got it',
   },

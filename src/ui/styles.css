@@ -307,7 +307,9 @@ body {
 }
 .coach.out, .coach-ring.out, .coach-thread.out { opacity: 0; transition: opacity 0.2s; }
 .coach-text { font: 500 14.5px/1.4 var(--font-body); color: var(--ink); text-wrap: pretty; }
-.coach-ok { pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
+.coach-ok { position: relative; pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
+/* Зона касания до 44 px при прежнем виде (замер детектора: 36–40 px) */
+.coach-ok::after { content: ''; position: absolute; inset: -5px 0; }
 .coach-ok:hover { background: rgb(var(--gold-rgb) / 0.08); }
 /* Цель — в дышащей золотой рамке; нить от плашки к цели */
 .coach-ring { position: fixed; z-index: 17; border-radius: 14px; pointer-events: none; opacity: 0; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.9), 0 0 22px rgb(var(--gold-rgb) / 0.55); transition: opacity 0.3s; }
@@ -1331,6 +1333,47 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
 .map-ticks i.now { width: 22px; background: var(--gold-hi); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.9); }
 .map-stake { display: flex; gap: 3px; color: var(--gold); }
 .map-stake .icon { width: 11px; height: 11px; fill: currentColor; stroke-width: 1; }
+/* Путь до рассвета (GO.5, витрина): восемь глав — Затмения-колечки на нити, в конце рассвет.
+   Пройденные — золотые, текущая — светится, впереди — жемчужные кольца Затмений */
+.map-run { position: relative; display: flex; align-items: center; gap: 9px; padding: 0 2px; }
+.map-run::before { content: ''; position: absolute; left: 6px; right: 10px; top: 50%; height: 1px; background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.6), rgb(232 228 244 / 0.25) 60%, rgb(var(--gold-rgb) / 0.5)); }
+/* Три разных знака, чтобы различались и на 8 px (Impeccable, критика 03.11): впереди — Затмение
+   (тёмное ядро в жемчужном ободке), пройдено — золото, сейчас — золотое кольцо с точкой, рассвет —
+   тёплый полудиск над латунной линией горизонта */
+.map-run i { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--night-0); box-shadow: inset 0 0 0 1.5px rgb(232 228 244 / 0.7); }
+.map-run i.done { background: var(--gold); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.6); }
+.map-run i.now { width: 14px; height: 14px; background: radial-gradient(circle, var(--gold-hi) 0 28%, var(--night-0) 32% 52%, transparent 54%); box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 10px rgb(var(--gold-rgb) / 0.8); }
+.map-run .dawn { position: relative; width: 18px; height: 9px; margin: 0 0 4px 2px; border-radius: 18px 18px 0 0; background: radial-gradient(circle at 50% 100%, #ffd9a0 0 45%, #ffb26b 70%, #e88a4a 100%); box-shadow: 0 -2px 10px rgb(255 178 107 / 0.6); }
+.map-run .dawn::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: -1px; height: 1px; background: rgb(var(--gold-rgb) / 0.7); }
+
+/* Пролог пути (GO.5, витрина): восемь звёзд-глав дугой загораются по очереди, в конце встаёт рассвет */
+.modal-panel.run-prologue { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.run-prologue-title { margin: 0; font: 400 24px/1.1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-hi); }
+.run-prologue-sky { width: 100%; max-width: 340px; }
+.run-arc { display: block; width: 100%; height: auto; overflow: visible; }
+.run-arc .trail { fill: none; stroke: rgb(var(--gold-rgb) / 0.35); stroke-width: 1.2; stroke-dasharray: 3 5; }
+.run-arc :is(.ch, .sun) { opacity: 0; animation: run-star 0.5s cubic-bezier(0.16, 1, 0.3, 1) var(--d) both; transform-box: fill-box; transform-origin: center; }
+.run-arc .ch.eclipse { fill: var(--night-0); stroke: rgb(232 228 244 / 0.75); stroke-width: 1.6; }
+.run-arc .ch.done { fill: var(--gold); }
+.run-arc .ch.now circle { fill: var(--night-0); stroke: var(--gold-hi); stroke-width: 2.4; filter: drop-shadow(0 0 6px rgb(246 194 91 / 0.9)); }
+.run-arc .ch.now .dot { fill: var(--gold-hi); stroke: none; }
+.run-arc .sun { animation-duration: 0.9s; }
+.run-arc .sun path { fill: #ffb26b; filter: drop-shadow(0 -3px 10px rgb(255 178 107 / 0.8)); }
+.run-arc .sun line { stroke: rgb(var(--gold-rgb) / 0.7); stroke-width: 1.2; }
+@keyframes run-star { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+.run-prologue-text { display: grid; gap: 12px; justify-items: center; width: 100%; }
+.run-prologue-say { width: 100%; text-align: left; }
+.run-prologue-acts .btn { min-height: 50px; padding-inline: 28px; }
+/* Невысокий ландшафт: дуга слева, реплика и «В путь» справа — кнопка не уходит за край */
+@media (orientation: landscape) and (max-height: 520px) {
+  .modal-panel.run-prologue { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; column-gap: 20px; max-width: min(760px, calc(100vw - 32px)); }
+  .run-prologue-title { grid-column: 1 / -1; }
+  .run-prologue-sky { max-width: 300px; }
+}
+/* Знак, летящий с дуги пролога в полосу шапки */
+.run-fold { position: fixed; z-index: 30; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; background: var(--gold-hi); box-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.9); }
+html.calm .run-arc :is(.ch, .sun) { animation: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .run-arc :is(.ch, .sun) { animation: none; opacity: 1; } }
 .map-top .gold-pill { height: 36px; padding: 0 13px 0 9px; color: var(--gold-hi); background: rgb(14 12 34 / 0.7); border: 0; box-shadow: inset 0 0 0 1px var(--brass); font-variant-numeric: tabular-nums; }
 
 /* Небо главы: звёзды-ночи, подписи, линия */

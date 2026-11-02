@@ -5,7 +5,7 @@ import { h } from './dom';
 import { withMentor } from './mentor';
 import { actionText } from './rich';
 
-export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes';
+export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes' | 'runGoal';
 
 const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
@@ -65,6 +65,7 @@ function targetOf(step: TutorialStep): Box | null {
     case 'shop': return box('.owned-omens');
     case 'boss': return box('.map-node.eclipse .map-star') ?? box('.map-node.eclipse');
     case 'routes': return unionBox('.sm-star.open');
+    case 'runGoal': return box('.map-run');
   }
 }
 
@@ -164,6 +165,9 @@ export function layoutCoach(): void {
     const low = step !== 'shop' && !!target && target.y + target.h / 2 > vh / 2;
     top = low ? (head ? head.y + head.h + 10 : safeInset('top') + 10) : (foot ? foot.y - h - 12 : vh - h - 16 - safeInset('bottom'));
     if (hit(top)) top = low ? (foot ? foot.y - h - 12 : vh - h - 16) : (head ? head.y + head.h + 10 : 10);
+    // Путь до рассвета — в шапке: плашка сразу под ней, без нити через всю карту; снизу она
+    // закрывала цель и ходы текущей ночи (критика Impeccable, 03.11)
+    if (step === 'runGoal' && head) top = head.y + head.h + 10;
     // Низкий экран (телефон в ландшафте): цель посередине по высоте, ни сверху, ни снизу
     // её не обойти — уводим плашку вбок, на сторону подальше от цели, на высоту цели
     if (target && hit(top)) {
