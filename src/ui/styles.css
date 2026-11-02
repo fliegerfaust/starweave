@@ -3209,8 +3209,9 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 .modal-panel.tut-done { text-align: center; display: grid; gap: 14px; justify-items: center; background: linear-gradient(180deg, #1d1852, #0d0b2a 80%); border: 0; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4), 0 30px 80px rgb(0 0 0 / 0.6); }
 .tut-done-title { margin: 0; font: 400 24px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe6a8; text-shadow: 0 0 24px rgb(var(--gold-rgb) / 0.4); text-wrap: balance; }
 .tut-done-sub { margin: -6px 0 0; font: 600 13.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
-.tut-chain { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: relative; padding-top: 4px; }
-.tut-chain::before { content: ''; position: absolute; left: 10%; right: 10%; top: 14px; height: 1.5px; background: linear-gradient(90deg, #ffe6a8, rgb(var(--gold-rgb) / 0.4)); }
+/* Колонок столько, сколько приёмов (--n): линия от первой звезды до последней, не дальше (GL.9) */
+.tut-chain { width: 100%; display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); position: relative; padding-top: 4px; }
+.tut-chain::before { content: ''; position: absolute; left: calc(50% / var(--n, 5)); right: calc(50% / var(--n, 5)); top: 14px; height: 1.5px; background: linear-gradient(90deg, #ffe6a8, rgb(var(--gold-rgb) / 0.4)); }
 .tut-chain span { position: relative; display: grid; justify-items: center; gap: 6px; font: 700 11px/1.2 var(--font-body); color: var(--ink-dim); }
 .tut-chain i { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, #ffe6a8 45%, rgb(var(--gold-rgb) / 0) 72%); box-shadow: 0 0 12px 3px rgb(var(--gold-rgb) / 0.5); animation: tut-light 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d); }
 @keyframes tut-light { from { transform: scale(0.3); opacity: 0; } }
