@@ -195,7 +195,7 @@ export class NightScreen implements Screen {
     for (const id of found.combos) {
       const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
       banners.push({ kind: 'combo', id, count });
-      track('combo_found', { combo: id, count, ante: this.run.ante });
+      track('combo_found', { combo: id, count, ante: this.run.ante, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
     }
     for (const id of found.myths) {
       const count = (p.mythsFound?.length ?? 0) - found.myths.length + found.myths.indexOf(id) + 1;
@@ -204,7 +204,7 @@ export class NightScreen implements Screen {
     }
     if (found.cross) {
       banners.push({ kind: 'cross' });
-      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
+      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
     }
     announceDiscovery(banners, () => this.app.svc.audio.win(), (focus, done) => {
       track('collection_hook', { from: 'banner', kind: 'myth', n: 1 });

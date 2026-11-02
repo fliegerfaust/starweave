@@ -152,7 +152,7 @@ export class RunController {
     // Подарок — один раз: в первый забег или никогда (первым сыгран вызов дня)
     if (!daily || profile.runs > 0) delete profile.tutorialGift;
     this.progress({ e: 'runStart' });
-    track('run_start', { sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift, replay: seed !== undefined });
+    track('run_start', { runs: profile.runs, sky: skyId, stake: daily ? 0 : stake, daily, gentle, gift: !!gift, replay: seed !== undefined });
     this.save();
     this.route();
   }
@@ -167,7 +167,7 @@ export class RunController {
     this.progress({ e: 'runStart' });
     this.run.challenge = { ante: c.ante, best: c.best };
     track('challenge_accept', { ante: c.ante, best: c.best });
-    track('run_start', { sky: c.skyId, stake: c.stake, daily: false, challenge: true });
+    track('run_start', { runs: this.app.profile.runs, sky: c.skyId, stake: c.stake, daily: false, challenge: true });
     this.save();
     this.route();
   }
@@ -177,7 +177,7 @@ export class RunController {
     this.closeCurrent();
     this.run = newLoggedRun({ seed: dailySeed(date), skyId: 'classic', daily: true, dailyDate: date, archive: true, unlocks: unlocksFor(this.app.profile, true) });
     this.progress({ e: 'runStart' });
-    track('run_start', { sky: 'classic', stake: 0, daily: true, archive: true });
+    track('run_start', { runs: this.app.profile.runs, sky: 'classic', stake: 0, daily: true, archive: true });
     this.save();
     this.route();
   }
@@ -281,10 +281,12 @@ export class RunController {
       won,
       score: n.score,
       target: n.target,
-      ratio: Math.round((n.score / n.target) * 100) / 100,
+      // Цель 0 (обучение) даёт бесконечность — сервер такую пачку отбрасывал целиком (SA.8)
+      ratio: n.target > 0 ? Math.round((n.score / n.target) * 100) / 100 : 0,
       moves_left: n.movesLeft,
       burns_left: n.burnsLeft,
       lines: n.linesIgnited,
+      runs: this.app.profile.runs,
     });
   }
 
@@ -529,6 +531,8 @@ export class RunController {
 
   /** Обучение пройдено: поздравление и старт настоящего забега. */
   finishTutorial(): void {
+    // Последний шаг (короткого или полного обучения) выполнен — отметка до «пройдено» (SA.4)
+    this.tutorial?.markDone();
     track('tutorial_complete', {});
     // Короткое обучение не показало Обсерваторию: её подсказки первых забегов остаются
     if (this.shortTutorial) this.rememberTaught();
