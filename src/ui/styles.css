@@ -395,7 +395,10 @@ body {
   min-width: 0;
   padding: 2px 4px;
   text-align: left;
+  position: relative;
 }
+/* Зона касания правила Затмения до 44 px при прежнем виде (замер детектора: 37–40 px) */
+.boss-chip::after { content: ''; position: absolute; inset: -4px 0; }
 .boss-chip canvas { flex: none; }
 .boss-chip-name { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-wrap: balance; }
 .hud-gold, .gold-pill {
