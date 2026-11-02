@@ -3623,3 +3623,17 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 @keyframes feat-glow { 0% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes feat-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast .feat-toast-medal::before, .toast .feat-toast-medal::after { animation: none; opacity: 0; } }
+
+/* ─── Наставник — Лебедь (GO.6, выбор Дениса) ──────────────────────────────────────────────
+   Медальон с живым созвездием слева, имя капителью и реплика справа; текст по левому краю,
+   как речь персонажа. Медальон — не кнопка: без кольца-кромки, только тёмное небо и свечение. */
+.mentor-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; text-align: left; width: 100%; }
+.mentor { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, #241d5e 0%, #0d0b2a 75%); box-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.18); }
+.mentor canvas { display: block; }
+.mentor-line { display: grid; gap: 2px; min-width: 0; }
+.mentor-name { font: 400 12px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.mentor-say :is(.tut-text, .coach-text) { text-align: left; text-wrap: pretty; }
+.coach:has(.mentor-say) { justify-items: stretch; }
+/* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
+.coach:has(.mentor-say) .coach-ok { justify-self: center; }
