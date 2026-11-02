@@ -148,6 +148,8 @@ async function boot(): Promise<void> {
     // `&coach` — первый забег новичка: в Обсерватории встречает подсказка «Нити» голосом Лебедя
     if (params.has('coach')) {
       Object.assign(app.profile, { tutorialFinished: false, runs: 0, bestAnte: 1, tutorial: [] });
+      // Достижения dev-профиля уже «были»: без тоста «Первый взгляд» поверх Лебедя
+      (app.runs as unknown as { checkFeats(announce: boolean): void }).checkFeats(false);
       // Как у новичка после первой ночи: первая глава, ряд Знамений пуст, золота на одно Знамение
       Object.assign(run, { ante: 1, gold: 9, omens: [] });
       run.comboLevels.pair = 1;

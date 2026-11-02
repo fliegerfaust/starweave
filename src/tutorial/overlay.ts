@@ -226,7 +226,9 @@ export class TutorialOverlay {
       // Не ночь (Обсерватория): сверху или снизу — подальше от цели. На низком экране цель не
       // доезжает до середины (ряд Знамений внизу) — тогда другая сторона или вплотную к цели (GL.7)
       const height = b.offsetHeight;
-      const want = this.place !== 'auto' ? this.place : spot && spot.y + spot.h / 2 > vh / 2 ? 'top' : 'bottom';
+      // Снизу, у большого пальца, пока цель не в нижней трети: иначе пузырь с «Далее» прыгал между
+      // шагами вверх и вниз (критика Impeccable 03.11)
+      const want = this.place !== 'auto' ? this.place : spot && spot.y + spot.h / 2 > vh * 0.62 ? 'top' : 'bottom';
       const edge = { top: 10 + safeTop(), bottom: vh - height - 10 - safeBottom() };
       const sides = want === 'top' ? [edge.top, edge.bottom] : [edge.bottom, edge.top];
       const free = sides.find((y) => !overlaps(y, height));
