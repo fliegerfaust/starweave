@@ -95,3 +95,41 @@ test('первая ночь: подсказка ждёт, пока уйдёт т
   expect(log.at(-1)!.coach, 'после тоста плашка появилась').toBe(true);
   expect(errors).toEqual([]);
 });
+
+test('Обсерватория: подсказка не теряется из-за окон — итогов ночи и дара (GL.6)', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
+  const log = await page.evaluate(async () => {
+    const a = (window as unknown as { starweave: A }).starweave;
+    Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
+    const { modal } = await import('/src/ui/widgets.ts');
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const coachShown = () => !!document.querySelector('.coach:not(.out)[data-step="shop"]');
+    a.runs.startRun('classic');
+    await wait(300);
+    a.runs.beginNight();
+    await wait(1500);
+    // Тост первой ночи к концу ночи давно ушёл
+    document.querySelectorAll('.toast').forEach((e) => e.remove());
+    // Как «Забрать» в окне итогов: окно закрывается (ещё 180 мс в DOM), а Обсерватория уже открыта
+    const reward = modal('итоги ночи', {});
+    Object.assign(a.run, { phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
+    reward.close();
+    a.runs.collectReward();
+    await wait(600);
+    const afterReward = coachShown();
+    // Поверх Обсерватории открывается окно (дар ночи, пакет): подсказка прячется и ждёт
+    const gift = modal('дар ночи', {});
+    await wait(300);
+    const underGift = coachShown();
+    gift.close();
+    await wait(800);
+    return { afterReward, underGift, afterGift: coachShown() };
+  });
+  expect(log.afterReward, 'подсказка видна, хотя окно итогов ещё закрывалось').toBe(true);
+  expect(log.underGift, 'под окном подсказки нет').toBe(false);
+  expect(log.afterGift, 'окно закрылось — подсказка вернулась').toBe(true);
+  expect(errors).toEqual([]);
+});
