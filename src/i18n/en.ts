@@ -46,6 +46,7 @@ export const en: Dict = {
       myth: { one: '{n} more myth hides in the sky', few: '{n} more myths hide in the sky', many: '{n} more myths hide in the sky', other: '{n} more myths hide in the sky' },
     } as Record<string, Record<string, string>>,
   },
+  foe: { beat: 'Drive it back: {n} points' },
   mentor: { name: 'Swan' },
   constellation: {
     ursaMajor: 'Ursa Major',
