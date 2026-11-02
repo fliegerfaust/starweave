@@ -1,6 +1,7 @@
 import { starRadius, type SkyFigure } from '@/art/constellations';
+import { bossSigil } from '@/art/sigil';
 import type { Entity } from '@/engine/ecs';
-import { t } from '@/i18n';
+import { named, t } from '@/i18n';
 import { Drawable, Layer, Transform, transform } from '../components';
 import { burst } from '../fx';
 import { figureFor, goalVariantFor, lightOrder, type GoalVariant } from './goal-plan';
@@ -10,6 +11,7 @@ type Pt = { x: number; y: number };
 type Beam = { from: Pt; to: Pt; age: number; life: number };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
 
 /** Вариант ночи; в разработке `?goal=figure|eclipse|now` подменяет его (`now` — без сцены цели). */
 export function goalVariant(scene: NightScene): GoalVariant | null {
@@ -39,6 +41,17 @@ export class GoalSky {
   private readonly figure: SkyFigure;
   private readonly order: number[];
   private readonly calm: boolean;
+  /**
+   * Затмение — живой противник (GO.4, выбор Дениса 03.11.2026): в начале ночи луна наползает на
+   * солнце, на диске проступает знак Затмения, под ним имя, правило и цель; от диска тянутся тени к
+   * клеткам, которые оно задело (запечатанные, карты затмённой масти), удар созвездия их отдёргивает;
+   * на победе кольцо тени разбивается на жемчужные осколки. Приход 0…1.
+   */
+  private readonly foe: boolean;
+  arrive = 1;
+  private shattered = false;
+  private readonly bornAt: number;
+  private readonly sigil: HTMLCanvasElement | null = null;
 
   constructor(
     private readonly scene: NightScene,
@@ -51,6 +64,18 @@ export class GoalSky {
     this.order = lightOrder(this.figure);
     this.shown = clamp01(scene.night.score / scene.night.target);
     this.won = this.shown >= 1 ? 1 : 0;
+    this.bornAt = world.res.time;
+    this.foe = variant === 'eclipse';
+    const bossId = scene.night.bossId;
+    if (this.foe && bossId) {
+      this.sigil = bossSigil(bossId, 96, 2);
+      // Затмение приходит: луна наползает на солнце, знак проступает, кольцо тени набирается
+      if (this.shown === 0) {
+        this.arrive = 0;
+        const me: GoalSky = this;
+        void scene.svc.tweens.to(me, { arrive: 1 }, { duration: this.calm ? 0.3 : 2.4, ease: 'inOutCubic', delay: 0.4 });
+      }
+    }
     this.entity = world.create();
     world.add(this.entity, Transform, transform(0, 0));
     world.add(this.entity, Drawable, { layer: Layer.Background, z: 1, visible: true, draw: (ctx) => this.draw(ctx, world.res.time) });
@@ -73,7 +98,10 @@ export class GoalSky {
       const spark = this.aim(p);
       burst(this.scene.world, spark.x, spark.y, '#ffe6a8', { count: 14, speed: 220, colors: ['#ffe6a8', '#fff', this.variant === 'eclipse' ? '#e8e4f4' : '#f6c25b'] });
     }
-    if (p >= 1 && this.won < 1) await tw.to(me, { won: 1 }, { duration: this.calm ? 0.3 : 1.2, ease: 'outCubic' });
+    if (p >= 1 && this.won < 1) {
+      if (this.foe) this.shatter();
+      await tw.to(me, { won: 1 }, { duration: this.calm ? 0.3 : 1.2, ease: 'outCubic' });
+    }
   }
 
   /** Куда летит огонь: в диск Затмения или в звезду, которая сейчас загорится. */
@@ -120,8 +148,10 @@ export class GoalSky {
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
-    // Луна сходит с солнца по мере счёта: растёт серп; на цели тает
-    const off = r * 1.15 * p ** 1.1;
+    // Тени к задетым клеткам (вариант b) — под луной, от края диска
+    if (this.foe) this.drawTendrils(ctx, cx, cy, r, time);
+    // Луна сходит с солнца по мере счёта: растёт серп; на цели тает. При приходе — наползает
+    const off = r * 1.15 * p ** 1.1 + r * 2.4 * (1 - this.arrive) ** 2;
     ctx.globalAlpha = 1 - this.won;
     ctx.fillStyle = '#04030d';
     ctx.beginPath();
@@ -130,10 +160,19 @@ export class GoalSky {
     ctx.strokeStyle = 'rgba(232, 228, 244, 0.35)';
     ctx.lineWidth = 1.2;
     ctx.stroke();
+    // Знак Затмения на луне — жемчугом: это он, противник
+    if (this.sigil) {
+      const size = r * 1.05;
+      ctx.globalAlpha = (1 - this.won) * this.arrive * (0.55 + 0.25 * this.hitK);
+      ctx.globalCompositeOperation = 'luminosity';
+      ctx.drawImage(this.sigil, cx + off * 0.82 + shake - size / 2, cy - off * 0.57 - size / 2, size, size);
+      ctx.globalCompositeOperation = 'source-over';
+    }
     ctx.globalAlpha = 1;
-    // Кольцо тени: запас Затмения, тает с каждым созвездием
+    if (this.foe) this.drawThreat(ctx, cx, cy, r);
+    // Кольцо тени: запас Затмения, тает с каждым созвездием (при приходе — набирается)
     const ring = r * 1.42;
-    const left = 1 - p;
+    const left = (1 - p) * this.arrive;
     ctx.lineCap = 'round';
     ctx.lineWidth = 5;
     ctx.strokeStyle = 'rgba(232, 228, 244, 0.1)';
@@ -151,6 +190,98 @@ export class GoalSky {
       ctx.stroke();
     }
     ctx.lineCap = 'butt';
+  }
+
+  /** Имя, правило и цель под диском, пока Затмение приходит, и ещё несколько секунд (вместо тоста). */
+  private drawThreat(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+    const id = this.scene.night.bossId;
+    if (!id) return;
+    const since = this.scene.world.res.time - this.bornAt;
+    const k = Math.min(this.arrive, Math.max(0, 1 - (since - 5) / 1.2)) * (1 - this.won);
+    if (k <= 0.01) return;
+    const [name, rule] = [named('boss', id).name, named('boss', id).desc];
+    const y = cy + r * 1.42 + 34;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(5, 6, 26, 0.95)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#e8e4f4';
+    ctx.font = `400 ${Math.round(Math.max(18, r * 0.22))}px Forum, serif`;
+    ctx.fillText(name.toUpperCase().split('').join('\u200a'), cx, y);
+    ctx.fillStyle = '#c9c3e6';
+    ctx.font = `600 ${Math.round(Math.max(12, r * 0.12))}px 'Manrope Variable', Manrope, sans-serif`;
+    const maxW = Math.min(this.scene.svc.renderer.width - 32, r * 4);
+    wrap(ctx, rule, maxW).forEach((line, i) => ctx.fillText(line, cx, y + 22 + i * 18));
+    ctx.fillStyle = '#ffe6a8';
+    ctx.fillText(t('foe.beat', { n: this.scene.night.target }), cx, y + 22 + wrap(ctx, rule, maxW).length * 18 + 4);
+    ctx.restore();
+  }
+
+  /** Клетки, которые Затмение задело: запечатанные и карты затмённой масти на небе. */
+  private touched(): number[] {
+    const n = this.scene.night;
+    const out: number[] = [];
+    n.grid.forEach((card, i) => {
+      if (n.sealed[i] || (card && n.rules.debuffSuit && card.suit === n.rules.debuffSuit)) out.push(i);
+    });
+    return out;
+  }
+
+  /** Тени от диска к задетым клеткам; удар созвездия их отдёргивает, на победе они тают. */
+  private drawTendrils(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, time: number): void {
+    const cells = this.touched();
+    if (!cells.length) return;
+    const k = this.arrive * (1 - this.won) * (1 - 0.7 * this.hitK);
+    if (k <= 0.01) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const i of cells) {
+      const c = this.scene.layout.cells[i];
+      if (!c) continue;
+      const dx = c.x - cx;
+      const dy = c.y - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      const sx = cx + (dx / d) * r;
+      const sy = cy + (dy / d) * r;
+      const wob = this.calm ? 0 : Math.sin(time * 1.3 + i) * 10;
+      const mx = (sx + c.x) / 2 - (dy / d) * wob;
+      const my = (sy + c.y) / 2 + (dx / d) * wob;
+      const reach = 0.35 + 0.65 * k;
+      const ex = sx + (c.x - sx) * reach;
+      const ey = sy + (c.y - sy) * reach;
+      // Тень сужается к цели: толстая у диска, тонкая у карты; жемчужная кромка — видно на тёмном небе
+      ctx.shadowColor = `rgba(200, 190, 255, ${0.5 * k})`;
+      ctx.shadowBlur = 10;
+      for (const [w, a] of [[11, 0.85], [6, 0.9]] as const) {
+        ctx.strokeStyle = `rgba(10, 6, 28, ${a * k})`;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(mx, my, ex, ey);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(232, 228, 244, ${0.55 * k})`;
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** Победа: кольцо тени разбивается на жемчужные осколки. */
+  private shatter(): void {
+    if (this.shattered || this.calm) return;
+    this.shattered = true;
+    const b = this.scene.layout.board;
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const ring = Math.min(b.w, b.h) * 0.27 * 1.42;
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      burst(this.scene.world, cx + Math.cos(a) * ring, cy + Math.sin(a) * ring, '#e8e4f4', { count: 4, speed: 260, colors: ['#e8e4f4', '#fff', '#b9b0e6'] });
+    }
   }
 
   // ── Созвездие ночи ───────────────────────────────────────────────────────
@@ -264,4 +395,19 @@ function uniq(pts: Pt[]): Pt[] {
     seen.add(key);
     return true;
   });
+}
+
+/** Перенос строки по ширине для подписи на холсте. */
+function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > max && line) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 3);
 }
