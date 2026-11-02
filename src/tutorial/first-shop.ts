@@ -1,5 +1,6 @@
 import type { App } from '@/game/app';
 import { t } from '@/i18n';
+import { track } from '@/analytics';
 import { saveProfile } from '@/meta/profile';
 import { actionText } from '@/ui/rich';
 import { TutorialOverlay } from './overlay';
@@ -37,7 +38,11 @@ export async function firstShop(app: App, root: HTMLElement): Promise<void> {
   if (!root.isConnected) return;
 
   let done = false;
-  const overlay = new TutorialOverlay(() => finish());
+  let index = 0;
+  const overlay = new TutorialOverlay(() => {
+    track('shop_guide', { step: 'skip', index });
+    finish();
+  });
   // Окно поверх посреди шагов — проводник прячется и возвращается, когда оно закроется
   const hide = () => overlay.setHidden(true);
   const show = () => !modalOpen() && overlay.setHidden(false);
@@ -55,6 +60,8 @@ export async function firstShop(app: App, root: HTMLElement): Promise<void> {
 
   const q = (sel: string) => root.querySelector<HTMLElement>(sel);
   const say = (key: Line, sel: string, next = false) => {
+    index += 1;
+    track('shop_guide', { step: key, index });
     overlay.spotlight(rect(q(sel)));
     return overlay.say(actionText(t(`tutorial.${key}`)), { next: next ? t('tut.next') : undefined });
   };

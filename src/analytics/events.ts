@@ -19,13 +19,18 @@ export interface EventMap {
   // ── Воронка новичка ────────────────────────────────────────────────────
   tutorial_start: { source: 'auto' | 'offer' | 'menu' | 'retry' };
   tutorial_step: { step: string; index: number };
+  /** Шаг обучения выполнен (SA.4): игрок сделал, о чём просили, — и сколько на это ушло. */
+  tutorial_step_done: { step: string; index: number; ms: number };
   tutorial_skip: { step: string; index: number };
   tutorial_complete: Record<string, never>;
+  /** «Проводник» первого захода в Обсерваторию (GL.7): шаг или `skip`. */
+  shop_guide: { step: string; index: number };
 
   // ── Забег и ночи ───────────────────────────────────────────────────────
-  run_start: { sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean; gift?: boolean; replay?: boolean; challenge?: boolean };
+  /** `runs` — сколько забегов было до этого (0 — первый забег новичка, SA.4). */
+  run_start: { runs: number; sky: string; stake: number; daily: boolean; archive?: boolean; gentle?: boolean; gift?: boolean; replay?: boolean; challenge?: boolean };
   night_start: { ante: number; night: string; boss: string; gentle?: boolean };
-  combo_found: { combo: string; count: number; ante: number };
+  combo_found: { combo: string; count: number; ante: number; tutorial?: boolean };
   myth_found: { myth: string; count: number; ante: number };
   resonance_fuse: { id: string; ante: number };
   night_end: {
@@ -40,16 +45,20 @@ export interface EventMap {
     moves_left: number;
     burns_left: number;
     lines: number;
+    /** Сколько забегов было до этого: первая ночь новичка — `runs` 0, глава 1 (SA.4). */
+    runs: number;
   };
   run_end: { result: 'lost' | 'abandon' | 'victory'; ante: number; nights: number; lines: number; best: number; crosses: number; omens: string };
 
   // ── Экономика ──────────────────────────────────────────────────────────
-  shop_buy: { kind: string; id: string; price: number; ante: number; gold_left: number };
+  /** Вход в Обсерваторию (SA.4): `guide` — встретил «Проводник» первого захода. */
+  shop_open: { ante: number; gold: number; runs: number; guide: boolean };
+  shop_buy: { kind: string; id: string; price: number; ante: number; gold_left: number; tutorial?: boolean };
   shop_sell: { id: string; ante: number };
   /** Услуга «Убрать карту» в Обсерватории. */
   shop_banish: { ante: number };
   shop_reroll: { cost: number; ante: number };
-  pack_choose: { pack: string; id: string };
+  pack_choose: { pack: string; id: string; tutorial?: boolean };
   /** Дар ночи (GF.2): что взято и какой была колода до него. */
   gift_take: { kind: string; id: string; ante: number; deck: number };
   gift_skip: { ante: number; deck: number };
@@ -83,6 +92,8 @@ export interface EventMap {
 
   // ── Техника ────────────────────────────────────────────────────────────
   perf: { fps: number; dpr: number; width: number; height: number };
+  /** Игру свернули (SA.4): сколько она была на экране с прошлого показа — честная длина сессии. */
+  app_hide: { ms: number };
   /** where — файл:строка:колонка; пусто у «Script error.» (чужой скрипт без CORS). */
   /** stack — короткий стек (`функция@файл:строка:колонка` по строкам), только у первых повторов. */
   js_error: { message: string; where: string; stack?: string };

@@ -192,7 +192,19 @@ export class TutorialDirector {
   /** Плашки первых забегов, которые обучение уже объяснило. */
   readonly taught = new Set<TutorialStep>();
 
+  /** Когда показан текущий шаг: новый шаг значит, что прошлый выполнен (SA.4). */
+  private stepAt = 0;
+
+  /** Последний шаг выполнен: обучение кончилось, следующего шага не будет. */
+  markDone(): void {
+    if (this.stepAt) track('tutorial_step_done', { ...this.progress, ms: Math.round(performance.now() - this.stepAt) });
+    this.stepAt = 0;
+  }
+
   private mark(step: string): void {
+    const now = performance.now();
+    if (this.stepAt && this.progress.step !== step) track('tutorial_step_done', { ...this.progress, ms: Math.round(now - this.stepAt) });
+    this.stepAt = now;
     this.progress = { step, index: this.step };
     for (const coach of TAUGHT[step] ?? []) this.taught.add(coach);
     track('tutorial_step', this.progress);
