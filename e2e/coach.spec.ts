@@ -13,7 +13,7 @@ type A = {
   router: { route(): Promise<void> };
 };
 
-async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): Promise<string[]> {
+async function show(page: Page, step: string, setup: 'night' | 'map'): Promise<string[]> {
   await page.evaluate(async ({ step, setup }) => {
     const a = (window as unknown as { starweave: A }).starweave;
     Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
@@ -24,11 +24,6 @@ async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): 
       await new Promise((r) => setTimeout(r, 300));
       a.runs.beginNight();
       await new Promise((r) => setTimeout(r, 2500));
-    }
-    if (setup === 'shop') {
-      Object.assign(a.run, { phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
-      a.runs.collectReward();
-      await new Promise((r) => setTimeout(r, 600));
     }
     if (setup === 'map') {
       Object.assign(a.run, { phase: 'map' });
@@ -62,8 +57,7 @@ test('подсказки первых забегов: нить к цели, це
   const failures: string[] = [];
   for (const step of ['place', 'target', 'fillLine', 'combos', 'cross', 'burn']) failures.push(...(await show(page, step, 'night')));
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/36-coach-burn.png` });
-  failures.push(...(await show(page, 'shop', 'shop')));
-  await page.screenshot({ path: `e2e-results/${test.info().project.name}/37-coach-shop.png` });
+  // Обсерваторию новичок проходит с «Проводником» (GL.7) — его проверяет first-shop.spec.ts
   failures.push(...(await show(page, 'boss', 'map')));
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/38-coach-boss.png` });
   expect(failures).toEqual([]);

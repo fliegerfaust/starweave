@@ -133,7 +133,11 @@ export function modal(
     backdrop.classList.add('closing');
     const i = stack.findIndex((m) => m.panel === panel);
     if (i >= 0) stack.splice(i, 1);
-    setTimeout(() => backdrop.remove(), 180);
+    setTimeout(() => {
+      backdrop.remove();
+      // Подсказки первых забегов, отложенные окном, показываются снова (GL.6)
+      document.dispatchEvent(new Event('starweave:modal-closed'));
+    }, 180);
     // Фокус клавиатуры — туда, откуда окно открыли; если того уже нет — в окно ниже
     if (returnFocus?.isConnected && returnFocus !== document.body) returnFocus.focus({ preventScroll: true });
     else stack[stack.length - 1]?.panel.focus({ preventScroll: true });

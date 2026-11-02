@@ -17,6 +17,7 @@ export function showTutorialDone(app: App, short = false): void {
     star.style.setProperty('--d', `${0.2 + i * 0.15}s`);
     return h('span', null, [star, name]);
   }));
+  chain.style.setProperty('--n', String(learned.length));
   const gift = app.profile.tutorialGift;
   const giftRow = gift && !app.runs.hasSave
     ? h('div.tut-gift', null, [h('span.coin.big', { attrs: { 'aria-hidden': 'true' } }), h('b', null, `+${gift.gold}`), h('span', null, t('tut.giftCaption'))])

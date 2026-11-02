@@ -61,6 +61,10 @@ async function boot(): Promise<void> {
   }
   // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
   const demo = import.meta.env.DEV && params.has('demo');
+  // `?fresh` — первый запуск с чистого листа (обучение и Лебедь с первой реплики)
+  if (dev && params.has('fresh')) localStorage.clear();
+  // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
+  if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') ?? '';
   if (demo) {
     localStorage.setItem('starweave.profile.v1', JSON.stringify({ version: 1, tutorialDone: true, runs: 12 }));
     localStorage.removeItem('starweave.run.v1');
@@ -69,6 +73,12 @@ async function boot(): Promise<void> {
       const settings = JSON.parse(localStorage.getItem('starweave.settings.v1') ?? '{}') as Record<string, unknown>;
       localStorage.setItem('starweave.settings.v1', JSON.stringify({ ...settings, lang }));
     }
+  }
+  // GL.2 `?tutdone`: подарок виден только без сохранённого забега, а соседние рамки витрины его пишут
+  if (dev && params.has('tutdone')) {
+    localStorage.removeItem('starweave.run.v1');
+    const saved = JSON.parse(localStorage.getItem('starweave.profile.v1') ?? '{"version":1}') as Record<string, unknown>;
+    localStorage.setItem('starweave.profile.v1', JSON.stringify({ ...saved, tutorialDone: true }));
   }
   const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
   const platform = await createPlatform();
@@ -123,7 +133,7 @@ async function boot(): Promise<void> {
     const run = app.run!;
     const { createOmen } = await import('./core/omen-instance');
     run.ante = 3;
-    run.gold = 14;
+    run.gold = Number(params.get('gold') ?? 14);
     run.comboLevels.pair = 2;
     run.comboLevels.flush = 3;
     run.omens = ['horizon', 'starlight', 'sunWorship'].map((id) => createOmen(run, id));
@@ -135,11 +145,31 @@ async function boot(): Promise<void> {
       rerollCost: 5,
     };
     if (params.get('at') === 'pack') run.pending = [{ kind: 'pack', pack: 'chart', options: ['triple', 'straight', 'supernova'] }];
+    // `&coach` — первый забег новичка: в Обсерватории встречает подсказка «Нити» голосом Лебедя
+    if (params.has('coach')) {
+      Object.assign(app.profile, { tutorialFinished: false, runs: 0, bestAnte: 1, tutorial: [] });
+      // Как у новичка после первой ночи: первая глава, ряд Знамений пуст, золота на одно Знамение
+      Object.assign(run, { ante: 1, gold: 9, omens: [] });
+      run.comboLevels.pair = 1;
+      run.comboLevels.flush = 1;
+    }
     await app.router.route();
     if (params.get('at') === 'guide') {
       const { showGuide } = await import('./ui/screens/guide');
       showGuide({ tab: 'combos', levels: run.comboLevels, profile: app.profile });
     }
+  }
+  // GL.2: «Обучение пройдено» с подарком (`?tutdone`) и карта главы с золотом в шапке (`?atmap`)
+  if (dev && params.has('tutdone')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialGift: { gold: 10 } });
+    const { showTutorialDone } = await import('./ui/screens/tutorial-done');
+    showTutorialDone(app, true);
+  }
+  if (dev && params.has('atmap')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    app.run!.gold = 14;
+    await app.router.route();
   }
   // OB: полный ряд Знамений (`?full=shop|pack|trophy`): замена своего
   if (dev && params.has('full')) {
@@ -278,6 +308,36 @@ async function boot(): Promise<void> {
       run.phase = 'gameOver';
     }
     await app.router.route();
+  }
+  // GO.3: ночь главы с целью на сцене; `&auto` — четыре созвездия от нуля до цели без ходов
+  if (dev && params.has('goal') && !demo) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    const [{ planChapter }, { startNight }] = await Promise.all([import('./core/route'), import('./core/night')]);
+    // `&night=eclipse` — третья ночь главы, Затмение
+    run.chapter = { ...planChapter(run), at: params.get('night') === 'eclipse' ? 2 : 1 };
+    startNight(run);
+    // Витрина: цель ближе, чтобы дойти до неё за 3–5 созвездий
+    run.night!.target = 240;
+    await app.router.route();
+    // `&auto` — четыре созвездия подряд по рядам неба, от нуля до цели, без ходов
+    if (params.has('auto')) {
+      const { NightScene } = await import('./game/night/scene');
+      const w = window as unknown as { __scene?: InstanceType<typeof NightScene> };
+      while (!w.__scene) await new Promise((r) => setTimeout(r, 50));
+      const scene = w.__scene;
+      // Ждём, пока небо проявится и рука раздана
+      while (scene.busy || !scene.hand.length) await new Promise((r) => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 900));
+      const steps = [[0.22, 3], [0.47, 1], [0.74, 2], [1, 0]] as const;
+      for (const [p, row] of steps) {
+        const cells = [0, 1, 2, 3].map((c) => scene.layout.cells[row * 4 + c]!);
+        scene.hud.setScore(Math.round(p * 240), 240);
+        await scene.goalSky?.hit(p, cells);
+        await new Promise((r) => setTimeout(r, 900));
+      }
+    }
   }
   // DEV: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
   if (dev && params.has('mythfx')) {
