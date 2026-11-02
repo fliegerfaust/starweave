@@ -61,6 +61,9 @@ async function boot(): Promise<void> {
   }
   // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
   const demo = import.meta.env.DEV && params.has('demo');
+  // GL.7/GL.8, витрина Обсерватории: первый заход (`?ftue=guide|hints`) и «тише» (`&quiet`)
+  if (dev && params.has('ftue')) document.documentElement.dataset.ftue = params.get('ftue') ?? '';
+  if (dev && params.has('quiet')) document.documentElement.classList.add('quiet');
   // `?fresh` — первый запуск с чистого листа (обучение и Лебедь с первой реплики)
   if (dev && params.has('fresh')) localStorage.clear();
   // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
@@ -146,7 +149,13 @@ async function boot(): Promise<void> {
     };
     if (params.get('at') === 'pack') run.pending = [{ kind: 'pack', pack: 'chart', options: ['triple', 'straight', 'supernova'] }];
     // `&coach` — первый забег новичка: в Обсерватории встречает подсказка «Нити» голосом Лебедя
-    if (params.has('coach')) Object.assign(app.profile, { tutorialFinished: false, runs: 0, tutorial: [] });
+    if (params.has('coach')) {
+      Object.assign(app.profile, { tutorialFinished: false, runs: 0, bestAnte: 1, tutorial: [] });
+      // Как у новичка после первой ночи: первая глава, ряд Знамений пуст, золота на одно Знамение
+      Object.assign(run, { ante: 1, gold: 9, omens: [] });
+      run.comboLevels.pair = 1;
+      run.comboLevels.flush = 1;
+    }
     await app.router.route();
     if (params.get('at') === 'guide') {
       const { showGuide } = await import('./ui/screens/guide');

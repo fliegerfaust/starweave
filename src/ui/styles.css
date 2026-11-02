@@ -3650,3 +3650,12 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 .coach:has(.mentor-say) { justify-items: stretch; }
 /* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
 .coach:has(.mentor-say) .coach-ok { justify-self: center; }
+
+/* ─── GL.8, витрина «Обсерватория тише» (`&quiet`) ─────────────────────────────────────────
+   При беглом взгляде видно главное: товары и цены. Абзац-памятка под рядом Знамений (его теперь
+   объясняет первый заход) убран, предупреждение о порядке остаётся; пустые места ряда — тихие
+   точки без кольца; бонусы — цветом и пунктиром, без цветных плашек. */
+html.quiet .shop-owned .hint:not(.order-warn), html.quiet .shop-deck .hint { display: none; }
+html.quiet .owned-omen.empty .omen-slot { box-shadow: none; opacity: 0.55; }
+html.quiet .ware-bonus .kw { background: none; padding: 0; margin: 0; }
+html.quiet .ware-bonus .kw.xmult { background: none; }

@@ -24,6 +24,7 @@ import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets'
 import { makeReorderable } from '../reorder';
 import { rich } from '../rich';
 import { canReplaceFor, goldAfter } from '../omen-replace';
+import { firstShop, firstShopVariant } from '@/tutorial/first-shop';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -56,7 +57,10 @@ export class ShopScreen implements Screen {
     root.append(this.el);
     this.render();
     this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
-    coach(this.app, 'shop');
+    // GL.7, витрина: первый заход голосом Лебедя — «Проводник» или «Нить по ходу» вместо одной плашки
+    const ftue = firstShopVariant();
+    if (ftue && !this.app.runs.tutorial) firstShop(this.app, this.el, ftue);
+    else coach(this.app, 'shop');
     if (currentChoice(this.run)) this.showPack();
   }
 
@@ -209,7 +213,8 @@ export class ShopScreen implements Screen {
       const def = COMBOS[item.combo];
       return {
         icon: canvasImg(chartIcon(item.combo, 48, dpr()), 48),
-        name: t('shop.chartName', { combo: t(`combo.${item.combo}`) }),
+        // GL.8, витрина «тише»: звёздная карта названа действием — «Прокачать: Пара»
+        name: t(document.documentElement.classList.contains('quiet') ? 'shop.chartLevelUp' : 'shop.chartName', { combo: t(`combo.${item.combo}`) }),
         level: t('shop.chartLevel', { from: level, to: level + 1 }),
         bonus: t('shop.chartBonus', { combo: t(`combo.${item.combo}`), light: def.levelLight, mult: def.levelMult }),
       };
