@@ -61,9 +61,6 @@ async function boot(): Promise<void> {
   }
   // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
   const demo = import.meta.env.DEV && params.has('demo');
-  // GL.7/GL.8, витрина Обсерватории: первый заход (`?ftue=guide|hints`) и «тише» (`&quiet`)
-  if (dev && params.has('ftue')) document.documentElement.dataset.ftue = params.get('ftue') ?? '';
-  if (dev && params.has('quiet')) document.documentElement.classList.add('quiet');
   // `?fresh` — первый запуск с чистого листа (обучение и Лебедь с первой реплики)
   if (dev && params.has('fresh')) localStorage.clear();
   // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела

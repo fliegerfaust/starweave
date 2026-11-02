@@ -19,12 +19,12 @@ import { showChoice } from '../choice';
 import { showGift } from '../gift';
 import { showTrophyScene } from '../trophy-scene';
 import { playResonance } from '../resonance-scene';
-import { coach, layoutCoach } from '../tutorial';
+import { layoutCoach } from '../tutorial';
 import { button, confirmDialog, hideTooltip, modal, withCoin } from '../widgets';
 import { makeReorderable } from '../reorder';
 import { rich } from '../rich';
 import { canReplaceFor, goldAfter } from '../omen-replace';
-import { firstShop, firstShopVariant } from '@/tutorial/first-shop';
+import { firstShop, firstShopDue } from '@/tutorial/first-shop';
 import { cardThumb, deckGrid, menuButton, showCombos, showDeck, showHelp, showRunMenu } from './common';
 
 /** Помечает элемент для обучения. */
@@ -57,10 +57,8 @@ export class ShopScreen implements Screen {
     root.append(this.el);
     this.render();
     this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
-    // GL.7, витрина: первый заход голосом Лебедя — «Проводник» или «Нить по ходу» вместо одной плашки
-    const ftue = firstShopVariant();
-    if (ftue && !this.app.runs.tutorial) firstShop(this.app, this.el, ftue);
-    else coach(this.app, 'shop');
+    // Первый заход новичка — «Проводник» голосом Лебедя (GL.7) вместо одной плашки «Нити»
+    if (firstShopDue(this.app)) void firstShop(this.app, this.el);
     if (currentChoice(this.run)) this.showPack();
   }
 
@@ -142,9 +140,11 @@ export class ShopScreen implements Screen {
     const resAt = resonanceAt(run);
     const resHint = this.resonanceHint(owned, resAt);
     // Подсказка под рядом при замене не меняется: меняется только строка заголовка ряда (ничего не скачет)
+    // Памятки-абзацы убраны (GL.8, «Тише»): ряд объясняет первый заход. Остаются только
+    // Резонанс и предупреждение о порядке — то, что игроку нужно сейчас
     const ownedHint = resHint ?? (misordered
       ? h('p.hint.order-warn', null, t('shop.orderWarn', { x: named('omen', misordered.xmult).name, a: named('omen', misordered.additive).name }))
-      : h('p.hint', null, run.omens.length ? `${t('shop.ownedHint')} ${t('shop.ownedTap')}` : t('shop.omensEmptyHint')));
+      : null);
 
     // После последней ночи финального созвездия впереди победа, а не карта
     const canPeek = hasNextNight(run);
@@ -213,8 +213,8 @@ export class ShopScreen implements Screen {
       const def = COMBOS[item.combo];
       return {
         icon: canvasImg(chartIcon(item.combo, 48, dpr()), 48),
-        // GL.8, витрина «тише»: звёздная карта названа действием — «Прокачать: Пара»
-        name: t(document.documentElement.classList.contains('quiet') ? 'shop.chartLevelUp' : 'shop.chartName', { combo: t(`combo.${item.combo}`) }),
+        // Звёздная карта названа действием (GL.8): «Прокачать: Пара»
+        name: t('shop.chartName', { combo: t(`combo.${item.combo}`) }),
         level: t('shop.chartLevel', { from: level, to: level + 1 }),
         bonus: t('shop.chartBonus', { combo: t(`combo.${item.combo}`), light: def.levelLight, mult: def.levelMult }),
       };
@@ -474,7 +474,6 @@ export class ShopScreen implements Screen {
     return h('section.shop-section.shop-deck', null, [
       h('div.shop-label-row', null, [h('h2.shop-label', null, t('night.deck')), h('span.shop-count', null, String(run.deck.length))]),
       h('div.ware-lights', null, [h('button.ware-light', { type: 'button', onclick: () => showDeck(run) }, [icon('deck'), t('shop.viewDeck')]), banish]),
-      h('p.hint', null, used ? t('shop.banishUsedHint') : price === null ? t('shop.banishMin') : t('shop.banishHint')),
     ]);
   }
 

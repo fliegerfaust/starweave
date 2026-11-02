@@ -69,6 +69,12 @@ export class TutorialOverlay {
     this.root.remove();
   }
 
+  /** Спрятать слой целиком (окно поверх экрана) и вернуть, когда окно закроется. */
+  setHidden(hidden: boolean): void {
+    this.root.style.display = hidden ? 'none' : '';
+    if (!hidden && this.bubble.classList.contains('on')) this.layout();
+  }
+
   /** Ночь сообщает, где небо и рука (null — не ночь: Обсерватория, окна). */
   setDock(fn: (() => TutorialDock | null) | null): void {
     this.dock = fn;
@@ -217,11 +223,32 @@ export class TutorialOverlay {
         else top = Math.max(hud.bottom + 6, dock.handTop - height - 12);
       }
     } else {
-      // Не ночь (Обсерватория): сверху или снизу — подальше от цели
+      // Не ночь (Обсерватория): сверху или снизу — подальше от цели. На низком экране цель не
+      // доезжает до середины (ряд Знамений внизу) — тогда другая сторона или вплотную к цели (GL.7)
+      const height = b.offsetHeight;
       const want = this.place !== 'auto' ? this.place : spot && spot.y + spot.h / 2 > vh / 2 ? 'top' : 'bottom';
-      top = want === 'top' ? 10 + safeTop() : vh - b.offsetHeight - 10 - safeBottom();
+      const edge = { top: 10 + safeTop(), bottom: vh - height - 10 - safeBottom() };
+      const sides = want === 'top' ? [edge.top, edge.bottom] : [edge.bottom, edge.top];
+      const free = sides.find((y) => !overlaps(y, height));
+      if (free !== undefined || !spot) top = free ?? sides[0]!;
+      else if (spot.y + spot.h + 8 + height <= vh - safeBottom()) top = spot.y + spot.h + 8;
+      else if (spot.y - height - 8 >= safeTop()) top = spot.y - height - 8;
+      else {
+        // Невысокий ландшафт: ни над, ни под целью не влезает — рядом с ней, в соседней колонке
+        const w = Math.min(380, vw - 24);
+        const right = spot.x + spot.w + 12;
+        const left = spot.x - w - 12;
+        const x = right + w <= vw - 8 ? right : left >= 8 ? left : null;
+        if (x !== null) {
+          b.style.width = `${w}px`;
+          b.style.left = `${Math.round(x)}px`;
+        }
+        const h2 = b.offsetHeight;
+        top = x !== null ? Math.min(Math.max(spot.y, safeTop() + 6), vh - h2 - 10 - safeBottom()) : sides[0]!;
+      }
     }
     b.style.top = `${Math.round(top)}px`;
+    b.classList.toggle('at-top', top <= safeTop() + 6);
     this.drawThread(vw);
   }
 

@@ -1086,7 +1086,8 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .owned-omen { position: relative; width: 48px; height: 48px; transition: transform 0.15s ease; }
 .owned-omen .omen-slot { width: 48px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: grab; pointer-events: auto; }
 .owned-omen .omen-slot canvas { pointer-events: none; width: 100% !important; height: 100% !important; }
-.owned-omen.empty .omen-slot { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); cursor: default; }
+/* Пустое место ряда — тихая точка без кольца (GL.8, «Тише»): при беглом взгляде не шумит */
+.owned-omen.empty .omen-slot { border-radius: 50%; cursor: default; opacity: 0.55; }
 .owned-omen.empty .omen-slot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.3); }
 .owned-omen.misplaced::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(var(--mult-rgb) / 0.8); pointer-events: none; }
 .owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -2244,6 +2245,8 @@ body.landscape .card-info.at-card::after { content: ''; position: absolute; righ
 @media (prefers-reduced-motion: reduce) { .hud-score-wrap.tut-goal { animation: none; } }
 html.calm .hud-score-wrap.tut-goal { animation: none; }
 .tut-bubble.pop { animation: bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+/* У самого верха экрана — без сдвига сверху: пузырь не выглядывает за край, только проявляется */
+.tut-bubble.pop.at-top { animation-name: fade-in; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .tut-ticks { display: flex; gap: 3px; flex: 0 1 auto; min-width: 0; }
@@ -3647,15 +3650,25 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 .mentor-line { display: grid; gap: 2px; min-width: 0; }
 .mentor-name { font: 400 12px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
 .mentor-say :is(.tut-text, .coach-text) { text-align: left; text-wrap: pretty; }
+/* Узкий или невысокий телефон: медальон меньше, чтобы подсказка с Лебедем помещалась между небом
+   и рукой и не наезжала на цель (Galaxy 320 × 658, iPhone SE) */
+@media (max-width: 360px), (max-height: 700px) {
+  .mentor { width: 44px; height: 44px; }
+  .mentor canvas { width: 44px !important; height: 44px !important; }
+  .mentor-say { gap: 10px; }
+}
+/* Совсем узкий телефон (320 px): плашка «Нити» шире, медальон без имени, «Понятно» ниже —
+   иначе на ночи она выше шапки и закрывает небо */
+@media (max-width: 340px) {
+  .coach { width: calc(100vw - 16px); padding: 10px 12px 4px; }
+  .coach .mentor { width: 40px; height: 40px; }
+  .coach .mentor canvas { width: 40px !important; height: 40px !important; }
+  .coach .mentor-name { display: none; }
+  .coach .coach-ok { min-height: 34px; }
+}
 .coach:has(.mentor-say) { justify-items: stretch; }
 /* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
 .coach:has(.mentor-say) .coach-ok { justify-self: center; }
 
-/* ─── GL.8, витрина «Обсерватория тише» (`&quiet`) ─────────────────────────────────────────
-   При беглом взгляде видно главное: товары и цены. Абзац-памятка под рядом Знамений (его теперь
-   объясняет первый заход) убран, предупреждение о порядке остаётся; пустые места ряда — тихие
-   точки без кольца; бонусы — цветом и пунктиром, без цветных плашек. */
-html.quiet .shop-owned .hint:not(.order-warn), html.quiet .shop-deck .hint { display: none; }
-html.quiet .owned-omen.empty .omen-slot { box-shadow: none; opacity: 0.55; }
-html.quiet .ware-bonus .kw { background: none; padding: 0; margin: 0; }
-html.quiet .ware-bonus .kw.xmult { background: none; }
+/* Бонус товара — цветом и пунктиром, без цветной плашки (GL.8, «Тише», как «Спокойные экраны») */
+.ware-bonus .kw, .ware-bonus .kw.xmult { background: none; padding: 0; margin: 0; }

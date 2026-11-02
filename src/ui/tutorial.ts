@@ -5,9 +5,7 @@ import { h } from './dom';
 import { withMentor } from './mentor';
 import { actionText } from './rich';
 
-export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes'
-  // Первый заход в Обсерваторию «Нитью по ходу» (GL.7, витрина)
-  | 'shopBuy' | 'shopSlot' | 'shopCharts' | 'shopNext';
+export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes';
 
 const queue: TutorialStep[] = [];
 let current: HTMLElement | null = null;
@@ -75,10 +73,6 @@ function targetOf(step: TutorialStep): Box | null {
     case 'combos': return box('.hud .icon-btn.q');
     case 'burn': return box('.burn-btn');
     case 'shop': return box('.owned-omens');
-    case 'shopBuy': return box('[data-shop="omens"] .ware-list');
-    case 'shopSlot': return box('.owned-omens');
-    case 'shopCharts': return box('[data-shop="items"] .ware-list');
-    case 'shopNext': return box('[data-shop="next"]');
     case 'boss': return box('.map-node.eclipse .map-star') ?? box('.map-node.eclipse');
     case 'routes': return unionBox('.sm-star.open');
   }
@@ -271,11 +265,6 @@ document.addEventListener('starweave:modal-closed', () => {
   const app = coachApp;
   deferred.splice(0).forEach((step) => coach(app, step));
 });
-
-/** Подсказку отработали действием (купил Знамение) — убрать, как по «Понятно», и показать следующую. */
-export function dismissCoach(app: App, step: TutorialStep): void {
-  if (current?.dataset.step === step) dismiss(app, step);
-}
 
 function dismiss(app: App, step: TutorialStep): void {
   if (!app.profile.tutorial.includes(step)) app.profile.tutorial.push(step);

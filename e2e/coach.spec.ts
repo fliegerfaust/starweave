@@ -13,7 +13,7 @@ type A = {
   router: { route(): Promise<void> };
 };
 
-async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): Promise<string[]> {
+async function show(page: Page, step: string, setup: 'night' | 'map'): Promise<string[]> {
   await page.evaluate(async ({ step, setup }) => {
     const a = (window as unknown as { starweave: A }).starweave;
     Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
@@ -24,11 +24,6 @@ async function show(page: Page, step: string, setup: 'night' | 'shop' | 'map'): 
       await new Promise((r) => setTimeout(r, 300));
       a.runs.beginNight();
       await new Promise((r) => setTimeout(r, 2500));
-    }
-    if (setup === 'shop') {
-      Object.assign(a.run, { phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
-      a.runs.collectReward();
-      await new Promise((r) => setTimeout(r, 600));
     }
     if (setup === 'map') {
       Object.assign(a.run, { phase: 'map' });
@@ -62,8 +57,7 @@ test('подсказки первых забегов: нить к цели, це
   const failures: string[] = [];
   for (const step of ['place', 'target', 'fillLine', 'combos', 'cross', 'burn']) failures.push(...(await show(page, step, 'night')));
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/36-coach-burn.png` });
-  failures.push(...(await show(page, 'shop', 'shop')));
-  await page.screenshot({ path: `e2e-results/${test.info().project.name}/37-coach-shop.png` });
+  // Обсерваторию новичок проходит с «Проводником» (GL.7) — его проверяет first-shop.spec.ts
   failures.push(...(await show(page, 'boss', 'map')));
   await page.screenshot({ path: `e2e-results/${test.info().project.name}/38-coach-boss.png` });
   expect(failures).toEqual([]);
@@ -93,43 +87,5 @@ test('первая ночь: подсказка ждёт, пока уйдёт т
   expect(log.some((s) => s.toast), 'тост первой ночи был').toBe(true);
   expect(log.filter((s) => s.toast && s.coach).length, 'плашка не поверх тоста').toBe(0);
   expect(log.at(-1)!.coach, 'после тоста плашка появилась').toBe(true);
-  expect(errors).toEqual([]);
-});
-
-test('Обсерватория: подсказка не теряется из-за окон — итогов ночи и дара (GL.6)', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
-  await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
-  const log = await page.evaluate(async () => {
-    const a = (window as unknown as { starweave: A }).starweave;
-    Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
-    const { modal } = await import('/src/ui/widgets.ts');
-    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const coachShown = () => !!document.querySelector('.coach:not(.out)[data-step="shop"]');
-    a.runs.startRun('classic');
-    await wait(300);
-    a.runs.beginNight();
-    await wait(1500);
-    // Тост первой ночи к концу ночи давно ушёл
-    document.querySelectorAll('.toast').forEach((e) => e.remove());
-    // Как «Забрать» в окне итогов: окно закрывается (ещё 180 мс в DOM), а Обсерватория уже открыта
-    const reward = modal('итоги ночи', {});
-    Object.assign(a.run, { phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });
-    reward.close();
-    a.runs.collectReward();
-    await wait(600);
-    const afterReward = coachShown();
-    // Поверх Обсерватории открывается окно (дар ночи, пакет): подсказка прячется и ждёт
-    const gift = modal('дар ночи', {});
-    await wait(300);
-    const underGift = coachShown();
-    gift.close();
-    await wait(800);
-    return { afterReward, underGift, afterGift: coachShown() };
-  });
-  expect(log.afterReward, 'подсказка видна, хотя окно итогов ещё закрывалось').toBe(true);
-  expect(log.underGift, 'под окном подсказки нет').toBe(false);
-  expect(log.afterGift, 'окно закрылось — подсказка вернулась').toBe(true);
   expect(errors).toEqual([]);
 });
