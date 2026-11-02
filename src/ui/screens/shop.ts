@@ -32,9 +32,6 @@ function tag<T extends HTMLElement>(el: T, name: string): T {
   return el;
 }
 
-/** GL.2, витрина: вариант B — цена со словом «Купить» (`?press=b`, только в разработке). */
-const buyVerb = (): boolean => import.meta.env.DEV && document.documentElement.dataset.press === 'b';
-
 /** Обсерватория — «Прилавок» (RD.4): товары строками, бонус одной строкой, своё ниже. */
 /** Что было на витрине в прошлую отрисовку: по разнице анимируем только изменившееся. */
 type ShopSnapshot = { gold: number; omenUids: Set<number>; offers: Map<string, { id: string; sold: boolean }> };
@@ -244,8 +241,8 @@ export class ShopScreen implements Screen {
       ]),
       item.sold
         ? h('div.sold-label', null, [icon('check'), t('shop.sold')])
-        : button(canGive ? withCoin(`${t('shop.replace')} ${item.price}`) : !affordable || full ? t('shop.noGoldShort') : withCoin(buyVerb() ? `${t('shop.buy')} ${item.price}` : String(item.price)), onBuy, {
-            // Цена — второстепенная кнопка: главная на экране одна, «Следующая ночь»
+        : button(canGive ? withCoin(`${t('shop.replace')} ${item.price}`) : !affordable || full ? t('shop.noGoldShort') : withCoin(`${t('shop.buy')} ${item.price}`), onBuy, {
+            // Цена — второстепенная кнопка со словом (GL.2): главная на экране одна, «Следующая ночь»
             variant: 'secondary',
             className: `price${canGive ? ' replace' : full || !affordable ? ' why' : ''}`,
             disabled: full ? !canGive : !affordable,

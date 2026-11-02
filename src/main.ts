@@ -36,8 +36,6 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(location.search);
   // Витрины графики — только в разработке (SEC.7): в сборку они не попадают вовсе
   const dev = import.meta.env.DEV;
-  // GL.2: варианты «что нажимается» для витрины (`?press=now|a|b|c`)
-  if (dev && params.has('press')) document.documentElement.dataset.press = params.get('press') || 'a';
   if (dev && params.has('promo')) {
     const { setLang } = await import('./i18n');
     const lang = params.get('lang');
