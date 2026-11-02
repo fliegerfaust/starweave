@@ -124,8 +124,8 @@ describe('площадка Пикабу Игры', () => {
     await p.ready(true);
   });
 
-  it('вызов друга ведёт на Пикабу, не на свой сайт', async () => {
+  it('вызова друга на Пикабу нет: площадка не передаёт игре параметры ссылки (SA.3)', async () => {
     const { p } = await platform();
-    expect(p.inviteUrl()).toMatch(/^https:\/\/games\.pikabu\.ru\//);
+    expect(p.challenges).toBe(false);
   });
 });
