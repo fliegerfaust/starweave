@@ -36,10 +36,11 @@ ssh "$HOST" "test -f $DIR/.env || (umask 077; printf 'STATS_PASSWORD=%s\n' \"\$(
 
 echo "→ контейнер"
 # Код подключён в контейнер папкой и читается Node только при старте, а `up -d` не трогает
-# контейнер, если образ и compose не менялись, — перезапускаем явно, иначе новый код не
-# подхватится (так сводка v2 14.10.2026 сначала осталась старой)
+# контейнер, если образ и compose не менялись (так сводка v2 14.10.2026 сначала осталась
+# старой). `--force-recreate` — ровно один старт: раньше `up -d` + `restart` при изменённом
+# compose запускали контейнер дважды, и при старте дважды делался бэкап (25.10.2026, SA.11)
 ssh "$HOST" "docker network inspect starweave_proxy >/dev/null 2>&1 || docker network create --internal starweave_proxy >/dev/null"
-ssh "$HOST" "cd $DIR && docker compose pull -q && docker compose up -d --remove-orphans && docker compose restart api"
+ssh "$HOST" "cd $DIR && docker compose pull -q && docker compose up -d --remove-orphans --force-recreate api"
 for i in $(seq 1 20); do
   state="$(ssh "$HOST" "docker inspect -f '{{.State.Health.Status}}' starweave-api" 2>/dev/null || true)"
   [ "$state" = "healthy" ] && break
