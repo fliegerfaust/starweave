@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { withMentor } from '@/ui/mentor';
 import { h, type Child } from '@/ui/dom';
 
 export interface Rect {
@@ -137,7 +138,7 @@ export class TutorialOverlay {
       const actions = h('div.tut-actions', null, [this.progress, skip, next]);
       this.place = opts.place ?? 'auto';
       this.above = opts.above ?? null;
-      this.bubble.replaceChildren(text, actions);
+      this.bubble.replaceChildren(withMentor(text), actions);
       this.bubble.classList.remove('pop');
       this.bubble.classList.add('on');
       this.layout();
