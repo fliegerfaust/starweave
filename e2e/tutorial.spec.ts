@@ -228,7 +228,7 @@ test('короткая первая ночь (quickStart): ряд, сжечь, �
     const w = window as unknown as { __sawNext?: boolean };
     setInterval(() => { if (document.querySelector('.tut-bubble.on .tut-next:not(.ghost)')) w.__sawNext = true; }, 100);
   });
-  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('перетащи карты'), null, { timeout: 20_000 });
+  await page.waitForFunction(() => document.querySelector('.tut-bubble.on')?.textContent?.includes('перетащи карту'), null, { timeout: 20_000 });
   const rowText = await page.locator('.tut-bubble.on .tut-text').textContent();
   for (const [code, cell] of [['3s', 12], ['3m', 13], ['7t', 14]] as const) {
     await place(page, code, cell);
