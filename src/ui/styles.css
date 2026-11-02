@@ -1086,7 +1086,8 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .owned-omen { position: relative; width: 48px; height: 48px; transition: transform 0.15s ease; }
 .owned-omen .omen-slot { width: 48px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: grab; pointer-events: auto; }
 .owned-omen .omen-slot canvas { pointer-events: none; width: 100% !important; height: 100% !important; }
-.owned-omen.empty .omen-slot { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); cursor: default; }
+/* Пустое место ряда — тихая точка без кольца (GL.8, «Тише»): при беглом взгляде не шумит */
+.owned-omen.empty .omen-slot { border-radius: 50%; cursor: default; opacity: 0.55; }
 .owned-omen.empty .omen-slot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.3); }
 .owned-omen.misplaced::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(var(--mult-rgb) / 0.8); pointer-events: none; }
 .owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -2236,7 +2237,16 @@ body.landscape .card-info.at-card::after { content: ''; position: absolute; righ
 .tut-bubble.on { display: flex; flex-direction: column; justify-content: center; }
 .tut-text { font: 600 14.5px/1.4 var(--font-body); color: var(--ink); text-align: center; text-wrap: balance; }
 .tut-text b { color: #ffe6a8; }
+/* Действие в подсказке (GO.2): глаз цепляется за то, что сделать */
+:is(.tut-text, .coach-text) b.tut-act { color: var(--gold-hi); font-weight: 800; }
+/* Цель ночи светится, пока обучение называет её первой фразой (GO.1) */
+.hud-score-wrap.tut-goal { border-radius: 10px; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.55), 0 0 18px rgb(var(--gold-rgb) / 0.35); animation: tut-goal 1.6s ease-in-out infinite alternate; }
+@keyframes tut-goal { from { box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.35), 0 0 10px rgb(var(--gold-rgb) / 0.2); } }
+@media (prefers-reduced-motion: reduce) { .hud-score-wrap.tut-goal { animation: none; } }
+html.calm .hud-score-wrap.tut-goal { animation: none; }
 .tut-bubble.pop { animation: bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+/* У самого верха экрана — без сдвига сверху: пузырь не выглядывает за край, только проявляется */
+.tut-bubble.pop.at-top { animation-name: fade-in; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .tut-ticks { display: flex; gap: 3px; flex: 0 1 auto; min-width: 0; }
@@ -3630,3 +3640,35 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 @keyframes feat-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast .feat-toast-medal::before, .toast .feat-toast-medal::after { animation: none; opacity: 0; } }
 
+/* ─── Наставник — Лебедь (GO.6, выбор Дениса) ──────────────────────────────────────────────
+   Медальон с живым созвездием слева, имя капителью и реплика справа; текст по левому краю,
+   как речь персонажа. Медальон — не кнопка: без кольца-кромки, только тёмное небо и свечение. */
+.mentor-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; text-align: left; width: 100%; }
+.mentor { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, #241d5e 0%, #0d0b2a 75%); box-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.18); }
+.mentor canvas { display: block; }
+.mentor-line { display: grid; gap: 2px; min-width: 0; }
+.mentor-name { font: 400 12px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.mentor-say :is(.tut-text, .coach-text) { text-align: left; text-wrap: pretty; }
+/* Узкий или невысокий телефон: медальон меньше, чтобы подсказка с Лебедем помещалась между небом
+   и рукой и не наезжала на цель (Galaxy 320 × 658, iPhone SE) */
+@media (max-width: 360px), (max-height: 700px) {
+  .mentor { width: 44px; height: 44px; }
+  .mentor canvas { width: 44px !important; height: 44px !important; }
+  .mentor-say { gap: 10px; }
+}
+/* Совсем узкий телефон (320 px): плашка «Нити» шире, медальон без имени, «Понятно» ниже —
+   иначе на ночи она выше шапки и закрывает небо */
+@media (max-width: 340px) {
+  .coach { width: calc(100vw - 16px); padding: 10px 12px 4px; }
+  .coach .mentor { width: 40px; height: 40px; }
+  .coach .mentor canvas { width: 40px !important; height: 40px !important; }
+  .coach .mentor-name { display: none; }
+  .coach .coach-ok { min-height: 34px; }
+}
+.coach:has(.mentor-say) { justify-items: stretch; }
+/* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
+.coach:has(.mentor-say) .coach-ok { justify-self: center; }
+
+/* Бонус товара — цветом и пунктиром, без цветной плашки (GL.8, «Тише», как «Спокойные экраны») */
+.ware-bonus .kw, .ware-bonus .kw.xmult { background: none; padding: 0; margin: 0; }

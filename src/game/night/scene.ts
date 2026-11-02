@@ -6,6 +6,7 @@ import type { Services } from '../context';
 import type { NightLayout } from '../layout';
 import { BoardView } from './board-view';
 import { Forecast } from './forecast';
+import { GoalSky, goalVariant } from './goal-sky';
 import { SceneInput } from './input';
 import { Presenter } from './presenter';
 
@@ -81,6 +82,8 @@ export class NightScene {
   readonly view: BoardView;
   readonly input: SceneInput;
   readonly forecast: Forecast;
+  /** Цель на сцене (GO.3): созвездие ночи или Затмение, которое отвечает на счёт. */
+  goalSky: GoalSky | null = null;
   private destroyed = false;
   private readonly unsubscribers: (() => void)[] = [];
 
@@ -96,6 +99,8 @@ export class NightScene {
     this.presenter = new Presenter(this);
     this.presenter.flare = !!hooks.flare;
     this.view.computeLayout();
+    const goal = goalVariant(this);
+    if (goal) this.goalSky = new GoalSky(this, goal);
     if (import.meta.env.DEV) (window as unknown as { __scene: NightScene }).__scene = this;
   }
 
@@ -293,6 +298,7 @@ export class NightScene {
     for (const c of this.cells) this.world.destroy(c.entity);
     this.cards.clear();
     this.presenter.dispose();
+    this.goalSky?.destroy();
     this.hud.setPreview(null);
     this.hud.hideCalc();
     for (const off of this.unsubscribers) off();

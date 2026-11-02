@@ -142,7 +142,8 @@ test('Обсерватория: после покупки Знамения мо�
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   await page.evaluate(async () => {
     const a = (window as unknown as { starweave: { profile: Record<string, unknown>; run: Record<string, unknown>; runs: { startRun(s: string): void; collectReward(): void } } }).starweave;
-    Object.assign(a.profile, { tutorialDone: true, runs: 0, tutorial: [] });
+    // «Проводник» первого захода уже пройден: тест о касаниях цен, а не о нём (first-shop.spec.ts)
+    Object.assign(a.profile, { tutorialDone: true, runs: 0, tutorial: ['shop'] });
     a.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
     Object.assign(a.run, { gold: 30, phase: 'reward', reward: { base: 3, moves: 0, burns: 0, interest: 0, total: 3 }, night: null });

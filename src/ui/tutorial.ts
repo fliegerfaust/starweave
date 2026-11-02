@@ -2,6 +2,8 @@ import type { App } from '@/game/app';
 import { saveProfile } from '@/meta/profile';
 import { t } from '@/i18n';
 import { h } from './dom';
+import { withMentor } from './mentor';
+import { actionText } from './rich';
 
 export type TutorialStep = 'place' | 'fillLine' | 'combos' | 'cross' | 'target' | 'burn' | 'shop' | 'boss' | 'routes';
 
@@ -108,7 +110,7 @@ export function coach(app: App, step: TutorialStep): void {
   }
   const ok = h('button.coach-ok', { type: 'button' }, t('tutorial.gotIt'));
   ok.addEventListener('click', () => dismiss(app, step));
-  const el = h('div.coach', { attrs: { role: 'status', 'aria-live': 'polite' } }, [h('div.coach-text', null, t(`tutorial.${step}`)), ok]);
+  const el = h('div.coach', { attrs: { role: 'status', 'aria-live': 'polite' } }, [withMentor(h('div.coach-text', null, actionText(t(`tutorial.${step}`)))), ok]);
   el.dataset.step = step;
   ring = h('div.coach-ring', { attrs: { 'aria-hidden': 'true' } });
   thread = document.createElementNS(SVG, 'svg');
