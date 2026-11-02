@@ -329,6 +329,19 @@ async function boot(): Promise<void> {
       }
     }
   }
+  // GO.5: карта главы первого забега новичка — путь до рассвета (`?runmap`, `&ante=N` — какая глава)
+  if (dev && params.has('runmap')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: false, runs: 0, tutorial: [] });
+    (app.runs as unknown as { checkFeats(announce: boolean): void }).checkFeats(false);
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    run.ante = Math.min(8, Math.max(1, Number(params.get('ante') ?? 1)));
+    Object.assign(run.unlocks, { routes: false, wonders: false });
+    const { planChapter } = await import('./core/route');
+    run.chapter = { ...planChapter(run), at: 0 };
+    run.phase = 'map';
+    await app.router.route();
+  }
   // DEV: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
   if (dev && params.has('mythfx')) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'], mythsFound: ['cassiopeia', 'cygnus', 'lyra'] });

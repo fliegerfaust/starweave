@@ -47,6 +47,12 @@ export const en: Dict = {
     } as Record<string, Record<string, string>>,
   },
   foe: { beat: 'Drive it back: {n} points' },
+  runPath: {
+    aria: 'Chapter {n} of {total}, each ends with an Eclipse, dawn at the end of the road',
+    title: 'The road to dawn',
+    say: 'Stargazer, *{total} chapters* until dawn. Each one ends with an Eclipse: *drive them all back* and the sky is yours.',
+    go: 'Set off',
+  },
   mentor: { name: 'Swan' },
   constellation: {
     ursaMajor: 'Ursa Major',
