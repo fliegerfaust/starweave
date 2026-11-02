@@ -12,17 +12,6 @@ type Beam = { from: Pt; to: Pt; age: number; life: number };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
-/**
- * Затмение как противник (GO.4, витрина `?foe=a|b`). `a` — «Встреча и победа»: в начале ночи луна
- * наползает на солнце, на диске проступает знак Затмения, под ним имя и правило; на победе кольцо
- * тени разбивается на жемчужные осколки. `b` — «Живой противник»: то же и тени от диска к клеткам,
- * которые Затмение задело (запечатанные клетки, карты затмённой масти); удар созвездия их отдёргивает.
- */
-export type FoeVariant = 'a' | 'b';
-export function foeVariant(): FoeVariant | null {
-  const v = import.meta.env.DEV ? document.documentElement.dataset.foe : undefined;
-  return v === 'a' || v === 'b' ? v : null;
-}
 
 /** Вариант ночи; в разработке `?goal=figure|eclipse|now` подменяет его (`now` — без сцены цели). */
 export function goalVariant(scene: NightScene): GoalVariant | null {
@@ -52,8 +41,13 @@ export class GoalSky {
   private readonly figure: SkyFigure;
   private readonly order: number[];
   private readonly calm: boolean;
-  /** Затмение-противник (GO.4): приход 0…1, осколки кольца на победе. */
-  private readonly foe: FoeVariant | null;
+  /**
+   * Затмение — живой противник (GO.4, выбор Дениса 03.11.2026): в начале ночи луна наползает на
+   * солнце, на диске проступает знак Затмения, под ним имя, правило и цель; от диска тянутся тени к
+   * клеткам, которые оно задело (запечатанные, карты затмённой масти), удар созвездия их отдёргивает;
+   * на победе кольцо тени разбивается на жемчужные осколки. Приход 0…1.
+   */
+  private readonly foe: boolean;
   arrive = 1;
   private shattered = false;
   private readonly bornAt: number;
@@ -71,7 +65,7 @@ export class GoalSky {
     this.shown = clamp01(scene.night.score / scene.night.target);
     this.won = this.shown >= 1 ? 1 : 0;
     this.bornAt = world.res.time;
-    this.foe = variant === 'eclipse' ? foeVariant() : null;
+    this.foe = variant === 'eclipse';
     const bossId = scene.night.bossId;
     if (this.foe && bossId) {
       this.sigil = bossSigil(bossId, 96, 2);
@@ -155,7 +149,7 @@ export class GoalSky {
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
     // Тени к задетым клеткам (вариант b) — под луной, от края диска
-    if (this.foe === 'b') this.drawTendrils(ctx, cx, cy, r, time);
+    if (this.foe) this.drawTendrils(ctx, cx, cy, r, time);
     // Луна сходит с солнца по мере счёта: растёт серп; на цели тает. При приходе — наползает
     const off = r * 1.15 * p ** 1.1 + r * 2.4 * (1 - this.arrive) ** 2;
     ctx.globalAlpha = 1 - this.won;
@@ -198,7 +192,7 @@ export class GoalSky {
     ctx.lineCap = 'butt';
   }
 
-  /** Имя и правило под диском, пока Затмение приходит и ещё пару секунд (вариант a и b). */
+  /** Имя, правило и цель под диском, пока Затмение приходит, и ещё несколько секунд (вместо тоста). */
   private drawThreat(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
     const id = this.scene.night.bossId;
     if (!id) return;

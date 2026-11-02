@@ -22,7 +22,6 @@ import { showCollection, showCombos, showDeck, showHelp, showSettings } from './
 import { findMark } from '../find-shelf';
 import { icon } from '../icons';
 import { hasJourney, journeyCard } from '../journey';
-import { foeVariant } from '@/game/night/goal-sky';
 import { chapterChain, lightButton, sceneRibbon, sceneRows, sceneTally, sceneWindow, statsTable } from '../scene-window';
 
 /** Ночь: HUD + сцена на канвасе + оверлеи награды и конца забега. */
@@ -99,8 +98,8 @@ export class NightScreen implements Screen {
   private introHints(): void {
     const n = this.run.night!;
     if (n.gentle) toast(t('night.gentle', { n: n.movesLeft }));
-    // Затмение-противник (GO.4) само называет себя и правило на небе — тост не нужен
-    else if (n.bossId && !foeVariant()) toast(named('boss', n.bossId).desc);
+    // Затмение-противник (GO.4) само называет себя и правило на небе — тост, только если сцены цели нет
+    else if (n.bossId && !this.scene?.goalSky) toast(named('boss', n.bossId).desc);
     else {
       // Первые созвездия: напомнить про порядок Знамений тем, кто пропустил обучение
       const wrong = this.run.ante <= 2 ? misorderedOmens(this.run.omens) : null;

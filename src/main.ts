@@ -65,8 +65,6 @@ async function boot(): Promise<void> {
   if (dev && params.has('fresh')) localStorage.clear();
   // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
   if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') ?? '';
-  // GO.4, витрина: Затмение-противник (`&foe=a|b`)
-  if (dev && params.has('foe')) document.documentElement.dataset.foe = params.get('foe') ?? '';
   if (demo) {
     localStorage.setItem('starweave.profile.v1', JSON.stringify({ version: 1, tutorialDone: true, runs: 12 }));
     localStorage.removeItem('starweave.run.v1');
@@ -303,9 +301,9 @@ async function boot(): Promise<void> {
     startNight(run);
     // Витрина: цель ближе, чтобы дойти до неё за 3–5 созвездий
     run.night!.target = 240;
-    // Витрина Затмения (GO.4): на небе уже три карты затмённой масти — видно, кого оно задело
+    // `&dimmed` — на небе уже три карты затмённой масти: видно, кого Затмение задело (GO.4)
     const dimmed = run.night!.rules.debuffSuit;
-    if (dimmed && params.has('foe')) {
+    if (dimmed && params.has('dimmed')) {
       const picks = run.night!.drawPile.filter((c) => c.suit === dimmed).slice(0, 3);
       picks.forEach((c, i) => {
         run.night!.drawPile.splice(run.night!.drawPile.indexOf(c), 1);
