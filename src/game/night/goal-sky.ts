@@ -126,7 +126,9 @@ export class GoalSky {
     const b = this.scene.layout.board;
     const cx = b.x + b.w / 2;
     const cy = b.y + b.h / 2;
-    const r = Math.min(b.w, b.h) * 0.27;
+    // Диск — меньше центра поля, а луна полупрозрачная: клетки под ним читаются (критика 03.11:
+    // непрозрачный диск на 4 центральных клетках мешал понять, куда класть карту)
+    const r = Math.min(b.w, b.h) * 0.22;
     const p = this.shown;
     const shake = this.calm ? 0 : this.hitK * Math.sin(time * 70) * 4;
     // Солнце за луной: чем ближе цель, тем больше его видно
@@ -152,7 +154,7 @@ export class GoalSky {
     if (this.foe) this.drawTendrils(ctx, cx, cy, r, time);
     // Луна сходит с солнца по мере счёта: растёт серп; на цели тает. При приходе — наползает
     const off = r * 1.15 * p ** 1.1 + r * 2.4 * (1 - this.arrive) ** 2;
-    ctx.globalAlpha = 1 - this.won;
+    ctx.globalAlpha = 0.78 * (1 - this.won);
     ctx.fillStyle = '#04030d';
     ctx.beginPath();
     ctx.arc(cx + off * 0.82 + shake, cy - off * 0.57, r * 1.02, 0, Math.PI * 2);
@@ -192,15 +194,18 @@ export class GoalSky {
     ctx.lineCap = 'butt';
   }
 
-  /** Имя, правило и цель под диском, пока Затмение приходит, и ещё несколько секунд (вместо тоста). */
+  /**
+   * Имя и цель под диском, пока Затмение приходит, и ещё несколько секунд (вместо тоста). Правило
+   * не повторяем: оно и так строкой в табло (критика 03.11: дважды одно и то же, и поверх клеток).
+   */
   private drawThreat(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
     const id = this.scene.night.bossId;
     if (!id) return;
     const since = this.scene.world.res.time - this.bornAt;
     const k = Math.min(this.arrive, Math.max(0, 1 - (since - 5) / 1.2)) * (1 - this.won);
     if (k <= 0.01) return;
-    const [name, rule] = [named('boss', id).name, named('boss', id).desc];
-    const y = cy + r * 1.42 + 34;
+    const name = named('boss', id).name;
+    const y = cy + r * 1.42 + 30;
     ctx.save();
     ctx.globalAlpha = k;
     ctx.textAlign = 'center';
@@ -210,12 +215,9 @@ export class GoalSky {
     ctx.fillStyle = '#e8e4f4';
     ctx.font = `400 ${Math.round(Math.max(18, r * 0.22))}px Forum, serif`;
     ctx.fillText(name.toUpperCase().split('').join('\u200a'), cx, y);
-    ctx.fillStyle = '#c9c3e6';
-    ctx.font = `600 ${Math.round(Math.max(12, r * 0.12))}px 'Manrope Variable', Manrope, sans-serif`;
-    const maxW = Math.min(this.scene.svc.renderer.width - 32, r * 4);
-    wrap(ctx, rule, maxW).forEach((line, i) => ctx.fillText(line, cx, y + 22 + i * 18));
     ctx.fillStyle = '#ffe6a8';
-    ctx.fillText(t('foe.beat', { n: this.scene.night.target }), cx, y + 22 + wrap(ctx, rule, maxW).length * 18 + 4);
+    ctx.font = `700 ${Math.round(Math.max(13, r * 0.14))}px 'Manrope Variable', Manrope, sans-serif`;
+    ctx.fillText(t('foe.beat', { n: this.scene.night.target }), cx, y + 22);
     ctx.restore();
   }
 
@@ -277,7 +279,7 @@ export class GoalSky {
     const b = this.scene.layout.board;
     const cx = b.x + b.w / 2;
     const cy = b.y + b.h / 2;
-    const ring = Math.min(b.w, b.h) * 0.27 * 1.42;
+    const ring = Math.min(b.w, b.h) * 0.22 * 1.42;
     for (let i = 0; i < 18; i++) {
       const a = (i / 18) * Math.PI * 2;
       burst(this.scene.world, cx + Math.cos(a) * ring, cy + Math.sin(a) * ring, '#e8e4f4', { count: 4, speed: 260, colors: ['#e8e4f4', '#fff', '#b9b0e6'] });
@@ -288,8 +290,9 @@ export class GoalSky {
   private frame(): { x: number; y: number; w: number; h: number } {
     const { width, height } = this.scene.svc.renderer;
     const b = this.scene.layout.board;
-    // Во всё небо: на телефоне шире поля, на ПК — квадрат вокруг поля
-    const s = Math.min(width * 0.94, height * 0.86, Math.max(b.w, b.h) * 1.55);
+    // Во всё небо, заметно крупнее поля: фигура за сеткой, а не на ней — её не спутать с
+    // созвездиями игрока на клетках (критика 03.11)
+    const s = Math.min(width * 0.98, height * 0.92, Math.max(b.w, b.h) * 1.9);
     return { x: b.x + b.w / 2 - s / 2, y: Math.max(height * 0.04, b.y + b.h / 2 - s / 2), w: s, h: s };
   }
 
@@ -310,8 +313,9 @@ export class GoalSky {
       const pz = this.starPos(z);
       const k = Math.min(lit.get(a)!, lit.get(z)!);
       ctx.setLineDash(k >= 1 ? [] : [3, 6]);
-      ctx.strokeStyle = k >= 1 ? `rgba(255, 230, 168, ${0.55 + 0.3 * this.won})` : 'rgba(234, 230, 255, 0.14)';
-      ctx.lineWidth = k >= 1 ? 1.6 + this.won : 1;
+      // Горящие линии тоньше и тише вспыхнувших рядов игрока (те — яркие и толстые), до цели ≤ 0,35
+      ctx.strokeStyle = k >= 1 ? `rgba(255, 230, 168, ${0.32 + 0.4 * this.won})` : 'rgba(234, 230, 255, 0.12)';
+      ctx.lineWidth = k >= 1 ? 1.1 + this.won : 1;
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);
       ctx.lineTo(pz.x, pz.y);
@@ -331,17 +335,18 @@ export class GoalSky {
         ctx.fill();
         return;
       }
-      const tw = this.calm ? 1 : 0.85 + 0.15 * Math.sin(time * 2.2 + i * 1.7);
-      const r = base * (1 + k * 1.4) * tw;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
-      g.addColorStop(0, `rgba(255, 250, 235, ${k})`);
-      g.addColorStop(0.25, `rgba(255, 220, 150, ${0.5 * k})`);
+      // Мерцание медленное, ореол сдержанный: звезда фигуры не спорит с картами на поле (критика 03.11)
+      const tw = this.calm ? 1 : 0.9 + 0.1 * Math.sin(time * 1.2 + i * 1.7);
+      const r = base * (1 + k * 1.1) * tw;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3);
+      g.addColorStop(0, `rgba(255, 250, 235, ${0.9 * k})`);
+      g.addColorStop(0.3, `rgba(255, 220, 150, ${0.32 * k})`);
       g.addColorStop(1, 'rgba(255, 220, 150, 0)');
       ctx.fillStyle = g;
-      ctx.fillRect(p.x - r * 4, p.y - r * 4, r * 8, r * 8);
-      ctx.fillStyle = `rgba(255, 246, 224, ${0.35 * k})`;
-      ctx.fillRect(p.x - r * 3.2, p.y - 0.5, r * 6.4, 1);
-      ctx.fillRect(p.x - 0.5, p.y - r * 3.2, 1, r * 6.4);
+      ctx.fillRect(p.x - r * 3, p.y - r * 3, r * 6, r * 6);
+      ctx.fillStyle = `rgba(255, 246, 224, ${0.25 * k})`;
+      ctx.fillRect(p.x - r * 2.4, p.y - 0.5, r * 4.8, 1);
+      ctx.fillRect(p.x - 0.5, p.y - r * 2.4, 1, r * 4.8);
     });
     ctx.globalCompositeOperation = 'source-over';
     // Победа: имя созвездия под ним, как подпись на карте неба
@@ -395,19 +400,4 @@ function uniq(pts: Pt[]): Pt[] {
     seen.add(key);
     return true;
   });
-}
-
-/** Перенос строки по ширине для подписи на холсте. */
-function wrap(ctx: CanvasRenderingContext2D, text: string, max: number): string[] {
-  const lines: string[] = [];
-  let line = '';
-  for (const word of text.split(' ')) {
-    const next = line ? `${line} ${word}` : word;
-    if (ctx.measureText(next).width > max && line) {
-      lines.push(line);
-      line = word;
-    } else line = next;
-  }
-  if (line) lines.push(line);
-  return lines.slice(0, 3);
 }
