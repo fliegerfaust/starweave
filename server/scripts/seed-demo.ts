@@ -62,4 +62,48 @@ for (let c = 0; c < 220; c++) {
     insertBatch(db, batch);
   }
 }
+// Новички 0.7.20 (SA.4): короткое обучение с отметками «выполнено», первый забег, первый заход
+// в Обсерваторию с «Проводником», вторая глава; и тестовые пачки, которые сводка не считает (SA.1)
+const short = ['shortRow', 'shortBurn', 'shortCross', 'reward'];
+const guide = ['shopBuy', 'shopSlot', 'shopCharts', 'shopNext'];
+for (let c = 0; c < 90; c++) {
+  const client = `${id()}-n${c}`;
+  const platform = pick(['pikabu', 'pikabu', 'pikabu', 'telegram', 'web']);
+  let t = now - Math.floor(rnd() * 6) * DAY - Math.floor(rnd() * DAY);
+  const events: [string, Record<string, Value>, number][] = [];
+  const push = (name: string, params: Record<string, Value>) => events.push([name, params, (t += 8000 + rnd() * 40000)]);
+  push('app_open', { platform, lang: 'ru', returning: false });
+  push('tutorial_start', { source: 'auto' });
+  const reach = rnd() < 0.65 ? short.length : 1 + Math.floor(rnd() * (short.length - 1));
+  short.slice(0, reach).forEach((step, index) => {
+    push('tutorial_step', { step, index });
+    if (index < reach - 1 || reach === short.length) push('tutorial_step_done', { step, index, ms: Math.round(4000 + rnd() * 30000) });
+  });
+  if (reach < short.length) {
+    push('tutorial_skip', { step: short[reach - 1]!, index: reach - 1 });
+    push('app_hide', { ms: Math.round(30000 + rnd() * 60000) });
+  } else {
+    push('tutorial_complete', {});
+    push('run_start', { runs: 0, sky: 'classic', stake: 0, daily: false, gentle: true });
+    const won = rnd() < 0.85;
+    push('night_end', { ante: 1, night: 'dusk', boss: '', won, score: 0, target: 120, ratio: won ? 1.2 : 0.7, moves_left: 3, burns_left: 1, lines: 4, runs: 0 });
+    if (won) {
+      push('shop_open', { ante: 1, gold: 9, runs: 0, guide: true });
+      const steps = rnd() < 0.8 ? guide.length : 1;
+      guide.slice(0, steps).forEach((step, index) => {
+        push('shop_guide', { step, index: index + 1 });
+        if (step === 'shopBuy' && steps > 1) push('shop_buy', { kind: 'omen', id: pick(omens), price: 6, ante: 1, gold_left: 3 });
+      });
+      if (steps === 1) push('shop_guide', { step: 'skip', index: 1 });
+      if (rnd() < 0.55) push('night_start', { ante: 2, night: 'dusk', boss: '' });
+    }
+    push('app_hide', { ms: Math.round(120000 + rnd() * 600000) });
+  }
+  insertBatch(db, { client, session: `${id()}-ns${c}`, platform, version: '0.7.20', lang: 'ru', test: false, events: events.map(([name, params, at]) => ({ name, params, at: Math.min(at, now) })) } as Batch);
+  // Вернулся на следующий день
+  if (rnd() < 0.2 && t + DAY < now) insertBatch(db, { client, session: `${id()}-nr${c}`, platform, version: '0.7.20', lang: 'ru', test: false, events: [{ name: 'app_open', params: { platform, lang: 'ru', returning: true }, at: t + DAY }] } as Batch);
+}
+for (let c = 0; c < 6; c++) {
+  insertBatch(db, { client: `${id()}-t${c}`, session: `${id()}-ts${c}`, platform: 'web', version: '0.7.20', lang: 'ru', test: true, events: [{ name: 'app_open', params: { platform: 'web', lang: 'ru', returning: false }, at: now - c * 3600000 }, { name: 'tutorial_start', params: { source: 'auto' }, at: now - c * 3600000 + 5000 }] } as Batch);
+}
 console.log('готово');
