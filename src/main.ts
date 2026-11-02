@@ -36,6 +36,8 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(location.search);
   // Витрины графики — только в разработке (SEC.7): в сборку они не попадают вовсе
   const dev = import.meta.env.DEV;
+  // GL.2: варианты «что нажимается» для витрины (`?press=now|a|b|c`)
+  if (dev && params.has('press')) document.documentElement.dataset.press = params.get('press') || 'a';
   if (dev && params.has('promo')) {
     const { setLang } = await import('./i18n');
     const lang = params.get('lang');
@@ -69,6 +71,12 @@ async function boot(): Promise<void> {
       const settings = JSON.parse(localStorage.getItem('starweave.settings.v1') ?? '{}') as Record<string, unknown>;
       localStorage.setItem('starweave.settings.v1', JSON.stringify({ ...settings, lang }));
     }
+  }
+  // GL.2 `?tutdone`: подарок виден только без сохранённого забега, а соседние рамки витрины его пишут
+  if (dev && params.has('tutdone')) {
+    localStorage.removeItem('starweave.run.v1');
+    const saved = JSON.parse(localStorage.getItem('starweave.profile.v1') ?? '{"version":1}') as Record<string, unknown>;
+    localStorage.setItem('starweave.profile.v1', JSON.stringify({ ...saved, tutorialDone: true }));
   }
   const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
   const platform = await createPlatform();
@@ -123,7 +131,7 @@ async function boot(): Promise<void> {
     const run = app.run!;
     const { createOmen } = await import('./core/omen-instance');
     run.ante = 3;
-    run.gold = 14;
+    run.gold = Number(params.get('gold') ?? 14);
     run.comboLevels.pair = 2;
     run.comboLevels.flush = 3;
     run.omens = ['horizon', 'starlight', 'sunWorship'].map((id) => createOmen(run, id));
@@ -140,6 +148,18 @@ async function boot(): Promise<void> {
       const { showGuide } = await import('./ui/screens/guide');
       showGuide({ tab: 'combos', levels: run.comboLevels, profile: app.profile });
     }
+  }
+  // GL.2: «Обучение пройдено» с подарком (`?tutdone`) и карта главы с золотом в шапке (`?atmap`)
+  if (dev && params.has('tutdone')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialGift: { gold: 10 } });
+    const { showTutorialDone } = await import('./ui/screens/tutorial-done');
+    showTutorialDone(app, true);
+  }
+  if (dev && params.has('atmap')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 14, bestAnte: 6, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    app.runs.startRun('classic', false, 0, 4242);
+    app.run!.gold = 14;
+    await app.router.route();
   }
   // OB: полный ряд Знамений (`?full=shop|pack|trophy`): замена своего
   if (dev && params.has('full')) {
