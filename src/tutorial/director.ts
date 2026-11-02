@@ -5,7 +5,6 @@ import type { NightScene } from '@/game/night/scene';
 import { t } from '@/i18n';
 import type { Dict } from '@/i18n/ru';
 import { h } from '@/ui/dom';
-import { activeMentor } from '@/ui/mentor';
 import { actionText } from '@/ui/rich';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
@@ -401,7 +400,7 @@ export class TutorialDirector {
     goal?.classList.add('tut-goal');
     const row: [string, number][] = [['3s', TUTORIAL_CELLS.pairRow[0]], ['3m', TUTORIAL_CELLS.pairRow[1]], ['7t', TUTORIAL_CELLS.pairRow[2]], ['5c', TUTORIAL_CELLS.pairRow[3]]];
     try {
-      for (const [i, [code, cell]] of row.entries()) await this.guidePlace(i === 0 ? (activeMentor() ? 'shortRowMentor' : 'shortRow') : null, code, cell, 'top', { n: this.app.run!.night!.target });
+      for (const [i, [code, cell]] of row.entries()) await this.guidePlace(i === 0 ? 'shortRow' : null, code, cell, 'top', { n: this.app.run!.night!.target });
       await this.waitIdle(scene);
     } finally {
       goal?.classList.remove('tut-goal');

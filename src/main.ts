@@ -54,10 +54,6 @@ async function boot(): Promise<void> {
     showChartSheet(ui);
     return;
   }
-  if (dev && params.has('mentors')) {
-    (await import('./ui/mentor')).showMentors(ui);
-    return;
-  }
   if (dev && params.has('gallery')) {
     const { showGallery } = await import('./dev/gallery');
     showGallery(ui);
@@ -65,8 +61,7 @@ async function boot(): Promise<void> {
   }
   // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
   const demo = import.meta.env.DEV && params.has('demo');
-  // GO.6: наставник-созвездие в подсказках (`?mentor=bear|swan|dolphin`); `&fresh` — первый запуск с чистого листа
-  if (dev && params.has('mentor')) document.documentElement.dataset.mentor = params.get('mentor') ?? '';
+  // `?fresh` — первый запуск с чистого листа (обучение и Лебедь с первой реплики)
   if (dev && params.has('fresh')) localStorage.clear();
   // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
   if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') ?? '';
@@ -144,7 +139,7 @@ async function boot(): Promise<void> {
       rerollCost: 5,
     };
     if (params.get('at') === 'pack') run.pending = [{ kind: 'pack', pack: 'chart', options: ['triple', 'straight', 'supernova'] }];
-    // `&coach` — первый забег новичка: в Обсерватории встречает подсказка «Нити» (витрина наставника GO.6)
+    // `&coach` — первый забег новичка: в Обсерватории встречает подсказка «Нити» голосом Лебедя
     if (params.has('coach')) Object.assign(app.profile, { tutorialFinished: false, runs: 0, tutorial: [] });
     await app.router.route();
     if (params.get('at') === 'guide') {
