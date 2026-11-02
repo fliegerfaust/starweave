@@ -61,8 +61,8 @@ async function boot(): Promise<void> {
   }
   // Ролик для превью: опытный игрок без подсказок новичка (только в разработке)
   const demo = import.meta.env.DEV && params.has('demo');
-  // GO.3: вариант цели на сцене (`?goal=now|a|b|c`) — до старта, чтобы сцена ночи его увидела
-  if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') || 'a';
+  // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
+  if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') ?? '';
   if (demo) {
     localStorage.setItem('starweave.profile.v1', JSON.stringify({ version: 1, tutorialDone: true, runs: 12 }));
     localStorage.removeItem('starweave.run.v1');
@@ -281,13 +281,14 @@ async function boot(): Promise<void> {
     }
     await app.router.route();
   }
-  // GO.3: цель на сцене — ночь главы II с вариантом неба (`?goal=now|a|b|c`)
+  // GO.3: ночь главы с целью на сцене; `&auto` — четыре созвездия от нуля до цели без ходов
   if (dev && params.has('goal') && !demo) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
     app.runs.startRun('classic', false, 0, 4242);
     const run = app.run!;
     const [{ planChapter }, { startNight }] = await Promise.all([import('./core/route'), import('./core/night')]);
-    run.chapter = { ...planChapter(run), at: 1 };
+    // `&night=eclipse` — третья ночь главы, Затмение
+    run.chapter = { ...planChapter(run), at: params.get('night') === 'eclipse' ? 2 : 1 };
     startNight(run);
     // Витрина: цель ближе, чтобы дойти до неё за 3–5 созвездий
     run.night!.target = 240;

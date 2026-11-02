@@ -82,7 +82,7 @@ export class NightScene {
   readonly view: BoardView;
   readonly input: SceneInput;
   readonly forecast: Forecast;
-  /** Цель на сцене (GO.3, витрина `?goal=a|b|c`). */
+  /** Цель на сцене (GO.3): созвездие ночи или Затмение, которое отвечает на счёт. */
   goalSky: GoalSky | null = null;
   private destroyed = false;
   private readonly unsubscribers: (() => void)[] = [];
@@ -99,7 +99,7 @@ export class NightScene {
     this.presenter = new Presenter(this);
     this.presenter.flare = !!hooks.flare;
     this.view.computeLayout();
-    const goal = goalVariant();
+    const goal = goalVariant(this);
     if (goal) this.goalSky = new GoalSky(this, goal);
     if (import.meta.env.DEV) (window as unknown as { __scene: NightScene }).__scene = this;
   }

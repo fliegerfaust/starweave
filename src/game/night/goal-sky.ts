@@ -1,42 +1,42 @@
-import { SKY_FIGURES, starRadius, type SkyFigure } from '@/art/constellations';
+import { starRadius, type SkyFigure } from '@/art/constellations';
 import type { Entity } from '@/engine/ecs';
 import { t } from '@/i18n';
 import { Drawable, Layer, Transform, transform } from '../components';
 import { burst } from '../fx';
+import { figureFor, goalVariantFor, lightOrder, type GoalVariant } from './goal-plan';
 import type { NightScene } from './scene';
-
-/**
- * Цель на сцене (GO.3, витрина): небо отзывается на приближение к цели ночи. Варианты:
- * `a` — «Рассвет»: ночь тёмная, каждое созвездие поднимает зарю, на цели небо светлое;
- * `b` — «Затмение»: за небом диск Затмения с кольцом тени, созвездия бьют по нему, луна сходит с солнца;
- * `c` — «Созвездие ночи»: во всё небо контур созвездия, его звёзды загораются по мере счёта.
- * Число цели остаётся в табло, сцена — второй, наглядный слой.
- */
-export type GoalVariant = 'a' | 'b' | 'c';
 
 type Pt = { x: number; y: number };
 type Beam = { from: Pt; to: Pt; age: number; life: number };
-type Pool = { x: number; y: number; r: number; a: number };
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
-export function goalVariant(): GoalVariant | null {
-  const v = document.documentElement.dataset.goal;
-  return v === 'a' || v === 'b' || v === 'c' ? v : null;
+/** Вариант ночи; в разработке `?goal=figure|eclipse|now` подменяет его (`now` — без сцены цели). */
+export function goalVariant(scene: NightScene): GoalVariant | null {
+  const forced = import.meta.env.DEV ? document.documentElement.dataset.goal : undefined;
+  if (forced === 'now') return null;
+  if (forced === 'figure' || forced === 'eclipse') return forced;
+  return goalVariantFor(scene.night.kind);
 }
 
+/**
+ * Цель на сцене (GO.3): небо отвечает на каждое созвездие, число цели остаётся в табло.
+ * Обычная ночь — «Созвездие ночи»: во всё небо пунктир настоящего созвездия, его звёзды
+ * загораются по мере счёта, на цели оно сплетено и подписано. Ночь Затмения — «Затмение»:
+ * за небом диск с кольцом тени (запас врага), огонь созвездий бьёт в диск, кольцо тает,
+ * луна сходит с солнца. Рисуется над туманностью и под клетками; «Меньше движения» убирает
+ * лучи и искры, остаётся смена неба.
+ */
 export class GoalSky {
   /** Показанный прогресс 0…1 (плавно догоняет счёт). */
   shown = 0;
   /** Удар: 1 сразу после попадания, гаснет к 0. */
   hitK = 0;
-  /** Финал: 0…1, небо отбито / зажжено. */
+  /** Финал: 0…1, Затмение отбито / созвездие сплетено. */
   won = 0;
   private beams: Beam[] = [];
-  private pools: Pool[] = [];
   private readonly entity: Entity;
   private readonly figure: SkyFigure;
-  /** Порядок зажигания звёзд созвездия: обходом по линиям от первой. */
   private readonly order: number[];
   private readonly calm: boolean;
 
@@ -45,13 +45,14 @@ export class GoalSky {
     readonly variant: GoalVariant,
   ) {
     const world = scene.world;
+    const run = scene.run;
     this.calm = !!world.res.reduceMotion;
-    this.figure = SKY_FIGURES.find((f) => f.id === 'orion')!;
-    this.order = walk(this.figure);
+    this.figure = figureFor(run.seed, run.ante, scene.night.kind);
+    this.order = lightOrder(this.figure);
     this.shown = clamp01(scene.night.score / scene.night.target);
+    this.won = this.shown >= 1 ? 1 : 0;
     this.entity = world.create();
     world.add(this.entity, Transform, transform(0, 0));
-    // Над туманностью и звёздами, под клетками неба
     world.add(this.entity, Drawable, { layer: Layer.Background, z: 1, visible: true, draw: (ctx) => this.draw(ctx, world.res.time) });
   }
 
@@ -59,92 +60,40 @@ export class GoalSky {
     this.scene.world.destroy(this.entity);
   }
 
-  /** Созвездия попали: огонь из клеток в цель, прогресс догоняет счёт. */
+  /** Созвездия попали: огонь из клеток в цель, прогресс догоняет счёт; на цели — финал. */
   async hit(progress: number, cells: Pt[]): Promise<void> {
     const tw = this.scene.svc.tweens;
     const me: GoalSky = this;
     const p = clamp01(progress);
-    const goal = this.aim(p);
-    if (this.variant === 'a') {
-      const c = centroid(cells);
-      const b = this.scene.layout.board;
-      if (c) this.pools.push({ x: c.x, y: c.y, r: Math.max(b.w, b.h) * 0.45, a: 0 });
-      if (this.pools.length > 6) this.pools.shift();
-      const pool = this.pools[this.pools.length - 1];
-      if (pool) void tw.to(pool, { a: 1 }, { duration: 0.5, ease: 'outCubic' });
-    } else if (!this.calm) {
-      for (const from of uniq(cells)) this.beams.push({ from, to: goal, age: 0, life: 0.55 });
-    }
+    if (!this.calm) for (const from of uniq(cells)) this.beams.push({ from, to: this.aim(p), age: 0, life: 0.55 });
     this.hitK = 1;
     void tw.to(me, { hitK: 0 }, { duration: 0.9, ease: 'outCubic', delay: 0.25 });
-    await tw.to(me, { shown: p }, { duration: this.calm ? 0.3 : 0.9, ease: 'outCubic', delay: this.variant === 'a' ? 0 : 0.2 });
+    await tw.to(me, { shown: p }, { duration: this.calm ? 0.3 : 0.9, ease: 'outCubic', delay: 0.2 });
     if (!this.calm) {
       const spark = this.aim(p);
-      burst(this.scene.world, spark.x, spark.y, '#ffe6a8', { count: 14, speed: 220, colors: ['#ffe6a8', '#fff', this.variant === 'b' ? '#e8e4f4' : '#f6c25b'] });
+      burst(this.scene.world, spark.x, spark.y, '#ffe6a8', { count: 14, speed: 220, colors: ['#ffe6a8', '#fff', this.variant === 'eclipse' ? '#e8e4f4' : '#f6c25b'] });
     }
     if (p >= 1 && this.won < 1) await tw.to(me, { won: 1 }, { duration: this.calm ? 0.3 : 1.2, ease: 'outCubic' });
   }
 
-  /** Куда летит огонь: в Затмение, в следующую звезду созвездия, в зарю. */
+  /** Куда летит огонь: в диск Затмения или в звезду, которая сейчас загорится. */
   private aim(p: number): Pt {
     const b = this.scene.layout.board;
-    if (this.variant === 'b') return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-    if (this.variant === 'c') {
-      const k = Math.max(0, Math.min(this.order.length - 1, Math.ceil(p * this.order.length) - 1));
-      return this.starPos(this.order[k]!);
-    }
-    const { height } = this.scene.svc.renderer;
-    return { x: b.x + b.w / 2, y: height };
+    if (this.variant === 'eclipse') return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+    const k = Math.max(0, Math.min(this.order.length - 1, Math.ceil(p * this.order.length) - 1));
+    return this.starPos(this.order[k]!);
   }
 
   private draw(ctx: CanvasRenderingContext2D, time: number): void {
     const dt = 1 / 60;
     for (const beam of this.beams) beam.age += dt;
     this.beams = this.beams.filter((beam) => beam.age < beam.life);
-    if (this.variant === 'a') this.drawDawn(ctx);
-    else if (this.variant === 'b') this.drawEclipse(ctx, time);
+    if (this.variant === 'eclipse') this.drawEclipse(ctx, time);
     else this.drawFigure(ctx, time);
     this.drawBeams(ctx);
   }
 
-  // ── A · Рассвет ──────────────────────────────────────────────────────────
-  private drawDawn(ctx: CanvasRenderingContext2D): void {
-    const { width: w, height: h } = this.scene.svc.renderer;
-    const p = this.shown;
-    // Тьма: ночь гуще, пока цель далеко
-    ctx.fillStyle = `rgba(2, 2, 12, ${0.66 * (1 - p) ** 1.3})`;
-    ctx.fillRect(0, 0, w, h);
-    // Следы созвездий: тёплые пятна света там, где вспыхнули ряды
-    ctx.globalCompositeOperation = 'lighter';
-    for (const pool of this.pools) {
-      const g = ctx.createRadialGradient(pool.x, pool.y, 0, pool.x, pool.y, pool.r);
-      g.addColorStop(0, `rgba(255, 214, 150, ${0.16 * pool.a})`);
-      g.addColorStop(1, 'rgba(255, 214, 150, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(pool.x - pool.r, pool.y - pool.r, pool.r * 2, pool.r * 2);
-    }
-    // Заря поднимается снизу: выше и теплее с каждым созвездием
-    const rise = h * (0.18 + 0.62 * p);
-    const k = 0.15 + 0.85 * p;
-    const g = ctx.createLinearGradient(0, h, 0, h - rise);
-    g.addColorStop(0, `rgba(255, 140, 90, ${0.5 * k + 0.14 * this.hitK})`);
-    g.addColorStop(0.3, `rgba(255, 186, 104, ${0.26 * k})`);
-    g.addColorStop(0.65, `rgba(255, 120, 150, ${0.08 * k})`);
-    g.addColorStop(1, 'rgba(120, 90, 200, 0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, h - rise, w, rise);
-    // Победа: небо светлеет целиком
-    if (this.won > 0) {
-      const sky = ctx.createLinearGradient(0, 0, 0, h);
-      sky.addColorStop(0, `rgba(120, 150, 255, ${0.06 * this.won})`);
-      sky.addColorStop(1, `rgba(255, 200, 130, ${0.12 * this.won})`);
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, w, h);
-    }
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  // ── B · Затмение ─────────────────────────────────────────────────────────
+  // ── Затмение ─────────────────────────────────────────────────────────────
   private drawEclipse(ctx: CanvasRenderingContext2D, time: number): void {
     const b = this.scene.layout.board;
     const cx = b.x + b.w / 2;
@@ -173,14 +122,12 @@ export class GoalSky {
     ctx.globalCompositeOperation = 'source-over';
     // Луна сходит с солнца по мере счёта: растёт серп; на цели тает
     const off = r * 1.15 * p ** 1.1;
-    const mx = cx + off * 0.82 + shake;
-    const my = cy - off * 0.57;
     ctx.globalAlpha = 1 - this.won;
     ctx.fillStyle = '#04030d';
     ctx.beginPath();
-    ctx.arc(mx, my, r * 1.02, 0, Math.PI * 2);
+    ctx.arc(cx + off * 0.82 + shake, cy - off * 0.57, r * 1.02, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = `rgba(232, 228, 244, ${0.35 * (1 - this.won)})`;
+    ctx.strokeStyle = 'rgba(232, 228, 244, 0.35)';
     ctx.lineWidth = 1.2;
     ctx.stroke();
     ctx.globalAlpha = 1;
@@ -206,7 +153,7 @@ export class GoalSky {
     ctx.lineCap = 'butt';
   }
 
-  // ── C · Созвездие ночи ───────────────────────────────────────────────────
+  // ── Созвездие ночи ───────────────────────────────────────────────────────
   private frame(): { x: number; y: number; w: number; h: number } {
     const { width, height } = this.scene.svc.renderer;
     const b = this.scene.layout.board;
@@ -223,8 +170,7 @@ export class GoalSky {
 
   private drawFigure(ctx: CanvasRenderingContext2D, time: number): void {
     const f = this.frame();
-    const n = this.order.length;
-    const litCount = this.shown * n;
+    const litCount = this.shown * this.order.length;
     const lit = new Map<number, number>();
     this.order.forEach((star, k) => lit.set(star, clamp01(litCount - k)));
     // Линии: пунктир, пока звёзды не горят; загораются, когда горят обе
@@ -254,7 +200,7 @@ export class GoalSky {
         ctx.fill();
         return;
       }
-      const tw = 0.85 + 0.15 * Math.sin(time * 2.2 + i * 1.7);
+      const tw = this.calm ? 1 : 0.85 + 0.15 * Math.sin(time * 2.2 + i * 1.7);
       const r = base * (1 + k * 1.4) * tw;
       const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
       g.addColorStop(0, `rgba(255, 250, 235, ${k})`);
@@ -308,28 +254,6 @@ export class GoalSky {
     ctx.lineCap = 'butt';
     ctx.globalCompositeOperation = 'source-over';
   }
-}
-
-/** Обход звёзд по линиям: созвездие загорается цепочкой, а не вразнобой. */
-function walk(f: SkyFigure): number[] {
-  const seen = new Set<number>([0]);
-  const out = [0];
-  for (let i = 0; i < out.length; i++) {
-    for (const [a, b] of f.lines) {
-      const next = a === out[i] ? b : b === out[i] ? a : -1;
-      if (next >= 0 && !seen.has(next)) {
-        seen.add(next);
-        out.push(next);
-      }
-    }
-  }
-  f.stars.forEach((_, i) => seen.has(i) || out.push(i));
-  return out;
-}
-
-function centroid(pts: Pt[]): Pt | null {
-  if (!pts.length) return null;
-  return { x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length };
 }
 
 function uniq(pts: Pt[]): Pt[] {
