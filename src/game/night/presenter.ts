@@ -599,6 +599,8 @@ export class Presenter {
     await this.tweens.wait(0.2); // панель растворяется 0,18 с — огоньки летят уже по чистому небу
     await this.flyToScore([...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)]);
     hud.setScore(scoreAfter, target);
+    // Цель на сцене: огонь созвездий бьёт в цель; финал ночи доигрывается до окна итогов
+    const goal = scene.goalSky?.hit(scoreAfter / target, [...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)].map((c) => this.cellPos(c)));
     const power = Math.min(1, score.total / target);
     this.audio.impact(power);
     shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
@@ -616,6 +618,7 @@ export class Presenter {
     for (const fx of lineFx) this.world.destroy(fx.entity);
     this.fx = this.fx.filter((e) => this.world.isAlive(e));
     hud.hideCalc();
+    if (goal && scoreAfter >= target) await goal;
   }
 
   /** Во сколько раз дольше держать каждый шаг (обучение замедляет подсчёт). */
