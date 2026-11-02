@@ -65,8 +65,6 @@ async function boot(): Promise<void> {
   if (dev && params.has('fresh')) localStorage.clear();
   // GO.3: цель на сцене в ночи главы (`?goal=figure|eclipse|now`, пусто — по виду ночи) — до старта, чтобы сцена её увидела
   if (dev && params.has('goal')) document.documentElement.dataset.goal = params.get('goal') ?? '';
-  // GO.5, витрина: путь до рассвета на карте главы (`?runmap&runpath=a|b`, `&ante=N`)
-  if (dev && params.has('runpath')) document.documentElement.dataset.runpath = params.get('runpath') ?? '';
   if (demo) {
     localStorage.setItem('starweave.profile.v1', JSON.stringify({ version: 1, tutorialDone: true, runs: 12 }));
     localStorage.removeItem('starweave.run.v1');

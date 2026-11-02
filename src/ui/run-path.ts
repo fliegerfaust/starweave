@@ -1,19 +1,26 @@
+import type { App } from '@/game/app';
 import { t } from '@/i18n';
+import { saveProfile } from '@/meta/profile';
 import { h } from './dom';
 import { withMentor } from './mentor';
 import { actionText } from './rich';
 import { button, modal } from './widgets';
 
 /**
- * Цель забега на виду (GO.5, витрина `?runpath=a|b`). Восемь глав до рассвета, в конце каждой —
- * Затмение. `a` — «Путь в шапке»: деления карты главы стали путём из восьми Затмений-колечек и
- * солнца рассвета в конце. `b` — «Пролог пути»: то же и один раз перед первой картой главы
- * во всё небо загорается путь, Лебедь говорит, зачем идём.
+ * Цель забега на виду — «Пролог пути» (GO.5, выбор Дениса 03.11.2026). Восемь глав до рассвета,
+ * в конце каждой — Затмение. Деления карты главы стали путём из восьми Затмений-колечек и
+ * рассвета в конце; один раз, перед первой картой главы в первых забегах, во всё окно дугой
+ * загорается этот путь, Лебедь говорит, зачем идём, а «В путь» сворачивает дугу в путь шапки.
  */
-export type RunPathVariant = 'a' | 'b';
-export function runPathVariant(): RunPathVariant | null {
-  const v = import.meta.env.DEV ? document.documentElement.dataset.runpath : undefined;
-  return v === 'a' || v === 'b' ? v : null;
+export function runPrologueDue(app: App): boolean {
+  const p = app.profile;
+  return !app.run?.tutorial && p.runs < 3 && !p.tutorial.includes('runPath');
+}
+
+/** Пролог показан — второй раз не навязываем, даже если игрок закрыл игру посередине. */
+export function markRunPrologue(app: App): void {
+  app.profile.tutorial.push('runPath');
+  saveProfile(app.profile);
 }
 
 /** Путь в шапке: пройденные главы — золотые, текущая светится, впереди — Затмения, в конце — рассвет. */
@@ -23,7 +30,7 @@ export function runPathStrip(ante: number, total: number): HTMLElement {
 }
 
 /** Пролог пути: восемь звёзд-глав дугой и рассвет; один раз, перед первой картой главы. */
-export function showRunPrologue(ante: number, total: number, done: () => void): void {
+export function showRunPrologue(ante: number, total: number, done: () => void): { close(): void } {
   const W = 340;
   const H = 190;
   const pts = Array.from({ length: total + 1 }, (_, i) => {
@@ -63,6 +70,7 @@ export function showRunPrologue(ante: number, total: number, done: () => void): 
     ],
     { dismissable: false, className: 'narrow run-prologue', onClose: done },
   );
+  return m;
 }
 
 /** Перелёт знаков с дуги пролога в полосу шапки (FLIP): связь «вот путь» → «вот он наверху». */

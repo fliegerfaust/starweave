@@ -1330,13 +1330,9 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
 .map-plaque { font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .map-plaque .of { color: var(--ink-faint); letter-spacing: 0.16em; }
 .map-plaque.short .of { display: none; }
-.map-ticks { display: flex; gap: 5px; }
-.map-ticks i { width: 14px; height: 3px; border-radius: 2px; background: rgb(var(--violet-rgb) / 0.2); }
-.map-ticks i.done { background: var(--gold); }
-.map-ticks i.now { width: 22px; background: var(--gold-hi); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.9); }
 .map-stake { display: flex; gap: 3px; color: var(--gold); }
 .map-stake .icon { width: 11px; height: 11px; fill: currentColor; stroke-width: 1; }
-/* Путь до рассвета (GO.5, витрина): восемь глав — Затмения-колечки на нити, в конце рассвет.
+/* Путь до рассвета (GO.5, выбор Дениса — пролог пути): восемь глав — Затмения-колечки на нити, в конце рассвет.
    Пройденные — золотые, текущая — светится, впереди — жемчужные кольца Затмений */
 .map-run { position: relative; display: flex; align-items: center; gap: 9px; padding: 0 2px; }
 .map-run::before { content: ''; position: absolute; left: 6px; right: 10px; top: 50%; height: 1px; background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.6), rgb(232 228 244 / 0.25) 60%, rgb(var(--gold-rgb) / 0.5)); }
@@ -1349,7 +1345,7 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
 .map-run .dawn { position: relative; width: 18px; height: 9px; margin: 0 0 4px 2px; border-radius: 18px 18px 0 0; background: radial-gradient(circle at 50% 100%, #ffd9a0 0 45%, #ffb26b 70%, #e88a4a 100%); box-shadow: 0 -2px 10px rgb(255 178 107 / 0.6); }
 .map-run .dawn::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: -1px; height: 1px; background: rgb(var(--gold-rgb) / 0.7); }
 
-/* Пролог пути (GO.5, витрина): восемь звёзд-глав дугой загораются по очереди, в конце встаёт рассвет */
+/* Пролог пути (GO.5): один раз в первых забегах восемь звёзд-глав дугой загораются по очереди, в конце встаёт рассвет */
 .modal-panel.run-prologue { display: grid; gap: 12px; justify-items: center; text-align: center; }
 .run-prologue-title { margin: 0; font: 400 24px/1.1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-hi); }
 .run-prologue-sky { width: 100%; max-width: 340px; }

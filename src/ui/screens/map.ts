@@ -12,7 +12,7 @@ import { icon } from '../icons';
 import { ChartLayout, layoutMode, type Placed } from '../map-layout';
 import { coach } from '../tutorial';
 import { attachTooltip, button } from '../widgets';
-import { runPathStrip, runPathVariant, showRunPrologue } from '../run-path';
+import { markRunPrologue, runPathStrip, runPrologueDue, showRunPrologue } from '../run-path';
 import { showDeck, showHelp, showRunMenu } from './common';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -28,6 +28,8 @@ let maskSeq = 0;
 export class MapScreen implements Screen {
   private el!: HTMLElement;
   private resize?: ResizeObserver;
+  /** Окно пролога пути: уходит вместе с картой главы, не висит над ночью. */
+  private prologue: { close(): void } | null = null;
   private timers: number[] = [];
   private sky?: SkyMap;
 
@@ -72,13 +74,8 @@ export class MapScreen implements Screen {
     const title = run.endless
       ? h('div.map-plaque', null, t('night.endless'))
       : h('div.map-plaque', null, [t('map.chapter', { n: roman(ante) }), ' ', h('span.of', null, t('map.of', { total: roman(FINAL_ANTE) }))]);
-    // GO.5, витрина: путь до рассвета вместо делений
-    const path8 = runPathVariant();
-    const ticks = total && path8
-      ? runPathStrip(ante, total)
-      : total
-      ? h('div.map-ticks', { attrs: { 'aria-label': t('night.constellationOf', { n: ante, total }) } }, Array.from({ length: total }, (_, i) => h(`i${i < ante - 1 ? '.done' : i === ante - 1 ? '.now' : ''}`)))
-      : null;
+    // Путь до рассвета вместо делений (GO.5): восемь Затмений и рассвет в конце
+    const ticks = total ? runPathStrip(ante, total) : null;
     const stake = run.stake
       ? h('div.map-stake', { attrs: { 'aria-label': t('map.stake', { n: run.stake }) } }, Array.from({ length: run.stake }, () => icon('star')))
       : null;
@@ -129,14 +126,10 @@ export class MapScreen implements Screen {
     this.resize.observe(path);
 
     if (!this.peek && currentNode(run).bossId) coach(this.app, 'boss');
-    // GO.5, витрина: зачем идём — один раз в первых забегах, на первой карте главы
-    const profile = this.app.profile;
-    if (!this.peek && path8 && total && !profile.tutorial.includes('runGoal')) {
-      if (path8 === 'a') coach(this.app, 'runGoal');
-      else {
-        profile.tutorial.push('runGoal');
-        showRunPrologue(ante, total, () => undefined);
-      }
+    // Пролог пути (GO.5): зачем идём — один раз в первых забегах, на первой карте главы
+    if (!this.peek && total && runPrologueDue(this.app)) {
+      markRunPrologue(this.app);
+      this.prologue = showRunPrologue(ante, total, () => (this.prologue = null));
     }
   }
 
@@ -225,6 +218,7 @@ export class MapScreen implements Screen {
     if (this.sky) return this.sky.unmount();
     this.resize?.disconnect();
     this.timers.forEach((id) => clearTimeout(id));
+    this.prologue?.close();
     this.el.remove();
   }
 }
