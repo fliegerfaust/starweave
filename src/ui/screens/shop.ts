@@ -241,8 +241,8 @@ export class ShopScreen implements Screen {
       ]),
       item.sold
         ? h('div.sold-label', null, [icon('check'), t('shop.sold')])
-        : button(canGive ? withCoin(`${t('shop.replace')} ${item.price}`) : !affordable || full ? t('shop.noGoldShort') : withCoin(String(item.price)), onBuy, {
-            // Цена — второстепенная кнопка: главная на экране одна, «Следующая ночь»
+        : button(canGive ? withCoin(`${t('shop.replace')} ${item.price}`) : !affordable || full ? t('shop.noGoldShort') : withCoin(`${t('shop.buy')} ${item.price}`), onBuy, {
+            // Цена — второстепенная кнопка со словом (GL.2): главная на экране одна, «Следующая ночь»
             variant: 'secondary',
             className: `price${canGive ? ' replace' : full || !affordable ? ' why' : ''}`,
             disabled: full ? !canGive : !affordable,
