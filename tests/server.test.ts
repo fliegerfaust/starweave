@@ -27,8 +27,9 @@ describe('сервер: приём событий', () => {
     expect(parseBatch('not json', NOW)).toBe('bad json');
     expect(parseBatch(body({ c: 'x' }), NOW)).toBe('bad client');
     expect(parseBatch(body({ p: 'evil' }), NOW)).toBe('bad platform');
-    expect(parseBatch(body({}, [['Bad Name', {}, NOW]]), NOW)).toBe('bad event name');
-    expect(parseBatch(body({}, [['x_y', { nested: { a: 1 } }, NOW]]), NOW)).toBe('bad param value');
+    // Пачка, где не осталось ни одного годного события, отклоняется целиком (SA.8)
+    expect(parseBatch(body({}, [['Bad Name', {}, NOW]]), NOW)).toBe('no valid events');
+    expect(parseBatch(body({ t: 2 }), NOW)).toBe('bad test flag');
     expect(parseBatch(body({}, Array.from({ length: LIMITS.events + 1 }, () => ['app_open', {}, NOW])), NOW)).toBe('too many events');
     expect(parseBatch('x'.repeat(LIMITS.body + 1), NOW)).toBe('body too large');
   });
@@ -193,21 +194,26 @@ describe('сервер: сводка', () => {
     put('client-gift', 's-gift', '0.7.10', NOW - 3 * DAY, [['app_open', {}], ['run_start', { gift: true }], ['gift_take', { kind: 'glyph', id: 'x', ante: 1, deck: 20 }], ['night_start', { ante: 2, night: 'midnight' }]]);
     // Вернулся на следующий день, сдался в 1-й главе
     put('client-gift', 's-gift2', '0.7.10', NOW - 2 * DAY, [['run_start', {}], ['run_end', { result: 'abandon', ante: 1, omens: '' }]]);
-    // Ошибка старой версии в список не попадает, но считается
+    // Ошибка старой версии в список не попадает, но считается: свежие версии 0.7.8–0.7.10 (SA.2)
     put('client-old2', 's-old', '0.4.11', NOW - DAY, [['js_error', { message: 'old boom' }]]);
+    put('client-new8', 's-new8', '0.7.8', NOW - DAY, [['app_open', {}]]);
+    put('client-new9', 's-new9', '0.7.9', NOW - DAY, [['app_open', {}]]);
     const s = computeStats(db, NOW, 7);
     const gift = s.play.features.find((f) => f.name === 'Дар ночи')!;
     expect(gift).toMatchObject({ available: 1, met: 1, used: 1 });
     expect(s.play.features.find((f) => f.name === 'Развилки')).toMatchObject({ need: 'route_pick' });
     expect(s.play.runsStarted).toBe(2);
     expect(s.play.quits).toEqual(expect.arrayContaining([{ ante: 2, night: 'midnight', runs: 1 }, { ante: 1, night: 'dusk', runs: 1 }]));
-    expect(s.play.cohorts.reduce((a, c) => a + c.players, 0)).toBe(2);
-    expect(s.play.platformFunnel[0]).toMatchObject({ platform: 'pikabu', d1: 1, d1Base: 2 });
+    expect(s.play.cohorts.reduce((a, c) => a + c.players, 0)).toBe(4);
+    expect(s.play.platformFunnel[0]).toMatchObject({ platform: 'pikabu', d1: 1, d1Base: 4 });
+    expect(s.play.errorVersions).toEqual(['0.7.8', '0.7.9', '0.7.10']);
     expect(s.errors).toEqual([]);
     expect(s.play.oldErrors).toBe(1);
     const html = renderDashboard(s);
     expect(html).toContain('Ничего тревожного');
-    expect(html).toContain('нужно событие <code>route_pick</code>');
+    // Фича без события не показывается пустой строкой (SA.10)
+    expect(html).not.toContain('Развилки');
+    expect(html).not.toContain('появится в 0.7.11');
     // Шрифты вшиты: страница не ходит наружу
     expect(html).toContain('data:font/woff2;base64,');
     expect(html).not.toContain('googleapis');

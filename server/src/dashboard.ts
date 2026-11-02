@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { ru } from '../../src/i18n/ru.ts';
 import { RETENTION_DAYS } from './db.ts';
-import { COHORT_DAYS, ERRORS_SINCE, FUNNEL_STEPS, SESSION_BUCKETS, type Feature } from './play-stats.ts';
+import { COHORT_DAYS, FUNNEL_STEPS, NEWCOMER_SINCE, NEWCOMER_STEPS, SESSION_BUCKETS, type Feature } from './play-stats.ts';
 import { STACK_SCRIPT } from './stack-decoder.ts';
 import { dayLabel, type Stats } from './stats.ts';
 
@@ -16,11 +16,15 @@ const fmt = (n: number): string => n.toLocaleString('ru-RU');
 const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '–');
 const dec = (n: number | null): string => (n === null ? '–' : Number.isInteger(n) ? fmt(n) : n.toFixed(1).replace('.', ','));
 
-const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры', pikabu: 'Пикабу Игры', crazygames: 'CrazyGames' };
+const PLATFORM: Record<string, string> = { web: 'Сайт', telegram: 'Telegram', yandex: 'Яндекс Игры', pikabu: 'Пикабу Игры' };
 const platformName = (p: string) => PLATFORM[p] ?? p;
 const NIGHTS = ['dusk', 'midnight', 'eclipse'] as const;
 const NIGHT: Record<string, string> = { dusk: ru.night.dusk, midnight: ru.night.midnight, eclipse: ru.night.eclipse };
 const PLACEMENT: Record<string, string> = { between_antes: 'между главами', revive: 'второй шанс', double_reward: 'удвоить награду' };
+/** Вид рекламы (SA.9): заставка Пикабу — не «за награду». */
+const AD_KIND: Record<string, string> = { rewarded: 'за награду', interstitial: 'межстраничная', preloader: 'заставка при запуске' };
+/** Шаги «Проводника» первого захода в Обсерваторию (GL.7). */
+const GUIDE: Record<string, string> = { shopBuy: 'Купи Знамение', shopLook: 'Копи золото', shopSlot: 'Знамение в ряду', shopCharts: 'Звёздные карты', shopNext: 'Следующая ночь' };
 /** Последняя глава забега (FINAL_ANTE игры): победный run_end приходит с главой на 1 больше. */
 const FINAL_ANTE = 8;
 
@@ -70,7 +74,7 @@ function delta(cur: number | null, prev: number | null, goodUp = true, unit = ''
   return `<span class="dl ${up === goodUp ? 'up' : 'down'}">${up ? '▲' : '▼'} было ${dec(prev)}${unit}</span>`;
 }
 
-function cell(span: 4 | 5 | 6 | 7, title: string, body: string): string {
+function cell(span: 4 | 5 | 6 | 7 | 12, title: string, body: string): string {
   return `<section class="cell c${span}"><h2>${esc(title)}</h2>${body}</section>`;
 }
 
@@ -111,7 +115,7 @@ export function watchItems(s: Stats): { tone: Tone; title: string; text: string 
   }
 
   if (p.week.errors > 0) {
-    out.push({ tone: 'hot', title: `Ошибки в игре: ${p.week.errors} за неделю`, text: 'Список и стеки в блоке «Здоровье».' });
+    out.push({ tone: 'hot', title: `Ошибки в игре: ${p.week.errors} за неделю`, text: `Последние версии ${p.errorVersions.join(', ')}. Список и стеки в блоке «Здоровье».` });
   }
 
   const w = p.week.minPerDay;
@@ -134,7 +138,7 @@ export function watchItems(s: Stats): { tone: Tone; title: string; text: string 
 
   const r = s.retention;
   if (r.d1Base >= 10 && r.d1 / r.d1Base < 0.2) {
-    out.push({ tone: 'tick', title: 'Мало возвращаются', text: `На следующий день вернулись ${pct(r.d1, r.d1Base)} (${r.d1} из ${r.d1Base}). Ориентир для мобильных игр от 30 до 40%.` });
+    out.push({ tone: 'tick', title: 'Мало возвращаются', text: `За всё время на следующий день вернулись ${pct(r.d1, r.d1Base)} (${r.d1} из ${r.d1Base}). Ориентир для мобильных игр от 30 до 40%.` });
   }
 
   if (p.money.paid > 0) out.push({ tone: 'good', title: `Оплат за период: ${p.money.paid}`, text: 'Подробности в блоке «Деньги и реклама».' });
@@ -238,14 +242,18 @@ function bucketsTable(buckets: number[]): string {
 function featureRow(f: Feature): string {
   const since = `<span class="since faint">с ${esc(f.since)}</span>`;
   const note = f.note ? `<div class="faint small">${esc(f.note)}</div>` : '';
-  if (f.need) return `<tr><td><b>${esc(f.name)}</b>${since}</td><td class="r">${fmt(f.available)}</td><td colspan="2" class="need">нужно событие <code>${esc(f.need)}</code>, появится в 0.7.11</td></tr>`;
-  const base = f.met ?? f.available;
+  // Взяли бывает больше, чем «встретили»: открыть можно и не через крючок (SA.9) — процент не выше 100
+  const base = Math.max(f.met ?? f.available, f.used ?? 0);
   const used = f.used ?? 0;
   return `<tr><td><b>${esc(f.name)}</b>${since}${note}</td><td class="r">${fmt(f.available)}</td><td class="r">${f.met === null ? '–' : fmt(f.met)}</td><td class="r"><b>${fmt(used)}</b> <span class="faint">${pct(used, base)}</span></td></tr>`;
 }
 
 function featuresBlock(s: Stats): string {
-  return `<div class="scroll"><table class="feat"><thead><tr><th>Фича</th><th class="r">Была</th><th class="r">Встретили</th><th class="r">Взяли</th></tr></thead><tbody>${s.play.features.map(featureRow).join('')}</tbody></table></div>${foot(
+  // Фичи, о которых игра ещё не шлёт событие, не показываем: пустая строка только путает (SA.10)
+  return `<div class="scroll"><table class="feat"><thead><tr><th>Фича</th><th class="r">Была</th><th class="r">Встретили</th><th class="r">Взяли</th></tr></thead><tbody>${s.play.features
+    .filter((f) => !f.need)
+    .map(featureRow)
+    .join('')}</tbody></table></div>${foot(
     'Игроки периода на версии не старше выхода фичи. «Была»: дошли до места игры, где она возможна (Дар ночи: начали забег с даром). «Встретили»: увидели выбор (Трофеи: выиграли Затмение; Коллекция: увидели строку «Новое в Коллекции»). Прочерк: такого события нет.',
   )}`;
 }
@@ -333,19 +341,19 @@ function omensBlock(s: Stats): string {
 function moneyBlock(s: Stats): string {
   const m = s.play.money;
   const ads = s.ads.length
-    ? `<table><thead><tr><th>Реклама</th><th>Где</th><th class="r">Запросов</th><th class="r">Досмотрели</th></tr></thead><tbody>${s.ads
+    ? `<div class="scroll"><table><thead><tr><th>Реклама</th><th>Вид и место</th><th class="r">Запросов</th><th class="r">Показано</th><th class="r">Нет ролика</th><th class="r">Ошибок</th></tr></thead><tbody>${s.ads
         .map(
           (a) =>
-            `<tr><td>${esc(platformName(a.platform))}</td><td>${a.kind === 'interstitial' ? 'межстраничная' : 'за награду'}, ${esc(PLACEMENT[a.placement] ?? a.placement)}</td><td class="r">${fmt(a.requests)}</td><td class="r">${
-              a.kind === 'rewarded' ? pct(a.rewarded, a.requests) : '–'
-            }</td></tr>`,
+            `<tr><td>${esc(platformName(a.platform))}</td><td>${esc(AD_KIND[a.kind] ?? a.kind)}, ${esc(PLACEMENT[a.placement] ?? a.placement)}</td><td class="r">${fmt(a.requests)}</td><td class="r">${fmt(a.shown)}${
+              a.kind === 'rewarded' && a.shown ? ` <span class="faint">досмотрели ${pct(a.rewarded, a.shown)}</span>` : ''
+            }</td><td class="r${a.nofill && a.nofill >= a.requests / 2 ? ' hot' : ''}">${fmt(a.nofill)}</td><td class="r">${fmt(a.failed)}</td></tr>`,
         )
-        .join('')}</tbody></table>`
+        .join('')}</tbody></table></div>${foot('«Нет ролика»: площадка ответила, что показать нечего (nofill). Если так почти всегда, реклама не работает, хотя запросы идут.')}`
     : empty('Рекламы в этот период не было.');
   return `<div class="trio"><div><span class="num mid">${fmt(m.storeOpen)}</span><span class="lab">открыли атлас</span></div><div><span class="num mid">${fmt(m.purchaseStart)}</span><span class="lab">нажали «Купить»</span></div><div><span class="num mid">${fmt(m.paid)}</span><span class="lab">оплат</span></div></div>${ads}`;
 }
 
-function healthBlock(s: Stats): string {
+function healthBlock(s: Stats, opts: DashboardOpts): string {
   const p = s.play;
   const when = (ts: number) => new Date(ts).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const errors = s.errors.length
@@ -363,16 +371,58 @@ function healthBlock(s: Stats): string {
         .map((f) => `<tr><td>${esc(platformName(f.platform))}</td><td class="r ${f.medianFps >= 50 ? 'good' : f.medianFps >= 30 ? 'tick' : 'hot'}">${f.medianFps}</td><td class="r faint">${fmt(f.samples)}</td></tr>`)
         .join('')}</tbody></table>`
     : '';
-  return `<div class="trio"><div><span class="num mid">${p.crashFree === null ? '–' : `${dec(p.crashFree)}%`}</span><span class="lab">сессий без ошибок</span></div><div><span class="num mid">${fmt(
+  // Отказы приёма событий с запуска сервера (SA.8): в журнал 4xx не пишутся
+  const rejects = opts.rejects ?? [];
+  const rejected = rejects.length
+    ? `<table><thead><tr><th>Не принято с запуска сервера</th><th class="r">Раз</th></tr></thead><tbody>${rejects
+        .map(([reason, n]) => `<tr><td><code>${esc(reason)}</code></td><td class="r">${fmt(n)}</td></tr>`)
+        .join('')}</tbody></table>${foot('«batch» — пачка отклонена целиком, «event» и «param» — выкинуто одно событие или параметр, остальное принято.')}`
+    : '';
+  const excluded = opts.excluded ? foot(`Свои устройства (${opts.excluded}) и тестовые сборки в сводку не входят.`) : foot('Тестовые сборки в сводку не входят.');
+  return `<div class="trio"><div><span class="num mid">${p.crashFree === null ? '–' : `${dec(p.crashFree)}%`}</span><span class="lab">сессий без ошибок на ${esc(p.errorVersions.join(', ') || '–')}</span></div><div><span class="num mid">${fmt(
     p.oldErrors,
-  )}</span><span class="lab">ошибок версий до ${ERRORS_SINCE} скрыто</span></div><div><span class="num mid">${fmt(s.versions[0]?.players ?? 0)}</span><span class="lab">на версии ${esc(s.versions[0]?.version ?? '–')}</span></div></div>
-<div class="scroll"><table><thead><tr><th>Ошибка, свежие сверху</th><th class="r">Раз</th><th class="r">Последняя</th></tr></thead><tbody>${errors}</tbody></table></div>${fps}`;
+  )}</span><span class="lab">ошибок старых версий скрыто</span></div><div><span class="num mid">${fmt(s.versions[0]?.players ?? 0)}</span><span class="lab">на версии ${esc(s.versions[0]?.version ?? '–')}</span></div></div>
+<div class="scroll"><table><thead><tr><th>Ошибка, свежие сверху</th><th class="r">Раз</th><th class="r">Последняя</th></tr></thead><tbody>${errors}</tbody></table></div>${fps}${rejected}${excluded}`;
+}
+
+/** Воронка новичка (SA.4): по событиям, которые игра шлёт с 0.7.20. Шаги обучения — показан, выполнен, сколько секунд. */
+function newcomerBlock(s: Stats): string {
+  const nc = s.play.newcomers;
+  if (!nc.length) return empty(`Новичков с версии ${NEWCOMER_SINCE} в этот период не было: события воронки игра шлёт с неё.`);
+  const head = nc.map((f) => `<th class="r">${esc(platformName(f.platform))}</th>`).join('');
+  const rows = NEWCOMER_STEPS.map((step, i) => {
+    const cells = nc.map((f) => {
+      const k = f.steps[i]!;
+      const base = f.steps[0]!;
+      return `<td class="r"><div class="fc"><span><b>${pct(k, base)}</b> <span class="faint">${fmt(k)}</span></span>${bar(base ? k / base : 0, 'light')}</div></td>`;
+    });
+    return `<tr><td>${esc(step)}</td>${cells.join('')}</tr>`;
+  });
+  const back = nc.map((f) => (f.d1Base ? `<td class="r"><b>${pct(f.d1, f.d1Base)}</b> <span class="faint">${f.d1}${f.d1Base < 5 ? ` из ${f.d1Base}` : ''}</span></td>` : '<td class="r faint">ещё рано</td>'));
+  const steps = s.play.tutorialSteps;
+  const stepTable = steps.length
+    ? `<table><thead><tr><th>Шаг обучения</th><th class="r">Показан</th><th class="r">Выполнен</th><th class="r">Секунд на шаге</th></tr></thead><tbody>${steps
+        .map((st) => `<tr><td>${esc(GUIDE[st.step] ?? tutorialLabel(st.step))}</td><td class="r">${fmt(st.shown)}</td><td class="r">${fmt(st.done)} <span class="faint">${pct(st.done, st.shown)}</span></td><td class="r">${st.medianSec === null ? '–' : dec(st.medianSec)}</td></tr>`)
+        .join('')}</tbody></table>`
+    : '';
+  return `<div class="scroll"><table class="funnel"><thead><tr><th>Шаг новичка</th>${head}</tr></thead><tbody>${rows.join('')}<tr><td>Вернулись на 2-й день</td>${back.join('')}</tr></tbody></table></div>${stepTable}${foot(
+    `Новички периода, пришедшие на версии ${NEWCOMER_SINCE} и новее, по площадке первого входа. Первая ночь и Обсерватория — первого забега; «купили Знамение» — в первой главе, не в обучении. Секунды на шаге — медиана.`,
+  )}`;
 }
 
 // ── Страница ────────────────────────────────────────────────────────────────
 
-/** site — адрес сайта игры: оттуда страница берёт карты исходников, чтобы расшифровать стек. */
-export function renderDashboard(s: Stats, opts: { site?: string } = {}): string {
+/**
+ * site — адрес сайта игры: оттуда страница берёт карты исходников, чтобы расшифровать стек.
+ * rejects — отказы приёма событий по причинам с запуска сервера; excluded — сколько своих устройств исключено.
+ */
+export interface DashboardOpts {
+  site?: string;
+  rejects?: [string, number][];
+  excluded?: number;
+}
+
+export function renderDashboard(s: Stats, opts: DashboardOpts = {}): string {
   const t = s.totals;
   const p = s.play;
   const updated = new Date(s.generatedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -390,7 +440,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
     ['За неделю', fmt(p.week.players), delta(p.week.players, p.prevWeek.players)],
     ['Сессия, в игре', duration(p.sessions.medianMin), `<span class="dl">среднее ${duration(p.sessions.meanMin)}</span>`],
     ['На игрока за день', duration(p.perPlayerDayMin), `<span class="dl">за неделю ${duration(p.week.minPerDay)}</span>`],
-    ['Без ошибок', p.crashFree === null ? '–' : `${dec(p.crashFree)}%`, `<span class="dl">сессий с ${ERRORS_SINCE}</span>`],
+    ['Без ошибок', p.crashFree === null ? '–' : `${dec(p.crashFree)}%`, `<span class="dl">сессий на ${esc(p.errorVersions.join(', ') || '–')}</span>`],
     ['Сейчас в игре', fmt(p.nowInGame), '<span class="dl">за последние 5 мин</span>'],
   ];
 
@@ -419,6 +469,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
   ${cell(5, 'Игроки по дням', dailyBars(s.daily) + platformCards(s) + growthLine(s))}
   ${cell(7, 'Первые минуты по площадкам', funnelTable(s))}
   ${cell(5, 'Обучение', tutorialBlock(s))}
+  ${cell(12, 'Воронка новичка', newcomerBlock(s))}
   ${cell(7, 'Новые фичи', featuresBlock(s))}
   ${cell(5, 'Время в игре', sessionBlock(s))}
   ${cell(4, 'Сложность глав', chaptersBlock(s))}
@@ -427,7 +478,7 @@ export function renderDashboard(s: Stats, opts: { site?: string } = {}): string 
   ${cell(6, 'Выпуски', releasesBlock(s))}
   ${cell(6, 'Знамения', omensBlock(s))}
   ${cell(6, 'Деньги и реклама', moneyBlock(s))}
-  ${cell(6, 'Здоровье', healthBlock(s))}
+  ${cell(6, 'Здоровье', healthBlock(s, opts))}
 </main>
 <footer>Данные анонимные: случайный номер устройства, без имён, адресов и IP. Хранятся на сервере в Москве ${RETENTION_DAYS} дней.</footer>
 </div>
@@ -506,10 +557,10 @@ td.r,th.r{text-align:right}td.w40{width:40%}td.w45{width:45%}
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0 32px}
 .cell{padding:22px 0;border-bottom:1px solid var(--line);min-width:0;overflow-x:auto}
 .cell h2{font-size:20px;color:var(--gold-hi);margin-bottom:12px}
-.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c12{grid-column:1/-1}
 footer{padding:20px 0 0;color:var(--faint);font-size:12px}
 @media (max-width:1000px){.kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi>div:nth-child(4){border-left:0;padding-left:0}
-.grid{grid-template-columns:minmax(0,1fr);gap:0}.c4,.c5,.c6,.c7{grid-column:auto}.watch{grid-template-columns:1fr}}
+.grid{grid-template-columns:minmax(0,1fr);gap:0}.c4,.c5,.c6,.c7,.c12{grid-column:auto}.watch{grid-template-columns:1fr}}
 @media (max-width:640px){body{padding:0 max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
 .kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi>div{padding:14px 12px 14px 0!important;border-left:0!important}
 .kpi>div:nth-child(even){padding-left:12px!important;border-left:1px solid var(--line)!important}.kpi .num{font-size:28px}
