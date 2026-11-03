@@ -1058,6 +1058,8 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .ware-icon { grid-row: span 2; width: 48px; height: 48px; display: grid; place-items: center; }
 .ware-name { align-self: end; min-width: 0; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
 .ware-level { margin-left: 6px; font: 600 12.5px/1 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+/* Телефон: «Прокачать: Пара» и «ур. 2 → 3» двумя ровными строками, а не тремя рваными (критика 03.11) */
+@media (max-width: 520px) { .ware-level { display: block; margin: 3px 0 0; } }
 .ware-bonus { grid-column: 2; align-self: start; min-width: 0; display: grid; justify-items: start; gap: 2px; }
 .ware > .btn, .ware > .sold-label { grid-column: 3; grid-row: 1 / span 2; }
 .ware .btn.price { min-height: 40px; min-width: 112px; padding: 0 14px; font: 700 14px/1 var(--font-body); color: var(--gold-hi);
@@ -1065,7 +1067,7 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
   background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.1), transparent 70%), rgb(14 12 34 / 0.88);
   box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.42); backdrop-filter: none; }
 .ware .btn.price .coin { width: 13px; height: 13px; }
-.ware .btn.price.why { font: 700 12px/1 var(--font-body); color: var(--ink-faint); background: rgb(14 12 34 / 0.45); box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.2); padding: 0 10px; white-space: nowrap; }
+.ware .btn.price.why { font: 700 12px/1 var(--font-body); color: var(--ink-dim); background: rgb(14 12 34 / 0.45); box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.2); padding: 0 10px; white-space: nowrap; }
 .ware .btn.take { min-height: 42px; }
 .ware .ware-how { margin: 0; min-height: 30px; padding: 2px 0; font-size: 12px; }
 .ware.sold .ware-icon, .ware.sold .ware-name, .ware.sold .ware-bonus { opacity: 0.4; }
@@ -1330,7 +1332,8 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
 .map-top .icon-btn.medal { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, rgb(var(--violet-rgb) / 0.12), rgb(8 7 26 / 0.6)); box-shadow: inset 0 0 0 1px var(--brass); }
 .map-title { display: grid; justify-items: center; gap: 7px; min-width: 0; }
 .map-plaque { font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.map-plaque .of { color: var(--ink-faint); letter-spacing: 0.16em; }
+/* «из VIII» — приглушённым, но читаемым (замер детектора: ink-faint давал 3,6–4,3:1) */
+.map-plaque .of { color: var(--ink-dim); letter-spacing: 0.16em; }
 .map-plaque.short .of { display: none; }
 .map-ticks { display: flex; gap: 5px; }
 .map-ticks i { width: 14px; height: 3px; border-radius: 2px; background: rgb(var(--violet-rgb) / 0.2); }
