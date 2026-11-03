@@ -21,7 +21,7 @@ test('конец обучения поверх окна награды не ло
     type AppLike = {
       run: { phase: string; reward: unknown } | null;
       runs: {
-        tutorial: { stop(): void; emit(e: unknown): void } | null;
+        tutorial: { stop(): void; emit(e: unknown): void; markDone(): void } | null;
         startTutorial(): void;
         finishTutorial(): void;
         collectReward(): void;
@@ -35,7 +35,7 @@ test('конец обучения поверх окна награды не ло
     app.runs.startTutorial();
     await sleep(1200);
     app.runs.tutorial?.stop();
-    app.runs.tutorial = { stop() {}, emit() {} };
+    app.runs.tutorial = { stop() {}, emit() {}, markDone() {} };
     app.run!.phase = 'reward';
     app.run!.reward = { base: 3, moves: 0, burns: 0, interest: 0, total: 3 };
     app.router.screen.showReward();
