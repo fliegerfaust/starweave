@@ -256,7 +256,7 @@ export const ru = {
     menuButton: 'Обучение',
     menuSub: '2 минуты',
     offerTitle: 'Ты здесь впервые?',
-    offer: 'Короткое обучение — 2 минуты.',
+    offer: 'Короткое обучение: 2 минуты.',
     offerSkip: 'Сразу в игру',
   },
   ads: {
