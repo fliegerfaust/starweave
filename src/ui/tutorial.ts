@@ -12,6 +12,16 @@ let current: HTMLElement | null = null;
 let ring: HTMLElement | null = null;
 let thread: SVGSVGElement | null = null;
 let waitToast = 0;
+/** Подсказки, которые ждут, пока закроется окно поверх экрана: окно откладывает их, а не теряет (GL.6). */
+const deferred: TutorialStep[] = [];
+let coachApp: App | null = null;
+
+/** Открыто окно; закрывающееся (ещё 180 мс в DOM) не в счёт. */
+const modalOpen = (): boolean => !!document.querySelector('.modal-backdrop:not(.closing)');
+
+function defer(step: TutorialStep): void {
+  if (!deferred.includes(step)) deferred.push(step);
+}
 
 interface Box {
   x: number;
@@ -78,7 +88,13 @@ export function coach(app: App, step: TutorialStep): void {
   // Развилки (ON.1) открываются на 3-й главе — подсказка о них не только для первых забегов
   const firstRuns = step !== 'routes';
   if (app.run?.tutorial || (firstRuns && (app.profile.tutorialFinished || app.profile.runs >= 3)) || app.profile.tutorial.includes(step) || current?.dataset.step === step) return;
-  if (document.querySelector('.modal-backdrop')) return;
+  coachApp = app;
+  // Окно поверх экрана: подсказка подождёт его закрытия. Раньше она терялась — в Обсерватории
+  // её прятало закрывающееся окно итогов и следом дар ночи, и видна она была только со 2-го захода
+  if (modalOpen()) {
+    defer(step);
+    return;
+  }
   // Тост ночи («Первая ночь…») посередине экрана: плашка ждёт, пока он уйдёт, — вместе
   // они ложились друг на друга и тост закрывал «Понятно» (CQ.2)
   if (!current && document.querySelector('#ui .toast:not(.out)')) {
@@ -237,8 +253,18 @@ export function dropCoach(...steps: TutorialStep[]): void {
   }
 }
 
-// Открылось окно — плашку убираем, чтобы она не висела поверх него
-document.addEventListener('starweave:modal', () => clearCoach());
+// Открылось окно — плашку убираем, чтобы она не висела поверх него, и показываем её снова,
+// когда окно закроется: неотвеченная подсказка и очередь ждут (GL.6)
+document.addEventListener('starweave:modal', () => {
+  const waiting = [...(current ? [current.dataset.step as TutorialStep] : []), ...queue];
+  clearCoach();
+  waiting.forEach(defer);
+});
+document.addEventListener('starweave:modal-closed', () => {
+  if (modalOpen() || !coachApp || !deferred.length) return;
+  const app = coachApp;
+  deferred.splice(0).forEach((step) => coach(app, step));
+});
 
 function dismiss(app: App, step: TutorialStep): void {
   if (!app.profile.tutorial.includes(step)) app.profile.tutorial.push(step);
@@ -263,4 +289,5 @@ export function clearCoach(): void {
   ring = null;
   thread = null;
   queue.length = 0;
+  deferred.length = 0;
 }
