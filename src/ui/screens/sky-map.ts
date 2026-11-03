@@ -14,6 +14,7 @@ import { rich } from '../rich';
 import { currentChoice } from '@/core/choices';
 import { showDeck, showHelp, showRunMenu } from './common';
 import { trophyMedal, trophyTooltip } from '../hud';
+import { runPathStrip } from '../run-path';
 import { clearCoach, coach } from '../tutorial';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
@@ -126,7 +127,8 @@ export class SkyMap {
       ? h('div.map-plaque', null, t('night.endless'))
       : h('div.map-plaque', null, [t('map.chapter', { n: roman(ante) }), ' ', h('span.of', null, t('map.of', { total: roman(FINAL_ANTE) }))]);
     this.title = title;
-    const ticks = run.endless ? null : h('div.map-ticks', null, Array.from({ length: FINAL_ANTE }, (_, i) => h(`i${i < ante - 1 ? '.done' : i === ante - 1 ? '.now' : ''}`)));
+    // Путь до рассвета, как на карте главы (GO.5)
+    const ticks = run.endless ? null : runPathStrip(ante, FINAL_ANTE);
     const stake = run.stake ? h('div.map-stake', null, Array.from({ length: run.stake }, () => icon('star'))) : null;
     const top = h('header.map-top', null, [menu, h('div.map-title', null, [title, ticks, stake]), h('div.gold-pill', null, String(run.gold))]);
 

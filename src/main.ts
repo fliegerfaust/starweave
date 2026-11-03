@@ -314,14 +314,28 @@ async function boot(): Promise<void> {
   // GO.3: ночь главы с целью на сцене; `&auto` — четыре созвездия от нуля до цели без ходов
   if (dev && params.has('goal') && !demo) {
     Object.assign(app.profile, { tutorialDone: true, tutorialFinished: true, runs: 9, tutorial: ['guideSeen', 'giftSeen', 'boss'] });
+    // Достижения этого профиля уже «были»: без тостов «Первый взгляд» поверх витрины
+    (app.runs as unknown as { checkFeats(announce: boolean): void }).checkFeats(false);
     app.runs.startRun('classic', false, 0, 4242);
     const run = app.run!;
     const [{ planChapter }, { startNight }] = await Promise.all([import('./core/route'), import('./core/night')]);
-    // `&night=eclipse` — третья ночь главы, Затмение
+    // `&night=eclipse` — третья ночь главы, Затмение; `&boss=eclipse-moon|void|…` — какое
+    if (params.get('boss')) run.bosses[run.ante - 1] = params.get('boss')!;
+    // Глава без развилок: третья ночь — Затмение, а не Комета или Яркая ночь
+    Object.assign(run.unlocks, { routes: false, wonders: false });
     run.chapter = { ...planChapter(run), at: params.get('night') === 'eclipse' ? 2 : 1 };
     startNight(run);
     // Витрина: цель ближе, чтобы дойти до неё за 3–5 созвездий
     run.night!.target = 240;
+    // `&dimmed` — на небе уже три карты затмённой масти: видно, кого Затмение задело (GO.4)
+    const dimmed = run.night!.rules.debuffSuit;
+    if (dimmed && params.has('dimmed')) {
+      const picks = run.night!.drawPile.filter((c) => c.suit === dimmed).slice(0, 3);
+      picks.forEach((c, i) => {
+        run.night!.drawPile.splice(run.night!.drawPile.indexOf(c), 1);
+        run.night!.grid[[0, 3, 8][i]!] = c;
+      });
+    }
     await app.router.route();
     // `&auto` — четыре созвездия подряд по рядам неба, от нуля до цели, без ходов
     if (params.has('auto')) {
@@ -340,6 +354,19 @@ async function boot(): Promise<void> {
         await new Promise((r) => setTimeout(r, 900));
       }
     }
+  }
+  // GO.5: карта главы первого забега новичка — путь до рассвета (`?runmap`, `&ante=N` — какая глава)
+  if (dev && params.has('runmap')) {
+    Object.assign(app.profile, { tutorialDone: true, tutorialFinished: false, runs: 0, tutorial: [] });
+    (app.runs as unknown as { checkFeats(announce: boolean): void }).checkFeats(false);
+    app.runs.startRun('classic', false, 0, 4242);
+    const run = app.run!;
+    run.ante = Math.min(8, Math.max(1, Number(params.get('ante') ?? 1)));
+    Object.assign(run.unlocks, { routes: false, wonders: false });
+    const { planChapter } = await import('./core/route');
+    run.chapter = { ...planChapter(run), at: 0 };
+    run.phase = 'map';
+    await app.router.route();
   }
   // DEV: баннер «Новый миф» посреди ночи — касание открывает Коллекцию на нём (`?mythfx`)
   if (dev && params.has('mythfx')) {

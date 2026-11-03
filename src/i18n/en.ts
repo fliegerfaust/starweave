@@ -46,6 +46,13 @@ export const en: Dict = {
       myth: { one: '{n} more myth hides in the sky', few: '{n} more myths hide in the sky', many: '{n} more myths hide in the sky', other: '{n} more myths hide in the sky' },
     } as Record<string, Record<string, string>>,
   },
+  foe: { beat: 'Drive it back: {n} points' },
+  runPath: {
+    aria: 'Chapter {n} of {total}, each ends with an Eclipse, dawn at the end of the road',
+    title: 'The road to dawn',
+    say: 'Stargazer, *{total} chapters* until dawn. Each one ends with an Eclipse: *drive them all back* and the sky is yours.',
+    go: 'Set off',
+  },
   mentor: { name: 'Swan' },
   constellation: {
     ursaMajor: 'Ursa Major',
@@ -225,7 +232,7 @@ export const en: Dict = {
     freePlay: 'Your turn. *Put three sixes* in one line: that’s a Triple.',
     omenWorked: '“Stardust” fired: the Triple got ×7 instead of ×3, more than double the points.',
     finish: 'Finish the night: *reach the goal*.',
-    shortRow: "Stargazer, let's light up the sky before dawn: *{n} points*. *Drag the cards* into the glowing cells and the row will flare into a constellation.",
+    shortRow: "Stargazer, let's light up the sky before dawn: *{n} points*. *Drag a card* into the glowing cell: a full row flares into a constellation.",
     shortBurn: 'The 1 is no use. *Drag it onto Burn* to get a new card.',
     shortCross: 'The ×2 cell closes a row and a column at once. That’s a cross: *both lines score ×2*.',
     doneTitle: 'Tutorial complete',

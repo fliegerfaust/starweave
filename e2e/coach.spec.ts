@@ -16,7 +16,8 @@ type A = {
 async function show(page: Page, step: string, setup: 'night' | 'map'): Promise<string[]> {
   await page.evaluate(async ({ step, setup }) => {
     const a = (window as unknown as { starweave: A }).starweave;
-    Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
+    // Пролог пути (GO.5) уже показан: его окно на первой карте главы закрыло бы подсказку Затмения
+    Object.assign(a.profile, { tutorial: ['runPath'], runs: 0, tutorialDone: true, tutorialFinished: false });
     const { coach, clearCoach } = await import('/src/ui/tutorial.ts');
     clearCoach();
     if (setup === 'night' && !document.querySelector('.hud')) {
@@ -71,7 +72,8 @@ test('первая ночь: подсказка ждёт, пока уйдёт т
   await page.waitForFunction(() => !!(window as unknown as { starweave?: unknown }).starweave && !!document.querySelector('.menu-buttons .btn'));
   const log = await page.evaluate(async () => {
     const a = (window as unknown as { starweave: A }).starweave;
-    Object.assign(a.profile, { tutorial: [], runs: 0, tutorialDone: true, tutorialFinished: false });
+    // Пролог пути (GO.5) уже показан: тест о тосте ночи, а не о карте главы
+    Object.assign(a.profile, { tutorial: ['runPath'], runs: 0, tutorialDone: true, tutorialFinished: false });
     a.runs.startRun('classic');
     await new Promise((r) => setTimeout(r, 300));
     a.runs.beginNight();
