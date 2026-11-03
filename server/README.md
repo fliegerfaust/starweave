@@ -10,6 +10,8 @@
   и `https://game.denvalclass.ru` (Пикабу Игры).
 - **Доли игроков «Зала славы»:** `GET /v1/hall`, открыто всем, считается раз в час по последнему
   снимку `hall_snap` каждого устройства за 90 дней (`src/hall.ts`).
+- **Тексты обучения:** редактор https://game.denvalclass.ru/stats/texts (тот же пароль), игре —
+  `GET /v1/texts`, открыто всем, ETag, кэш минута. Как править и переводить: [docs/TEXTS.md](../docs/TEXTS.md).
 - **Пикабу Игры:** `/pikabu/` (выпуск) и `/pikabu-test/`, см. [docs/PIKABU.md](../docs/PIKABU.md).
 - **Проверка:** https://game.denvalclass.ru/health → `ok`.
 
@@ -36,6 +38,7 @@ starweave-api ──IPv6 (сеть starweave_egress)──▶ api.telegram.org
 | `src/stats.ts`, `src/play-stats.ts` | расчёт сводки; сырые события читаются потоком |
 | `src/dashboard.ts`, `src/fonts/` | страница сводки со вшитыми шрифтами игры |
 | `src/stack-decoder.ts` | расшифровка стеков ошибок по картам исходников сайта |
+| `src/texts.ts`, `src/texts-page.ts` | тексты обучения: правки поверх сборки, история, редактор; правила — `../src/i18n/texts.ts` |
 | `src/backup.ts` | бэкапы покупок и базы |
 | `src/telegram.ts`, `src/payments.ts`, `src/catalog.ts` | подпись initData, Bot API, счета, оплаты, цены в Stars |
 | `scripts/` | вебхук бота, забрать бэкап, демо-база |

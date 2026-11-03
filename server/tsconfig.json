@@ -16,5 +16,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src", "scripts", "../src/i18n/ru.ts"]
+  "include": ["src", "scripts", "../src/i18n/ru.ts", "../src/i18n/en.ts", "../src/i18n/texts.ts"]
 }

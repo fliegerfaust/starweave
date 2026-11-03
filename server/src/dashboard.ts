@@ -11,7 +11,7 @@ import { dayLabel, type Stats } from './stats.ts';
  * стеков): шрифты игры вшиты, графики — SVG. Мир игры: ночь, золото, свет.
  */
 
-const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+export const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const fmt = (n: number): string => n.toLocaleString('ru-RU');
 const pct = (part: number, whole: number): string => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '–');
 const dec = (n: number | null): string => (n === null ? '–' : Number.isInteger(n) ? fmt(n) : n.toFixed(1).replace('.', ','));
@@ -460,7 +460,7 @@ export function renderDashboard(s: Stats, opts: DashboardOpts = {}): string {
 <body data-site="${esc(opts.site ?? '')}">
 <div class="wrap">
 <header class="top">
-  <div><h1>Звёздное плетение · сводка</h1><p class="faint">Обновлено ${esc(updated)} по Москве · событий за период ${fmt(t.events)}</p></div>
+  <div><h1>Звёздное плетение · сводка</h1><p class="faint">Обновлено ${esc(updated)} по Москве · событий за период ${fmt(t.events)} · <a href="/stats/texts">Тексты обучения</a></p></div>
   <nav class="period" aria-label="Период">${tabs}</nav>
 </header>
 <div class="kpi">${kpis.map(([label, value, note]) => `<div><span class="lab">${esc(label)}</span><span class="num">${value}</span>${note}</div>`).join('')}</div>
@@ -491,13 +491,13 @@ ${s.errors.some((e) => e.stack) ? `<script>${STACK_SCRIPT}</script>` : ''}
 const font = (file: string) => `url(data:font/woff2;base64,${readFileSync(new URL(`./fonts/${file}`, import.meta.url)).toString('base64')}) format('woff2')`;
 const CYR = 'U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116';
 const LAT = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+2215';
-const FONTS = `
+export const FONTS = `
 @font-face{font-family:'Forum';font-display:swap;src:${font('forum-cyrillic.woff2')};unicode-range:${CYR}}
 @font-face{font-family:'Forum';font-display:swap;src:${font('forum-latin.woff2')};unicode-range:${LAT}}
 @font-face{font-family:'Manrope';font-display:swap;font-weight:200 800;src:${font('manrope-cyrillic.woff2')};unicode-range:${CYR}}
 @font-face{font-family:'Manrope';font-display:swap;font-weight:200 800;src:${font('manrope-latin.woff2')};unicode-range:${LAT}}`;
 
-const CSS = `
+export const CSS = `
 :root{--n0:#05061a;--n1:#0c0d2c;--n2:#191641;--ink:#eae6ff;--dim:#a5a0cf;--faint:#8a85b8;--gold:#f6c25b;--gold-hi:#ffe6a8;
 --light:#7fe0ff;--mult:#ff6b8b;--ok:#7cf0b0;--hair:rgb(246 194 91/.16);--line:rgb(234 230 255/.08);
 --fd:'Forum','Times New Roman',serif;--fb:'Manrope',system-ui,sans-serif;color-scheme:dark}
