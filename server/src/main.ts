@@ -10,7 +10,7 @@ import { HallCache } from './hall.ts';
 import { STACK_SCRIPT_HASH } from './stack-decoder.ts';
 import { computeStats } from './stats.ts';
 import { isTextLang, logEntry, markTranslated, needsTranslation, openTexts, overrides, saveText, textsPayload } from './texts.ts';
-import { renderTextsPage, savedLocation, TEXTS_SCRIPT_HASH, type TextsPageOpts } from './texts-page.ts';
+import { renderTextsPage, sameOrigin, savedLocation, TEXTS_SCRIPT_HASH, type TextsPageOpts } from './texts-page.ts';
 import { countReject, LIMITS, parseBatch, rejects } from './validate.ts';
 
 /**
@@ -268,20 +268,6 @@ function handleTexts(req: IncomingMessage, res: ServerResponse): void {
   }
 }
 
-/**
- * Запись из редактора — только со своей страницы: браузер подставил бы пароль Basic и в
- * форму с чужого сайта, поэтому Origin (и Sec-Fetch-Site, если есть) должны быть свои.
- */
-function sameOrigin(req: IncomingMessage): boolean {
-  const site = req.headers['sec-fetch-site'];
-  if (site && site !== 'same-origin') return false;
-  try {
-    return new URL(req.headers.origin ?? '').host === req.headers.host;
-  } catch {
-    return false;
-  }
-}
-
 const pageHeaders = (hash: string) => ({
   'Content-Type': 'text/html; charset=utf-8',
   'Cache-Control': 'no-store',
@@ -301,7 +287,7 @@ async function handleTextsEditor(req: IncomingMessage, res: ServerResponse, url:
     return page(200, { lang: isTextLang(lang) ? lang : 'ru', saved: url.searchParams.get('saved') ?? undefined });
   }
   if (req.method !== 'POST') return send(res, 405, 'method');
-  if (!sameOrigin(req)) return send(res, 403, 'origin');
+  if (!sameOrigin(req.headers)) return send(res, 403, 'origin');
   const raw = await readBody(req, 16 * 1024);
   if (raw === null) return send(res, 413, 'too large');
   const form = new URLSearchParams(raw);
