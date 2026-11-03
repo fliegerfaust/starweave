@@ -1,9 +1,22 @@
 import { en } from './en';
 import { ru, type Dict } from './ru';
+import { withTexts } from './texts';
 
 export type Lang = 'ru' | 'en';
 export const LANGS: Lang[] = ['ru', 'en'];
-const DICTS: Record<Lang, Dict> = { ru, en };
+const BASE: Record<Lang, Dict> = { ru, en };
+/** Словари в игре: свои из сборки или с правками текстов обучения с сервера (TX.4). */
+const DICTS: Record<Lang, Dict> = { ...BASE };
+
+/**
+ * Тексты обучения с сервера поверх своих (`texts.ts`): небезопасные и лишние ключи
+ * отбрасываются, пустой набор возвращает тексты сборки. Возвращает принятые ключи.
+ */
+export function useTexts(lang: Lang, overrides: Record<string, unknown>): string[] {
+  const { dict, applied } = withTexts(BASE[lang], lang, overrides);
+  DICTS[lang] = dict;
+  return applied;
+}
 
 let current: Lang = detectLang();
 
