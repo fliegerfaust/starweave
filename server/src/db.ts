@@ -10,7 +10,15 @@ export const RETENTION_DAYS = 400;
 
 export type Db = DatabaseSync;
 
-export function openDb(path: string): Db {
+/**
+ * Что считает сводка (SA.1): все запросы сводки, долей Зала славы и приборов читают
+ * представление `counted`, а не `events`. В нём нет тестовых пачек (`test = 1`: dev, сборка
+ * `--test`, «тестер») и своих устройств из `EXCLUDE_CLIENTS`. Сырые события остаются в базе —
+ * для отладки.
+ */
+export const COUNTED = 'counted';
+
+export function openDb(path: string, exclude: readonly string[] = []): Db {
   const db = new DatabaseSync(path);
   db.exec(`
     PRAGMA journal_mode = WAL;
@@ -41,16 +49,27 @@ export function openDb(path: string): Db {
     );
     CREATE INDEX IF NOT EXISTS purchases_user ON purchases (user_id);
   `);
+  // Колонка тестовых пачек (SA.1) — к базе, созданной раньше, добавляется без потери данных
+  const cols = db.prepare('PRAGMA table_info(events)').all() as { name: string }[];
+  if (!cols.some((c) => c.name === 'test')) db.exec('ALTER TABLE events ADD COLUMN test INTEGER NOT NULL DEFAULT 0');
+  // Свои устройства — во временной таблице соединения: список приходит из окружения при старте
+  db.exec(`
+    CREATE TEMP TABLE IF NOT EXISTS excluded (client TEXT PRIMARY KEY);
+    CREATE TEMP VIEW IF NOT EXISTS ${COUNTED} AS
+      SELECT * FROM events WHERE test = 0 AND client NOT IN (SELECT client FROM excluded);
+  `);
+  const add = db.prepare('INSERT OR IGNORE INTO excluded (client) VALUES (?)');
+  for (const c of exclude) if (c.trim()) add.run(c.trim());
   return db;
 }
 
 /** Записывает пачку одной транзакцией: либо вся, либо ничего. */
 export function insertBatch(db: Db, batch: Batch): void {
-  const stmt = db.prepare('INSERT INTO events (ts, client, session, platform, version, lang, name, params) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT INTO events (ts, client, session, platform, version, lang, name, params, test) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   db.exec('BEGIN');
   try {
     for (const e of batch.events) {
-      stmt.run(Math.round(e.at), batch.client, batch.session, batch.platform, batch.version, batch.lang, e.name, JSON.stringify(e.params));
+      stmt.run(Math.round(e.at), batch.client, batch.session, batch.platform, batch.version, batch.lang, e.name, JSON.stringify(e.params), batch.test ? 1 : 0);
     }
     db.exec('COMMIT');
   } catch (err) {

@@ -94,6 +94,8 @@ const STACKS_PER_MESSAGE = 3;
 
 /** Ошибка, которую игра пережила сама (например, неизвестная фаза), — в ту же сводку `js_error`. */
 export function reportError(message: string, where: string, stack?: string): void {
+  // Предупреждение браузера, а не поломка: раскладка не успела за кадр (66 «ошибок» в 0.7.11–0.7.13, SA.2)
+  if (/ResizeObserver loop/.test(message)) return;
   const msg = message.slice(0, 200);
   const sent = stackSent.get(msg) ?? 0;
   const compact = sent < STACKS_PER_MESSAGE ? compactStack(stack, location.origin) : '';

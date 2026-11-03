@@ -100,6 +100,11 @@ class PikabuPayments implements Payments {
  */
 export class PikabuPlatform implements Platform {
   readonly id = 'pikabu' as const;
+  /**
+   * Вызов друга не доходит: страница игры открывает её с фиксированными параметрами и не
+   * передаёт ничего из своей ссылки, а ссылки на свой сайт площадка запрещает (02.11.2026).
+   */
+  readonly challenges = false;
   rewardedAvailable = false;
   interstitialAvailable = false;
   payments: Payments | null = null;
@@ -201,11 +206,6 @@ export class PikabuPlatform implements Platform {
 
   onPauseChange(fn: (paused: boolean) => void): void {
     this.pauseListeners.push(fn);
-  }
-
-  /** Вызов друга ведёт на страницу игры на Пикабу: ссылки на свой сайт площадка запрещает. */
-  inviteUrl(): string | null {
-    return import.meta.env.VITE_PIKABU_GAME_URL || 'https://games.pikabu.ru/game/zvyozdnoe-pletenie';
   }
 
   private emitPause(paused: boolean): void {

@@ -307,7 +307,9 @@ body {
 }
 .coach.out, .coach-ring.out, .coach-thread.out { opacity: 0; transition: opacity 0.2s; }
 .coach-text { font: 500 14.5px/1.4 var(--font-body); color: var(--ink); text-wrap: pretty; }
-.coach-ok { pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
+.coach-ok { position: relative; pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
+/* Зона касания до 44 px при прежнем виде (замер детектора: 36–40 px) */
+.coach-ok::after { content: ''; position: absolute; inset: -5px 0; }
 .coach-ok:hover { background: rgb(var(--gold-rgb) / 0.08); }
 /* Цель — в дышащей золотой рамке; нить от плашки к цели */
 .coach-ring { position: fixed; z-index: 17; border-radius: 14px; pointer-events: none; opacity: 0; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.9), 0 0 22px rgb(var(--gold-rgb) / 0.55); transition: opacity 0.3s; }
@@ -393,7 +395,10 @@ body {
   min-width: 0;
   padding: 2px 4px;
   text-align: left;
+  position: relative;
 }
+/* Зона касания правила Затмения до 44 px при прежнем виде (замер детектора: 37–40 px) */
+.boss-chip::after { content: ''; position: absolute; inset: -4px 0; }
 .boss-chip canvas { flex: none; }
 .boss-chip-name { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-wrap: balance; }
 .hud-gold, .gold-pill {
@@ -403,9 +408,11 @@ body {
   gap: 6px;
   padding: 6px 12px 6px 8px;
   border-radius: 999px;
-  background: rgba(60, 40, 10, 0.6);
-  border: 1px solid rgb(var(--gold-rgb) / 0.45);
-  color: var(--gold);
+  /* GL.2: золото — показатель, а не кнопка: монета и число без капсулы (форма кнопки только у нажимаемого) */
+  background: none;
+  border: 1px solid transparent;
+  color: var(--gold-hi);
+  text-shadow: 0 1px 8px rgb(5 6 26 / 0.9);
   font: 800 16px/1 var(--font-body);
 }
 .hud-gold::before, .gold-pill::before {
@@ -416,7 +423,7 @@ body {
   background: radial-gradient(circle at 35% 30%, #fff3c4, #f6c25b 45%, #b9791b);
   box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.7);
 }
-.hud .hud-gold { flex: none; margin-left: auto; padding: 5px 11px 5px 7px; font-size: 15px; color: #ffe6a8; background: rgb(14 12 34 / 0.7); border-color: rgb(var(--gold-rgb) / 0.3); }
+.hud .hud-gold { flex: none; margin-left: auto; padding: 5px 11px 5px 7px; font-size: 15px; }
 .hud-gold.pop { animation: bump 0.35s ease; }
 .hud-row.mid { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: end; }
 .hud-score-wrap { min-width: 0; }
@@ -1032,7 +1039,7 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .shop-top .icon-btn { width: 44px; height: 44px; border-radius: 50%; color: var(--gold); background: radial-gradient(circle at 50% 35%, rgb(var(--violet-rgb) / 0.12), rgb(8 7 26 / 0.6)); box-shadow: inset 0 0 0 1px var(--brass); }
 .shop-top .icon-btn .icon { width: 20px; height: 20px; }
 .shop-title { margin: 0; justify-self: center; min-width: 0; overflow: hidden; text-overflow: clip; font: 400 clamp(14px, 4.4vw, 17px)/1 var(--font-display); letter-spacing: clamp(0.1em, 1.2vw, 0.22em); padding-left: 0.1em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; }
-.shop-top .gold-pill { height: 36px; padding: 0 13px 0 9px; color: var(--gold-hi); background: rgb(14 12 34 / 0.7); border: 0; box-shadow: inset 0 0 0 1px var(--brass); font-variant-numeric: tabular-nums; }
+.shop-top .gold-pill { height: 36px; padding: 0 13px 0 9px; border: 0; font-variant-numeric: tabular-nums; }
 .shop-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 18px; align-content: start; margin-inline: -4px; padding: 0 4px 14px;
   /* Нижний край середины гаснет: обрезанная строка читается как «листается дальше», а не как вылезание */
   -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 22px), transparent); }
@@ -1056,10 +1063,16 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .ware-icon { grid-row: span 2; width: 48px; height: 48px; display: grid; place-items: center; }
 .ware-name { align-self: end; min-width: 0; font: 700 15px/1.2 var(--font-body); color: var(--ink); }
 .ware-level { margin-left: 6px; font: 600 12.5px/1 var(--font-body); color: var(--ink-faint); white-space: nowrap; }
+/* Телефон: «Прокачать: Пара» и «ур. 2 → 3» двумя ровными строками, а не тремя рваными (критика 03.11) */
+@media (max-width: 520px) { .ware-level { display: block; margin: 3px 0 0; } }
 .ware-bonus { grid-column: 2; align-self: start; min-width: 0; display: grid; justify-items: start; gap: 2px; }
 .ware > .btn, .ware > .sold-label { grid-column: 3; grid-row: 1 / span 2; }
-.ware .btn.price { min-height: 40px; min-width: 64px; padding: 0 14px; font: 800 15px/1 var(--font-body); color: var(--gold-hi); background: rgb(14 12 34 / 0.6); box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.45); backdrop-filter: none; }
-.ware .btn.price.why { font: 700 11.5px/1 var(--font-body); color: var(--ink-faint); background: none; box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.2); padding: 0 10px; white-space: nowrap; }
+.ware .btn.price { min-height: 40px; min-width: 112px; padding: 0 14px; font: 700 14px/1 var(--font-body); color: var(--gold-hi);
+  /* GL.2 (выбор Дениса, вариант B): цена — вторая кнопка игры со словом «Купить 5●», одной ширины у всех строк */
+  background: radial-gradient(120% 140% at 50% 0%, rgb(var(--gold-rgb) / 0.1), transparent 70%), rgb(14 12 34 / 0.88);
+  box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.42); backdrop-filter: none; }
+.ware .btn.price .coin { width: 13px; height: 13px; }
+.ware .btn.price.why { font: 700 12px/1 var(--font-body); color: var(--ink-dim); background: rgb(14 12 34 / 0.45); box-shadow: inset 0 0 0 1px rgb(var(--violet-rgb) / 0.2); padding: 0 10px; white-space: nowrap; }
 .ware .btn.take { min-height: 42px; }
 .ware .ware-how { margin: 0; min-height: 30px; padding: 2px 0; font-size: 12px; }
 .ware.sold .ware-icon, .ware.sold .ware-name, .ware.sold .ware-bonus { opacity: 0.4; }
@@ -1080,7 +1093,8 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .owned-omen { position: relative; width: 48px; height: 48px; transition: transform 0.15s ease; }
 .owned-omen .omen-slot { width: 48px; height: 48px; padding: 0; border: 0; background: none; display: grid; place-items: center; cursor: grab; pointer-events: auto; }
 .owned-omen .omen-slot canvas { pointer-events: none; width: 100% !important; height: 100% !important; }
-.owned-omen.empty .omen-slot { border-radius: 50%; box-shadow: inset 0 0 0 1px var(--hair); cursor: default; }
+/* Пустое место ряда — тихая точка без кольца (GL.8, «Тише»): при беглом взгляде не шумит */
+.owned-omen.empty .omen-slot { border-radius: 50%; cursor: default; opacity: 0.55; }
 .owned-omen.empty .omen-slot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: rgb(var(--gold-rgb) / 0.3); }
 .owned-omen.misplaced::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgb(var(--mult-rgb) / 0.8); pointer-events: none; }
 .owned-omen.fresh .omen-slot { animation: pop-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
@@ -1141,7 +1155,7 @@ html.calm .res-fly, html.calm .res-medal, html.calm .res-burst { animation: none
   .ware-icon, .ware-icon canvas { width: 40px !important; height: 40px !important; }
   .ware-name { font-size: 14px; }
   .bonus-line { font-size: 12.5px; }
-  .ware .btn.price { min-width: 56px; padding: 0 10px; }
+  .ware .btn.price { min-width: 98px; padding: 0 10px; font-size: 13px; }
   .owned-omen, .owned-omen .omen-slot { width: 44px; height: 44px; }
   .shop-body, .shop-goods, .shop-lower { gap: 12px; }
 }
@@ -1323,15 +1337,53 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
 .map-top .icon-btn.medal { width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, rgb(var(--violet-rgb) / 0.12), rgb(8 7 26 / 0.6)); box-shadow: inset 0 0 0 1px var(--brass); }
 .map-title { display: grid; justify-items: center; gap: 7px; min-width: 0; }
 .map-plaque { font: 400 15px/1 var(--font-display); letter-spacing: 0.22em; padding-left: 0.22em; text-transform: uppercase; color: var(--gold-hi); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-.map-plaque .of { color: var(--ink-faint); letter-spacing: 0.16em; }
+/* «из VIII» — приглушённым, но читаемым (замер детектора: ink-faint давал 3,6–4,3:1) */
+.map-plaque .of { color: var(--ink-dim); letter-spacing: 0.16em; }
 .map-plaque.short .of { display: none; }
-.map-ticks { display: flex; gap: 5px; }
-.map-ticks i { width: 14px; height: 3px; border-radius: 2px; background: rgb(var(--violet-rgb) / 0.2); }
-.map-ticks i.done { background: var(--gold); }
-.map-ticks i.now { width: 22px; background: var(--gold-hi); box-shadow: 0 0 8px rgb(var(--gold-rgb) / 0.9); }
 .map-stake { display: flex; gap: 3px; color: var(--gold); }
 .map-stake .icon { width: 11px; height: 11px; fill: currentColor; stroke-width: 1; }
-.map-top .gold-pill { height: 36px; padding: 0 13px 0 9px; color: var(--gold-hi); background: rgb(14 12 34 / 0.7); border: 0; box-shadow: inset 0 0 0 1px var(--brass); font-variant-numeric: tabular-nums; }
+/* Путь до рассвета (GO.5, выбор Дениса — пролог пути): восемь глав — Затмения-колечки на нити, в конце рассвет.
+   Пройденные — золотые, текущая — светится, впереди — жемчужные кольца Затмений */
+.map-run { position: relative; display: flex; align-items: center; gap: 9px; padding: 0 2px; }
+.map-run::before { content: ''; position: absolute; left: 6px; right: 10px; top: 50%; height: 1px; background: linear-gradient(90deg, rgb(var(--gold-rgb) / 0.6), rgb(232 228 244 / 0.25) 60%, rgb(var(--gold-rgb) / 0.5)); }
+/* Три разных знака, чтобы различались и на 8 px (Impeccable, критика 03.11): впереди — Затмение
+   (тёмное ядро в жемчужном ободке), пройдено — золото, сейчас — золотое кольцо с точкой, рассвет —
+   тёплый полудиск над латунной линией горизонта */
+.map-run i { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--night-0); box-shadow: inset 0 0 0 1.5px rgb(232 228 244 / 0.7); }
+.map-run i.done { background: var(--gold); box-shadow: 0 0 6px rgb(var(--gold-rgb) / 0.6); }
+.map-run i.now { width: 14px; height: 14px; background: radial-gradient(circle, var(--gold-hi) 0 28%, var(--night-0) 32% 52%, transparent 54%); box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 10px rgb(var(--gold-rgb) / 0.8); }
+.map-run .dawn { position: relative; width: 18px; height: 9px; margin: 0 0 4px 2px; border-radius: 18px 18px 0 0; background: radial-gradient(circle at 50% 100%, #ffd9a0 0 45%, #ffb26b 70%, #e88a4a 100%); box-shadow: 0 -2px 10px rgb(255 178 107 / 0.6); }
+.map-run .dawn::after { content: ''; position: absolute; left: -4px; right: -4px; bottom: -1px; height: 1px; background: rgb(var(--gold-rgb) / 0.7); }
+
+/* Пролог пути (GO.5): один раз в первых забегах восемь звёзд-глав дугой загораются по очереди, в конце встаёт рассвет */
+.modal-panel.run-prologue { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.run-prologue-title { margin: 0; font: 400 24px/1.1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-hi); }
+.run-prologue-sky { width: 100%; max-width: 340px; }
+.run-arc { display: block; width: 100%; height: auto; overflow: visible; }
+.run-arc .trail { fill: none; stroke: rgb(var(--gold-rgb) / 0.35); stroke-width: 1.2; stroke-dasharray: 3 5; }
+.run-arc :is(.ch, .sun) { opacity: 0; animation: run-star 0.5s cubic-bezier(0.16, 1, 0.3, 1) var(--d) both; transform-box: fill-box; transform-origin: center; }
+.run-arc .ch.eclipse { fill: var(--night-0); stroke: rgb(232 228 244 / 0.75); stroke-width: 1.6; }
+.run-arc .ch.done { fill: var(--gold); }
+.run-arc .ch.now circle { fill: var(--night-0); stroke: var(--gold-hi); stroke-width: 2.4; filter: drop-shadow(0 0 6px rgb(246 194 91 / 0.9)); }
+.run-arc .ch.now .dot { fill: var(--gold-hi); stroke: none; }
+.run-arc .sun { animation-duration: 0.9s; }
+.run-arc .sun path { fill: #ffb26b; filter: drop-shadow(0 -3px 10px rgb(255 178 107 / 0.8)); }
+.run-arc .sun line { stroke: rgb(var(--gold-rgb) / 0.7); stroke-width: 1.2; }
+@keyframes run-star { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+.run-prologue-text { display: grid; gap: 12px; justify-items: center; width: 100%; }
+.run-prologue-say { width: 100%; text-align: left; }
+.run-prologue-acts .btn { min-height: 50px; padding-inline: 28px; }
+/* Невысокий ландшафт: дуга слева, реплика и «В путь» справа — кнопка не уходит за край */
+@media (orientation: landscape) and (max-height: 520px) {
+  .modal-panel.run-prologue { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; column-gap: 20px; max-width: min(760px, calc(100vw - 32px)); }
+  .run-prologue-title { grid-column: 1 / -1; }
+  .run-prologue-sky { max-width: 300px; }
+}
+/* Знак, летящий с дуги пролога в полосу шапки */
+.run-fold { position: fixed; z-index: 30; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; background: var(--gold-hi); box-shadow: 0 0 10px rgb(var(--gold-rgb) / 0.9); }
+html.calm .run-arc :is(.ch, .sun) { animation: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .run-arc :is(.ch, .sun) { animation: none; opacity: 1; } }
+.map-top .gold-pill { height: 36px; padding: 0 13px 0 9px; border: 0; font-variant-numeric: tabular-nums; }
 
 /* Небо главы: звёзды-ночи, подписи, линия */
 .map-path { position: relative; flex: 1; min-height: 0; --tw: 196px; }
@@ -2230,7 +2282,16 @@ body.landscape .card-info.at-card::after { content: ''; position: absolute; righ
 .tut-bubble.on { display: flex; flex-direction: column; justify-content: center; }
 .tut-text { font: 600 14.5px/1.4 var(--font-body); color: var(--ink); text-align: center; text-wrap: balance; }
 .tut-text b { color: #ffe6a8; }
+/* Действие в подсказке (GO.2): глаз цепляется за то, что сделать */
+:is(.tut-text, .coach-text) b.tut-act { color: var(--gold-hi); font-weight: 800; }
+/* Цель ночи светится, пока обучение называет её первой фразой (GO.1) */
+.hud-score-wrap.tut-goal { border-radius: 10px; box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.55), 0 0 18px rgb(var(--gold-rgb) / 0.35); animation: tut-goal 1.6s ease-in-out infinite alternate; }
+@keyframes tut-goal { from { box-shadow: 0 0 0 2px rgb(var(--gold-rgb) / 0.35), 0 0 10px rgb(var(--gold-rgb) / 0.2); } }
+@media (prefers-reduced-motion: reduce) { .hud-score-wrap.tut-goal { animation: none; } }
+html.calm .hud-score-wrap.tut-goal { animation: none; }
 .tut-bubble.pop { animation: bubble-in 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+/* У самого верха экрана — без сдвига сверху: пузырь не выглядывает за край, только проявляется */
+.tut-bubble.pop.at-top { animation-name: fade-in; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .tut-actions { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .tut-ticks { display: flex; gap: 3px; flex: 0 1 auto; min-width: 0; }
@@ -3203,14 +3264,21 @@ body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }
 .modal-panel.tut-done { text-align: center; display: grid; gap: 14px; justify-items: center; background: linear-gradient(180deg, #1d1852, #0d0b2a 80%); border: 0; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.4), 0 30px 80px rgb(0 0 0 / 0.6); }
 .tut-done-title { margin: 0; font: 400 24px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; color: #ffe6a8; text-shadow: 0 0 24px rgb(var(--gold-rgb) / 0.4); text-wrap: balance; }
 .tut-done-sub { margin: -6px 0 0; font: 600 13.5px/1.4 var(--font-body); color: var(--ink-dim); text-wrap: balance; }
-.tut-chain { width: 100%; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: relative; padding-top: 4px; }
-.tut-chain::before { content: ''; position: absolute; left: 10%; right: 10%; top: 14px; height: 1.5px; background: linear-gradient(90deg, #ffe6a8, rgb(var(--gold-rgb) / 0.4)); }
+/* Колонок столько, сколько приёмов (--n): линия от первой звезды до последней, не дальше (GL.9) */
+.tut-chain { width: 100%; display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); position: relative; padding-top: 4px; }
+.tut-chain::before { content: ''; position: absolute; left: calc(50% / var(--n, 5)); right: calc(50% / var(--n, 5)); top: 14px; height: 1.5px; background: linear-gradient(90deg, #ffe6a8, rgb(var(--gold-rgb) / 0.4)); }
 .tut-chain span { position: relative; display: grid; justify-items: center; gap: 6px; font: 700 11px/1.2 var(--font-body); color: var(--ink-dim); }
 .tut-chain i { width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, #ffe6a8 45%, rgb(var(--gold-rgb) / 0) 72%); box-shadow: 0 0 12px 3px rgb(var(--gold-rgb) / 0.5); animation: tut-light 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: var(--d); }
 @keyframes tut-light { from { transform: scale(0.3); opacity: 0; } }
-.tut-gift { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(var(--gold-rgb) / 0.3); font: 700 13px/1.3 var(--font-body); color: var(--ink-dim); }
-.tut-gift b { font: 800 22px/1.3 var(--font-body); color: #ffe6a8; }
-.tut-gift .coin.big { width: 24px; height: 24px; }
+/* Подарок — награда, а не кнопка (GL.5): монета и «+10» крупно, подпись строкой ниже, без капсулы */
+.tut-gift { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 8px; padding: 2px 0 0; font: 700 13px/1.3 var(--font-body); color: var(--ink-dim); }
+.tut-gift b { font: 800 30px/1.1 var(--font-body); color: #ffe6a8; animation: gift-num 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.95s both; }
+.tut-gift .coin.big { width: 26px; height: 26px; box-shadow: 0 0 14px rgb(var(--gold-rgb) / 0.75); animation: gift-coin 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.95s both; }
+.tut-gift > span:not(.coin) { flex-basis: 100%; text-align: center; }
+@keyframes gift-coin { 0% { transform: scale(0.4); opacity: 0; } 45% { opacity: 1; box-shadow: 0 0 26px 6px rgb(255 230 168 / 0.85); } 100% { transform: none; } }
+@keyframes gift-num { from { opacity: 0; transform: translateY(6px); } }
+html.calm .tut-gift :is(.coin, b) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .tut-gift :is(.coin, b) { animation: none; } }
 .tut-done-acts { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
 .tut-done-acts .btn { min-height: 50px; padding-inline: 22px; }
 
@@ -3616,3 +3684,38 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 @keyframes feat-glow { 0% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes feat-ring { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(1.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast .feat-toast-medal::before, .toast .feat-toast-medal::after { animation: none; opacity: 0; } }
+
+/* ─── Наставник — Лебедь (GO.6, выбор Дениса) ──────────────────────────────────────────────
+   Медальон с живым созвездием слева, имя капителью и реплика справа; текст по левому краю,
+   как речь персонажа. Медальон — не кнопка: без кольца-кромки, только тёмное небо и свечение. */
+.mentor-say { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; text-align: left; width: 100%; }
+.mentor { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, #241d5e 0%, #0d0b2a 75%); box-shadow: 0 0 18px rgb(var(--gold-rgb) / 0.18); }
+.mentor canvas { display: block; }
+.mentor-line { display: grid; gap: 2px; min-width: 0; }
+.mentor-name { font: 400 12px/1.2 var(--font-display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-hi); }
+.mentor-say :is(.tut-text, .coach-text) { text-align: left; text-wrap: pretty; }
+/* Узкий или невысокий телефон: медальон меньше, чтобы подсказка с Лебедем помещалась между небом
+   и рукой и не наезжала на цель (Galaxy 320 × 658, iPhone SE) */
+@media (max-width: 360px), (max-height: 700px) {
+  .mentor { width: 44px; height: 44px; }
+  .mentor canvas { width: 44px !important; height: 44px !important; }
+  .mentor-say { gap: 10px; }
+}
+/* Совсем узкий телефон (320 px): плашка «Нити» шире, медальон без имени, «Понятно» ниже —
+   иначе на ночи она выше шапки и закрывает небо */
+@media (max-width: 340px) {
+  .coach { width: calc(100vw - 16px); padding: 10px 12px 4px; }
+  .coach .mentor { width: 40px; height: 40px; }
+  .coach .mentor canvas { width: 40px !important; height: 40px !important; }
+  .coach .mentor-name { display: none; }
+  .coach .coach-ok { min-height: 34px; }
+}
+.coach:has(.mentor-say) { justify-items: stretch; }
+/* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
+.coach:has(.mentor-say) .coach-ok { justify-self: center; }
+/* Имя наставника правится с сервера (TX.6): редактор держит его коротким, а если не влезет — многоточие */
+.mentor-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Бонус товара — цветом и пунктиром, без цветной плашки (GL.8, «Тише», как «Спокойные экраны») */
+.ware-bonus .kw, .ware-bonus .kw.xmult { background: none; padding: 0; margin: 0; }

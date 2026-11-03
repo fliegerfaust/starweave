@@ -9,7 +9,9 @@ import { renderDashboard } from './dashboard.ts';
 import { HallCache } from './hall.ts';
 import { STACK_SCRIPT_HASH } from './stack-decoder.ts';
 import { computeStats } from './stats.ts';
-import { LIMITS, parseBatch } from './validate.ts';
+import { isTextLang, logEntry, markTranslated, needsTranslation, openTexts, overrides, saveText, textsPayload } from './texts.ts';
+import { renderTextsPage, sameOrigin, savedLocation, TEXTS_SCRIPT_HASH, type TextsPageOpts } from './texts-page.ts';
+import { countReject, LIMITS, parseBatch, rejects } from './validate.ts';
 
 /**
  * Сервер игры «Звёздное плетение»: принимает анонимные события от игры и показывает
@@ -19,6 +21,9 @@ import { LIMITS, parseBatch } from './validate.ts';
  *   POST /v1/events  — пачка событий (text/plain с JSON, чтобы браузер обходился без preflight)
  *   GET  /stats      — сводка, вход по паролю (Basic)
  *   GET  /v1/hall    — доли игроков для «Зала славы» (открыто всем, кэш на час)
+ *   GET  /v1/texts   — правки текстов обучения для игры (открыто всем, ETag)
+ *   GET|POST /stats/texts       — редактор текстов обучения (тот же пароль, что у сводки)
+ *   GET|POST /stats/texts.json  — те же тексты для перевода скриптом (npm run texts:pull/push)
  *   GET  /health     — для проверки контейнера
  *   POST /v1/pay/invoice, /v1/pay/owned — покупки за Telegram Stars (игрок — по initData)
  *   POST /tg/webhook — обновления бота (оплаты, /start, /paysupport, /terms)
@@ -30,6 +35,8 @@ const DB_PATH = env.DB_PATH ?? '/data/events.db';
 const BACKUP_DIR = env.BACKUP_DIR ?? '/data/backups';
 const STATS_USER = env.STATS_USER ?? 'denis';
 const STATS_PASSWORD = env.STATS_PASSWORD ?? '';
+// Свои устройства (Денис, проверки выпусков): в сводку не идут, события хранятся (SA.1)
+const EXCLUDE_CLIENTS = (env.EXCLUDE_CLIENTS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const ORIGINS = new Set((env.ALLOWED_ORIGINS ?? 'https://fliegerfaust.github.io').split(',').map((s) => s.trim()).filter(Boolean));
 
 // Покупки включаются токеном бота; без него игра просто не показывает оплату
@@ -53,7 +60,8 @@ if (STATS_PASSWORD.length < 12) {
   process.exit(1);
 }
 
-const db = openDb(DB_PATH);
+const db = openDb(DB_PATH, EXCLUDE_CLIENTS);
+openTexts(db);
 const hall = new HallCache(db);
 
 // ── Ограничение частоты и объёма (SEC.1, см. limits.ts) ──────────────────────
@@ -152,13 +160,19 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
   // Браузер всегда шлёт Origin с POST: события принимаем только от нашей игры
   if (!ORIGINS.has(origin)) return send(res, 403, 'origin');
   const now = Date.now();
-  if (admit(limits, clientIp(req), now) !== 'ok') return send(res, 429, 'slow down', cors);
-  if (dbFull) return send(res, 507, 'full', cors);
+  // Отказы считаются по причинам (SA.8): в журнал 4xx не пишутся, а в «Здоровье» сводки видны
+  const refuse = (status: number, reason: string) => {
+    countReject(`batch: ${reason}`);
+    send(res, status, reason, cors);
+  };
+  if (admit(limits, clientIp(req), now) !== 'ok') return refuse(429, 'slow down');
+  if (dbFull) return refuse(507, 'full');
   const raw = await readBody(req, LIMITS.body);
-  if (raw === null) return send(res, 413, 'too large', cors);
+  if (raw === null) return refuse(413, 'too large');
   const batch = parseBatch(raw, now);
-  if (typeof batch === 'string') return send(res, 400, batch, cors);
-  if (!limits.quota.take(batch.client, now)) return send(res, 429, 'quota', cors);
+  if (typeof batch === 'string') return refuse(400, batch);
+  if (!limits.quota.take(batch.client, now)) return refuse(429, 'quota');
+  for (const reason of batch.dropped ?? []) countReject(reason);
   try {
     insertBatch(db, batch);
   } catch (err) {
@@ -237,6 +251,109 @@ async function handleWebhook(req: IncomingMessage, res: ServerResponse): Promise
   }
 }
 
+/** Правки текстов обучения для игры (TX.2): маленький ответ, версия в ETag. */
+function handleTexts(req: IncomingMessage, res: ServerResponse): void {
+  const cors = corsFor(req);
+  if (req.method !== 'GET') return send(res, 405, 'method', cors);
+  try {
+    const { v, body } = textsPayload(db);
+    const etag = `"${v}"`;
+    // Минута кэша: правка Дениса доходит до игроков быстро, а сервер не дёргают на каждом запуске
+    const headers = { ...cors, ETag: etag, 'Cache-Control': 'public, max-age=60', 'Access-Control-Expose-Headers': 'ETag' };
+    if (req.headers['if-none-match'] === etag) return void (res.writeHead(304, headers), res.end());
+    send(res, 200, body, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
+  } catch (err) {
+    console.error('тексты не выданы', err);
+    send(res, 500, 'texts', cors);
+  }
+}
+
+const pageHeaders = (hash: string) => ({
+  'Content-Type': 'text/html; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; script-src '${hash}'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`,
+  'X-Robots-Tag': 'noindex',
+});
+
+/** Редактор текстов обучения (TX.3): страница и сохранение формы. */
+async function handleTextsEditor(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  if (!authorized(req)) return send(res, 401, 'Нужен пароль', { 'WWW-Authenticate': 'Basic realm="Starweave", charset="UTF-8"' });
+  const page = (status: number, opts: TextsPageOpts) => {
+    res.writeHead(status, pageHeaders(TEXTS_SCRIPT_HASH));
+    res.end(renderTextsPage(db, opts));
+  };
+  if (req.method === 'GET') {
+    const lang = url.searchParams.get('lang');
+    return page(200, { lang: isTextLang(lang) ? lang : 'ru', saved: url.searchParams.get('saved') ?? undefined });
+  }
+  if (req.method !== 'POST') return send(res, 405, 'method');
+  if (!sameOrigin(req.headers)) return send(res, 403, 'origin');
+  const raw = await readBody(req, 16 * 1024);
+  if (raw === null) return send(res, 413, 'too large');
+  const form = new URLSearchParams(raw);
+  const lang = form.get('lang');
+  const key = form.get('key') ?? '';
+  const op = form.get('op') ?? 'save';
+  if (!isTextLang(lang)) return send(res, 400, 'lang');
+  const now = Date.now();
+  let value: string | null = form.get('value') ?? '';
+  if (op === 'reset') value = null;
+  else if (op === 'ok') {
+    if (lang === 'en' && needsTranslation(db).includes(key)) markTranslated(db, key, STATS_USER, now);
+    return send(res, 303, '', { Location: savedLocation(lang, key) });
+  } else if (op.startsWith('revert:')) {
+    const entry = logEntry(db, Number(op.slice(7)));
+    if (!entry || entry.key !== key || entry.lang !== lang) return page(422, { lang, error: { key, value: value ?? '', problem: 'log' } });
+    value = entry.value;
+  }
+  const result = saveText(db, lang, key, value, STATS_USER, now);
+  if (!result.ok) return page(422, { lang, error: { key, value: value ?? '', problem: result.problem } });
+  send(res, 303, '', { Location: savedLocation(lang, key) });
+}
+
+/**
+ * Тексты для перевода скриптом (TX.5): GET — правки, тексты по умолчанию берёт сам скрипт
+ * из репозитория, и список «нужен перевод»; POST — пачка правок одного языка.
+ */
+async function handleTextsJson(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!authorized(req)) return send(res, 401, 'Нужен пароль', { 'WWW-Authenticate': 'Basic realm="Starweave", charset="UTF-8"' });
+  const json = { 'Content-Type': 'application/json; charset=utf-8' };
+  if (req.method === 'GET') return send(res, 200, JSON.stringify({ ru: overrides(db, 'ru'), en: overrides(db, 'en'), needs: needsTranslation(db) }), json);
+  if (req.method !== 'POST') return send(res, 405, 'method');
+  // Только JSON: такой запрос с чужого сайта браузер без разрешения CORS не отправит
+  if (!String(req.headers['content-type'] ?? '').startsWith('application/json')) return send(res, 415, 'json only');
+  const raw = await readBody(req, 64 * 1024);
+  if (raw === null) return send(res, 413, 'too large');
+  let body: { lang?: unknown; texts?: unknown; author?: unknown };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return send(res, 400, 'bad json');
+  }
+  const { lang, texts } = body;
+  if (!isTextLang(lang) || !texts || typeof texts !== 'object' || Array.isArray(texts)) return send(res, 400, 'lang, texts');
+  const author = typeof body.author === 'string' && /^[a-z]{1,16}$/.test(body.author) ? body.author : 'api';
+  const now = Date.now();
+  const saved: string[] = [];
+  const errors: Record<string, string> = {};
+  const needs = new Set(needsTranslation(db));
+  for (const [key, value] of Object.entries(texts as Record<string, unknown>)) {
+    if (value !== null && typeof value !== 'string') {
+      errors[key] = 'type';
+      continue;
+    }
+    const result = saveText(db, lang, key, value, author, now);
+    if (!result.ok) {
+      errors[key] = result.problem;
+      continue;
+    }
+    // Перевод совпал с прежним английским — пометку «нужен перевод» всё равно снимаем
+    if (lang === 'en' && needs.has(key) && needsTranslation(db).includes(key)) markTranslated(db, key, author, now);
+    saved.push(key);
+  }
+  send(res, 200, JSON.stringify({ saved, errors }), json);
+}
+
 function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void {
   if (!authorized(req)) {
     send(res, 401, 'Нужен пароль', { 'WWW-Authenticate': 'Basic realm="Starweave", charset="UTF-8"' });
@@ -245,7 +362,7 @@ function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void 
   const days = [1, 7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 7;
   // Сайт игры: оттуда страница сводки читает карты исходников для стеков ошибок
   const site = [...ORIGINS][0] ?? '';
-  const html = renderDashboard(computeStats(db, Date.now(), days), { site });
+  const html = renderDashboard(computeStats(db, Date.now(), days), { site, rejects: [...rejects].sort((a, b) => b[1] - a[1]), excluded: EXCLUDE_CLIENTS.length });
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -255,12 +372,20 @@ function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void 
   res.end(html);
 }
 
+function fail(res: ServerResponse, err: unknown): void {
+  console.error(err);
+  if (!res.headersSent) send(res, 500, 'error');
+}
+
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
   try {
     if (url.pathname === '/v1/events') return void handleEvents(req, res);
     if (url.pathname === '/v1/hall') return handleHall(req, res);
     if (url.pathname === '/stats') return handleStats(req, res, url);
+    if (url.pathname === '/v1/texts') return handleTexts(req, res);
+    if (url.pathname === '/stats/texts') return void handleTextsEditor(req, res, url).catch((err) => fail(res, err));
+    if (url.pathname === '/stats/texts.json') return void handleTextsJson(req, res).catch((err) => fail(res, err));
     if (url.pathname === '/v1/pay/invoice') return void handlePay(req, res, 'invoice');
     if (url.pathname === '/v1/pay/owned') return void handlePay(req, res, 'owned');
     if (url.pathname === '/tg/webhook') return void handleWebhook(req, res);

@@ -1,7 +1,7 @@
 {
   "name": "starweave",
   "private": true,
-  "version": "0.7.19",
+  "version": "0.7.20",
   "type": "module",
   "description": "Starweave — карточный рогалик-головоломка о созвездиях",
   "scripts": {
@@ -15,6 +15,9 @@
     "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/strip-web-only.mjs dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
     "build:pikabu": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=pikabu VITE_EVENTS_URL=${VITE_EVENTS_URL:-https://game.denvalclass.ru/v1/events} vite build --outDir dist-pikabu && node scripts/strip-web-only.mjs dist-pikabu",
     "legal": "node scripts/build-legal.ts",
+    "texts:pull": "node scripts/texts.ts pull",
+    "texts:push": "node scripts/texts.ts push",
+    "texts:fold": "node scripts/texts.ts fold",
     "e2e": "playwright test",
     "clips": "node scripts/clips.mjs",
     "vitrine-art": "node scripts/vitrine-art.mjs",
