@@ -23,6 +23,8 @@ document.addEventListener('contextmenu', (e) => {
 });
 
 async function boot(): Promise<void> {
+  // Тексты обучения с сервера (TX.4) — параллельно со шрифтами, не дольше 1,5 с
+  const texts = import('./meta/texts-sync').then(({ loadTexts }) => loadTexts());
   await document.fonts.ready;
   // Шрифты подключены частями (латиница и кириллица отдельно): без образца текста грузится
   // только латиница, и холст рисует русские буквы запасным шрифтом
@@ -80,7 +82,7 @@ async function boot(): Promise<void> {
     const saved = JSON.parse(localStorage.getItem('starweave.profile.v1') ?? '{"version":1}') as Record<string, unknown>;
     localStorage.setItem('starweave.profile.v1', JSON.stringify({ ...saved, tutorialDone: true }));
   }
-  const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform')]);
+  const [{ startGame }, { createPlatform }] = await Promise.all([import('./game/app'), import('./platform'), texts]);
   const platform = await createPlatform();
   await platform.init();
   const app = await startGame(platform);

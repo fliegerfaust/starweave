@@ -16,18 +16,19 @@ SITES=/var/lib/docker/volumes/repo_caddy_data/_data/sites
 
 cd "$(dirname "$0")/../.."
 # Выкладывается рабочее дерево — только закоммиченное, чтобы на сервере было то, что в git (SEC.6)
-if [ -n "$(git status --porcelain -- server src/i18n/ru.ts)" ] && [ "${ALLOW_DIRTY:-}" != 1 ]; then
-  echo "В server/ или src/i18n/ru.ts есть незакоммиченное — закоммить или ALLOW_DIRTY=1"; exit 1
+if [ -n "$(git status --porcelain -- server src/i18n/ru.ts src/i18n/en.ts src/i18n/texts.ts)" ] && [ "${ALLOW_DIRTY:-}" != 1 ]; then
+  echo "В server/ или src/i18n есть незакоммиченное — закоммить или ALLOW_DIRTY=1"; exit 1
 fi
 npm run --silent typecheck
-npx vitest run tests/server.test.ts tests/server-limits.test.ts --silent
+npx vitest run tests/server.test.ts tests/server-limits.test.ts tests/server-texts.test.ts --silent
 
 echo "→ код"
 ssh "$HOST" "mkdir -p $DIR/app/server/src $DIR/app/server/scripts $DIR/app/src/i18n $DIR/data $SITES"
 rsync -a --no-o --no-g --delete server/src/ "$HOST:$DIR/app/server/src/"
 # set-webhook.ts — подключение бота к серверу (запускается вручную, см. server/README.md)
 rsync -a --no-o --no-g server/scripts/set-webhook.ts "$HOST:$DIR/app/server/scripts/set-webhook.ts"
-rsync -a --no-o --no-g src/i18n/ru.ts "$HOST:$DIR/app/src/i18n/ru.ts"
+# Словари и правила текстов обучения: сервер берёт из них тексты по умолчанию (TX)
+rsync -a --no-o --no-g src/i18n/ru.ts src/i18n/en.ts src/i18n/texts.ts "$HOST:$DIR/app/src/i18n/"
 rsync -a --no-o --no-g server/package.json "$HOST:$DIR/app/package.json"
 rsync -a --no-o --no-g server/deploy/docker-compose.yml "$HOST:$DIR/docker-compose.yml"
 

@@ -1,4 +1,4 @@
-import type { Dict } from './ru';
+import type { Dict } from './ru.ts';
 
 export const en: Dict = {
   game: {
@@ -247,7 +247,7 @@ export const en: Dict = {
     menuButton: 'Tutorial',
     menuSub: '2 minutes',
     offerTitle: 'New here?',
-    offer: 'A short tutorial — 2 minutes.',
+    offer: 'A short tutorial: 2 minutes.',
     offerSkip: 'Just play',
   },
   ads: {

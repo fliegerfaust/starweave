@@ -3714,6 +3714,8 @@ body.landscape .modal-panel.hall-modal:not(.sheet) .hall-skycanvas { min-height:
 .coach:has(.mentor-say) { justify-items: stretch; }
 /* «Понятно» по центру, как раньше: справа кнопка ложилась на колонку цен Обсерватории и забирала касание «Купить» */
 .coach:has(.mentor-say) .coach-ok { justify-self: center; }
+/* Имя наставника правится с сервера (TX.6): редактор держит его коротким, а если не влезет — многоточие */
+.mentor-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Бонус товара — цветом и пунктиром, без цветной плашки (GL.8, «Тише», как «Спокойные экраны») */
 .ware-bonus .kw, .ware-bonus .kw.xmult { background: none; padding: 0; margin: 0; }
