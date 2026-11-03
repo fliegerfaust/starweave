@@ -58,7 +58,9 @@ export class ShopScreen implements Screen {
     this.render();
     this.app.runs.tutorial?.emit({ type: 'shop', root: this.el });
     // Первый заход новичка — «Проводник» голосом Лебедя (GL.7) вместо одной плашки «Нити»
-    if (firstShopDue(this.app)) void firstShop(this.app, this.el);
+    const guide = firstShopDue(this.app);
+    track('shop_open', { ante: this.run.ante, gold: this.run.gold, runs: this.app.profile.runs, guide });
+    if (guide) void firstShop(this.app, this.el);
     if (currentChoice(this.run)) this.showPack();
   }
 
@@ -80,7 +82,7 @@ export class ShopScreen implements Screen {
 
   private trackBuy(item: ShopItem): void {
     const id = item.kind === 'omen' ? item.omenId : item.kind === 'chart' ? item.combo : item.kind === 'ritual' ? item.ritualId : item.pack;
-    track('shop_buy', { kind: item.kind, id, price: item.price, ante: this.run.ante, gold_left: this.run.gold });
+    track('shop_buy', { kind: item.kind, id, price: item.price, ante: this.run.ante, gold_left: this.run.gold, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
   }
 
   private afterPackBuy(): void {
@@ -574,7 +576,7 @@ export class ShopScreen implements Screen {
     const choice = currentChoice(this.run);
     if (choice?.kind !== 'pack') return;
     close();
-    const done = () => track('pack_choose', { pack: choice.pack, id });
+    const done = () => track('pack_choose', { pack: choice.pack, id, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
     if (choice.pack === 'ritual') {
       this.pickTargets(
         id,

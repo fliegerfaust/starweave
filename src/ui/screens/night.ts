@@ -196,7 +196,7 @@ export class NightScreen implements Screen {
     for (const id of found.combos) {
       const count = p.combosFound!.length - found.combos.length + found.combos.indexOf(id) + 1;
       banners.push({ kind: 'combo', id, count });
-      track('combo_found', { combo: id, count, ante: this.run.ante });
+      track('combo_found', { combo: id, count, ante: this.run.ante, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
     }
     for (const id of found.myths) {
       const count = (p.mythsFound?.length ?? 0) - found.myths.length + found.myths.indexOf(id) + 1;
@@ -205,7 +205,7 @@ export class NightScreen implements Screen {
     }
     if (found.cross) {
       banners.push({ kind: 'cross' });
-      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante });
+      track('combo_found', { combo: 'cross', count: p.combosFound!.length, ante: this.run.ante, ...(this.app.runs.tutorial ? { tutorial: true } : {}) });
     }
     announceDiscovery(banners, () => this.app.svc.audio.win(), (focus, done) => {
       track('collection_hook', { from: 'banner', kind: 'myth', n: 1 });
@@ -514,7 +514,7 @@ export class NightScreen implements Screen {
 
   /** «Бросить вызов»: ссылка на тот же расклад со своим итогом. В вызове дня — обычное «Поделиться». */
   private challengeLight(won: boolean): HTMLElement | null {
-    if (this.run.tutorial) return null;
+    if (this.run.tutorial || this.app.platform.challenges === false) return null;
     return lightButton('duel', t(this.run.challenge ? 'challenge.answer' : 'challenge.send'), () => this.sendChallenge(won));
   }
 
@@ -524,7 +524,7 @@ export class NightScreen implements Screen {
     const text = t('challenge.shareText', { score: challengeScore(c.ante, c.best) });
     track('challenge_share', { ante: c.ante, best: c.best, won });
     if (this.app.platform.share?.(text, param)) return;
-    const url = this.app.platform.inviteUrl?.(param) ?? `${location.origin}${location.pathname}?startapp=${param}`;
+    const url = `${location.origin}${location.pathname}?startapp=${param}`;
     void shareText(text, url);
   }
 

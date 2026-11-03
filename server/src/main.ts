@@ -9,7 +9,7 @@ import { renderDashboard } from './dashboard.ts';
 import { HallCache } from './hall.ts';
 import { STACK_SCRIPT_HASH } from './stack-decoder.ts';
 import { computeStats } from './stats.ts';
-import { LIMITS, parseBatch } from './validate.ts';
+import { countReject, LIMITS, parseBatch, rejects } from './validate.ts';
 
 /**
  * Сервер игры «Звёздное плетение»: принимает анонимные события от игры и показывает
@@ -30,6 +30,8 @@ const DB_PATH = env.DB_PATH ?? '/data/events.db';
 const BACKUP_DIR = env.BACKUP_DIR ?? '/data/backups';
 const STATS_USER = env.STATS_USER ?? 'denis';
 const STATS_PASSWORD = env.STATS_PASSWORD ?? '';
+// Свои устройства (Денис, проверки выпусков): в сводку не идут, события хранятся (SA.1)
+const EXCLUDE_CLIENTS = (env.EXCLUDE_CLIENTS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const ORIGINS = new Set((env.ALLOWED_ORIGINS ?? 'https://fliegerfaust.github.io').split(',').map((s) => s.trim()).filter(Boolean));
 
 // Покупки включаются токеном бота; без него игра просто не показывает оплату
@@ -53,7 +55,7 @@ if (STATS_PASSWORD.length < 12) {
   process.exit(1);
 }
 
-const db = openDb(DB_PATH);
+const db = openDb(DB_PATH, EXCLUDE_CLIENTS);
 const hall = new HallCache(db);
 
 // ── Ограничение частоты и объёма (SEC.1, см. limits.ts) ──────────────────────
@@ -152,13 +154,19 @@ async function handleEvents(req: IncomingMessage, res: ServerResponse): Promise<
   // Браузер всегда шлёт Origin с POST: события принимаем только от нашей игры
   if (!ORIGINS.has(origin)) return send(res, 403, 'origin');
   const now = Date.now();
-  if (admit(limits, clientIp(req), now) !== 'ok') return send(res, 429, 'slow down', cors);
-  if (dbFull) return send(res, 507, 'full', cors);
+  // Отказы считаются по причинам (SA.8): в журнал 4xx не пишутся, а в «Здоровье» сводки видны
+  const refuse = (status: number, reason: string) => {
+    countReject(`batch: ${reason}`);
+    send(res, status, reason, cors);
+  };
+  if (admit(limits, clientIp(req), now) !== 'ok') return refuse(429, 'slow down');
+  if (dbFull) return refuse(507, 'full');
   const raw = await readBody(req, LIMITS.body);
-  if (raw === null) return send(res, 413, 'too large', cors);
+  if (raw === null) return refuse(413, 'too large');
   const batch = parseBatch(raw, now);
-  if (typeof batch === 'string') return send(res, 400, batch, cors);
-  if (!limits.quota.take(batch.client, now)) return send(res, 429, 'quota', cors);
+  if (typeof batch === 'string') return refuse(400, batch);
+  if (!limits.quota.take(batch.client, now)) return refuse(429, 'quota');
+  for (const reason of batch.dropped ?? []) countReject(reason);
   try {
     insertBatch(db, batch);
   } catch (err) {
@@ -245,7 +253,7 @@ function handleStats(req: IncomingMessage, res: ServerResponse, url: URL): void 
   const days = [1, 7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 7;
   // Сайт игры: оттуда страница сводки читает карты исходников для стеков ошибок
   const site = [...ORIGINS][0] ?? '';
-  const html = renderDashboard(computeStats(db, Date.now(), days), { site });
+  const html = renderDashboard(computeStats(db, Date.now(), days), { site, rejects: [...rejects].sort((a, b) => b[1] - a[1]), excluded: EXCLUDE_CLIENTS.length });
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',

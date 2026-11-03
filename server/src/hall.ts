@@ -31,8 +31,8 @@ const bit = (mask: number, i: number) => Math.floor(mask / 2 ** i) % 2 === 1;
 export function computeHall(db: Db, now: number): HallAggregate {
   const since = now - HALL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
   const rows = db.prepare(`
-    SELECT e.params AS params FROM events e
-    JOIN (SELECT client, MAX(id) AS id FROM events WHERE name = 'hall_snap' AND ts >= ? GROUP BY client) last ON e.id = last.id
+    SELECT e.params AS params FROM counted e
+    JOIN (SELECT client, MAX(id) AS id FROM counted WHERE name = 'hall_snap' AND ts >= ? GROUP BY client) last ON e.id = last.id
   `).all(since) as { params: string }[];
   const counts = new Array<number>(MAX_FEATS).fill(0);
   const values: Record<string, number[]> = Object.fromEntries(Object.values(RECORD_KEYS).map((k) => [k, []]));

@@ -20,8 +20,6 @@ interface ImportMetaEnv {
   readonly VITE_ADSGRAM_BLOCK_ID?: string;
   /** Блок AdsGram для межстраничной рекламы между главами (`int-…`). */
   readonly VITE_ADSGRAM_INTER_ID?: string;
-  /** Страница игры на Пикабу Играх — куда ведёт вызов друга в сборке Пикабу; без неё — zvyozdnoe-pletenie. */
-  readonly VITE_PIKABU_GAME_URL?: string;
 }
 
 /** Версия из package.json, подставляет Vite. */

@@ -20,6 +20,19 @@ export interface Batch {
   version: string;
   lang: string;
   events: IncomingEvent[];
+  /** Тестовая пачка (`t: 1` — dev, сборка `--test`, «тестер»): хранится для отладки, в сводку не идёт (SA.1). */
+  test?: boolean;
+  /** Что выкинуто из пачки, а не уронило её (SA.8): причины по одной на событие или параметр. */
+  dropped?: string[];
+}
+
+/**
+ * Отказы с момента старта (SA.8): причина → сколько раз. Пачка целиком — `batch: …`, выкинутое
+ * событие или параметр — `event: …` / `param: …`. Показываются в «Здоровье» сводки.
+ */
+export const rejects = new Map<string, number>();
+export function countReject(reason: string, n = 1): void {
+  rejects.set(reason, (rejects.get(reason) ?? 0) + n);
 }
 
 export const LIMITS = {
@@ -69,40 +82,57 @@ export function parseBatch(raw: string, serverNow: number): Batch | string {
   if (sentAt === null) return 'bad time';
   if (!Array.isArray(b.e) || b.e.length === 0) return 'no events';
   if (b.e.length > LIMITS.events) return 'too many events';
+  if (b.t !== undefined && b.t !== 0 && b.t !== 1) return 'bad test flag';
 
+  // Плохое событие или параметр выкидываем, а не роняем всю пачку (SA.8): одно Infinity в
+  // ratio раньше теряло до 40 событий соседей по пачке
   const events: IncomingEvent[] = [];
+  const dropped: string[] = [];
   for (const item of b.e) {
-    if (!Array.isArray(item) || item.length !== 3) return 'bad event';
+    if (!Array.isArray(item) || item.length !== 3) {
+      dropped.push('event: bad event');
+      continue;
+    }
     const [name, params, t] = item as unknown[];
-    if (typeof name !== 'string' || !NAME.test(name)) return 'bad event name';
-    if (typeof t !== 'number' || !Number.isFinite(t)) return 'bad event time';
-    const clean = cleanParams(params);
-    if (typeof clean === 'string') return clean;
+    if (typeof name !== 'string' || !NAME.test(name)) {
+      dropped.push('event: bad event name');
+      continue;
+    }
+    if (typeof t !== 'number' || !Number.isFinite(t)) {
+      dropped.push('event: bad event time');
+      continue;
+    }
+    const clean = cleanParams(params, dropped);
+    if (clean === null) {
+      dropped.push('event: bad params');
+      continue;
+    }
     // Часы телефона могут врать: берём возраст события по его же часам и откладываем
     // от времени сервера. Будущее и слишком старое прижимаем к границам.
     const age = Math.min(LIMITS.backdateMs, Math.max(0, sentAt - t));
     events.push({ name, params: clean, at: serverNow - age });
   }
-  return { client, session, platform, version, lang, events };
+  if (events.length === 0) return 'no valid events';
+  return { client, session, platform, version, lang, events, test: b.t === 1, dropped };
 }
 
 function str(v: unknown): string | null {
   return typeof v === 'string' ? v : null;
 }
 
-function cleanParams(params: unknown): Record<string, Value> | string {
-  if (params === null || typeof params !== 'object' || Array.isArray(params)) return 'bad params';
+/** Параметры события; плохой параметр выкидывается с причиной в `dropped`. null — параметров нет вовсе. */
+function cleanParams(params: unknown, dropped: string[]): Record<string, Value> | null {
+  if (params === null || typeof params !== 'object' || Array.isArray(params)) return null;
   const entries = Object.entries(params as Record<string, unknown>);
-  if (entries.length > LIMITS.params) return 'too many params';
+  if (entries.length > LIMITS.params) return null;
   const out: Record<string, Value> = {};
   for (const [key, value] of entries) {
-    if (!KEY.test(key)) return 'bad param key';
-    if (typeof value === 'string') out[key] = value.slice(0, key === 'stack' ? LIMITS.stack : LIMITS.string);
-    else if (typeof value === 'number') {
-      if (!Number.isFinite(value)) return 'bad param number';
-      out[key] = value;
-    } else if (typeof value === 'boolean') out[key] = value;
-    else return 'bad param value';
+    if (!KEY.test(key)) dropped.push('param: bad key');
+    else if (typeof value === 'string') out[key] = value.slice(0, key === 'stack' ? LIMITS.stack : LIMITS.string);
+    // null — так JSON передаёт Infinity и NaN (ratio при цели 0)
+    else if (typeof value === 'number' && Number.isFinite(value)) out[key] = value;
+    else if (typeof value === 'boolean') out[key] = value;
+    else dropped.push(value === null ? 'param: null' : `param: bad ${typeof value}`);
   }
   return out;
 }
