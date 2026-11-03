@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * отсутствие ошибок, FPS на замедленном процессоре. Запуск: `npm run e2e`.
  * Снимки экранов складываются в e2e-results/ — их же можно брать для витрин.
  */
-/** Порт dev-сервера: на 4180 может сидеть чужой проект, тогда `E2E_PORT=4190 npm run e2e`. */
+/** Порт dev-сервера: на 4180 может сидеть чужой проект, тогда `E2E_PORT=4280 npm run e2e` (не 4190: это служебный порт, WebKit к нему не подключается). */
 const PORT = Number(process.env.E2E_PORT) || 4180;
 
 export default defineConfig({
