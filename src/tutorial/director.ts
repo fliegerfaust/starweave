@@ -5,6 +5,7 @@ import type { NightScene } from '@/game/night/scene';
 import { t } from '@/i18n';
 import type { Dict } from '@/i18n/ru';
 import { h } from '@/ui/dom';
+import { actionText } from '@/ui/rich';
 import type { Hud } from '@/ui/hud';
 import { center, elementRect, TutorialOverlay, type Rect } from './overlay';
 import { track } from '@/analytics';
@@ -205,7 +206,7 @@ export class TutorialDirector {
     this.overlay.spotlight(opts.spot ?? null);
     this.reposition = null;
     const text = t(`tut.${key}`, opts.vars);
-    await this.overlay.say([h('div', null, text), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next') });
+    await this.overlay.say([h('div', null, actionText(text)), opts.extra ?? null], { next: opts.next === false ? undefined : t('tut.next') });
   }
 
   private get night() {
@@ -220,7 +221,7 @@ export class TutorialDirector {
 
   /** Попросить положить карту в клетку: подсветка, палец, ограничение. */
   /** `key` null — подсказка прежняя (ряд под одной фразой), меняется только цель. */
-  private async guidePlace(key: TutKey | null, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top'): Promise<GameEvent[]> {
+  private async guidePlace(key: TutKey | null, code: string, cell: number, place: 'top' | 'bottom' | 'auto' = 'top', vars?: Record<string, string | number>): Promise<GameEvent[]> {
     const scene = this.night;
     const id = this.cardId(code);
     this.sync();
@@ -236,7 +237,7 @@ export class TutorialDirector {
       if (from && !scene.busy) this.overlay.point(center(from), center(scene.cellRect(cell)));
     };
     this.reposition();
-    if (key) await this.overlay.say(t(`tut.${key}`), { place });
+    if (key) await this.overlay.say(actionText(t(`tut.${key}`, vars)), { place });
     else this.overlay.showBubble();
     // Как только карта легла — убираем пузырь, чтобы он не закрывал подсчёт
     const watch = this.every(50, () => {
@@ -392,10 +393,18 @@ export class TutorialDirector {
     // Без паузы на разбор: подписи и фишки подсчёта сами показывают, как растёт счёт
     this.watchFormula(false);
     scene.setStepPause(1.6);
-    // Ряд целиком под одной подсказкой: палец ведёт от карты к клетке, слова не меняются
+    // Ряд целиком под одной подсказкой: палец ведёт от карты к клетке, слова не меняются.
+    // Первой фразой — цель ночи, и счёт с целью светится, пока собирается ряд (GO.1, отзыв
+    // Ярослава: «дали карты — не понял, как и зачем их выкладывать»)
+    const goal = document.querySelector('.hud-score-wrap');
+    goal?.classList.add('tut-goal');
     const row: [string, number][] = [['3s', TUTORIAL_CELLS.pairRow[0]], ['3m', TUTORIAL_CELLS.pairRow[1]], ['7t', TUTORIAL_CELLS.pairRow[2]], ['5c', TUTORIAL_CELLS.pairRow[3]]];
-    for (const [i, [code, cell]] of row.entries()) await this.guidePlace(i === 0 ? 'shortRow' : null, code, cell);
-    await this.waitIdle(scene);
+    try {
+      for (const [i, [code, cell]] of row.entries()) await this.guidePlace(i === 0 ? 'shortRow' : null, code, cell, 'top', { n: this.app.run!.night!.target });
+      await this.waitIdle(scene);
+    } finally {
+      goal?.classList.remove('tut-goal');
+    }
 
     await this.burnStep(scene, 'shortBurn');
 
@@ -427,7 +436,7 @@ export class TutorialDirector {
     this.mark(key);
     this.overlay.spotlight(elementRect(this.hud!.burnBtn), 4);
     this.sync();
-    await this.overlay.say(t(`tut.${key}`), { place: 'top' });
+    await this.overlay.say(actionText(t(`tut.${key}`)), { place: 'top' });
     const burnBtn = this.hud!.burnBtn;
     const waitSelect = this.every(200, () => {
       this.overlay.point(center(scene.selected !== null ? elementRect(burnBtn)! : scene.handRect(bad) ?? elementRect(burnBtn)!));
@@ -459,7 +468,7 @@ export class TutorialDirector {
       gateOpen = true;
       this.overlay.point(null);
       await Promise.race([
-        this.overlay.say([h('div', null, t('tut.watchFormula'))], { place: 'bottom', above: this.night.cellsRect(TUTORIAL_CELLS.pairRow), next: t('tut.next') }),
+        this.overlay.say([h('div', null, actionText(t('tut.watchFormula')))], { place: 'bottom', above: this.night.cellsRect(TUTORIAL_CELLS.pairRow), next: t('tut.next') }),
         new Promise<void>((resolve) => (this.releaseGate = resolve)),
       ]);
       this.releaseGate = null;
