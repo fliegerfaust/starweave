@@ -5,16 +5,19 @@ import { defineConfig, devices } from '@playwright/test';
  * отсутствие ошибок, FPS на замедленном процессоре. Запуск: `npm run e2e`.
  * Снимки экранов складываются в e2e-results/ — их же можно брать для витрин.
  */
+/** Порт dev-сервера: на 4180 может сидеть чужой проект, тогда `E2E_PORT=4190 npm run e2e`. */
+const PORT = Number(process.env.E2E_PORT) || 4180;
+
 export default defineConfig({
   testDir: 'e2e',
   outputDir: 'e2e-results/artifacts',
   timeout: 90_000,
   fullyParallel: true,
   reporter: [['list']],
-  use: { baseURL: 'http://localhost:4180', trace: 'off' },
+  use: { baseURL: `http://localhost:${PORT}`, trace: 'off' },
   webServer: {
-    command: 'npx vite --port 4180 --strictPort',
-    url: 'http://localhost:4180',
+    command: `npx vite --port ${PORT} --strictPort`,
+    url: `http://localhost:${PORT}`,
     reuseExistingServer: true,
     // Блок AdsGram для проверки рекламы в Telegram (скрипт AdsGram тест подменяет)
     // Проверки написаны на старое поведение; новое (CQ) тесты включают сами через `?ff=`
