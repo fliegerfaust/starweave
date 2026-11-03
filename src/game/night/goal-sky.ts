@@ -1,5 +1,6 @@
 import { starRadius, type SkyFigure } from '@/art/constellations';
 import { bossSigil } from '@/art/sigil';
+import type { NightState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import { named, t } from '@/i18n';
 import { Drawable, Layer, Transform, transform } from '../components';
@@ -52,6 +53,11 @@ export class GoalSky {
   private shattered = false;
   private readonly bornAt: number;
   private readonly sigil: HTMLCanvasElement | null = null;
+  /** Последняя ночь: после победы её уже нет в забеге, а финал на небе ещё догорает под выбором трофея. */
+  private last: NightState;
+  private get night(): NightState {
+    return (this.last = this.scene.run.night ?? this.last);
+  }
 
   constructor(
     private readonly scene: NightScene,
@@ -59,6 +65,7 @@ export class GoalSky {
   ) {
     const world = scene.world;
     const run = scene.run;
+    this.last = scene.night;
     this.calm = !!world.res.reduceMotion;
     this.figure = figureFor(run.seed, run.ante, scene.night.kind);
     this.order = lightOrder(this.figure);
@@ -199,7 +206,7 @@ export class GoalSky {
    * не повторяем: оно и так строкой в табло (критика 03.11: дважды одно и то же, и поверх клеток).
    */
   private drawThreat(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
-    const id = this.scene.night.bossId;
+    const id = this.night.bossId;
     if (!id) return;
     const since = this.scene.world.res.time - this.bornAt;
     const k = Math.min(this.arrive, Math.max(0, 1 - (since - 5) / 1.2)) * (1 - this.won);
@@ -217,13 +224,13 @@ export class GoalSky {
     ctx.fillText(name.toUpperCase().split('').join('\u200a'), cx, y);
     ctx.fillStyle = '#ffe6a8';
     ctx.font = `700 ${Math.round(Math.max(13, r * 0.14))}px 'Manrope Variable', Manrope, sans-serif`;
-    ctx.fillText(t('foe.beat', { n: this.scene.night.target }), cx, y + 22);
+    ctx.fillText(t('foe.beat', { n: this.night.target }), cx, y + 22);
     ctx.restore();
   }
 
   /** Клетки, которые Затмение задело: запечатанные и карты затмённой масти на небе. */
   private touched(): number[] {
-    const n = this.scene.night;
+    const n = this.night;
     const out: number[] = [];
     n.grid.forEach((card, i) => {
       if (n.sealed[i] || (card && n.rules.debuffSuit && card.suit === n.rules.debuffSuit)) out.push(i);
