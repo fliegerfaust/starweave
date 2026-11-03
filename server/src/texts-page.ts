@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { IncomingHttpHeaders } from 'node:http';
 import { maxTextLength, TEXT_GROUPS, TEXT_PROBLEM_RU, textCatalog, type TextLang, type TextProblem } from '../../src/i18n/texts.ts';
 import { CSS, esc, FONTS } from './dashboard.ts';
 import type { Db } from './db.ts';
@@ -94,6 +95,8 @@ export function renderTextsPage(db: Db, opts: TextsPageOpts): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
+<!-- Поверх no-referrer из Caddy: форма редактора уходит со своим Origin -->
+<meta name="referrer" content="same-origin">
 <title>Звёздное плетение · тексты обучения</title>
 <style>${FONTS}${CSS}${TEXTS_CSS}</style>
 </head>
@@ -172,6 +175,23 @@ for(const f of document.querySelectorAll('form.tx')){
 })();`;
 
 export const TEXTS_SCRIPT_HASH = `sha256-${createHash('sha256').update(SCRIPT).digest('base64')}`;
+
+/**
+ * Запись из редактора — только со своей страницы: браузер подставил бы пароль Basic и в форму с
+ * чужого сайта. Caddy отдаёт API с `Referrer-Policy: no-referrer`, а с ней браузер шлёт форму
+ * с `Origin: null` (релизная проверка 0.7.20). Тогда своё подтверждает `Sec-Fetch-Site:
+ * same-origin`: этот заголовок ставит сам браузер, страница его подделать не может.
+ */
+export function sameOrigin(h: IncomingHttpHeaders): boolean {
+  const site = h['sec-fetch-site'];
+  if (site && site !== 'same-origin') return false;
+  if (h.origin === 'null') return site === 'same-origin';
+  try {
+    return new URL(h.origin ?? '').host === h.host;
+  } catch {
+    return false;
+  }
+}
 
 /** Ответ после сохранения: обратно к тому же тексту с пометкой. */
 export function savedLocation(lang: TextLang, key: string): string {

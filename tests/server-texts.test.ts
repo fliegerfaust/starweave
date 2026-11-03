@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ru } from '../src/i18n/ru.ts';
 import { openDb } from '../server/src/db.ts';
-import { renderTextsPage } from '../server/src/texts-page.ts';
+import { renderTextsPage, sameOrigin } from '../server/src/texts-page.ts';
 import { history, logEntry, markTranslated, needsTranslation, openTexts, overrides, saveText, textsPayload } from '../server/src/texts.ts';
 
 const NOW = Date.UTC(2026, 10, 3, 12, 0, 0);
@@ -83,5 +83,19 @@ describe('сервер: тексты обучения (TX.2, TX.3)', () => {
     expect(html).toContain('English · 1 к переводу');
     expect(html).toContain('Нужен перевод');
     expect(html).toContain('Перевод верен');
+  });
+
+  it('запись принимается только со своей страницы, в том числе за no-referrer Caddy', () => {
+    const host = 'game.denvalclass.ru';
+    expect(sameOrigin({ host, origin: `https://${host}`, 'sec-fetch-site': 'same-origin' })).toBe(true);
+    expect(sameOrigin({ host, origin: `https://${host}` })).toBe(true);
+    // no-referrer: браузер шлёт Origin: null, своё подтверждает Sec-Fetch-Site
+    expect(sameOrigin({ host, origin: 'null', 'sec-fetch-site': 'same-origin' })).toBe(true);
+    expect(sameOrigin({ host, origin: 'null' })).toBe(false);
+    expect(sameOrigin({ host, origin: 'null', 'sec-fetch-site': 'cross-site' })).toBe(false);
+    expect(sameOrigin({ host, origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' })).toBe(false);
+    expect(sameOrigin({ host, origin: 'https://evil.example' })).toBe(false);
+    expect(sameOrigin({ host })).toBe(false);
+    expect(renderTextsPage(fresh(), { lang: 'ru' })).toContain('<meta name="referrer" content="same-origin">');
   });
 });
