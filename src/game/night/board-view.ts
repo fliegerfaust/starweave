@@ -14,9 +14,13 @@ type Rect = { x: number; y: number; w: number; h: number };
  * («какая клетка под пальцем», прямоугольники для подсказок обучения).
  */
 export class BoardView {
+  /** Сторона неба. Помним её: на сцене трофея ночи в забеге уже нет, а небо ещё на экране (FX.12). */
+  private gridSize = 0;
+
   constructor(private readonly scene: NightScene) {}
 
   computeLayout(): void {
+    this.gridSize = this.scene.run.night?.rules.gridSize ?? this.gridSize;
     const { renderer } = this.scene.svc;
     const { width, height } = renderer;
     const safe = safeInsets();
@@ -33,7 +37,7 @@ export class BoardView {
     const area: PlayArea = landscape
       ? { top: safe.top, bottom: height - safe.bottom, left: wide ? 0 : Math.max(hud.right, actions.right), right: width }
       : { top: hud.bottom || safe.top + 168, bottom: actions.top || height - safe.bottom - 64, left: 0, right: width };
-    this.scene.layout = computeLayout(width, height, this.scene.night.rules.gridSize, area, wide ? { dock: Math.max(hud.width, actions.width) } : null);
+    this.scene.layout = computeLayout(width, height, this.gridSize, area, wide ? { dock: Math.max(hud.width, actions.width) } : null);
     const { board, hudX } = this.scene.layout;
     if (hudX !== null) {
       // Табло встаёт вровень с верхом неба, кнопки — с низом; значения делятся на `zoom` панели

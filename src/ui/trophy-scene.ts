@@ -18,6 +18,8 @@ export interface TrophySceneHost {
   field: DOMRect | null;
   /** Где кнопка: место кнопок ночи. Нет — низ экрана. */
   foot: DOMRect | null;
+  /** Следить за окном: `move` получает новые места поля и кнопки. Возвращает отписку. */
+  follow?(move: (field: DOMRect | null, foot: DOMRect | null) => void): () => void;
   /** Куда встать слоем: туда же, где рама, перед ней. Нет — поверх интерфейса. */
   root: HTMLElement | null;
   /** Откуда спускается сигил: правило Затмения в раме. */
@@ -111,6 +113,10 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
   else (document.getElementById('ui') ?? document.body).append(layer);
   document.body.classList.add('trophy-yield');
   place(field, host.field, foot);
+  const unfollow = host.follow?.((sky, buttons) => {
+    placeFoot(foot, buttons);
+    place(field, sky, foot);
+  });
 
   const medal = h('div.ts-medal', { style: { width: `${MEDAL}px`, height: `${MEDAL}px` } }, [crown(MEDAL), canvasImg(bossSigil(bossId, MEDAL, dpr()), MEDAL)]);
   field.append(medal);
@@ -230,6 +236,7 @@ export function showTrophyScene(run: RunState, choice: TrophyChoice, host: Troph
   }
 
   function close(): void {
+    unfollow?.();
     document.body.classList.remove('trophy-yield');
     if (host.from) host.from.style.opacity = '';
     layer.remove();
