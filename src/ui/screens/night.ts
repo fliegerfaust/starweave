@@ -325,11 +325,19 @@ export class NightScreen implements Screen {
   /** «Небо сдаётся» (TR.2): выбор после Затмения прямо на небе ночи, под рамой. */
   private showTrophy(choice: Extract<Choice, { kind: 'trophy' }>): void {
     // Ночи в забеге уже нет (награда забрана), но небо ещё на экране — сцена встаёт на него
-    const field = this.scene?.layout.board ?? null;
-    const foot = this.hud.actions.getBoundingClientRect();
+    const sky = (): DOMRect | null => {
+      const b = this.scene?.layout.board;
+      return b ? new DOMRect(b.x, b.y, b.w, b.h) : null;
+    };
+    const buttons = (): DOMRect | null => {
+      const r = this.hud.actions.getBoundingClientRect();
+      return r.width ? r : null;
+    };
     showTrophyScene(this.run, choice, {
-      field: field ? new DOMRect(field.x, field.y, field.w, field.h) : null,
-      foot: foot.width ? foot : null,
+      field: sky(),
+      foot: buttons(),
+      // Сцена ночи подписана на окно раньше и успевает пересчитать небо
+      follow: (move) => this.app.svc.renderer.onResize(() => move(sky(), buttons())),
       root: this.hud.el.parentElement,
       from: this.hud.bossSigilEl(),
       take: (index, replace) => {
