@@ -1,7 +1,7 @@
 import type { ComboId, PlacementScore } from '@/core/types';
 import type { GameWorld } from '../context';
 import { shake } from '../fx';
-import type { FxLook, GlFx, ThreadFx } from './gl-fx';
+import type { FocusFx, FxLook, GlFx, ThreadFx } from './gl-fx';
 import type { NightScene } from './scene';
 
 type Pt = { x: number; y: number };
@@ -30,7 +30,7 @@ export function moveLook(score: Pick<PlacementScore, 'lines' | 'myths'>): FxLook
  */
 export class Impact {
   private threads: ThreadFx[] = [];
-  private release: ((duration: number) => void) | null = null;
+  private dim: FocusFx | null = null;
   private look: FxLook = 'nova';
 
   constructor(
@@ -88,14 +88,14 @@ export class Impact {
     const { gl } = this;
     if (!gl) return;
     const { cardW, cardH } = this.scene.layout;
-    if (!this.release) {
-      const xs = pts.map((p) => p.x);
-      const ys = pts.map((p) => p.y);
-      const x = Math.min(...xs) - cardW * 0.6;
-      const y = Math.min(...ys) - cardH * 0.6;
-      this.release = gl.focus({ x, y, w: Math.max(...xs) + cardW * 0.6 - x, h: Math.max(...ys) + cardH * 0.6 - y }, 0.58);
-    }
-    this.threads.push(gl.thread(pts, color, duration));
+    const xs = pts.map((p) => p.x);
+    const ys = pts.map((p) => p.y);
+    const x = Math.min(...xs) - cardW * 0.6;
+    const y = Math.min(...ys) - cardH * 0.6;
+    const rect = { x, y, w: Math.max(...xs) + cardW * 0.6 - x, h: Math.max(...ys) + cardH * 0.6 - y };
+    if (this.dim) this.dim.add(rect);
+    else this.dim = gl.focus(rect, 0.58);
+    this.threads.push(gl.thread(pts, color, duration, cardW * 0.62));
   }
 
   /** Искра дошла до карты. */
@@ -131,8 +131,8 @@ export class Impact {
     this.hold(0.07 + p * 0.05);
     this.punch(0.018 + p * 0.016, center);
     shake(this.world, 0.16 + p * 0.2);
-    this.release?.(0.3);
-    this.release = null;
+    this.dim?.release(0.3);
+    this.dim = null;
     const hole = this.look === 'hole';
     gl.wave(this.scene.svc.renderer.canvas, center, this.reach * (hole ? 0.8 : 0.95), hole ? 1.6 : 0.8, 0.6 + p * 0.5);
     gl.finale(center, this.reach * (0.66 + p * 0.3), color, 1);

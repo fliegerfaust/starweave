@@ -39,13 +39,13 @@ const LOOKS: Record<FxLook, LookSpec> = {
     mode: 0,
     ramp: [hex('#141a6e'), hex('#58b6ff'), hex('#f4ecff')],
     gas: [hex('#ff4f9e'), hex('#39d5ff')],
-    tint: 0.25, amp: 7, freq: 0.012, speed: 1.4, width: 1.15, heat: 0.7, flow: 2.4, fly: 90, curl: 110,
+    tint: 0.25, amp: 7, freq: 0.012, speed: 1.4, width: 1.8, heat: 0.7, flow: 2.4, fly: 90, curl: 110,
   },
   hole: {
     mode: 1,
     ramp: [hex('#25105c'), hex('#8a63ff'), hex('#ffd9a8')],
     gas: [hex('#ff8a3d'), hex('#7a4dff')],
-    tint: 0.15, amp: 10, freq: 0.01, speed: 1, width: 1.4, heat: 0.66, flow: -3.2, fly: 60, curl: 60,
+    tint: 0.15, amp: 10, freq: 0.01, speed: 1, width: 2.1, heat: 0.66, flow: -3.2, fly: 60, curl: 60,
   },
 };
 
@@ -106,7 +106,7 @@ vec3 nebula(vec2 p, out float dens) {
 
 /** Нить созвездия: тонкая световая струна, по ней бегут звёзды. */
 const FRAG_THREAD = COMMON + `
-uniform float uHalf, uHalfW, uOff, uTotal, uHead, uFade, uPulse, uAmp, uFreq, uSpeed, uW, uFlow;
+uniform float uHalf, uHalfW, uOff, uTotal, uHead, uFade, uPulse, uAmp, uFreq, uSpeed, uW, uFlow, uTaper;
 void main() {
   float U = uOff + (vL.x * 0.5 + 0.5) * uHalf * 2.0;
   float v = vL.y * uHalfW;
@@ -114,21 +114,24 @@ void main() {
   float y = (nz(vec2(U * 0.0016 - uT * 0.02, uSeed)) - 0.5) * uAmp * 2.0 + sin(U * uFreq - uT * uSpeed + uSeed * 6.0) * uAmp * 0.35;
   float d = abs(v - y);
   float head = smoothstep(uHead + 3.0, uHead - 40.0, U);
-  float ends = smoothstep(0.0, 18.0, U) * smoothstep(uTotal, uTotal - 18.0, U);
+  float ends = smoothstep(0.0, uTaper, U) * smoothstep(uTotal, uTotal - uTaper, U);
   float side = smoothstep(uHalfW, uHalfW * 0.6, abs(v));
   float eat = smoothstep(uFade * 1.25 - 0.25, uFade * 1.25, nm(vec2(U * 0.0052, v * 0.012 + 0.4)));
-  float m = head * eat * side;
+  float m = head * eat * side * ends;
   float flow = nm(vec2(U * 0.0042 - uT * 0.12, v * 0.009 + uSeed));
-  float e = exp(-d * d / (uW * uW)) * (0.75 + 0.6 * flow) + exp(-d / (uW * 6.0)) * 0.3;
+  float width = uW * mix(0.35, 1.0, ends);
+  float e = exp(-d * d / (width * width)) * (0.95 + 0.6 * flow) + exp(-d / (width * 5.0)) * 0.42;
   float bs = U * 0.03 - uT * uFlow;
   float ci = floor(bs);
   float h = h21(vec2(ci, uSeed * 13.0));
   vec2 q = vec2((fract(bs) - 0.5) / 0.03, v - y - (h - 0.5) * 24.0);
   float st = star4(q, 1.5 + h * 3.2) * step(0.22, h) * (0.55 + 0.45 * sin(uT * 8.0 + h * 30.0));
-  e = (e * (1.0 + uPulse * 1.5) + st * 1.5) * m * mix(0.5, 1.0, ends);
+  e = (e * (1.0 + uPulse * 1.5) + st * 1.5) * m;
   float dens;
   vec3 gas = nebula(px * 0.0022 + uSeed, dens) * dens * exp(-abs(v - y) / 17.0) * 0.5 * m;
-  frag = vec4(ramp(clamp(e * uHeat, 0.0, 1.1)) * min(e, 1.0) + gas, 0.0);
+  /* Тёмная подложка: струна читается и на яркой карте, и на тёмном небе. */
+  float under = exp(-d * d / (width * width * 16.0)) * 0.5 * m;
+  frag = vec4(ramp(clamp(e * uHeat, 0.0, 1.1)) * min(e, 1.0) + gas, under);
 }`;
 
 /** Удар: сжатие и сверхновая или чёрная дыра с диском; малые — блик и кольцо. */
@@ -276,12 +279,19 @@ void main() {
 
 /** Мир затихает вокруг линии: тёмная завеса с рваным краем, окно вокруг карт. */
 const FRAG_FOCUS = COMMON + `
-uniform vec2 uHoleC, uHoleH, uRes2;
+uniform vec4 uHoles[3];
+uniform float uOpens[3];
+uniform int uCount;
+uniform vec2 uRes2;
 uniform float uStr;
 void main() {
   vec2 px = (vL * 0.5 + 0.5) * uRes2;
-  vec2 q = abs(px - uHoleC) - uHoleH;
-  float sd = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+  float sd = 100000.0;
+  for (int i = 0; i < 3; i++) {
+    if (i >= uCount) break;
+    vec2 q = abs(px - uHoles[i].xy) - uHoles[i].zw;
+    sd = min(sd, length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) + (1.0 - uOpens[i]) * 170.0);
+  }
   float n = (nz(px * 0.0016 + uT * 0.012) - 0.5) * 56.0;
   float a = smoothstep(-6.0, 70.0, sd + n) * uStr;
   frag = vec4(uC0 * 0.06 * a, a);
@@ -375,6 +385,13 @@ type Rect = { x: number; y: number; w: number; h: number };
 interface Effect {
   /** Рисует кадр; false — эффект закончился. */
   draw(now: number): boolean;
+}
+
+export interface FocusFx {
+  /** Открыть окно ещё одной линии. */
+  add(rect: Rect): void;
+  /** Вернуть свет миру. */
+  release(duration: number): void;
 }
 
 export interface ThreadFx {
@@ -612,11 +629,21 @@ export class GlFx {
     this.canvas.style.visibility = 'visible';
   }
 
-  /** Нить через центры карт. Живёт, пока её не погасят. */
-  thread(pts: readonly Pt[], color: string, duration: number): ThreadFx {
+  /**
+   * Нить через центры карт. Живёт, пока её не погасят. `reach` — насколько она выходит за
+   * крайние карты: на этом отрезке истончается и сходит на нет, поэтому концов не видно.
+   */
+  thread(line: readonly Pt[], color: string, duration: number, reach: number): ThreadFx {
     const s = this.spec;
     const ramp = this.tinted(color);
-    const segs = pts.slice(1).map((b, i) => ({ a: pts[i]!, b, len: Math.hypot(b.x - pts[i]!.x, b.y - pts[i]!.y) }));
+    const out = (a: Pt, b: Pt): Pt => {
+      const l = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      return { x: a.x + ((a.x - b.x) / l) * reach, y: a.y + ((a.y - b.y) / l) * reach };
+    };
+    const n = line.length;
+    const pts = [out(line[0]!, line[1]!), ...line.slice(1, n - 1), out(line[n - 1]!, line[n - 2]!)];
+    const pts2 = n === 2 ? [pts[0]!, pts[pts.length - 1]!] : pts;
+    const segs = pts2.slice(1).map((b, i) => ({ a: pts2[i]!, b, len: Math.hypot(b.x - pts2[i]!.x, b.y - pts2[i]!.y) }));
     const total = segs.reduce((sum, g) => sum + g.len, 0);
     const start = this.now;
     const seed = Math.random();
@@ -640,6 +667,7 @@ export class GlFx {
         gl.uniform1f(u.uSpeed!, s.speed);
         gl.uniform1f(u.uW!, s.width);
         gl.uniform1f(u.uFlow!, s.flow);
+        gl.uniform1f(u.uTaper!, reach * 1.15);
         state.pulse *= 0.9;
         let off = 0;
         for (const g of segs) {
@@ -797,9 +825,10 @@ export class GlFx {
     });
   }
 
-  /** Мир гаснет вокруг прямоугольника; возвращает функцию, которая возвращает свет. */
-  focus(hole: Rect, strength: number): (duration: number) => void {
+  /** Мир гаснет вокруг линий. Новая линия открывает себе окно, `release` возвращает свет. */
+  focus(first: Rect, strength: number): FocusFx {
     const state = { value: 0, target: strength, rate: strength / 0.22 };
+    const holes = [{ rect: first, open: 1 }];
     const spec = this.spec;
     const ramp = spec.ramp;
     let last = this.now;
@@ -812,17 +841,25 @@ export class GlFx {
         if (state.value <= 0 && state.target <= 0) return false;
         const u = this.use(this.prog.focus, ramp, spec);
         const { gl } = this;
+        for (const h of holes) h.open = Math.min(1, h.open + dt / 0.22);
+        const shown = holes.slice(-3);
         gl.uniform2f(u.uRes2!, this.width, this.height);
-        gl.uniform2f(u.uHoleC!, hole.x + hole.w / 2, hole.y + hole.h / 2);
-        gl.uniform2f(u.uHoleH!, hole.w / 2, hole.h / 2);
+        gl.uniform4fv(u['uHoles[0]']!, shown.flatMap((h) => [h.rect.x + h.rect.w / 2, h.rect.y + h.rect.h / 2, h.rect.w / 2, h.rect.h / 2]));
+        gl.uniform1fv(u['uOpens[0]']!, shown.map((h) => h.open));
+        gl.uniform1i(u.uCount!, shown.length);
         gl.uniform1f(u.uStr!, state.value);
         this.quad(u, this.width / 2, this.height / 2, this.width / 2, 0, 0, this.height / 2);
         return true;
       },
     });
-    return (duration) => {
-      state.target = 0;
-      state.rate = strength / Math.max(0.01, duration);
+    return {
+      add: (rect) => {
+        holes.push({ rect, open: 0 });
+      },
+      release: (duration) => {
+        state.target = 0;
+        state.rate = strength / Math.max(0.01, duration);
+      },
     };
   }
 
