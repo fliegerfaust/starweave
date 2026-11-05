@@ -18,7 +18,7 @@ export const IDLE_GAP = 5 * 60 * 1000;
  * долей Зала славы, перерисовка холстов, сворачивание, вход в Обсерваторию после ночи. Сюда же
  * автостарт обучения и его первый шаг «shortRow» — он показывается сам; действие — следующий шаг.
  */
-const PASSIVE = new Set(['app_open', 'perf', 'hall_snap', 'canvas_restore', 'app_hide', 'shop_open']);
+const PASSIVE = new Set(['app_open', 'perf', 'hall_snap', 'canvas_restore', 'fx_layer', 'app_hide', 'shop_open']);
 const passive = (name: string, params: () => Record<string, unknown>): boolean => {
   if (PASSIVE.has(name)) return true;
   if (name === 'tutorial_start') return str(params().source) === 'auto';

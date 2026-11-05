@@ -244,6 +244,10 @@ export function showSettings(app: App, onChange?: () => void): void {
   ]);
   const look = group(c.groups.look!, [
     row(c.reduceMotion, c.reduceMotionSub, onOff(s.reduceMotion, (v) => (s.reduceMotion = v))),
+    app.svc.world.res.impact !== 'none' && app.fxSupported ? row(c.cosmicFx, s.fxLevel >= 2 && s.cosmicFx ? c.cosmicFxOff : c.cosmicFxSub, onOff(s.cosmicFx && s.fxLevel < 2, (v) => {
+      s.cosmicFx = v;
+      if (v) s.fxLevel = 0;
+    })) : null,
     row(c.largeText, null, choice([{ value: false, label: c.textNormal }, { value: true, label: c.textLarge }], s.largeText, (v) => (s.largeText = v))),
     row(c.quality, t('settings.qualityShort', { now: Math.round(app.svc.renderer.dpr * 10) / 10, max: Math.round(Math.min(3, window.devicePixelRatio || 1) * 10) / 10 }), choice([{ value: 'auto' as const, label: c.qualityAuto }, { value: 'max' as const, label: c.qualityMax }], s.quality, (v) => (s.quality = v))),
     app.platform.id === 'web' && canFullscreen() ? row(c.fullscreen, null, onOff(s.fullscreen, (v) => {
