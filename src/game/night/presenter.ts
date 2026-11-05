@@ -1,4 +1,5 @@
 import { bodyColor } from '@/art/bodies';
+import { cardFace } from '@/art/card';
 import { SUIT_COLORS, UI } from '@/art/palette';
 import { assertNever } from '@/core/errors';
 import { mythDef, mythEdges } from '@/core/content/myths';
@@ -10,6 +11,7 @@ import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
 import { shockwave } from './flare';
+import { Impact } from './impact';
 import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
@@ -49,6 +51,12 @@ export class Presenter {
 
   private get speed() {
     return this.world.res.speed * this.hurry;
+  }
+
+  private impactFx: Impact | null = null;
+  /** Характер удара (витрина IM.1); пока он `none`, ночь идёт как раньше. */
+  private get impact(): Impact {
+    return (this.impactFx ??= new Impact(this.world, this.scene, () => this.speed));
   }
 
   private wait(seconds: number): Promise<void> {
@@ -180,9 +188,10 @@ export class Presenter {
     const scene = this.scene;
     const p = this.cellPos(cell);
     const { cardW, cardH } = scene.layout;
-    cellFlash(this.world, p.x, p.y, cardW, cardH);
-    ring(this.world, p.x, p.y, SUIT_COLORS[suit].light, cardW * 1.15, 0.5);
-    dustPuff(this.world, p.x, p.y + cardH / 2, cardW);
+    const plain = !this.impact.on;
+    if (plain) cellFlash(this.world, p.x, p.y, cardW, cardH);
+    if (plain) ring(this.world, p.x, p.y, SUIT_COLORS[suit].light, cardW * 1.15, 0.5);
+    if (plain) dustPuff(this.world, p.x, p.y + cardH / 2, cardW);
     burst(this.world, p.x, p.y + cardH * 0.4, '#fff3c4', { count: 16, speed: 180, size: 1.8, life: 0.8, gravity: -30, kind: 'dot', angle: -Math.PI / 2, spread: Math.PI * 1.4, colors: ['#fff3c4', '#d9f0ff', '#ffffff'] });
     burst(this.world, p.x, p.y, '#ffffff', { count: 12, speed: 300, size: 1.8, life: 0.45, gravity: 200, colors: ['#ffffff', SUIT_COLORS[suit].light, SUIT_COLORS[suit].main] });
     const size = scene.night.rules.gridSize;
@@ -196,6 +205,7 @@ export class Presenter {
       void this.tweens.to(nt, { rot: dir * 0.045 }, { duration: 0.08 / this.speed, ease: 'outQuad' }).then(() => this.tweens.to(nt, { rot: 0 }, { duration: 0.22 / this.speed, ease: 'outBack' }));
     }
     shake(this.world, dragged ? 0.22 : 0.3);
+    this.impact.land(p, SUIT_COLORS[suit]);
   }
 
   private async onBurn(id: number, handIndex: number): Promise<void> {
@@ -230,6 +240,18 @@ export class Presenter {
       const view = this.world.req(e, CardView);
       const col = SUIT_COLORS[view.card.suit];
       const delay = (i * 0.03) / this.speed;
+      const { gl } = this.world.res;
+      if (gl) {
+        // Спрайт карты уходит в шейдер: на поле его больше нет
+        const spriteW = Math.ceil(Math.max(scene.layout.handW, scene.layout.cardW) * 1.12);
+        const art = cardFace(view.card, spriteW, this.world.res.dpr);
+        const k = (view.width * tr.scale) / spriteW;
+        const w = (art.width / this.world.res.dpr) * k;
+        const h = (art.height / this.world.res.dpr) * k;
+        jobs.push(gl.depart(art, { x: tr.x - w / 2, y: tr.y - h / 2, w, h }, col.light, i * 0.05, 0.75 / this.speed));
+        this.world.destroy(e);
+        return;
+      }
       jobs.push(
         this.tweens.to(tr, { scale: tr.scale * 1.15, alpha: 0 }, { duration: 0.3 / this.speed, delay, ease: 'inQuad' }).then(() => {
           burst(this.world, tr.x, tr.y, col.main, { count: 14, speed: 200, size: 1.6, colors: [col.main, col.light, '#ffffff'] });
@@ -343,14 +365,18 @@ export class Presenter {
     tr.scale = base * 1.12;
     void this.tweens.to(tr, { scale: base }, { duration: 0.3 / this.speed, ease: 'outBack' });
     const p = this.cellPos(cell);
-    burst(this.world, p.x, p.y, col.main, { count: 18, speed: 300, size: 2.2, life: 0.7, colors: [col.main, '#ffffff', '#fff3c4'] });
+    if (this.impact.on) {
+      this.impact.ignite(p, col);
+    } else {
+      burst(this.world, p.x, p.y, col.main, { count: 18, speed: 300, size: 2.2, life: 0.7, colors: [col.main, '#ffffff', '#fff3c4'] });
+    }
     shake(this.world, 0.06);
   }
 
   /** Линия уходит: вдоль созвездия поднимается золотая звёздная пыль, свечение гаснет. */
   private dissolveLine(line: LineScore, state: { alpha: number }): void {
     const pts = line.cells.map((c) => this.cellPos(c));
-    for (let k = 0; k < pts.length - 1; k++) {
+    for (let k = 0; k < (this.impact.on ? 0 : pts.length - 1); k++) {
       for (let j = 0; j < 10; j++) {
         const f = j / 10;
         const x = pts[k]!.x + (pts[k + 1]!.x - pts[k]!.x) * f;
@@ -374,6 +400,7 @@ export class Presenter {
    */
   private async onIgnite(score: PlacementScore, scoreAfter: number): Promise<void> {
     const lineFx: FigureFx[] = [];
+    this.impact.begin(score);
     // Миф — до линий: фигура видна целиком, пока линии её не погасили
     for (const myth of score.myths) {
       lineFx.push(...(await this.igniteMyth(myth)));
@@ -400,6 +427,11 @@ export class Presenter {
     const fx = this.drawConstellation(line, color);
     this.audio.ignite(lines);
     const drawDur = 0.42 / this.speed;
+    if (this.impact.on) {
+      // Нить рисует шейдер: прежняя ломаная остаётся только счётчиком прогресса
+      this.world.req(fx.entity, Drawable).visible = false;
+      this.impact.lineStart(line.cells.map((c) => this.cellPos(c)), color, drawDur);
+    }
     const drawn = this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'linear' });
     line.cells.forEach((cell, i) => {
       void this.tweens.wait((drawDur * i) / Math.max(1, line.cells.length - 1)).then(() => this.igniteCard(cell));
@@ -407,7 +439,9 @@ export class Presenter {
     await drawn;
     // Название — лентой поперёк линии, над вспышкой; пока лента видна, линия живая и дышит
     fx.state.breathe = true;
-    if (this.flare) {
+    if (this.impact.on) {
+      this.impact.line(center, color);
+    } else if (this.flare) {
       // Волна света от центра линии до края неба; второе кольцо — чуть позже и тише
       const { board } = this.scene.layout;
       const reach = Math.hypot(board.w, board.h) * 0.75;
@@ -603,10 +637,17 @@ export class Presenter {
     const goal = scene.goalSky?.hit(scoreAfter / target, [...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)].map((c) => this.cellPos(c)));
     const power = Math.min(1, score.total / target);
     this.audio.impact(power);
-    shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
+    if (!this.impact.on) shake(this.world, Math.min(0.7, 0.12 + power * 0.6));
     this.scene.svc.haptics.play(score.lines.length > 1 ? 'cross' : power > 0.5 ? 'heavy' : 'ignite');
-    if (power >= 0.35 || score.lines.length > 1) flash(this.world, score.lines.length > 1 ? '255,214,140' : '200,230,255', 0.25 + power * 0.35);
-    for (const line of [...score.lines, ...score.myths]) {
+    if (this.impact.on) {
+      const cells = [...new Set([...score.lines, ...score.myths].flatMap((l) => l.cells))];
+      const hues = cells.map((c) => {
+        const e = this.cardEntityAt(c);
+        return e !== undefined ? SUIT_COLORS[this.world.req(e, CardView).card.suit].light : UI.gold;
+      });
+      this.impact.final(this.cellsCenter(cells), cells.map((c) => this.cellPos(c)), hues, power);
+    } else if (power >= 0.35 || score.lines.length > 1) flash(this.world, score.lines.length > 1 ? '255,214,140' : '200,230,255', 0.25 + power * 0.35);
+    for (const line of this.impact.on ? [] : [...score.lines, ...score.myths]) {
       for (const cell of line.cells) {
         const p = this.cellPos(cell);
         const e = this.cardEntityAt(cell);
@@ -770,8 +811,9 @@ export class Presenter {
     this.audio.count(index, kind);
     this.scene.svc.haptics.play(kind === 'xmult' ? 'countX' : kind === 'mult' ? 'countMult' : 'count');
     if (kind === 'xmult') shake(this.world, 0.15);
+    this.impact.step({ x: anchor.x, y: anchor.y + offY }, color);
     const flashCell = kind === 'light' ? 'light' : kind === 'gold' ? undefined : 'mult';
-    if (cardEntity !== undefined) {
+    if (cardEntity !== undefined && !this.impact.on) {
       const col = SUIT_COLORS[this.world.req(cardEntity, CardView).card.suit];
       burst(this.world, anchor.x, anchor.y + offY, col.main, { count: 8, speed: 200, size: 1.8, life: 0.45, gravity: 60, colors: [color, col.light, '#fff'] });
     }

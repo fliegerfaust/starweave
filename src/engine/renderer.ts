@@ -109,20 +109,20 @@ export class Renderer {
   }
 
   /** Холст поверх интерфейса: очистить и подготовить к кадру (с тем же смещением камеры). */
-  beginOverlay(offsetX = 0, offsetY = 0): CanvasRenderingContext2D {
+  beginOverlay(offsetX = 0, offsetY = 0, scale = 1): CanvasRenderingContext2D {
     const { overlayCtx: ctx, dpr } = this;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
-    ctx.setTransform(dpr, 0, 0, dpr, offsetX * dpr, offsetY * dpr);
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, offsetX * dpr, offsetY * dpr);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     return ctx;
   }
 
   /** Начало кадра: сброс трансформации с учётом DPR и смещения камеры. */
-  begin(offsetX = 0, offsetY = 0): CanvasRenderingContext2D {
+  begin(offsetX = 0, offsetY = 0, scale = 1): CanvasRenderingContext2D {
     const { ctx, dpr } = this;
-    ctx.setTransform(dpr, 0, 0, dpr, offsetX * dpr, offsetY * dpr);
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, offsetX * dpr, offsetY * dpr);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     return ctx;

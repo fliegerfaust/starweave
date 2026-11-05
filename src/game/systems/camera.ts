@@ -7,6 +7,7 @@ export const cameraSystem: System<Resources> = {
   update(world, dt) {
     const cam = world.res.camera;
     cam.trauma = Math.max(0, cam.trauma - dt * 1.6);
+    cam.zoom = cam.zoom < 0.0005 ? 0 : cam.zoom * Math.exp(-dt * 9);
     const amount = world.res.reduceMotion ? 0 : cam.trauma * cam.trauma * 14;
     const t = world.res.time * 40;
     cam.shakeX = amount * (Math.sin(t * 1.3) + Math.sin(t * 2.7) * 0.5);

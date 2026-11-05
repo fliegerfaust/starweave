@@ -90,6 +90,28 @@ const SCENARIOS: Record<string, Scenario> = {
   cross: { sky: CROSS_SKY, moves: [['9t', 3]], extra: ['7c', '2m'], score: 6400, target: 30000, movesLeft: 3, think: 900 },
   /** Загадка: тот же расклад, хода нет — «куда бы ты положил?». */
   puzzle: { sky: CROSS_SKY, moves: [], extra: ['9t', '7c', '2m'], score: 6400, target: 30000, movesLeft: 3, think: 0, hold: 5500, noForecast: true },
+  /** Витрина удара IM.1: одна линия, до цели далеко. */
+  hitLine: {
+    sky: [['4s', 12], ['5m', 13], ['6t', 14], ['2t', 0], ['9s', 7], ['3m', 5]],
+    moves: [['7c', 15]],
+    extra: ['8t', '1s'],
+    score: 0,
+    target: 60000,
+    movesLeft: 5,
+    think: 500,
+  },
+  /** Витрина удара: сильная комбинация, четыре девятки. */
+  hitQuartet: {
+    sky: [['9t', 0], ['9s', 1], ['9m', 2], ['3m', 5], ['6m', 9], ['1s', 12], ['4c', 15]],
+    moves: [['9c', 3]],
+    extra: ['7c', '2m'],
+    score: 0,
+    target: 60000,
+    movesLeft: 5,
+    think: 500,
+  },
+  /** Витрина удара: одна карта закрывает две линии. */
+  hitCross: { sky: CROSS_SKY, moves: [['9t', 3]], extra: ['7c', '2m'], score: 6400, target: 60000, movesLeft: 3, think: 500 },
   /** Каскад 4-5-6-7 по нижнему ряду закрывает ночь. */
   cascade: {
     sky: [['4s', 12], ['5m', 13], ['6t', 14], ['2t', 0], ['9s', 7], ['3m', 5]],
@@ -103,6 +125,32 @@ const SCENARIOS: Record<string, Scenario> = {
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Счётчик для витрины удара: сколько кадров сейчас и худшая секунда с начала ночи. */
+function showFrameRate(app: App): void {
+  const gl = app.svc.world.res.gl;
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;right:0;bottom:0;z-index:30;padding:2px 8px;border-radius:8px 0 0 0;background:rgba(5,6,26,.82);color:#ffe6a8;font:700 10px/1.3 system-ui;pointer-events:none';
+  document.body.append(box);
+  let frames = 0;
+  let from = performance.now();
+  let worst = Infinity;
+  const born = performance.now();
+  const tick = (now: number): void => {
+    frames++;
+    if (now - from >= 500) {
+      const fps = Math.round((frames * 1000) / (now - from));
+      // Первые секунды игра догружается: это не про удар
+      if (now - born > 3000) worst = Math.min(worst, fps);
+      const layer = app.svc.world.res.impact === 'none' ? 'без шейдеров' : gl ? `шейдеры, запуск ${Math.round(gl.setupMs)} мс` : 'WebGL2 недоступен';
+      box.textContent = `${fps} кадров · худшее ${worst === Infinity ? fps : worst} · ${layer}`;
+      frames = 0;
+      from = now;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 
 export async function runDemo(app: App, name: string): Promise<void> {
   const sc = SCENARIOS[name];
@@ -159,15 +207,28 @@ export async function runDemo(app: App, name: string): Promise<void> {
   clip.start();
   await sleep(300);
   if (!sc.moves.length) await sleep(sc.hold ?? 4000);
-  for (const [code, cell] of sc.moves) {
-    const index = night.hand.findIndex((c) => cardCode(c) === code);
-    // Сначала выбор — виден прогноз созвездия, потом ход
-    scene.select(index);
-    await sleep(sc.think);
-    await scene.place(index, cell);
-    while (scene.busy) await sleep(50);
-    await sleep(name ? 250 : 500);
+  const play = async (): Promise<void> => {
+    for (const [code, cell] of sc.moves) {
+      const index = night.hand.findIndex((c) => cardCode(c) === code);
+      if (index < 0) continue;
+      // Сначала выбор — виден прогноз созвездия, потом ход
+      scene.select(index);
+      await sleep(sc.think);
+      await scene.place(index, cell);
+      while (scene.busy) await sleep(50);
+      await sleep(name ? 250 : 500);
+    }
+  };
+  // Витрина удара: ход делает зритель сам, карта уже выбрана; кнопка рядом сыграет за него
+  if (new URLSearchParams(location.search).has('impact')) {
+    const first = sc.moves[0];
+    if (first) scene.select(night.hand.findIndex((c) => cardCode(c) === first[0]));
+    (window as unknown as { __impactPlay?: () => Promise<void> }).__impactPlay = play;
+    showFrameRate(app);
+    if (new URLSearchParams(location.search).has('auto')) void play();
+    return;
   }
+  await play();
   // Победа: окно «Ночь пройдена» успевает показаться
   await sleep(night.result === 'won' ? 1600 : 1000);
   clip.stop();

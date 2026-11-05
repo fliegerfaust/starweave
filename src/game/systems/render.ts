@@ -19,10 +19,14 @@ export const renderSystem: System<Resources> = {
     let ctx = renderer.begin(0, 0);
     let shaken = false;
     let over = false;
-    renderer.beginOverlay(camera.shakeX, camera.shakeY);
+    // Наезд держит точку удара на месте: фон не двигается, поле и эффекты бьют на зрителя
+    const scale = 1 + camera.zoom;
+    const offX = camera.shakeX - camera.focusX * camera.zoom;
+    const offY = camera.shakeY - camera.focusY * camera.zoom;
+    renderer.beginOverlay(offX, offY, scale);
     for (const { d, t } of items) {
       if (!shaken && d.layer > 0) {
-        ctx = renderer.begin(camera.shakeX, camera.shakeY);
+        ctx = renderer.begin(offX, offY, scale);
         shaken = true;
       }
       if (!over && d.layer >= Layer.Overlay) {

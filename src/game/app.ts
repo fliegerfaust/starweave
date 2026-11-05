@@ -16,7 +16,8 @@ import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
 import { setUiSound } from '@/ui/widgets';
 import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
-import type { Resources, Services } from './context';
+import type { ImpactKind, Resources, Services } from './context';
+import { GlFx } from './night/gl-fx';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
 import { parseStartParam, type Challenge } from './challenge';
@@ -36,6 +37,11 @@ export type { Screen } from './router';
  * Корень игры: собирает движок и сервисы, держит настройки и профиль. Остальное — у частей:
  * `router` — экраны, `runs` — забег, сохранения и обучение, `money` — покупки и реклама.
  */
+/** `?impact=cosmos` — космический удар из витрины IM.1. */
+function impactFromUrl(): ImpactKind {
+  return new URLSearchParams(location.search).get('impact') === 'cosmos' ? 'cosmos' : 'none';
+}
+
 export class App {
   readonly svc: Services;
   settings: Settings;
@@ -65,12 +71,22 @@ export class App {
     const res: Resources = {
       renderer,
       tweens,
-      camera: { shakeX: 0, shakeY: 0, trauma: 0 },
+      camera: { shakeX: 0, shakeY: 0, trauma: 0, zoom: 0, focusX: 0, focusY: 0 },
       time: 0,
       speed: SPEEDS[this.settings.speed] ?? 1,
       reduceMotion: this.settings.reduceMotion,
       dpr: renderer.dpr,
+      hold: 0,
+      gl: null,
+      // Витрина IM.1: характер удара только в разработке, пока Денис не выбрал
+      impact: import.meta.env.DEV ? impactFromUrl() : 'none',
     };
+    if (res.impact !== 'none') {
+      res.gl = GlFx.create(stage);
+      const fit = () => res.gl?.resize(renderer.width, renderer.height, renderer.dpr);
+      fit();
+      renderer.onResize(fit);
+    }
     const world = new World(res);
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
     const starfield = new Starfield();
@@ -134,10 +150,18 @@ export class App {
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
     const res = this.svc.world.res;
-    res.time += dt;
-    this.svc.tweens.update(dt);
-    this.svc.starfield.update(dt);
-    this.svc.world.update(dt);
+    // Момент удара: время почти стоит, кадры идут, картинка держится на пике
+    let step = dt;
+    if (res.hold > 0) {
+      res.hold = Math.max(0, res.hold - dt);
+      step = dt * 0.05;
+    }
+    res.time += step;
+    this.svc.tweens.update(step);
+    this.svc.starfield.update(step);
+    this.svc.world.update(step);
+    const cam = res.camera;
+    res.gl?.update(step, cam.shakeX - cam.focusX * cam.zoom, cam.shakeY - cam.focusY * cam.zoom, 1 + cam.zoom);
   }
 
   /** Отладка: прокрутить время вперёд (вкладка в фоне почти не получает кадров). */
