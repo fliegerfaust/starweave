@@ -176,6 +176,7 @@ function punchText(world: GameWorld, x: number, y: number, text: string, opts: F
   const speed = world.res.speed;
   const life = (opts.life ?? 1) / speed;
   const calm = world.res.reduceMotion;
+  const clean = world.res.impact !== 'none';
   const color = opts.color ?? '#fff';
   const e = world.create();
   // heat — доля белого в заливке: 1 в момент удара, 0 — свой цвет
@@ -190,26 +191,38 @@ function punchText(world: GameWorld, x: number, y: number, text: string, opts: F
       ctx.globalAlpha = tr.alpha;
       ctx.translate(tr.x, tr.y);
       ctx.scale(tr.scale, tr.scale);
-      // Тёмная подложка-ореол: цифра читается и на яркой карте, и на вспышке
-      const r = size * (0.5 + text.length * 0.22);
-      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-      g.addColorStop(0, 'rgba(6,5,22,0.62)');
-      g.addColorStop(0.6, 'rgba(6,5,22,0.38)');
-      g.addColorStop(1, 'rgba(6,5,22,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(-r, -r, r * 2, r * 2);
+      if (!clean) {
+        // Тёмная подложка-ореол: цифра читается и на яркой карте, и на вспышке
+        const r = size * (0.5 + text.length * 0.22);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, 'rgba(6,5,22,0.62)');
+        g.addColorStop(0.6, 'rgba(6,5,22,0.38)');
+        g.addColorStop(1, 'rgba(6,5,22,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(-r, -r, r * 2, r * 2);
+      }
       ctx.font = font;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round';
-      ctx.lineWidth = size * 0.3;
+      ctx.lineWidth = size * (clean ? 0.24 : 0.3);
       ctx.strokeStyle = 'rgba(4,3,16,0.95)';
       ctx.strokeText(text, 0, 0);
       ctx.shadowColor = color;
       ctx.shadowBlur = size * (0.45 + state.heat * 0.6);
+      let fill: string | CanvasGradient = color;
+      if (clean) {
+        // Вместо тёмного пятна под цифрой — светлая грань сверху: цифра читается сама
+        fill = ctx.createLinearGradient(0, -size * 0.5, 0, size * 0.5);
+        fill.addColorStop(0, '#fffdf2');
+        fill.addColorStop(0.55, color);
+        fill.addColorStop(1, color);
+      }
+      // Свечение только сплошным цветом: Safari рисует тень от градиентной заливки плашкой
       ctx.fillStyle = color;
       ctx.fillText(text, 0, 0);
       ctx.shadowColor = 'transparent';
+      ctx.fillStyle = fill;
       ctx.fillText(text, 0, 0);
       if (state.heat > 0.01) {
         ctx.globalAlpha = tr.alpha * state.heat;

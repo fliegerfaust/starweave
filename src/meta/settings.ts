@@ -15,6 +15,12 @@ export interface Settings {
   fullscreen: boolean;
   /** Чёткость поля: auto снижает её на слабых устройствах, max — никогда. */
   quality: 'auto' | 'max';
+  /** Космические эффекты на шейдерах. */
+  cosmicFx: boolean;
+  /** Что сторож кадров решил про это устройство: 0 полный слой, 1 облегчённый, 2 выключен. */
+  fxLevel: 0 | 1 | 2;
+  /** Сколько запусков слой уже выключен: просадка могла быть случайной, поэтому через три запуска пробуем снова. */
+  fxOffRuns: number;
   /** Подсказка «добавь на экран Домой» уже закрыта. */
   homeHintSeen: boolean;
   /** Выбранный внешний вид (если он куплен на этой площадке). */
@@ -33,6 +39,9 @@ export function loadSettings(): Settings {
     haptics: true,
     fullscreen: true,
     quality: 'auto',
+    cosmicFx: true,
+    fxLevel: 0,
+    fxOffRuns: 0,
     homeHintSeen: false,
     cardBack: 'classic',
     skyTheme: 'night',
