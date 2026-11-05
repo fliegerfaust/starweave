@@ -1,3 +1,5 @@
+import { FxGuard, type FxLevel } from './fx-guard';
+
 /**
  * Слой шейдеров для моментов удара (витрина IM.1). Прозрачный холст WebGL2 лежит над полем и
  * под интерфейсом, рисует только пока идёт эффект; в покое холст скрыт и телефон не нагружает.
@@ -62,7 +64,7 @@ void main() {
   gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, 1.0 - p.y / uRes.y * 2.0, 0.0, 1.0);
 }`;
 
-const COMMON = `#version 300 es
+export const SHADER_COMMON = `#version 300 es
 precision highp float;
 uniform sampler2D uNoise;
 uniform vec3 uC0, uC1, uC2, uN1, uN2;
@@ -105,7 +107,7 @@ vec3 nebula(vec2 p, out float dens) {
 `;
 
 /** Нить созвездия: тонкая световая струна, по ней бегут звёзды. */
-const FRAG_THREAD = COMMON + `
+const FRAG_THREAD = SHADER_COMMON + `
 uniform float uHalf, uHalfW, uOff, uTotal, uHead, uFade, uPulse, uAmp, uFreq, uSpeed, uW, uFlow, uTaper;
 void main() {
   float U = uOff + (vL.x * 0.5 + 0.5) * uHalf * 2.0;
@@ -135,7 +137,7 @@ void main() {
 }`;
 
 /** Удар: сжатие и сверхновая или чёрная дыра с диском; малые — блик и кольцо. */
-const FRAG_BURST = COMMON + `
+const FRAG_BURST = SHADER_COMMON + `
 uniform float uAge, uPower, uKind;
 void main() {
   vec2 p = vL;
@@ -205,7 +207,7 @@ void main() {
 }`;
 
 /** Карта покидает поле: рассыпается в пыль или уходит в дыру. */
-const FRAG_CARD = COMMON + `
+const FRAG_CARD = SHADER_COMMON + `
 uniform sampler2D uCard;
 uniform float uProg;
 uniform vec2 uRectMin, uRectSize, uHole, uRes2;
@@ -241,7 +243,7 @@ precision highp float;
 uniform vec2 uRes, uGrid, uRectMin, uRectSize;
 uniform vec3 uCam, uC2;
 uniform sampler2D uNoise, uCard;
-uniform float uProg, uSeed, uDpr, uFly;
+uniform float uProg, uSeed, uDpr, uFly, uRot;
 out vec3 vC;
 out float vA;
 float h(float n) { return fract(sin(n * 12.9898 + uSeed * 78.233) * 43758.5453); }
@@ -253,7 +255,9 @@ void main() {
   float delay = textureLod(uNoise, uv * 0.5 + uSeed, 0.0).r * 0.55 + (1.0 - uv.y) * 0.12;
   float age = (uProg - delay) / 0.62;
   if (c.a < 0.35 || age <= 0.0 || age >= 1.0) { gl_Position = vec4(2.0); gl_PointSize = 0.0; vC = vec3(0.0); vA = 0.0; return; }
-  vec2 p = uRectMin + uv * uRectSize;
+  vec2 q = (uv - 0.5) * uRectSize;
+  float cr = cos(uRot), sr = sin(uRot);
+  vec2 p = uRectMin + uRectSize * 0.5 + vec2(q.x * cr - q.y * sr, q.x * sr + q.y * cr);
   vec2 flow = textureLod(uNoise, p * 0.0021 + vec2(uSeed, age * 0.12), 0.0).rg - 0.5;
   float e = 1.0 - pow(1.0 - age, 2.0);
   p += flow * uFly * 2.4 * e;
@@ -277,8 +281,52 @@ void main() {
   frag = vec4(vC * e * vA * 1.2, 0.0);
 }`;
 
+export const VERT_FULL = `#version 300 es
+precision highp float;
+out vec2 vUv;
+void main() {
+  vec2 a = vec2(float(gl_VertexID & 1), float(gl_VertexID >> 1));
+  vUv = a;
+  gl_Position = vec4(a * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+/** Текстура шума: плавный, мелкий и хребтовый слои, бесшовные по краям. */
+export const FRAG_NOISE = `#version 300 es
+precision highp float;
+in vec2 vUv;
+out vec4 frag;
+float hs(vec2 p, float s) {
+  p = fract(p * vec2(0.1031, 0.103) + s);
+  p += dot(p, p.yx + 33.33);
+  return fract((p.x + p.y) * p.x);
+}
+float vn(vec2 uv, float n, float s) {
+  vec2 p = uv * n, i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  vec2 a = mod(i, n), b = mod(i + 1.0, n);
+  return mix(mix(hs(a, s), hs(vec2(b.x, a.y), s), f.x), mix(hs(vec2(a.x, b.y), s), hs(b, s), f.x), f.y);
+}
+float fbm(vec2 uv, float cells, int octaves, float s, bool ridge) {
+  float sum = 0.0, amp = 1.0, total = 0.0, n = cells;
+  for (int i = 0; i < 5; i++) {
+    if (i >= octaves) break;
+    float v = vn(uv, n, s + float(i) * 0.17);
+    sum += (ridge ? 1.0 - abs(v * 2.0 - 1.0) : v) * amp;
+    total += amp;
+    amp *= 0.5;
+    n *= 2.0;
+  }
+  return sum / total;
+}
+void main() {
+  float r = fbm(vUv, 4.0, 4, 0.11, false);
+  float g = fbm(vUv, 8.0, 5, 0.29, false);
+  float b = fbm(vUv, 6.0, 4, 0.47, true);
+  frag = vec4(clamp((r - 0.22) / 0.56, 0.0, 1.0), clamp((g - 0.22) / 0.56, 0.0, 1.0), clamp((b - 0.3) / 0.6, 0.0, 1.0), 1.0);
+}`;
+
 /** Мир затихает вокруг линии: тёмная завеса с рваным краем, окно вокруг карт. */
-const FRAG_FOCUS = COMMON + `
+const FRAG_FOCUS = SHADER_COMMON + `
 uniform vec4 uHoles[3];
 uniform float uOpens[3];
 uniform int uCount;
@@ -298,7 +346,7 @@ void main() {
 }`;
 
 /** Пространство гнётся по снимку поля: кольцо волны или закрутка вокруг дыры. */
-const FRAG_WAVE = COMMON + `
+const FRAG_WAVE = SHADER_COMMON + `
 uniform sampler2D uSnap;
 uniform vec2 uAt, uRes2;
 uniform float uAge, uReach, uStrength;
@@ -380,7 +428,15 @@ void main() {
 }`;
 
 type Pt = { x: number; y: number };
-type Rect = { x: number; y: number; w: number; h: number };
+type Rect = { x: number; y: number; w: number; h: number; rot?: number };
+
+/** Что случилось со слоем: для настроек и статистики. */
+export type FxState = 'ready' | 'failed' | 'lost' | 'lite' | 'off';
+
+/** KHR_parallel_shader_compile: можно спросить о готовности, не останавливая поток. */
+const COMPLETION_STATUS = 0x91b1;
+/** Без расширения сборка блокирует поток: ждём, пока игрок ещё в меню. */
+const BLOCKING_DELAY_MS = 1500;
 
 interface Effect {
   /** Рисует кадр; false — эффект закончился. */
@@ -408,61 +464,23 @@ interface Program {
   u: Uniforms;
 }
 
-function tileNoise(size: number, cells: number, seed: number, octaves: number, ridge: boolean): Float32Array {
-  const out = new Float32Array(size * size);
-  let amp = 1;
-  let total = 0;
-  let s = seed;
-  for (let o = 0; o < octaves; o++) {
-    const n = cells << o;
-    const lattice = new Float32Array(n * n);
-    for (let i = 0; i < lattice.length; i++) {
-      s = (s * 1664525 + 1013904223) >>> 0;
-      lattice[i] = s / 4294967296;
-    }
-    for (let y = 0; y < size; y++) {
-      const fy = (y / size) * n;
-      const y0 = Math.floor(fy);
-      const ty = fy - y0;
-      const sy = ty * ty * (3 - 2 * ty);
-      for (let x = 0; x < size; x++) {
-        const fx = (x / size) * n;
-        const x0 = Math.floor(fx);
-        const tx = fx - x0;
-        const sx = tx * tx * (3 - 2 * tx);
-        const at = (a: number, b: number): number => lattice[(b % n) * n + (a % n)]!;
-        const top = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx;
-        const bot = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
-        const v = top + (bot - top) * sy;
-        out[y * size + x]! += (ridge ? 1 - Math.abs(v * 2 - 1) : v) * amp;
-      }
-    }
-    total += amp;
-    amp *= 0.5;
-  }
-  for (let i = 0; i < out.length; i++) out[i]! /= total;
-  return out;
-}
-
-/** Растянуть значения на весь диапазон: без этого пороги шума срабатывают только в середине. */
-function stretch(a: Float32Array): Float32Array {
-  let lo = 1;
-  let hi = 0;
-  for (const v of a) {
-    if (v < lo) lo = v;
-    if (v > hi) hi = v;
-  }
-  const k = 1 / Math.max(0.0001, hi - lo);
-  return a.map((v) => (v - lo) * k);
-}
-
 export class GlFx {
   private readonly canvas: HTMLCanvasElement;
   private readonly gl: WebGL2RenderingContext;
   /** Характер текущего хода; эффект запоминает его при создании и доживает в нём. */
   private spec: LookSpec;
-  private readonly prog: Record<'thread' | 'burst' | 'card' | 'dust' | 'focus' | 'wave' | 'points', Program>;
-  private readonly noise: WebGLTexture;
+  private prog!: Record<'thread' | 'burst' | 'card' | 'dust' | 'focus' | 'wave' | 'points' | 'noise', Program>;
+  private noise: WebGLTexture | null = null;
+  private readonly guard: FxGuard;
+  private parallel = false;
+  private readonly waiting = new Set<() => void>();
+  private buildAt = 0;
+  private pendingBuild = false;
+  private ready = false;
+  /** Игрок выключил эффекты в настройках. */
+  enabled = true;
+  /** Шейдер живёт и без эффектов (солнце Затмения): сторож считает кадры постоянно. */
+  ambient = false;
   private readonly snapCanvas = document.createElement('canvas');
   private snapTex: WebGLTexture | null = null;
   private effects: Effect[] = [];
@@ -473,30 +491,56 @@ export class GlFx {
   private cam: [number, number, number] = [0, 0, 1];
   private lost = false;
   private dirty = false;
+  private dpr = 1;
   /** Центр главного удара: чёрная дыра затягивает карты именно туда. */
   private anchor: Pt = { x: 0, y: 0 };
-  /** Сколько миллисекунд заняла сборка шейдеров и шума при запуске. */
-  readonly setupMs: number;
 
-  static create(host: HTMLElement): GlFx | null {
+  static create(host: HTMLElement, level: FxLevel, onState: (state: FxState, value: number) => void): GlFx | null {
     const canvas = document.createElement('canvas');
     canvas.className = 'fx-gl';
     canvas.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;visibility:hidden';
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) return null;
     try {
-      return new GlFx(host, canvas, gl);
+      return new GlFx(host, canvas, gl, level, onState);
     } catch (e) {
       console.error('Слой шейдеров не собрался', e);
       return null;
     }
   }
 
-  private constructor(host: HTMLElement, canvas: HTMLCanvasElement, gl: WebGL2RenderingContext) {
-    const begin = performance.now();
+  private constructor(host: HTMLElement, canvas: HTMLCanvasElement, gl: WebGL2RenderingContext, level: FxLevel, private readonly onState: (state: FxState, value: number) => void) {
     this.canvas = canvas;
     this.gl = gl;
     this.spec = LOOKS.nova;
+    this.guard = new FxGuard(level);
+    host.append(canvas);
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      this.lost = true;
+      this.ready = false;
+      this.effects = [];
+      // Ход ждёт, пока карты уйдут: без этого он завис бы навсегда
+      for (const finish of this.waiting) finish();
+      this.waiting.clear();
+      canvas.style.visibility = 'hidden';
+      this.onState('lost', 0);
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      this.lost = false;
+      this.snapTex = null;
+      this.build();
+    });
+    this.build();
+  }
+
+  /** Запускает сборку шейдеров и сразу возвращается: готовность проверяет `prepare`. */
+  private build(): void {
+    const { gl } = this;
+    this.buildAt = performance.now();
+    this.pendingBuild = true;
+    // Расширения живут вместе с контекстом: после потери их надо просить заново
+    this.parallel = gl.getExtension('KHR_parallel_shader_compile') !== null;
     const quad = this.shader(gl.VERTEX_SHADER, VERT_QUAD);
     this.prog = {
       thread: this.program(quad, FRAG_THREAD),
@@ -506,19 +550,38 @@ export class GlFx {
       wave: this.program(quad, FRAG_WAVE),
       dust: this.program(this.shader(gl.VERTEX_SHADER, VERT_DUST), FRAG_DUST),
       points: this.program(this.shader(gl.VERTEX_SHADER, VERT_POINTS), FRAG_POINTS),
+      noise: this.program(this.shader(gl.VERTEX_SHADER, VERT_FULL), FRAG_NOISE),
     };
     gl.bindVertexArray(gl.createVertexArray());
-    this.noise = this.makeNoise();
-    gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    host.append(canvas);
-    canvas.addEventListener('webglcontextlost', (e) => {
-      e.preventDefault();
+    gl.enable(gl.BLEND);
+  }
+
+  /** Каждый кадр до готовности: не блокирует игру, пока драйвер собирает шейдеры. */
+  private prepare(): void {
+    const { gl } = this;
+    const all = Object.values(this.prog);
+    if (this.parallel) {
+      if (!all.every((p) => gl.getProgramParameter(p.gl, COMPLETION_STATUS))) return;
+    } else if (performance.now() - this.buildAt < BLOCKING_DELAY_MS) {
+      // Без расширения проверка блокирует поток: откладываем её, пока игрок на экране меню
+      return;
+    }
+    this.pendingBuild = false;
+    try {
+      for (const p of all) {
+        if (!gl.getProgramParameter(p.gl, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p.gl) ?? 'программа не собралась');
+        this.collect(p);
+      }
+      this.noise = this.makeNoise();
+      this.warm();
+      this.ready = true;
+      this.onState('ready', Math.round(performance.now() - this.buildAt));
+    } catch (e) {
+      console.error('Слой шейдеров не собрался', e);
       this.lost = true;
-      this.effects = [];
-      canvas.style.visibility = 'hidden';
-    });
-    this.setupMs = performance.now() - begin;
+      this.onState('failed', 0);
+    }
   }
 
   private shader(type: number, src: string): WebGLShader {
@@ -526,7 +589,6 @@ export class GlFx {
     const s = gl.createShader(type)!;
     gl.shaderSource(s, src);
     gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? 'шейдер не собрался');
     return s;
   }
 
@@ -536,32 +598,36 @@ export class GlFx {
     gl.attachShader(p, vert);
     gl.attachShader(p, this.shader(gl.FRAGMENT_SHADER, frag));
     gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) ?? 'программа не собралась');
-    const u: Uniforms = {};
-    const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS) as number;
-    for (let i = 0; i < n; i++) {
-      const name = gl.getActiveUniform(p, i)!.name;
-      u[name] = gl.getUniformLocation(p, name);
-    }
-    return { gl: p, u };
+    return { gl: p, u: {} };
   }
 
+  private collect(p: Program): void {
+    const { gl } = this;
+    const n = gl.getProgramParameter(p.gl, gl.ACTIVE_UNIFORMS) as number;
+    for (let i = 0; i < n; i++) {
+      const name = gl.getActiveUniform(p.gl, i)!.name;
+      p.u[name] = gl.getUniformLocation(p.gl, name);
+    }
+  }
+
+  /** Текстуру шума рисует видеокарта: на процессоре это сотни миллисекунд на телефоне. */
   private makeNoise(): WebGLTexture {
     const { gl } = this;
     const size = 256;
-    const r = stretch(tileNoise(size, 4, 11, 4, false));
-    const g = stretch(tileNoise(size, 8, 29, 5, false));
-    const b = stretch(tileNoise(size, 6, 47, 4, true));
-    const data = new Uint8Array(size * size * 4);
-    for (let i = 0; i < size * size; i++) {
-      data[i * 4] = r[i]! * 255;
-      data[i * 4 + 1] = g[i]! * 255;
-      data[i * 4 + 2] = b[i]! * 255;
-      data[i * 4 + 3] = 255;
-    }
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.viewport(0, 0, size, size);
+    gl.disable(gl.BLEND);
+    gl.useProgram(this.prog.noise.gl);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.enable(gl.BLEND);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -570,16 +636,59 @@ export class GlFx {
     return tex;
   }
 
+  /** Первая отрисовка каждой программы: драйвер доделывает её сейчас, а не в момент удара. */
+  private warm(): void {
+    const { gl } = this;
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.viewport(0, 0, 1, 1);
+    const spec = this.spec;
+    for (const name of ['thread', 'burst', 'card', 'focus', 'wave'] as const) this.quad(this.use(this.prog[name], spec.ramp, spec), 0, 0, 1, 0, 0, 1);
+    for (const name of ['dust', 'points'] as const) {
+      this.use(this.prog[name], spec.ramp, spec);
+      gl.drawArrays(gl.POINTS, 0, 1);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteTexture(tex);
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+  }
+
   /** Размер слоя; чёткость выше двойной на эффекте не видна, а телефону стоит дорого. */
   resize(width: number, height: number, dpr: number): void {
     this.width = width;
     this.height = height;
-    this.scale = Math.min(dpr, 2);
+    this.dpr = dpr;
+    this.scale = this.guard.level > 0 ? 1 : Math.min(dpr, 2);
     this.canvas.width = Math.round(width * this.scale);
     this.canvas.height = Math.round(height * this.scale);
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  /** Можно ли начинать новый эффект. Уже начатые доигрываются сами. */
+  get active(): boolean {
+    return this.ready && this.enabled && !this.lost && this.guard.level < 2;
+  }
+
+  get level(): FxLevel {
+    return this.guard.level;
+  }
+
+  /** Игрок снова включил эффекты: начинаем с полного качества. */
+  reset(): void {
+    this.guard.level = 0;
+    this.resize(this.width, this.height, this.dpr);
+  }
+
+  /** Эффекты идут: нельзя пропускать кадры ради экономии. */
+  get busy(): boolean {
+    return this.effects.length > 0;
   }
 
   setLook(look: FxLook): void {
@@ -642,8 +751,7 @@ export class GlFx {
     };
     const n = line.length;
     const pts = [out(line[0]!, line[1]!), ...line.slice(1, n - 1), out(line[n - 1]!, line[n - 2]!)];
-    const pts2 = n === 2 ? [pts[0]!, pts[pts.length - 1]!] : pts;
-    const segs = pts2.slice(1).map((b, i) => ({ a: pts2[i]!, b, len: Math.hypot(b.x - pts2[i]!.x, b.y - pts2[i]!.y) }));
+    const segs = pts.slice(1).map((b, i) => ({ a: pts[i]!, b, len: Math.hypot(b.x - pts[i]!.x, b.y - pts[i]!.y) }));
     const total = segs.reduce((sum, g) => sum + g.len, 0);
     const start = this.now;
     const seed = Math.random();
@@ -713,6 +821,32 @@ export class GlFx {
     });
   }
 
+  /** Комета: хвост-нить и яркая голова, летит из точки в точку и гаснет. */
+  comet(from: Pt, to: Pt, color: string, duration: number, size: number): void {
+    const trail = this.thread([from, to], color, duration, 8);
+    const ramp = this.tinted(color);
+    const spec = this.spec;
+    const start = this.now;
+    const seed = Math.random();
+    this.add({
+      draw: (now) => {
+        const k = (now - start) / duration;
+        if (k >= 1) {
+          trail.fade(0.22);
+          return false;
+        }
+        const u = this.use(this.prog.burst, ramp, spec);
+        const { gl } = this;
+        gl.uniform1f(u.uSeed!, seed);
+        gl.uniform1f(u.uAge!, 0.12);
+        gl.uniform1f(u.uPower!, 1);
+        gl.uniform1f(u.uKind!, 3);
+        this.quad(u, from.x + (to.x - from.x) * k, from.y + (to.y - from.y) * k, size * 1.5, 0, 0, size * 1.5);
+        return true;
+      },
+    });
+  }
+
   /** Блик звезды: короткий крест лучей. */
   glint(at: Pt, radius: number, color: string, life = 0.42, power = 1): void {
     this.burstQuad(at, radius, color, life, power, 3);
@@ -774,19 +908,24 @@ export class GlFx {
     const seed = Math.random();
     const mode = spec.mode;
     const life = mode === 0 ? duration * 1.9 : duration;
-    const grid: [number, number] = [52, 74];
+    const grid: [number, number] = this.guard.level > 0 ? [30, 42] : [52, 74];
     const hole = this.anchor;
     const reach = Math.hypot(rect.x + rect.w / 2 - hole.x, rect.y + rect.h / 2 - hole.y) + rect.h;
+    const rot = rect.rot ?? 0;
+    const ca = Math.cos(rot);
+    const sa = Math.sin(rot);
     return new Promise((resolve) => {
       if (this.lost) {
         resolve();
         return;
       }
+      this.waiting.add(resolve);
       this.add({
         draw: (now) => {
           const prog = Math.max(0, (now - start) / life);
           if (prog >= 1) {
             gl.deleteTexture(tex);
+            this.waiting.delete(resolve);
             resolve();
             return false;
           }
@@ -803,7 +942,7 @@ export class GlFx {
             gl.uniform2f(u.uRes2!, reach, reach);
             this.quad(u, hole.x, hole.y, reach, 0, 0, reach);
           } else {
-            this.quad(u, rect.x + rect.w / 2, rect.y + rect.h / 2, rect.w / 2, 0, 0, rect.h / 2);
+            this.quad(u, rect.x + rect.w / 2, rect.y + rect.h / 2, (rect.w / 2) * ca, (rect.w / 2) * sa, (-rect.h / 2) * sa, (rect.h / 2) * ca);
           }
           if (mode === 0) {
             const d = this.use(this.prog.dust, ramp, spec);
@@ -817,6 +956,7 @@ export class GlFx {
             gl.uniform1f(d.uSeed!, seed);
             gl.uniform1f(d.uDpr!, this.scale);
             gl.uniform1f(d.uFly!, 74);
+            gl.uniform1f(d.uRot!, rot);
             gl.drawArrays(gl.POINTS, 0, grid[0] * grid[1]);
           }
           return true;
@@ -865,6 +1005,8 @@ export class GlFx {
 
   /** Пространство гнётся. Снимок поля берётся один раз: в момент удара всё и так почти стоит. */
   wave(source: HTMLCanvasElement, at: Pt, reach: number, life: number, strength = 1): void {
+    // Снимок поля самая дорогая часть удара: в облегчённом слое обходимся без него
+    if (this.guard.level > 0 || this.lost) return;
     const { gl } = this;
     const snap = this.snapCanvas;
     snap.width = Math.round(this.width);
@@ -901,9 +1043,13 @@ export class GlFx {
   }
 
   /** Кадр слоя. Время то же, что у игры: при замирании эффект замирает вместе с ней. */
-  update(dt: number, camX: number, camY: number, camScale: number): void {
+  update(dt: number, frameSeconds: number, camX: number, camY: number, camScale: number): void {
     this.now += dt;
     if (this.lost) return;
+    if (this.pendingBuild) {
+      this.prepare();
+      return;
+    }
     if (this.effects.length === 0) {
       if (this.dirty) {
         this.gl.clearColor(0, 0, 0, 0);
@@ -911,13 +1057,23 @@ export class GlFx {
         this.canvas.style.visibility = 'hidden';
         this.dirty = false;
       }
+      if (this.ambient) this.judge(frameSeconds);
       return;
     }
+    if (!this.dirty) this.guard.begin();
     this.cam = [camX, camY, camScale];
     const { gl } = this;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     this.effects = this.effects.filter((e) => e.draw(this.now));
     this.dirty = true;
+    this.judge(frameSeconds);
+  }
+
+  private judge(frameSeconds: number): void {
+    const level = this.guard.frame(frameSeconds * 1000);
+    if (level === null) return;
+    if (level === 1) this.resize(this.width, this.height, this.dpr);
+    this.onState(level === 1 ? 'lite' : 'off', level);
   }
 }

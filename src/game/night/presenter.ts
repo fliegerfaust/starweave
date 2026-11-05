@@ -11,7 +11,7 @@ import { CardView, Drawable, Layer, Transform } from '../components';
 import { burst, cellFlash, dustPuff, flash, floatText, ring, shake } from '../fx';
 import { handPositions } from '../layout';
 import { shockwave } from './flare';
-import { Impact } from './impact';
+import { Impact, damageParts } from './impact';
 import { drawFigure, type FigureFx } from './figures';
 import type { NightScene } from './scene';
 
@@ -188,6 +188,8 @@ export class Presenter {
     const scene = this.scene;
     const p = this.cellPos(cell);
     const { cardW, cardH } = scene.layout;
+    this.impact.refresh();
+    scene.goalSky?.watch(p);
     const plain = !this.impact.on;
     if (plain) cellFlash(this.world, p.x, p.y, cardW, cardH);
     if (plain) ring(this.world, p.x, p.y, SUIT_COLORS[suit].light, cardW * 1.15, 0.5);
@@ -214,10 +216,28 @@ export class Presenter {
     scene.hand.splice(handIndex, 1);
     const tr = this.world.req(e, Transform);
     const view = this.world.req(e, CardView);
-    view.glowColor = '#ff7a3c';
-    view.glow = 1;
+    this.impact.refresh();
     this.audio.burn();
     this.scene.svc.haptics.play('ignite');
+    if (this.impact.on) {
+      const spriteW = Math.ceil(Math.max(scene.layout.handW, scene.layout.cardW) * 1.12);
+      const art = cardFace(view.card, spriteW, this.world.res.dpr);
+      const k = (view.width * tr.scale) / spriteW;
+      const w = (art.width / this.world.res.dpr) * k;
+      const h = (art.height / this.world.res.dpr) * k;
+      const landscape = scene.layout.mode === 'landscape';
+      const x = tr.x - (landscape ? view.lift : 0);
+      const y = tr.y - (landscape ? 0 : view.lift);
+      const gone = this.impact.burn(art, { x: x - w / 2, y: y - h / 2, w, h, rot: tr.rot }, SUIT_COLORS[view.card.suit].light, 0.7 / this.speed);
+      this.world.destroy(e);
+      scene.cards.delete(id);
+      scene.hud.setMoves(scene.night.movesLeft, scene.night.burnsLeft);
+      void scene.layoutHand(true);
+      await gone;
+      return;
+    }
+    view.glowColor = '#ff7a3c';
+    view.glow = 1;
     burst(this.world, tr.x, tr.y, '#ff7a3c', { count: 30, speed: 180, gravity: -260, life: 1, colors: ['#ff7a3c', '#ffcf6b', '#ff3b5c'] });
     await this.tweens.to(tr, { alpha: 0, y: tr.y - 40, scale: 0.8 }, { duration: 0.35 / this.speed, ease: 'inQuad' });
     this.world.destroy(e);
@@ -240,15 +260,14 @@ export class Presenter {
       const view = this.world.req(e, CardView);
       const col = SUIT_COLORS[view.card.suit];
       const delay = (i * 0.03) / this.speed;
-      const { gl } = this.world.res;
-      if (gl) {
+      if (this.impact.on) {
         // Спрайт карты уходит в шейдер: на поле его больше нет
         const spriteW = Math.ceil(Math.max(scene.layout.handW, scene.layout.cardW) * 1.12);
         const art = cardFace(view.card, spriteW, this.world.res.dpr);
         const k = (view.width * tr.scale) / spriteW;
         const w = (art.width / this.world.res.dpr) * k;
         const h = (art.height / this.world.res.dpr) * k;
-        jobs.push(gl.depart(art, { x: tr.x - w / 2, y: tr.y - h / 2, w, h }, col.light, i * 0.05, 0.75 / this.speed));
+        jobs.push(this.impact.depart(art, { x: tr.x - w / 2, y: tr.y - h / 2, w, h }, col.light, i * 0.05, 0.75 / this.speed));
         this.world.destroy(e);
         return;
       }
@@ -479,13 +498,16 @@ export class Presenter {
     const hud = this.scene.hud;
     const pts = myth.cells.map((c) => this.cellPos(c));
     const center = this.cellsCenter(myth.cells);
-    const fxs = mythEdges(mythDef(myth.myth)).map(([a, b]) => {
+    const edges = mythEdges(mythDef(myth.myth));
+    const fxs = edges.map(([a, b]) => {
       const fx = drawFigure(this.world, [pts[a]!, pts[b]!], UI.gold);
       this.fx.push(fx.entity);
+      if (this.impact.on) this.world.req(fx.entity, Drawable).visible = false;
       return fx;
     });
     this.audio.ignite(2);
     const drawDur = 0.6 / this.speed;
+    this.impact.myth(pts, edges, UI.gold, drawDur);
     const drawn = Promise.all(fxs.map((fx) => this.tweens.to(fx.state, { progress: 1 }, { duration: drawDur, ease: 'outQuad' })));
     myth.cells.forEach((cell, i) => {
       void this.tweens.wait((drawDur * i) / Math.max(1, myth.cells.length - 1)).then(() => this.igniteCard(cell));
@@ -494,10 +516,14 @@ export class Presenter {
     for (const fx of fxs) fx.state.breathe = true;
     const { board } = this.scene.layout;
     const reach = Math.hypot(board.w, board.h) * 0.85;
-    shockwave(this.world, center, reach, UI.gold, 0.8 / this.speed);
-    shockwave(this.world, center, reach * 0.6, 'rgba(255,236,190,0.8)', 0.6 / this.speed, 0.1 / this.speed);
-    flash(this.world, '255,226,160', 0.36, 0.5);
-    shake(this.world, 0.3);
+    if (this.impact.on) {
+      this.impact.line(center, UI.gold);
+    } else {
+      shockwave(this.world, center, reach, UI.gold, 0.8 / this.speed);
+      shockwave(this.world, center, reach * 0.6, 'rgba(255,236,190,0.8)', 0.6 / this.speed, 0.1 / this.speed);
+      flash(this.world, '255,226,160', 0.36, 0.5);
+      shake(this.world, 0.3);
+    }
     this.scene.svc.haptics.play('cross');
     hud.showRibbon(mythName(myth.myth), (dict().mythDesc as Record<string, string>)[myth.myth] ?? '', center.y);
     await this.wait(this.flare ? 0.8 : 1.1);
@@ -624,14 +650,26 @@ export class Presenter {
     const target = scene.night.target;
     const board = scene.layout.board;
     const formations = score.lines.length + score.myths.length;
-    if (formations > 1 || score.xMult !== 1) {
+    if ((formations > 1 || score.xMult !== 1) && !scene.goalSky?.war) {
       // Итог встаёт на место метки «Цепь ×2» в центре неба, а не поверх неё
       this.replaceHudLabel(floatText(this.world, board.x + board.w / 2, board.y + board.h / 2, `+${num(score.total)}`, { size: 52, color: UI.gold, life: 1.2, punch: true }));
     }
     // Формула своё отработала — убираем её, чтобы огоньки было видно на пути к счёту
     hud.hideCalc();
     await this.tweens.wait(0.2); // панель растворяется 0,18 с — огоньки летят уже по чистому небу
-    await this.flyToScore([...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)]);
+    if (scene.goalSky?.war) {
+      const formed = [...score.lines, ...score.myths];
+      const hues = formed.map((l) => {
+        const e = this.cardEntityAt(l.cells[0]!);
+        return e !== undefined ? SUIT_COLORS[this.world.req(e, CardView).card.suit].light : UI.gold;
+      });
+      this.impact.settle();
+      if (this.hudLabel !== null && this.world.isAlive(this.hudLabel)) this.world.destroy(this.hudLabel);
+      this.hudLabel = null;
+      await scene.goalSky.strike(formed.map((l) => this.cellsCenter(l.cells)), hues, damageParts(formed.map((l) => l.total), score.total), scoreAfter - score.total, scoreAfter / target);
+    } else {
+      await this.flyToScore([...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)]);
+    }
     hud.setScore(scoreAfter, target);
     // Цель на сцене: огонь созвездий бьёт в цель; финал ночи доигрывается до окна итогов
     const goal = scene.goalSky?.hit(scoreAfter / target, [...score.myths.flatMap((m) => m.cells), ...score.lines.flatMap((l) => l.cells)].map((c) => this.cellPos(c)));
@@ -863,7 +901,9 @@ export class Presenter {
     this.audio.win();
     this.scene.svc.haptics.play('success');
     const colors = Object.values(SUIT_COLORS).flatMap((c) => [c.main, c.light]);
-    for (let i = 0; i < 4; i++) {
+    this.impact.refresh();
+    if (this.impact.on) this.impact.win(Object.values(SUIT_COLORS).map((c) => c.light));
+    for (let i = 0; i < (this.impact.on ? 0 : 4); i++) {
       window.setTimeout(() => {
         burst(this.world, board.x + Math.random() * board.w, board.y + Math.random() * board.h, '#fff', { count: 40, speed: 420, colors, life: 1.4 });
       }, i * 160);

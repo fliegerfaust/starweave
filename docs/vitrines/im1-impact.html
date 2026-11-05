@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Витрина удара</title>
+<title>Ночи и Затмение</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -243,13 +243,11 @@ b, strong { font-weight: 700; }
 </style>
 <div class="wrap">
   <header class="top">
-    <h1>Витрина удара</h1>
+    <h1>Ночи и Затмение</h1>
     <div class="sill"></div>
-    <p>Твой выбор собран в одну систему: <b>обычная линия рассыпается в звёздную пыль</b>, а <b>сильный ход открывает чёрную дыру</b>. Нажми на светящуюся клетку или «Сыграть ход». Открой эту страницу на телефоне: внизу рамки виден счётчик кадров.</p>
+    <p>Обычные ночи снова тихие: небо спокойное, очки тонкой нитью зажигают звёзды созвездия. Это подготовка. Затмение приходит только в свою ночь: сплетённые созвездия сбивают его щит, дальше бой. Нажми на светящуюся клетку или «Сыграть ход».</p>
   </header>
   <div class="ctl">
-    <span class="cap">Вариант</span>
-    <div class="seg" id="v"></div>
     <span class="cap">Момент</span>
     <div class="seg" id="stage"></div>
   </div>
@@ -258,16 +256,8 @@ b, strong { font-weight: 700; }
     <div class="dev"><h3>Телефон <small>393 × 852</small></h3><div class="fit" id="fP"></div><div class="plays"><button class="btn btn-primary play" data-f="0">Сыграть ход</button><button class="btn btn-secondary again" data-f="0">Сначала</button></div></div>
     <div class="dev"><h3>Ландшафт <small>915 × 412</small></h3><div class="fit" id="fL"></div><div class="plays"><button class="btn btn-primary play" data-f="1">Сыграть ход</button><button class="btn btn-secondary again" data-f="1">Сначала</button></div></div>
   </div>
-  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Steam <small>1366 × 768</small></h3><div class="fit" id="fD"></div><div class="plays"><button class="btn btn-primary play" data-f="2">Сыграть ход</button><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div></div>
-  <div class="label">Сравнение</div>
-  <div class="cmp">
-    <div class="r hd"><span></span><span>Обычный ход</span><span>Сильный ход</span></div>
-    <div class="r"><span>Когда</span><span data-v="Обычный">Россыпь, Пара, Две пары, Зеркало, Тройка, Стрит, Флеш, Каскад</span><span data-v="Сильный">Квартет, Звёздный флеш, Сверхновая, любой крест, любой миф</span></div>
-    <div class="r"><span>Удар</span><span data-v="Обычный">Свет сжимается, потом взрыв туманности</span><span data-v="Сильный">Появляется дыра, поле закручивается</span></div>
-    <div class="r"><span>Карты</span><span data-v="Обычный">Рассыпаются в звёздную пыль своего цвета</span><span data-v="Сильный">Затягиваются внутрь по спирали</span></div>
-  </div>
-  <p class="how">Границу легко сдвинуть: список сильных комбинаций лежит в одном месте.</p>
-  <p class="foot">IM.1 · витрина удара, выбранный вариант · сборка ветки feature/impact-vitrine · «Меньше движения»: без замираний и наезда камеры</p>
+  <div class="devices" style="margin-top: 24px"><div class="dev"><h3>ПК и Пикабу <small>1394 × 580</small></h3><div class="fit" id="fD"></div><div class="plays"><button class="btn btn-primary play" data-f="2">Сыграть ход</button><button class="btn btn-secondary again" data-f="2">Сначала</button></div></div></div>
+  <p class="foot">IM.3 · ночи и Затмение · сборка ветки feature/impact-vitrine · «Меньше движения»: без замираний и наезда камеры</p>
 </div>
 <script>
 function h(tag, attrs, ...kids) {
@@ -300,23 +290,24 @@ function frameIn(fit, W, H, title) {
   });
   return frame;
 }
-const SIZES = [[393, 852], [915, 412], [1366, 768]];
-const state = { v: 'cosmos', stage: 'hitLine' };
+const SIZES = [[393, 852], [915, 412], [1394, 580]];
+const state = { v: 'a', stage: 'warLine' };
 const NOTES = {
-  now: 'Сейчас: так удар выглядит в игре.',
-  hitLine: '<b>Обычная линия.</b> Каскад: сверхновая, карты рассыпаются в пыль.',
-  hitQuartet: '<b>Сильная комбинация.</b> Четыре девятки: чёрная дыра.',
-  hitCross: '<b>Крест.</b> Одна карта закрывает две линии: чёрная дыра.',
-  cascade: '<b>Конец ночи.</b> Обычная линия закрывает ночь: сверхновая.',
+  warLine: '<b>Обычная ночь.</b> Тихое небо, линия рассыпается в пыль, нить зажигает звезду.',
+  warHole: '<b>Сильный ход.</b> Обычная ночь, чёрная дыра, ничто её не перекрывает.',
+  warWeaveWin: '<b>Созвездие сплетено.</b> Фигура встаёт над полем и остаётся до Затмения.',
+  warArrive: '<b>Приход Затмения.</b> Сплетённые созвездия бьют первыми и сбивают щит.',
+  warEclipse: '<b>Бой.</b> Одна комета на линию, потом враг уходит и видно карты.',
+  warEclipseWin: '<b>Разбить Затмение.</b> Этот ход добивает врага.',
 };
-const src = () => `game/index.html?demo=${state.stage}&impact=${state.v}&ff=all&lang=ru`;
+const src = () => `game/index.html?demo=${state.stage}&impact=cosmos&ff=all&lang=ru`;
 // На телефоне живая рамка одна: иначе счётчик кадров мерил бы три игры сразу
 const solo = matchMedia('(max-width: 720px)').matches;
 if (solo) qa('.dev').slice(1).forEach((d) => { d.hidden = true; });
 const frames = ['#fP', '#fL', '#fD'].slice(0, solo ? 1 : 3).map((s, i) => frameIn(q(s), ...SIZES[i], 'Удар в ночи'));
 const plays = qa('.play');
 const load = (i) => { frames[i].src = src(); plays[i].disabled = false; };
-const reload = () => { frames.forEach((_, i) => load(i)); q('#vnote').innerHTML = state.v === 'now' ? NOTES.now : NOTES[state.stage]; };
+const reload = () => { frames.forEach((_, i) => load(i)); q('#vnote').innerHTML = NOTES[state.stage]; };
 qa('.again').forEach((b) => (b.onclick = () => load(+b.dataset.f)));
 plays.forEach((b) => (b.onclick = () => {
   const run = frames[+b.dataset.f].contentWindow?.__impactPlay;
@@ -330,7 +321,6 @@ function seg(id, opts) {
   root.append(...opts.map(([v, name]) => h('button', { type: 'button', 'data-v': v, onclick: () => { state[id] = v; paint(); reload(); } }, name)));
   paint();
 }
-seg('v', [['now', 'Сейчас'], ['cosmos', 'Новый удар']]);
-seg('stage', [['hitLine', 'Обычная линия'], ['hitQuartet', 'Квартет'], ['hitCross', 'Крест'], ['cascade', 'Конец ночи']]);
+seg('stage', [['warLine', 'Обычная ночь'], ['warHole', 'Сильный ход'], ['warWeaveWin', 'Созвездие сплетено'], ['warArrive', 'Приход Затмения'], ['warEclipse', 'Бой'], ['warEclipseWin', 'Разбить Затмение']]);
 reload();
 </script>

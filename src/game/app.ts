@@ -17,6 +17,7 @@ import { h } from '@/ui/dom';
 import { setUiSound } from '@/ui/widgets';
 import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
 import type { ImpactKind, Resources, Services } from './context';
+import type { FxLevel } from './night/fx-guard';
 import { GlFx } from './night/gl-fx';
 import { isLandscape } from './layout';
 import { Starfield } from './starfield';
@@ -42,7 +43,13 @@ function impactFromUrl(): ImpactKind {
   return new URLSearchParams(location.search).get('impact') === 'cosmos' ? 'cosmos' : 'none';
 }
 
+/** Через столько запусков выключенный слой пробуем снова. */
+const FX_RETRY_RUNS = 3;
+
 export class App {
+  /** Браузер не дал WebGL2: настройка эффектов не нужна. */
+  fxSupported = true;
+  private fxWasOff = false;
   readonly svc: Services;
   settings: Settings;
   profile: Profile;
@@ -78,14 +85,12 @@ export class App {
       dpr: renderer.dpr,
       hold: 0,
       gl: null,
-      // Витрина IM.1: характер удара только в разработке, пока Денис не выбрал
-      impact: import.meta.env.DEV ? impactFromUrl() : 'none',
+      impact: this.features.cosmicFx || (import.meta.env.DEV && impactFromUrl() === 'cosmos') ? 'cosmos' : 'none',
     };
+    renderer.onResize(() => res.gl?.resize(renderer.width, renderer.height, renderer.dpr));
     if (res.impact !== 'none') {
-      res.gl = GlFx.create(stage);
-      const fit = () => res.gl?.resize(renderer.width, renderer.height, renderer.dpr);
-      fit();
-      renderer.onResize(fit);
+      this.retryFx();
+      if (this.settings.cosmicFx && this.settings.fxLevel < 2) this.startFx(res, stage);
     }
     const world = new World(res);
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
@@ -147,6 +152,32 @@ export class App {
     return this.runs.run;
   }
 
+  /** Просадка могла быть случайной: каждый третий запуск даём устройству облегчённый слой. */
+  private retryFx(): void {
+    if (this.settings.fxLevel < 2) return;
+    const runs = this.settings.fxOffRuns + 1;
+    this.settings = { ...this.settings, fxOffRuns: runs >= FX_RETRY_RUNS ? 0 : runs, fxLevel: runs >= FX_RETRY_RUNS ? 1 : 2 };
+    saveSettings(this.settings);
+  }
+
+  /** Поднимает слой шейдеров; решения сторожа кадров запоминаются за этим устройством. */
+  private startFx(res: Resources, host: HTMLElement): void {
+    const { renderer } = res;
+    res.gl = GlFx.create(host, this.settings.fxLevel, (state, value) => {
+      if (state === 'lite' || state === 'off') {
+        this.settings = { ...this.settings, fxLevel: value as FxLevel };
+        saveSettings(this.settings);
+      }
+      track('fx_layer', { state, ms: state === 'ready' ? value : 0 });
+    });
+    if (!res.gl) {
+      this.fxSupported = false;
+      track('fx_layer', { state: 'none', ms: 0 });
+      return;
+    }
+    res.gl.resize(renderer.width, renderer.height, renderer.dpr);
+  }
+
   /** Один шаг симуляции: твины, небо, системы ECS. */
   tick(dt: number): void {
     const res = this.svc.world.res;
@@ -161,7 +192,7 @@ export class App {
     this.svc.starfield.update(step);
     this.svc.world.update(step);
     const cam = res.camera;
-    res.gl?.update(step, cam.shakeX - cam.focusX * cam.zoom, cam.shakeY - cam.focusY * cam.zoom, 1 + cam.zoom);
+    res.gl?.update(step, dt, cam.shakeX - cam.focusX * cam.zoom, cam.shakeY - cam.focusY * cam.zoom, 1 + cam.zoom);
   }
 
   /** Отладка: прокрутить время вперёд (вкладка в фоне почти не получает кадров). */
@@ -180,7 +211,7 @@ export class App {
   private idle(now: number): boolean {
     const { world, tweens, starfield } = this.svc;
     if (now - this.lastInputAt < 2000 || tweens.active > 0 || !starfield.calm) return false;
-    if (world.res.camera.trauma > 0) return false;
+    if (world.res.camera.trauma > 0 || world.res.gl?.busy) return false;
     return world.query(Particle).length === 0 && world.query(Lifetime).length === 0;
   }
 
@@ -213,14 +244,29 @@ export class App {
 
   // ─── Настройки ──────────────────────────────────────────────────────────
 
+  /** Игрок снова включил эффекты: даём устройству новый шанс с полным качеством. */
+  private applyFx(next: Settings): void {
+    const res = this.svc.world.res;
+    if (res.impact === 'none') return;
+    if (res.gl) res.gl.enabled = next.cosmicFx;
+    const stopped = res.gl ? res.gl.level === 2 && next.fxLevel === 0 : next.fxLevel === 0 && this.fxSupported;
+    if (!next.cosmicFx || !(this.fxWasOff || stopped)) return;
+    next.fxLevel = 0;
+    saveSettings(next);
+    if (res.gl) res.gl.reset();
+    else this.startFx(res, document.getElementById('stage')!);
+  }
+
   applySettings(next: Settings): void {
     const langChanged = next.lang !== this.settings.lang;
+    this.fxWasOff = !this.settings.cosmicFx;
     this.settings = next;
     saveSettings(next);
     setLang(next.lang);
     this.svc.audio.setVolumes(next.sfx, next.music);
     this.svc.world.res.speed = SPEEDS[next.speed] ?? 1;
     this.svc.world.res.reduceMotion = next.reduceMotion;
+    this.applyFx(next);
     document.documentElement.classList.toggle('calm', next.reduceMotion);
     document.documentElement.classList.toggle('large-text', next.largeText);
     this.svc.haptics.enabled = next.haptics;

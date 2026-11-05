@@ -78,5 +78,6 @@ export function named(table: 'omen' | 'boss' | 'trophy' | 'ritual' | 'sky' | 'pa
 
 /** Число с разделителями разрядов: 12 500. */
 export function num(n: number): string {
-  return Math.round(n).toLocaleString(current === 'ru' ? 'ru-RU' : 'en-US');
+  // Плюс ноль убирает минус у нуля: иначе счёт на миг показывает «-0»
+  return (Math.round(n) + 0).toLocaleString(current === 'ru' ? 'ru-RU' : 'en-US');
 }

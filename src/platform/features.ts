@@ -14,6 +14,8 @@ export const FEATURES = [
   'brightFlare',
   /** CQ.7: музыка и звуки карт. */
   'music',
+  /** IM.2: космический удар на шейдерах. */
+  'cosmicFx',
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
