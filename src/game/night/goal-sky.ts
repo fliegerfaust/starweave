@@ -2,9 +2,10 @@ import { starRadius, type SkyFigure } from '@/art/constellations';
 import { bossSigil } from '@/art/sigil';
 import type { NightState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
-import { named, t } from '@/i18n';
+import { named, num, t } from '@/i18n';
 import { Drawable, Layer, Transform, transform } from '../components';
-import { burst } from '../fx';
+import { burst, shake } from '../fx';
+import { BlackSun, sunLook } from './black-sun';
 import { figureFor, goalVariantFor, lightOrder, type GoalVariant } from './goal-plan';
 import type { NightScene } from './scene';
 
@@ -83,6 +84,7 @@ export class GoalSky {
         void scene.svc.tweens.to(me, { arrive: 1 }, { duration: this.calm ? 0.3 : 2.4, ease: 'inOutCubic', delay: 0.4 });
       }
     }
+    this.startWar();
     this.entity = world.create();
     world.add(this.entity, Transform, transform(0, 0));
     world.add(this.entity, Drawable, { layer: Layer.Background, z: 1, visible: true, draw: (ctx) => this.draw(ctx, world.res.time) });
@@ -90,6 +92,341 @@ export class GoalSky {
 
   destroy(): void {
     this.scene.world.destroy(this.entity);
+    if (this.frontEntity !== null) this.scene.world.destroy(this.frontEntity);
+    this.sun?.destroy();
+    if (this.sun && this.scene.world.res.gl) this.scene.world.res.gl.ambient = false;
+  }
+
+  // ── Витрина IM.3: бой с Затмением ───────────────────────
+  /** Чёрное солнце; пока его нет, небо рисуется как раньше. */
+  private sun: BlackSun | null = null;
+  private lastTime = 0;
+  /** Враг перед полем: 0 — за картами, 1 — на первом плане. */
+  front = 0;
+  /** Отдача от удара: 1 сразу после попадания. */
+  kick = 0;
+  /** Запас сил на экране: число над диском. */
+  private hpShown = 0;
+  /** Урон этого хода: одно число растёт с каждой кометой. */
+  private dmgShown = 0;
+  dmgPop = 0;
+  /** Имя врага над диском, пока он приходит. */
+  nameK = 0;
+  private frontEntity: Entity | null = null;
+
+  /** Затмение приходит: ходить нельзя, касание ускоряет сцену. */
+  arriving = false;
+  /** Новая подача: обычные ночи тихие, Затмение приходит только в свою ночь. */
+  private warOn = false;
+
+  /** Живо ли солнце; без него Затмение рисуется по-старому. */
+  private get liveSun(): BlackSun | null {
+    return this.sun && !this.sun.lost ? this.sun : null;
+  }
+
+  /** Можно ли показать удар новой подачей прямо сейчас. */
+  get war(): boolean {
+    return this.warOn && !!this.scene.world.res.gl?.active && (!this.foe || !!this.liveSun);
+  }
+
+  /** Касание ускоряет сцены, как и подсчёт. */
+  private get pace(): number {
+    return this.scene.world.res.speed * this.scene.presenter.hurry;
+  }
+
+  private startWar(): void {
+    const { res } = this.scene.world;
+    if (res.impact === 'none' || !res.gl?.active || this.calm) return;
+    this.warOn = true;
+    if (!this.foe) return;
+    const size = Math.round(Math.min(900, this.sunRadius() * 2 * 1.62 * Math.min(res.dpr, 1.5)));
+    this.sun = BlackSun.create(size, sunLook(this.scene.night.bossId ?? undefined));
+    if (!this.sun) {
+      this.warOn = false;
+      return;
+    }
+    res.gl.ambient = true;
+    this.applyHp(1 - this.shown);
+    this.hpShown = Math.max(0, this.scene.night.target - this.scene.night.score);
+    const world = this.scene.world;
+    this.frontEntity = world.create();
+    world.add(this.frontEntity, Transform, transform(0, 0));
+    world.add(this.frontEntity, Drawable, { layer: Layer.Popups, z: -8, visible: true, draw: (ctx) => this.drawFront(ctx) });
+    if (this.shown === 0) {
+      // Сразу, а не после первого `await`: поле закрыто с первого кадра ночи
+      this.arriving = true;
+      void this.arrival();
+    }
+  }
+
+  /** Созвездия, сплетённые в этой главе, сбивают щит Затмения: подготовка окупается. */
+  private async arrival(): Promise<void> {
+    const sun = this.sun;
+    const gl = this.scene.world.res.gl;
+    if (!sun || !gl) return;
+    const { world, svc, run } = this.scene;
+    const tw = svc.tweens;
+    const me: GoalSky = this;
+    const gold = '#f6c25b';
+    const wait = (s: number): Promise<void> => tw.wait(s / this.scene.presenter.hurry);
+    sun.state.layers = 2;
+    this.scene.presenter.hurry = 1;
+    this.arriving = true;
+    await wait(0.6);
+    void tw.to(me, { nameK: 1 }, { duration: 0.4, ease: 'outCubic' });
+    await tw.to(me, { front: 1 }, { duration: 0.5 / this.scene.presenter.hurry, ease: 'outCubic' });
+    await wait(0.9);
+    // Имя уходит раньше созвездий: на телефоне они встают на его место
+    void tw.to(me, { nameK: 0 }, { duration: 0.2 });
+    const c = this.sunCenter();
+    const r = this.frontRadius();
+    const b = this.scene.layout.board;
+    const wide = b.w > b.h * 1.2;
+    const woven = (['dusk', 'midnight'] as const).map((kind) => figureFor(run.seed, run.ante, kind));
+    gl.setLook('nova');
+    for (const [i, figure] of woven.entries()) {
+      // Фигуры выходят по сторонам от врага и бьют в него
+      const side = i === 0 ? -1 : 1;
+      const at = wide ? { x: c.x + side * r * 2.5, y: c.y } : { x: c.x + side * r * 0.2, y: c.y + (i === 0 ? -1 : 1) * r * 1.9 };
+      const span = r * 1.35;
+      const star = (k: number): Pt => {
+        const [sx, sy] = figure.stars[k]!;
+        return { x: at.x + ((sx - 50) / 100) * span, y: at.y + ((sy - 50) / 100) * span };
+      };
+      const lines = figure.lines.map(([p, q]) => gl.thread([star(p), star(q)], gold, 0.4, 6));
+      figure.stars.forEach((_, k) => gl.glint(star(k), r * 0.5, gold, 0.95));
+      await wait(0.72);
+      const bolt = gl.thread([at, this.limb(at)], gold, 0.22, 8);
+      await wait(0.22);
+      sun.state.hit = 1;
+      this.kick = 1;
+      void tw.to(me, { kick: 0 }, { duration: 0.3, ease: 'outCubic' });
+      world.res.hold = Math.max(world.res.hold, 0.06);
+      shake(world, 0.26);
+      sun.state.hp = i === 0 ? 0.5 : 0;
+      bolt.fade(0.25);
+      for (const l of lines) l.fade(0.3);
+      await wait(0.22);
+    }
+    gl.ring(c, r * 2.6, '#e8e4f4', 0.7);
+    gl.sparks(c, { x: r * 1.2, y: r * 1.2 }, 160, '#e8e4f4', 1.2, 5, 1.6);
+    sun.state.layers = 1;
+    sun.state.hp = 1;
+    await wait(0.7);
+    await tw.to(me, { front: 0 }, { duration: 0.35 / this.scene.presenter.hurry, ease: 'inOutQuad' });
+    this.arriving = false;
+  }
+
+  /** Диск за полем: карты лежат на теле врага, корона живёт в полях и швах. */
+  private sunRadius(): number {
+    const b = this.scene.layout.board;
+    return Math.min(b.w, b.h) * 0.56;
+  }
+
+  /** Диск перед полем: виден целиком вместе с кольцом сил. */
+  private frontRadius(): number {
+    const b = this.scene.layout.board;
+    return Math.min(b.w, b.h) * 0.36;
+  }
+
+  private sunCenter(): Pt {
+    const b = this.scene.layout.board;
+    return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+  }
+
+  /** Кольцо сил и трещины: урон виден и потом, за картами. */
+  private applyHp(hp: number): void {
+    const sun = this.sun;
+    if (!sun) return;
+    sun.state.hp = hp;
+    sun.state.crack = (1 - hp) * 2;
+    sun.touch();
+  }
+
+  /** Сгусток короны поворачивается к последней карте: враг следит за тобой. */
+  watch(p: Pt): void {
+    if (!this.sun) return;
+    const c = this.sunCenter();
+    this.sun.state.focus = Math.atan2(c.y - p.y, p.x - c.x) || 0.001;
+  }
+
+  /** Куда приходит комета: в край диска со стороны карты. */
+  private limb(from: Pt): Pt {
+    const c = this.sunCenter();
+    const d = Math.hypot(from.x - c.x, from.y - c.y) || 1;
+    const r = this.frontRadius() * 0.92;
+    return { x: c.x + ((from.x - c.x) / d) * r, y: c.y + ((from.y - c.y) / d) * r };
+  }
+
+  /** Удар хода. В обычную ночь тихая нить в звезду, в ночь Затмения кометы во врага. */
+  async strike(lines: Pt[], hues: string[], parts: readonly number[], before: number, progress: number): Promise<void> {
+    const gl = this.scene.world.res.gl;
+    if (!gl) return;
+    if (!this.foe) return this.weaveHit(lines, progress);
+    const sun = this.liveSun;
+    if (!sun) return;
+    const { world, svc } = this.scene;
+    const tw = svc.tweens;
+    const me: GoalSky = this;
+    const target = this.scene.night.target;
+    this.hpShown = Math.max(0, target - before);
+    this.dmgShown = 0;
+    await tw.to(me, { front: 1 }, { duration: 0.24 / this.pace, ease: 'outCubic' });
+    const n = Math.max(1, lines.length);
+    let dealt = 0;
+    // Одна комета на линию: удар крупный, а не россыпь вспышек
+    for (const [i, from] of lines.entries()) {
+      const to = this.limb(from);
+      const last = i === n - 1;
+      const fly = 0.3 / this.pace;
+      gl.comet(from, to, hues[i % hues.length] ?? '#ffd98a', fly, this.scene.layout.cardW);
+      await tw.wait(fly);
+      dealt += parts[i] ?? 0;
+      world.res.hold = Math.max(world.res.hold, (last ? 0.09 : 0.06) / this.pace);
+      world.res.camera.zoom = Math.max(world.res.camera.zoom, last ? 0.028 : 0.016);
+      world.res.camera.focusX = to.x;
+      world.res.camera.focusY = to.y;
+      shake(world, last ? 0.3 : 0.18);
+      sun.state.hit = last ? 1 : 0.6;
+      this.kick = 1;
+      void tw.to(me, { kick: 0 }, { duration: 0.3 / this.pace, ease: 'outCubic' });
+      this.applyHp(clamp01(1 - (before + dealt) / target));
+      this.hpShown = Math.max(0, target - before - dealt);
+      this.dmgShown = dealt;
+      this.dmgPop = 1;
+      void tw.to(me, { dmgPop: 0 }, { duration: 0.24 / this.pace, ease: 'outCubic' });
+      gl.sparks(to, { x: 6, y: 6 }, last ? 44 : 24, '#ffe9c4', 0.7, 5, 1.2);
+      svc.audio.count(6 + i * 3, 'xmult');
+      svc.haptics.play(last ? 'heavy' : 'count');
+      if (!last) await tw.wait(0.06 / this.pace);
+    }
+    await tw.wait(0.42 / this.pace);
+    // Добивание доигрывается в `hit`. Иначе враг уходит, и сцена отдаётся картам: пыль и дыры видно целиком
+    if (progress < 1) await tw.to(me, { front: 0 }, { duration: 0.26 / this.pace, ease: 'inOutQuad' });
+  }
+
+  /** Тихий удар обычной ночи: нить в новую звезду, её видно поверх карт, поле не гаснет. */
+  private async weaveHit(lines: Pt[], progress: number): Promise<void> {
+    const gl = this.scene.world.res.gl;
+    if (!gl) return;
+    const tw = this.scene.svc.tweens;
+    const speed = this.pace;
+    const gold = '#f6c25b';
+    const before = Math.ceil(this.shown * this.order.length - 0.001);
+    const after = Math.max(before + 1, Math.ceil(clamp01(progress) * this.order.length - 0.001));
+    const fresh = this.order.slice(before, Math.min(after, this.order.length));
+    if (!fresh.length) return;
+    const to = this.starPos(fresh[fresh.length - 1]!);
+    const bolts = lines.map((from) => gl.thread([from, to], gold, 0.34 / speed, 8));
+    await tw.wait(0.34 / speed);
+    for (const star of fresh) gl.glint(this.starPos(star), this.scene.layout.cardW * 1.1, gold, 0.8, 0.9);
+    const lit = new Set(this.order.slice(0, after));
+    const fades = this.figure.lines.filter(([a, b]) => lit.has(a) && lit.has(b) && (fresh.includes(a) || fresh.includes(b))).map(([a, b]) => gl.thread([this.starPos(a), this.starPos(b)], gold, 0.24 / speed, 6));
+    for (const b of bolts) b.fade(0.3 / speed);
+    void tw.wait(0.7 / speed).then(() => {
+      for (const f of fades) f.fade(0.4 / speed);
+    });
+  }
+
+  /** Созвездие сплетено: фигура на миг встаёт над полем целиком. */
+  private weaveWin(): void {
+    const gl = this.scene.world.res.gl;
+    if (!gl) return;
+    const tw = this.scene.svc.tweens;
+    const gold = '#f6c25b';
+    gl.setLook('nova');
+    const lines = this.figure.lines.map(([a, b]) => gl.thread([this.starPos(a), this.starPos(b)], gold, 0.5, 6));
+    this.figure.stars.forEach((_, i) => gl.glint(this.starPos(i), this.scene.layout.cardW * 0.8, gold, 1.5, 0.9));
+    void tw.wait(1.7).then(() => {
+      for (const l of lines) l.fade(0.6);
+    });
+  }
+
+  /** Третья ночь: ядро разбито, рассвет главы. */
+  private async eclipseWin(): Promise<void> {
+    const gl = this.scene.world.res.gl;
+    const sun = this.liveSun;
+    if (!sun) return;
+    const { world, svc } = this.scene;
+    const tw = svc.tweens;
+    const me: GoalSky = this;
+    if (!gl?.active) {
+      // Слой выключился посреди ночи: враг всё равно разбит, только без залпа
+      sun.touch();
+      await tw.to(sun.state, { gone: 1 }, { duration: 0.4, ease: 'outCubic' });
+      sun.touch();
+      await tw.to(me, { front: 0 }, { duration: 0.25, ease: 'inOutQuad' });
+      return;
+    }
+    const c = this.sunCenter();
+    const r = this.frontRadius();
+    gl.setLook('nova');
+    world.res.hold = 0.14;
+    sun.state.hit = 1;
+    sun.state.crack = 2;
+    await tw.wait(0.3);
+    gl.glint(c, r * 4, '#ffe9c4', 1.1);
+    gl.finale(c, r * 3.4, '#ffe9c4', 1);
+    gl.sparks(c, { x: r, y: r }, 300, '#e8e4f4', 1.9, 6, 2.4);
+    shake(world, 0.46);
+    void tw.to(sun.state, { gone: 1 }, { duration: 0.5, ease: 'outCubic' });
+    await tw.wait(0.9);
+    await tw.to(me, { front: 0 }, { duration: 0.3, ease: 'inOutQuad' });
+  }
+
+  /** Перед полем: поле гаснет, враг крупно, над ним запас сил числом. */
+  private drawFront(ctx: CanvasRenderingContext2D): void {
+    const sun = this.liveSun;
+    if (!sun || this.front <= 0.001) return;
+    const { width, height } = this.scene.svc.renderer;
+    const k = this.front;
+    ctx.fillStyle = `rgba(3, 3, 14, ${0.8 * k})`;
+    ctx.fillRect(-40, -40, width + 80, height + 80);
+    const c = this.sunCenter();
+    const r = this.sunRadius() + (this.frontRadius() - this.sunRadius()) * k;
+    const s = r * 2 * 1.62 * (1 + this.kick * 0.07);
+    ctx.globalAlpha = k;
+    ctx.drawImage(sun.canvas, c.x - s / 2, c.y - s / 2, s, s);
+    if (sun.state.gone < 0.5) {
+      const size = Math.round(r * 0.46);
+      ctx.font = `800 ${size}px 'Manrope Variable', Manrope, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = size * 0.2;
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(4, 3, 16, 0.92)';
+      ctx.strokeText(num(this.hpShown), c.x, c.y);
+      ctx.fillStyle = `rgb(255, ${238 - this.kick * 40}, ${220 - this.kick * 90})`;
+      ctx.fillText(num(this.hpShown), c.x, c.y);
+    }
+    if (this.nameK > 0.01 && this.night.bossId) {
+      const size = Math.round(Math.max(18, r * 0.2));
+      ctx.globalAlpha = k * this.nameK;
+      ctx.font = `400 ${size}px Forum, serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#e8e4f4';
+      ctx.shadowColor = 'rgba(5, 6, 26, 0.95)';
+      ctx.shadowBlur = 10;
+      ctx.fillText(named('boss', this.night.bossId).name.toUpperCase().split('').join('\u200a'), c.x, c.y - r * 1.5);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = k;
+    }
+    if (this.dmgShown > 0) {
+      const size = Math.round(r * 0.5 * (1 + this.dmgPop * 0.35));
+      const y = c.y + r * 1.62;
+      ctx.font = `800 ${size}px 'Manrope Variable', Manrope, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = size * 0.22;
+      ctx.strokeStyle = 'rgba(4, 3, 16, 0.92)';
+      const text = `−${num(this.dmgShown)}`;
+      ctx.strokeText(text, c.x, y);
+      ctx.fillStyle = '#ffd98a';
+      ctx.fillText(text, c.x, y);
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** Созвездия попали: огонь из клеток в цель, прогресс догоняет счёт; на цели — финал. */
@@ -97,11 +434,21 @@ export class GoalSky {
     const tw = this.scene.svc.tweens;
     const me: GoalSky = this;
     const p = clamp01(progress);
-    if (!this.calm) for (const from of uniq(cells)) this.beams.push({ from, to: this.aim(p), age: 0, life: 0.55 });
+    if (this.liveSun) {
+      this.shown = p;
+      this.applyHp(1 - p);
+      if (p >= 1 && this.won < 1) {
+        this.won = 1;
+        await this.eclipseWin();
+      }
+      return;
+    }
+    if (this.warOn && p >= 1 && this.won < 1) this.weaveWin();
+    if (!this.calm && !this.warOn) for (const from of uniq(cells)) this.beams.push({ from, to: this.aim(p), age: 0, life: 0.55 });
     this.hitK = 1;
     void tw.to(me, { hitK: 0 }, { duration: 0.9, ease: 'outCubic', delay: 0.25 });
     await tw.to(me, { shown: p }, { duration: this.calm ? 0.3 : 0.9, ease: 'outCubic', delay: 0.2 });
-    if (!this.calm) {
+    if (!this.calm && !this.warOn) {
       const spark = this.aim(p);
       burst(this.scene.world, spark.x, spark.y, '#ffe6a8', { count: 14, speed: 220, colors: ['#ffe6a8', '#fff', this.variant === 'eclipse' ? '#e8e4f4' : '#f6c25b'] });
     }
@@ -120,6 +467,17 @@ export class GoalSky {
   }
 
   private draw(ctx: CanvasRenderingContext2D, time: number): void {
+    const sun = this.liveSun;
+    if (sun) {
+      const gl = this.scene.world.res.gl;
+      sun.update(Math.max(0, time - this.lastTime), !gl?.active ? 0 : gl.level > 0 ? 4 : 2);
+      this.lastTime = time;
+      if (this.front >= 0.999) return;
+      const c = this.sunCenter();
+      const s = this.sunRadius() * 2 * 1.62;
+      ctx.drawImage(sun.canvas, c.x - s / 2, c.y - s / 2, s, s);
+      return;
+    }
     const dt = 1 / 60;
     for (const beam of this.beams) beam.age += dt;
     this.beams = this.beams.filter((beam) => beam.age < beam.life);
@@ -321,7 +679,7 @@ export class GoalSky {
       const k = Math.min(lit.get(a)!, lit.get(z)!);
       ctx.setLineDash(k >= 1 ? [] : [3, 6]);
       // Горящие линии тоньше и тише вспыхнувших рядов игрока (те — яркие и толстые), до цели ≤ 0,35
-      ctx.strokeStyle = k >= 1 ? `rgba(255, 230, 168, ${0.32 + 0.4 * this.won})` : 'rgba(234, 230, 255, 0.12)';
+      ctx.strokeStyle = k >= 1 ? `rgba(255, 230, 168, ${(this.warOn ? 0.62 : 0.32) + 0.4 * this.won})` : `rgba(234, 230, 255, ${this.warOn ? 0.22 : 0.12})`;
       ctx.lineWidth = k >= 1 ? 1.1 + this.won : 1;
       ctx.beginPath();
       ctx.moveTo(pa.x, pa.y);

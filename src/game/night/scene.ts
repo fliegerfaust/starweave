@@ -77,7 +77,14 @@ export class NightScene {
   board: (number | null)[] = [];
   cells: CellState[] = [];
   selected: number | null = null;
-  busy = false;
+  /** Идёт ход или раздача. */
+  private working = false;
+  get busy(): boolean {
+    return this.working || !!this.goalSky?.arriving;
+  }
+  set busy(value: boolean) {
+    this.working = value;
+  }
   readonly presenter: Presenter;
   readonly view: BoardView;
   readonly input: SceneInput;

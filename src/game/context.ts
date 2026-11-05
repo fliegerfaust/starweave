@@ -4,6 +4,7 @@ import type { World } from '@/engine/ecs';
 import type { PointerInput } from '@/engine/input';
 import type { Renderer } from '@/engine/renderer';
 import type { Tweener } from '@/engine/tween';
+import type { GlFx } from './night/gl-fx';
 import type { Starfield } from './starfield';
 
 export interface Camera {
@@ -11,7 +12,14 @@ export interface Camera {
   shakeY: number;
   /** 0..1, затухает со временем; смещение ~ trauma². */
   trauma: number;
+  /** Наезд камеры сверх единицы (0,04 — на 4 %), затухает сам. */
+  zoom: number;
+  focusX: number;
+  focusY: number;
 }
+
+/** Характер удара (витрина IM.1): `none` — как в игре сейчас. */
+export type ImpactKind = 'none' | 'cosmos';
 
 export interface Resources {
   renderer: Renderer;
@@ -22,6 +30,11 @@ export interface Resources {
   speed: number;
   reduceMotion: boolean;
   dpr: number;
+  /** Сколько секунд время почти стоит: момент удара. */
+  hold: number;
+  /** Слой шейдеров; нет слоя — эффекты прежние. */
+  gl: GlFx | null;
+  impact: ImpactKind;
 }
 
 export type GameWorld = World<Resources>;
