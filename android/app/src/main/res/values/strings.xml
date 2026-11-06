@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Звёздное плетение</string>
     <string name="title_activity_main">Звёздное плетение</string>
-    <string name="package_name">ru.denvalclass.starweave</string>
-    <string name="custom_url_scheme">ru.denvalclass.starweave</string>
+    <string name="package_name">com.denvalgames.starweave</string>
+    <string name="custom_url_scheme">com.denvalgames.starweave</string>
 </resources>
