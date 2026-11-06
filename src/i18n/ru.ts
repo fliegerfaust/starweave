@@ -467,6 +467,8 @@ export const ru = {
     abandon: 'Сдаться',
     abandonConfirm: 'Завершить забег? Прогресс забега пропадёт.',
     keepPlaying: 'Играть дальше',
+    exitConfirm: 'Выйти из игры? Забег сохранится.',
+    exit: 'Выйти',
     deck: 'Колода',
     help: 'Справочник',
   },

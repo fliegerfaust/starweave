@@ -82,10 +82,13 @@ interface Open {
 }
 let open: Open | null = null;
 
-export function closeKeyword(): void {
+/** Закрывает подсказку; false — она и не была открыта. */
+export function closeKeyword(): boolean {
+  const was = open !== null;
   open?.tip.remove();
   open?.anchor.classList.remove('on');
   open = null;
+  return was;
 }
 
 function openKeyword(anchor: HTMLElement): void {
@@ -121,7 +124,10 @@ function paint(dir: number): void {
 /** Сторона выбирается при открытии и не меняется в цепочке: табличка растёт от слова, не прыгает. */
 function place(st: Open): void {
   // Слово убрали со страницы (экран перерисовался) — подсказку не к чему привязать
-  if (!st.anchor.isConnected) return closeKeyword();
+  if (!st.anchor.isConnected) {
+    closeKeyword();
+    return;
+  }
   const r = st.anchor.getBoundingClientRect();
   const tw = st.tip.offsetWidth;
   const th = st.tip.offsetHeight;

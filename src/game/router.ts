@@ -6,6 +6,8 @@ import type { App } from './app';
 export interface Screen {
   mount(root: HTMLElement): void;
   unmount(): void;
+  /** Системная кнопка «Назад»: шаг назад на этом экране. Нет метода — кнопка предлагает выйти из игры. */
+  back?(): void;
 }
 
 /**
@@ -29,6 +31,13 @@ export class Router {
     this.root.replaceChildren();
     this.screen = screen;
     screen.mount(this.root);
+  }
+
+  /** Системная кнопка «Назад»: false — у экрана своего шага назад нет. */
+  back(): boolean {
+    if (!this.screen?.back) return false;
+    this.screen.back();
+    return true;
   }
 
   async goMenu(): Promise<void> {

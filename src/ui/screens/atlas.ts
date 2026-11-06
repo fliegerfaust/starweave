@@ -97,6 +97,10 @@ export class AtlasScreen implements Screen {
     this.trySky = app.money.canWear('sky', app.settings.skyTheme) ? app.settings.skyTheme : 'night';
   }
 
+  back(): void {
+    void this.app.router.goMenu();
+  }
+
   mount(root: HTMLElement): void {
     this.el = h('div.atlas');
     root.append(this.el);

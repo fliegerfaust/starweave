@@ -235,6 +235,10 @@ export class NightScreen implements Screen {
 
   // ─── Пауза ──────────────────────────────────────────────────────────────
 
+  back(): void {
+    this.pause();
+  }
+
   /** Пауза — нижний лист (в ландшафте — панель слева): где ты, «Продолжить» и служебное. */
   private pause(): void {
     const n = this.run.night;

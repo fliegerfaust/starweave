@@ -80,6 +80,15 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+/** Системная кнопка «Назад»: закрыть верхнее окно. Окно без крестика стоит на месте. false — окон нет. */
+export function closeTopWindow(): boolean {
+  for (let i = stack.length - 1; i >= 0; i--) if (!stack[i]!.panel.isConnected) stack.splice(i, 1);
+  const top = stack[stack.length - 1];
+  if (!top) return false;
+  if (top.dismissable) top.close();
+  return true;
+}
+
 /**
  * Полоса вкладок, которая может не влезть: край гаснет только там, куда есть что листать.
  * Когда всё помещается, фейда нет — иначе крайняя вкладка выглядит недоступной.
