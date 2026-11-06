@@ -19,7 +19,8 @@ export class FxGuard {
   private slow = 0;
   private skip = SKIP;
 
-  constructor(public level: FxLevel = 0) {}
+  /** `fixed` — уровень не снижать: на площадке, где красота важнее, решает не сторож. */
+  constructor(public level: FxLevel = 0, private readonly fixed = false) {}
 
   /** Эффекты начались после паузы. */
   begin(): void {
@@ -28,7 +29,7 @@ export class FxGuard {
 
   /** Кадр эффекта; возвращает новый уровень, если он сменился. */
   frame(ms: number): FxLevel | null {
-    if (this.level >= 2) return null;
+    if (this.fixed || this.level >= 2) return null;
     if (this.skip > 0) {
       this.skip--;
       return null;

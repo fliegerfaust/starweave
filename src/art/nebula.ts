@@ -2,6 +2,9 @@ import { keepPainted } from '@/engine/canvas-life';
 import { createRng, random } from '@/core/rng';
 import { makeCanvas } from '@/engine/renderer';
 
+/** Сколько ступеней яркости у пыли Млечного пути. */
+const DUST_LEVELS = 6;
+
 /**
  * Статичный слой неба: градиент ночи, облака туманности, Млечный путь и виньетка.
  * Рисуется один раз на размер экрана. Облака мягкие, но пыль Млечного пути при
@@ -40,18 +43,23 @@ export function renderNebula(width: number, height: number, seed: number, palett
       ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
     }
 
-    // Пыль Млечного пути
+    // Пыль Млечного пути. Точки собраны в несколько общих фигур по яркости: 1400 отдельных
+    // заливок держали видеочип слабого телефона больше секунды на каждую туманность (APK.11)
+    const dust = Array.from({ length: DUST_LEVELS }, () => new Path2D());
     for (let i = 0; i < 1400; i++) {
       const t = random(rng);
       const spread = (random(rng) + random(rng) + random(rng) - 1.5) * 0.22;
       const x = width * (t + spread * 0.6);
       const y = height * (1 - t + spread);
-      const a = 0.08 + random(rng) * 0.25;
-      ctx.fillStyle = `rgba(220,215,255,${a})`;
-      ctx.beginPath();
-      ctx.arc(x, y, 0.4 + random(rng) * 0.5, 0, Math.PI * 2);
-      ctx.fill();
+      const level = Math.floor(random(rng) * DUST_LEVELS);
+      const r = 0.4 + random(rng) * 0.5;
+      dust[level]!.moveTo(x + r, y);
+      dust[level]!.arc(x, y, r, 0, Math.PI * 2);
     }
+    dust.forEach((path, level) => {
+      ctx.fillStyle = `rgba(220,215,255,${0.08 + ((level + 0.5) / DUST_LEVELS) * 0.25})`;
+      ctx.fill(path);
+    });
 
     ctx.globalCompositeOperation = 'source-over';
     const vig = ctx.createRadialGradient(width / 2, height / 2, Math.min(width, height) * 0.3, width / 2, height / 2, diag * 0.6);

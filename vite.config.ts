@@ -11,6 +11,13 @@ export default defineConfig(({ command }) => ({
       name: 'starweave-csp',
       transformIndexHtml: () => [{ tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: contentSecurityPolicy(command === 'serve') }, injectTo: 'head-prepend' }],
     },
+    {
+      // Заставка Android прямо в странице: поток занят загрузкой, из кода она появилась бы поздно (APK.11)
+      name: 'starweave-boot-cover',
+      transformIndexHtml: () => process.env.VITE_PLATFORM === 'android'
+        ? [{ tag: 'div', attrs: { class: 'boot-cover' }, children: [{ tag: 'h1', children: 'Звёздное плетение' }], injectTo: 'body-prepend' }]
+        : [],
+    },
   ],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

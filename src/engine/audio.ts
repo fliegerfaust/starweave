@@ -56,6 +56,8 @@ export class Synth {
    * обертоном, войлочный стук карты, пэд и челеста по аккордам. false — прежние звуки и эмбиент.
    */
   voice = false;
+  /** Телефон: крупнее звуковой буфер и короче хвост реверберации, свёртка дорога для процессора. */
+  lite = false;
   sfxVolume = 0.8;
   musicVolume = 0.4;
 
@@ -70,7 +72,9 @@ export class Synth {
     if (navigator.webdriver) return;
     const Ctor = window.AudioContext ??(window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
-    this.build(new Ctor());
+    // Буфер в 5 мс слабый телефон не успевал наполнять: 8 секунд срывов за 49, динамик хрипел
+    // Половинная частота вдвое снижает всю работу синтезатора, динамик телефона разницы не покажет
+    this.build(new Ctor(this.lite ? { latencyHint: 'balanced', sampleRate: 24000 } : undefined));
   }
 
   /**
@@ -99,7 +103,7 @@ export class Synth {
     this.music.connect(this.master);
 
     this.reverb = ctx.createConvolver();
-    this.reverb.buffer = this.impulse(2.8, 2.5);
+    this.reverb.buffer = this.lite ? this.impulse(1.2, 2.5) : this.impulse(2.8, 2.5);
     const wet = ctx.createGain();
     wet.gain.value = 0.35;
     this.reverb.connect(wet).connect(this.master);
