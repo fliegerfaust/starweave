@@ -308,6 +308,14 @@ body {
   bottom: calc(84px + var(--safe-bottom));
   animation: fade-in 0.3s ease;
 }
+/* Android: размытие над живым холстом роняет слабый телефон до 25 кадров (APK.10), затемняем сильнее */
+html.android .modal-backdrop { backdrop-filter: none; }
+html.android .modal-backdrop:not(.sheet):not(.scene) { background: rgba(3, 3, 14, 0.8); }
+/* Обучение на Android: бегущая нить и дышащие тени перерисовываются каждый кадр. Нить стоит,
+   жест показывает палец, он движется через transform и не стоит ничего (APK.10) */
+html.android :is(.tut-thread, .coach-thread) path { animation: none; filter: none; }
+html.android .coach-thread circle { filter: none; }
+html.android :is(.hud-score-wrap.tut-goal, .coach-ring.on) { animation: none; }
 .coach.out, .coach-ring.out, .coach-thread.out { opacity: 0; transition: opacity 0.2s; }
 .coach-text { font: 500 14.5px/1.4 var(--font-body); color: var(--ink); text-wrap: pretty; }
 .coach-ok { position: relative; pointer-events: auto; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: none; font: 700 13.5px/1 var(--font-body); color: var(--gold-hi); cursor: pointer; }
