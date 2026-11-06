@@ -26,8 +26,11 @@
   --ok: #7cf0b0;
   --font-display: 'Forum', 'Times New Roman', serif;
   --font-body: 'Manrope Variable', 'Manrope', system-ui, sans-serif;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* `--safe-area-inset-*` подставляет Capacitor на Android: `env()` в WebView ниже 140 врёт (APK.2) */
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   color-scheme: dark;
 }
 /* Telegram Mini App во весь экран: сверху системная зона и кнопки Telegram («Закрыть», «…»).
@@ -186,7 +189,7 @@ body {
   backdrop-filter: blur(3px);
   display: grid;
   place-items: center;
-  padding: calc(16px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(16px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
   animation: fade-in 0.18s ease;
   z-index: 20;
 }
@@ -705,7 +708,7 @@ body {
      уходит под чёлку, Dynamic Island и шапку Telegram */
   grid-template-rows: minmax(var(--slit-h), 1fr) auto auto auto;
   justify-items: center;
-  padding: var(--safe-top) calc(20px + env(safe-area-inset-right, 0px)) calc(12px + var(--safe-bottom)) calc(20px + env(safe-area-inset-left, 0px));
+  padding: var(--safe-top) calc(20px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(20px + var(--safe-left));
   /* Меню прокручивается: касание фона должно попадать в него, а не в холст под ним */
   pointer-events: auto;
   overscroll-behavior: contain;
@@ -1026,7 +1029,7 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
   inset: 0;
   overflow: hidden;
   pointer-events: auto;
-  padding: calc(10px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
+  padding: calc(10px + var(--safe-top)) calc(16px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(16px + var(--safe-left));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1112,7 +1115,7 @@ html.calm .hall-pride.is-new .hall-pride-medal::after { animation: none; opacity
 .res-line .res-go { flex: none; }
 .res-hint { color: var(--gold-hi, #ffe6a8); }
 /* Сцена слияния */
-.res-scene { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: rgb(6 5 20 / 0); transition: background 0.35s ease; pointer-events: auto; }
+.res-scene { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left)); background: rgb(6 5 20 / 0); transition: background 0.35s ease; pointer-events: auto; }
 .res-stack { display: grid; justify-items: center; gap: 18px; margin-top: -6vh; }
 .res-slot { position: relative; width: 120px; height: 120px; }
 @media (orientation: landscape) and (max-height: 599px) { .res-stack { grid-auto-flow: column; align-items: center; gap: 28px; margin-top: 0; } .res-text { justify-items: start; text-align: left; } }
@@ -1302,7 +1305,7 @@ html.calm .owned-omen.give .omen-slot { animation: none; box-shadow: 0 0 0 2px r
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: calc(10px + var(--safe-top)) calc(14px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(14px + env(safe-area-inset-left, 0px));
+  padding: calc(10px + var(--safe-top)) calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
   /* Свой слой: подсветка неба (z-index −1) ложится под карту, но над небом игры */
   isolation: isolate;
   animation: fade-in 0.35s ease;
@@ -1553,7 +1556,7 @@ html.calm .map-node.current .map-star::after, html.calm .map-node.ignite .map-st
 /* Итоги ночи — по небу во весь экран: лента с названием, крупная цифра, табличка итогов.
    Середина прокручивается, кнопки всегда видны; в невысоком ландшафте — колонкой справа. */
 
-.modal-backdrop.scene { padding: calc(20px + var(--safe-top)) calc(18px + env(safe-area-inset-right, 0px)) calc(12px + var(--safe-bottom)) calc(18px + env(safe-area-inset-left, 0px));
+.modal-backdrop.scene { padding: calc(20px + var(--safe-top)) calc(18px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(18px + var(--safe-left));
   place-items: stretch; background: radial-gradient(90% 60% at 50% 40%, rgb(4 4 18 / 0.9), rgb(3 3 14 / 0.96)); backdrop-filter: none; }
 .modal-panel.scene { width: 100%; height: 100%; max-height: none; overflow: hidden; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; animation: fade-in 0.3s ease; }
 .scene-inner { height: 100%; width: min(420px, 100%); margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; }
@@ -2113,7 +2116,7 @@ html.calm .modal-panel, html.calm .toast, html.calm .coach, html.calm .discovery
 /* ─── Ландшафт: HUD колонкой слева ────────────────────────────────────── */
 
 body.landscape .hud {
-  left: calc(12px + env(safe-area-inset-left, 0px));
+  left: calc(12px + var(--safe-left));
   transform: none;
   width: 324px;
   padding-left: 0;
@@ -2121,7 +2124,7 @@ body.landscape .hud {
   padding-top: calc(12px + var(--safe-top));
 }
 body.landscape .actions {
-  left: calc(12px + env(safe-area-inset-left, 0px));
+  left: calc(12px + var(--safe-left));
   transform: none;
   width: 324px;
   padding: 0;
@@ -2165,7 +2168,7 @@ body.pc-wide .tut-actions .tut-next { font-size: calc(14.5px * var(--ui-k, 1)); 
 .hud-combo i.l { color: #7fe0ff; }
 .hud-combo i.m { color: #ff6b8b; }
 /* Ландшафт: подсказка в левой колонке, между HUD и кнопками — не на небе и не на руке */
-body.landscape .coach { left: calc(12px + env(safe-area-inset-left, 0px)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
+body.landscape .coach { left: calc(12px + var(--safe-left)); right: auto; transform: none; width: 280px; bottom: calc(72px + var(--safe-bottom)); animation-name: fade-in; }
 /* Вне ночи в ландшафте и на ПК плашка — по центру (Обсерватория, карта главы, развилка) */
 body.landscape .coach:is([data-step="shop"], [data-step="boss"], [data-step="routes"]) { left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 32px)); }
 @media (max-height: 520px) {
@@ -2435,7 +2438,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   gap: 10px;
   max-width: 620px;
   margin: 0 auto;
-  padding: calc(8px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
+  padding: calc(8px + var(--safe-top)) calc(16px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(16px + var(--safe-left));
   animation: fade-in 0.35s ease;
 }
 .arc-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding-bottom: 8px;
@@ -2566,7 +2569,7 @@ body.scoring :is(.coach, .coach-ring, .coach-thread) { opacity: 0; pointer-event
   gap: 10px;
   max-width: 620px;
   margin: 0 auto;
-  padding: calc(8px + var(--safe-top)) calc(16px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(16px + env(safe-area-inset-left, 0px));
+  padding: calc(8px + var(--safe-top)) calc(16px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(16px + var(--safe-left));
   animation: fade-in 0.35s ease;
 }
 /* Колонки по краям равны и не растут от «Назад» — табличка ровно по центру экрана */
@@ -3183,7 +3186,7 @@ body.landscape .modal-panel.sheet {
   border-radius: 0 22px 22px 0;
   border: 1px solid var(--line);
   border-left: 0;
-  padding: 22px 20px calc(18px + var(--safe-bottom)) calc(20px + env(safe-area-inset-left, 0px));
+  padding: 22px 20px calc(18px + var(--safe-bottom)) calc(20px + var(--safe-left));
   animation-name: sheet-side-in;
 }
 body.landscape .modal-panel.sheet .modal-head { border-radius: 0 22px 0 0; }

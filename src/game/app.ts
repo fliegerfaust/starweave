@@ -29,6 +29,7 @@ import { particleSystem } from './systems/particles';
 import { renderSystem } from './systems/render';
 import { sendHallSnapshot } from '@/meta/hall-sync';
 import { Monetization } from './monetization';
+import { handleBack } from './back';
 import { Router } from './router';
 import { RunController } from './run-controller';
 
@@ -302,6 +303,7 @@ export async function startGame(platform: Platform): Promise<App> {
     ...(start.challenge ? { challenge: true } : {}),
   });
   app.start();
+  platform.onBack?.(() => handleBack(app));
   // Снимок для долей «Зала славы»: у давних игроков он уходит с первого же запуска
   sendHallSnapshot(app.profile);
   // FPS меряем, когда игрок уже в игре, а не на загрузке
