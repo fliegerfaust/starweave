@@ -28,7 +28,7 @@ export interface AdOutcome {
  * Игра знает только этот интерфейс; конкретный SDK живёт в адаптере.
  */
 export interface Platform {
-  readonly id: 'web' | 'yandex' | 'telegram' | 'pikabu';
+  readonly id: 'web' | 'yandex' | 'telegram' | 'pikabu' | 'android';
   /** Есть ли реклама за награду (кнопки «второй шанс» показываются только тогда). */
   readonly rewardedAvailable: boolean;
   /** Есть ли межстраничная реклама: без неё игра не просит показ и не пишет его в аналитику. */
@@ -74,6 +74,10 @@ export interface Platform {
    * игре параметры из адреса страницы — там вызова нет, кнопка «Бросить вызов» не рисуется (SA.3).
    */
   readonly challenges?: boolean;
+  /** Системная кнопка «Назад» (Android); без метода кнопки нет. */
+  onBack?(fn: () => void): void;
+  /** Закрыть игру; есть только в приложении. */
+  exit?(): void;
   /** «Счастливый момент» (победа в забеге) — порталы учитывают его в рекомендациях. */
   happytime?(): void;
   /** Параметр запуска из ссылки (`?startapp=` / Telegram `start_param`): вызов друга или метка источника. */

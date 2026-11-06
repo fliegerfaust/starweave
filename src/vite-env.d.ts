@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** Площадка сборки: `yandex`, `pikabu` или пусто (обычный веб). */
+  /** Площадка сборки: `yandex`, `pikabu`, `android` или пусто (обычный веб). */
   readonly VITE_PLATFORM?: string;
   /** Переключатели CQ по умолчанию в разработке, как `?ff=` (e2e: `none`). */
   readonly VITE_FF?: string;
