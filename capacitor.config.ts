@@ -7,10 +7,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * новый адрес оставит игрока без сохранений. Сервер пускает события по этому же адресу.
  */
 const config: CapacitorConfig = {
-  // Черновой идентификатор: окончательный выбирает Денис (APK.9)
-  appId: 'ru.denvalclass.starweave',
+  appId: 'com.denvalgames.starweave',
   appName: 'Звёздное плетение',
   webDir: 'dist-android',
+  // Только для замеров на телефоне: `CAP_SERVER_URL=http://localhost:5173 npx cap copy android`
+  ...(process.env.CAP_SERVER_URL ? { server: { url: process.env.CAP_SERVER_URL, cleartext: true } } : {}),
   android: {
     // Сборка под ES2022: ниже этой версии WebView игра не запустится (APK.5)
     minWebViewVersion: 94,

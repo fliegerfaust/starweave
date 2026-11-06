@@ -16,7 +16,10 @@ export class AndroidPlatform implements Platform {
   /** Ссылка из приложения вела бы на его внутренний адрес, а не на сайт. */
   readonly challenges = false;
 
-  async init(): Promise<void> {}
+  async init(): Promise<void> {
+    document.documentElement.classList.add('android');
+  }
+
   ready(): void {}
   gameplayStart(): void {}
   gameplayStop(): void {}

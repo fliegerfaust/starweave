@@ -14,7 +14,7 @@ import { SPEEDS, loadSettings, saveSettings, type Settings } from '@/meta/settin
 import { restoreFromCloud } from '@/meta/cloud-restore';
 import { KEYS, storage } from '@/meta/storage';
 import { h } from '@/ui/dom';
-import { setUiSound } from '@/ui/widgets';
+import { hasOpenWindow, setUiSound } from '@/ui/widgets';
 import { Drawable, Layer, Lifetime, Particle, Transform, transform } from './components';
 import type { ImpactKind, Resources, Services } from './context';
 import type { FxLevel } from './night/fx-guard';
@@ -222,8 +222,10 @@ export class App {
     let skipped = false;
     const frame = (now: number) => {
       requestAnimationFrame(frame);
-      // В покое пропускаем каждый второй кадр; dt копится, мерцание идёт с той же скоростью
-      if (!skipped && this.idle(now)) {
+      // В покое пропускаем каждый второй кадр; dt копится, мерцание идёт с той же скоростью.
+      // Под открытым окном неба почти не видно: в покое не рисуем совсем, иначе каждый кадр
+      // заново собирается вся страница, и слабый телефон падает до 25 кадров (APK.10)
+      if (this.idle(now) && (!skipped || hasOpenWindow())) {
         skipped = true;
         return;
       }
