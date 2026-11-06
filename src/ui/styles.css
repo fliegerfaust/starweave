@@ -308,6 +308,10 @@ body {
   bottom: calc(84px + var(--safe-bottom));
   animation: fade-in 0.3s ease;
 }
+/* Заставка запуска на Android: под ней игра строит сцену и прогревает видеочип (APK.11) */
+.boot-cover { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 24px; background: #05061a; transition: opacity 0.35s ease; }
+.boot-cover h1 { margin: 0; font: 400 clamp(26px, 8vw, 40px) / 1.15 var(--font-display); letter-spacing: 0.08em; color: var(--gold-hi); text-align: center; }
+.boot-cover.out { opacity: 0; pointer-events: none; }
 /* Android: размытие над живым холстом роняет слабый телефон до 25 кадров (APK.10), затемняем сильнее */
 html.android .modal-backdrop { backdrop-filter: none; }
 html.android .modal-backdrop:not(.sheet):not(.scene) { background: rgba(3, 3, 14, 0.8); }

@@ -476,6 +476,13 @@ export class GlFx {
   private readonly waiting = new Set<() => void>();
   private buildAt = 0;
   private pendingBuild = false;
+  /** Программы, которые ещё предстоит собрать, когда у устройства нет параллельной сборки. */
+  private steps: (() => Program)[] = [];
+  private stepAt = 0;
+  /** Игрок не занят, анимаций нет: можно на мгновение занять видеочип. */
+  calm = false;
+  /** Идёт заставка запуска: собираем подряд, игрок этого не видит. */
+  rush = false;
   private ready = false;
   /** Игрок выключил эффекты в настройках. */
   enabled = true;
@@ -495,25 +502,25 @@ export class GlFx {
   /** Центр главного удара: чёрная дыра затягивает карты именно туда. */
   private anchor: Pt = { x: 0, y: 0 };
 
-  static create(host: HTMLElement, level: FxLevel, onState: (state: FxState, value: number) => void): GlFx | null {
+  static create(host: HTMLElement, level: FxLevel, onState: (state: FxState, value: number) => void, fixed = false): GlFx | null {
     const canvas = document.createElement('canvas');
     canvas.className = 'fx-gl';
     canvas.style.cssText = 'position:fixed;left:0;top:0;pointer-events:none;visibility:hidden';
     const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) return null;
     try {
-      return new GlFx(host, canvas, gl, level, onState);
+      return new GlFx(host, canvas, gl, level, onState, fixed);
     } catch (e) {
       console.error('Слой шейдеров не собрался', e);
       return null;
     }
   }
 
-  private constructor(host: HTMLElement, canvas: HTMLCanvasElement, gl: WebGL2RenderingContext, level: FxLevel, private readonly onState: (state: FxState, value: number) => void) {
+  private constructor(host: HTMLElement, canvas: HTMLCanvasElement, gl: WebGL2RenderingContext, level: FxLevel, private readonly onState: (state: FxState, value: number) => void, fixed: boolean) {
     this.canvas = canvas;
     this.gl = gl;
     this.spec = LOOKS.nova;
-    this.guard = new FxGuard(level);
+    this.guard = new FxGuard(level, fixed);
     host.append(canvas);
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
@@ -542,16 +549,23 @@ export class GlFx {
     // Расширения живут вместе с контекстом: после потери их надо просить заново
     this.parallel = gl.getExtension('KHR_parallel_shader_compile') !== null;
     const quad = this.shader(gl.VERTEX_SHADER, VERT_QUAD);
-    this.prog = {
-      thread: this.program(quad, FRAG_THREAD),
-      burst: this.program(quad, FRAG_BURST),
-      card: this.program(quad, FRAG_CARD),
-      focus: this.program(quad, FRAG_FOCUS),
-      wave: this.program(quad, FRAG_WAVE),
-      dust: this.program(this.shader(gl.VERTEX_SHADER, VERT_DUST), FRAG_DUST),
-      points: this.program(this.shader(gl.VERTEX_SHADER, VERT_POINTS), FRAG_POINTS),
-      noise: this.program(this.shader(gl.VERTEX_SHADER, VERT_FULL), FRAG_NOISE),
-    };
+    const vertex = (src: string) => this.shader(gl.VERTEX_SHADER, src);
+    const prog = {} as GlFx['prog'];
+    this.prog = prog;
+    this.steps = [
+      () => (prog.thread = this.program(quad, FRAG_THREAD)),
+      () => (prog.burst = this.program(quad, FRAG_BURST)),
+      () => (prog.card = this.program(quad, FRAG_CARD)),
+      () => (prog.focus = this.program(quad, FRAG_FOCUS)),
+      () => (prog.wave = this.program(quad, FRAG_WAVE)),
+      () => (prog.dust = this.program(vertex(VERT_DUST), FRAG_DUST)),
+      () => (prog.points = this.program(vertex(VERT_POINTS), FRAG_POINTS)),
+      () => (prog.noise = this.program(vertex(VERT_FULL), FRAG_NOISE)),
+    ];
+    if (this.parallel) {
+      for (const step of this.steps) step();
+      this.steps = [];
+    }
     gl.bindVertexArray(gl.createVertexArray());
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
@@ -560,13 +574,26 @@ export class GlFx {
   /** Каждый кадр до готовности: не блокирует игру, пока драйвер собирает шейдеры. */
   private prepare(): void {
     const { gl } = this;
-    const all = Object.values(this.prog);
-    if (this.parallel) {
-      if (!all.every((p) => gl.getProgramParameter(p.gl, COMPLETION_STATUS))) return;
-    } else if (performance.now() - this.buildAt < BLOCKING_DELAY_MS) {
-      // Без расширения проверка блокирует поток: откладываем её, пока игрок на экране меню
-      return;
+    if (!this.parallel) {
+      // Без расширения сборка держит и поток игры, и видеочип: на слабом телефоне все программы
+      // разом давали 2,4 секунды зависания (APK.11). По одной и только когда игрок не занят
+      const now = performance.now();
+      if (this.rush) {
+        // Под заставкой разом: так быстрее, а зависания игрок не увидит
+        for (const step of this.steps) step();
+        this.steps = [];
+      } else {
+        if (!this.calm || now - Math.max(this.buildAt, this.stepAt) < BLOCKING_DELAY_MS / 3) return;
+        this.stepAt = now;
+        const step = this.steps.shift();
+        if (step) {
+          gl.getProgramParameter(step().gl, gl.LINK_STATUS);
+          return;
+        }
+      }
     }
+    const all = Object.values(this.prog);
+    if (this.parallel && !all.every((p) => gl.getProgramParameter(p.gl, COMPLETION_STATUS))) return;
     this.pendingBuild = false;
     try {
       for (const p of all) {
@@ -687,6 +714,11 @@ export class GlFx {
   }
 
   /** Эффекты идут: нельзя пропускать кадры ради экономии. */
+  /** Шейдеры ещё собираются. */
+  get building(): boolean {
+    return this.pendingBuild && !this.lost;
+  }
+
   get busy(): boolean {
     return this.effects.length > 0;
   }

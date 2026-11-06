@@ -1,5 +1,6 @@
 import { App } from '@capacitor/app';
 import type { Lang } from '@/i18n';
+import { bootCover, hideCover, whenSmooth } from './boot-cover';
 import { FEATURES } from './features';
 import type { AdOutcome, Platform } from './types';
 
@@ -16,11 +17,27 @@ export class AndroidPlatform implements Platform {
   /** Ссылка из приложения вела бы на его внутренний адрес, а не на сайт. */
   readonly challenges = false;
 
+  /** Паблишеры смотрят самую красивую версию: сторож кадров эффекты здесь не выключает. */
+  readonly fixedFx = true;
+  booting = true;
+  private cover: HTMLElement | null = null;
+  private warm: () => boolean = () => true;
+
   async init(): Promise<void> {
     document.documentElement.classList.add('android');
+    this.cover = bootCover();
   }
 
-  ready(): void {}
+  onWarm(ready: () => boolean): void {
+    this.warm = ready;
+  }
+
+  ready(): void {
+    whenSmooth(() => this.warm(), () => {
+      this.booting = false;
+      if (this.cover) hideCover(this.cover);
+    });
+  }
   gameplayStart(): void {}
   gameplayStop(): void {}
 

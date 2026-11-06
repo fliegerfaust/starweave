@@ -30,6 +30,7 @@ import { renderSystem } from './systems/render';
 import { sendHallSnapshot } from '@/meta/hall-sync';
 import { Monetization } from './monetization';
 import { handleBack } from './back';
+import { warmEffects } from './fx';
 import { Router } from './router';
 import { RunController } from './run-controller';
 
@@ -91,7 +92,7 @@ export class App {
     renderer.onResize(() => res.gl?.resize(renderer.width, renderer.height, renderer.dpr));
     if (res.impact !== 'none') {
       this.retryFx();
-      if (this.settings.cosmicFx && this.settings.fxLevel < 2) this.startFx(res, stage);
+      if (this.settings.cosmicFx && (platform.fixedFx || this.settings.fxLevel < 2)) this.startFx(res, stage);
     }
     const world = new World(res);
     world.addSystem(particleSystem).addSystem(cameraSystem).addSystem(renderSystem);
@@ -115,6 +116,7 @@ export class App {
     const audio = new Synth();
     // Звучание «Обсерватория» (CQ.7) — только где включено `music`
     audio.voice = this.features.music;
+    audio.lite = platform.id === 'android';
     audio.setVolumes(this.settings.sfx, this.settings.music);
     const input = new PointerInput(stage);
     const haptics = new Haptics();
@@ -164,13 +166,15 @@ export class App {
   /** Поднимает слой шейдеров; решения сторожа кадров запоминаются за этим устройством. */
   private startFx(res: Resources, host: HTMLElement): void {
     const { renderer } = res;
-    res.gl = GlFx.create(host, this.settings.fxLevel, (state, value) => {
+    const { fixedFx } = this.platform;
+    const level = fixedFx ? (this.settings.fxLevel === 1 ? 1 : 0) : this.settings.fxLevel;
+    res.gl = GlFx.create(host, level, (state, value) => {
       if (state === 'lite' || state === 'off') {
         this.settings = { ...this.settings, fxLevel: value as FxLevel };
         saveSettings(this.settings);
       }
       track('fx_layer', { state, ms: state === 'ready' ? value : 0 });
-    });
+    }, fixedFx);
     if (!res.gl) {
       this.fxSupported = false;
       track('fx_layer', { state: 'none', ms: 0 });
@@ -225,7 +229,13 @@ export class App {
       // В покое пропускаем каждый второй кадр; dt копится, мерцание идёт с той же скоростью.
       // Под открытым окном неба почти не видно: в покое не рисуем совсем, иначе каждый кадр
       // заново собирается вся страница, и слабый телефон падает до 25 кадров (APK.10)
-      if (this.idle(now) && (!skipped || hasOpenWindow())) {
+      const idle = this.idle(now);
+      const gl = this.svc.world.res.gl;
+      if (gl) {
+        gl.calm = idle;
+        gl.rush = !!this.platform.booting;
+      }
+      if (idle && (!skipped || hasOpenWindow())) {
         skipped = true;
         return;
       }
@@ -304,7 +314,10 @@ export async function startGame(platform: Platform): Promise<App> {
     ...(start.source ? { source: start.source } : {}),
     ...(start.challenge ? { challenge: true } : {}),
   });
+  // Заставку держим, пока собираются шейдеры и раздаются первые карты: это самые тяжёлые секунды
+  platform.onWarm?.(() => !app.svc.world.res.gl?.building && (!app.run?.tutorial || !!document.querySelector('.tut-bubble.on')) && !!document.querySelector('.screen-root *'));
   app.start();
+  if (platform.booting) warmEffects(app.svc.world, app.svc.renderer.width, app.svc.renderer.height);
   platform.onBack?.(() => handleBack(app));
   // Снимок для долей «Зала славы»: у давних игроков он уходит с первого же запуска
   sendHallSnapshot(app.profile);
