@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+import groovy.json.JsonSlurper
+
+// Версия приложения — из package.json игры: 0.7.22 → versionName "0.7.22", versionCode 722 (APK.9)
+def gameVersion = new JsonSlurper().parse(file('../../package.json')).version
+def versionParts = gameVersion.tokenize('.').collect { it as int }
+def gameVersionCode = versionParts[0] * 100000 + versionParts[1] * 1000 + versionParts[2]
+
 android {
     namespace = "com.denvalgames.starweave"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +14,8 @@ android {
         applicationId "com.denvalgames.starweave"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode gameVersionCode
+        versionName gameVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +23,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Ключ подписи вне репозитория (~/.android-keys), пароль из Связки ключей macOS:
+    // сборку подписанной APK делает scripts/android-release.sh (APK.9)
+    signingConfigs {
+        release {
+            if (System.getenv('STARWEAVE_KEYSTORE')) {
+                storeFile file(System.getenv('STARWEAVE_KEYSTORE'))
+                storePassword System.getenv('STARWEAVE_KEYSTORE_PASSWORD')
+                keyAlias 'starweave'
+                keyPassword System.getenv('STARWEAVE_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 убирает неиспользуемый код Java и ресурсы: APK меньше
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv('STARWEAVE_KEYSTORE')) signingConfig signingConfigs.release
         }
     }
 }
