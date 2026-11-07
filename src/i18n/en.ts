@@ -458,6 +458,8 @@ export const en: Dict = {
     abandon: 'Give up',
     abandonConfirm: 'End this run? Its progress will be lost.',
     keepPlaying: 'Keep playing',
+    exitConfirm: 'Quit the game? Your run is saved.',
+    exit: 'Quit',
     deck: 'Deck',
     help: 'Guide',
   },

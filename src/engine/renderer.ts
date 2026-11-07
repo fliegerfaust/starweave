@@ -15,6 +15,7 @@ export class Renderer {
    * Выше интерфейса, но ниже окон (z-index 15 < 20 у окон), касания пропускает.
    */
   overlay!: HTMLCanvasElement;
+  private overlayShown = true;
   overlayCtx!: CanvasRenderingContext2D;
   width = 0;
   height = 0;
@@ -78,6 +79,7 @@ export class Renderer {
     if (this.overlay) this.overlay.replaceWith(overlay);
     else document.body.append(overlay);
     this.overlay = overlay;
+    this.overlayShown = true;
     this.overlayCtx = octx;
     for (const fn of this.resizeListeners) fn();
   }
@@ -108,11 +110,20 @@ export class Renderer {
     this.resize();
   }
 
-  /** Холст поверх интерфейса: очистить и подготовить к кадру (с тем же смещением камеры). */
-  beginOverlay(offsetX = 0, offsetY = 0, scale = 1): CanvasRenderingContext2D {
+  /**
+   * Холст поверх интерфейса: очистить и подготовить к кадру (с тем же смещением камеры).
+   * `used` — будет ли что на нём рисовать. Пустой он скрыт: прозрачный слой на весь экран
+   * заставлял каждый кадр заново сводить его со страницей (APK.10).
+   */
+  beginOverlay(offsetX = 0, offsetY = 0, scale = 1, used = true): CanvasRenderingContext2D {
     const { overlayCtx: ctx, dpr } = this;
+    if (!used && !this.overlayShown) return ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+    if (used !== this.overlayShown) {
+      this.overlayShown = used;
+      this.overlay.style.visibility = used ? '' : 'hidden';
+    }
     ctx.setTransform(dpr * scale, 0, 0, dpr * scale, offsetX * dpr, offsetY * dpr);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';

@@ -14,6 +14,7 @@
     "sim": "SIM=1 vitest run tests/balance.sim.test.ts",
     "build:yandex": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=yandex vite build --outDir dist-yandex && node scripts/strip-web-only.mjs dist-yandex && node scripts/zip.mjs dist-yandex release/starweave-yandex.zip",
     "build:pikabu": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=pikabu VITE_EVENTS_URL=${VITE_EVENTS_URL:-https://game.denvalclass.ru/v1/events} vite build --outDir dist-pikabu && node scripts/strip-web-only.mjs dist-pikabu",
+    "build:android": "tsc --noEmit && node scripts/build-legal.ts && VITE_PLATFORM=android VITE_EVENTS_URL=${VITE_EVENTS_URL:-https://game.denvalclass.ru/v1/events} vite build --outDir dist-android && node scripts/strip-web-only.mjs dist-android && node scripts/slim-android.mjs dist-android && cp android-www/* dist-android/ && npx cap sync android",
     "legal": "node scripts/build-legal.ts",
     "texts:pull": "node scripts/texts.ts pull",
     "texts:push": "node scripts/texts.ts push",
@@ -24,6 +25,7 @@
     "store-assets": "ASSETS=1 playwright test e2e/store-assets.spec.ts --project=desktop --workers=1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "typescript": "5.9",
@@ -31,6 +33,10 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource/forum": "^5.3.0"
   }

@@ -1,3 +1,4 @@
+import { starGlow } from '@/art/glow';
 import { t } from '@/i18n';
 import { h } from './dom';
 
@@ -75,9 +76,17 @@ export function mentorPortrait(size = 60): HTMLElement {
   const spokeAt = performance.now();
   const pad = size * 0.1;
   const k = (size - pad * 2) / 100;
+  let drawnAt = 0;
   const frame = (now: number) => {
     const time = now / 1000;
     const since = (now - spokeAt) / 1000;
+    // Птица дышит медленно, а каждый новый кадр холста заново собирает всю страницу: пока
+    // линии прорисовываются — 30 кадров, потом хватает 15 (APK.11)
+    if (now - drawnAt < (since < 1 ? 30 : 62)) {
+      if (el.isConnected || now - spokeAt < 1000) requestAnimationFrame(frame);
+      return;
+    }
+    drawnAt = now;
     const s = calm ? 0 : Math.sin(time * 0.9);
     // Покачивание всей птицы, медленное, как дыхание
     const bob = calm ? 0 : Math.sin(time * 0.7) * 1.2;
@@ -129,13 +138,10 @@ export function mentorPortrait(size = 60): HTMLElement {
       const blink = i === fig.eye && !calm && lid < 1 ? 1 - 0.5 * Math.sin(lid * Math.PI) : 1;
       const r = (1 + mag * 1.2 + wave) * (i === fig.eye ? 1.25 : 1) * Math.max(1, size / 80);
       const a = Math.min(1, (0.55 + mag * 0.45) * twinkle * blink + wave * 0.4);
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.6);
-      g.addColorStop(0, `rgba(255, 250, 235, ${a})`);
-      g.addColorStop(0.3, `rgba(255, 220, 150, ${a * 0.45})`);
-      g.addColorStop(1, 'rgba(255, 220, 150, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(x - r * 2.6, y - r * 2.6, r * 5.2, r * 5.2);
+      ctx.globalAlpha = a;
+      ctx.drawImage(starGlow(0.45), x - r * 2.6, y - r * 2.6, r * 5.2, r * 5.2);
     });
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     // Медальон убрали со страницы — кадры больше не нужны
     if (el.isConnected || now - spokeAt < 1000) requestAnimationFrame(frame);

@@ -23,7 +23,8 @@ export const renderSystem: System<Resources> = {
     const scale = 1 + camera.zoom;
     const offX = camera.shakeX - camera.focusX * camera.zoom;
     const offY = camera.shakeY - camera.focusY * camera.zoom;
-    renderer.beginOverlay(offX, offY, scale);
+    const top = items[items.length - 1];
+    renderer.beginOverlay(offX, offY, scale, !!top && top.d.layer >= Layer.Overlay);
     for (const { d, t } of items) {
       if (!shaken && d.layer > 0) {
         ctx = renderer.begin(offX, offY, scale);

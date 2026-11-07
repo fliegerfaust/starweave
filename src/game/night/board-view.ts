@@ -1,6 +1,7 @@
 import { CARD_ASPECT, CARD_PAD, cardBack, cardFace, suitEmblem } from '@/art/card';
+import { cardHalo, tutorialRing } from '@/art/glow';
 import { roundRect } from '@/art/glyphs';
-import { SUIT_COLORS, rgba } from '@/art/palette';
+import { SUIT_COLORS } from '@/art/palette';
 import type { Card } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
 import { CardView, Drawable, Hit, Layer, Transform, transform } from '../components';
@@ -126,13 +127,11 @@ export class BoardView {
     ctx.rotate(t.rot);
     ctx.scale(t.scale * Math.max(0.02, Math.abs(t.flip)), t.scale);
     if (v.glow > 0.01) {
-      ctx.save();
-      ctx.shadowColor = v.glowColor;
-      ctx.shadowBlur = w * 0.35 * v.glow;
-      roundRect(ctx, -w / 2, -hgt / 2, w, hgt, w * 0.09);
-      ctx.fillStyle = rgba([255, 255, 255], 0.0001 + 0.12 * v.glow);
-      ctx.fill();
-      ctx.restore();
+      const { image, pad: out } = cardHalo(v.glowColor, w, hgt, dpr);
+      const alpha = ctx.globalAlpha;
+      ctx.globalAlpha = alpha * Math.min(1, v.glow);
+      ctx.drawImage(image, -w / 2 - out, -hgt / 2 - out, w + out * 2, hgt + out * 2);
+      ctx.globalAlpha = alpha;
     }
     ctx.drawImage(img, -w / 2 - pad, -hgt / 2 - pad, w + pad * 2, spriteH + pad * 2);
     if (v.debuffed && showFace) drawEclipsed(ctx, w, hgt);
@@ -215,11 +214,9 @@ export class BoardView {
       roundRect(ctx, x, y, w, hgt, r);
       ctx.fillStyle = `rgba(246,194,91,${(0.12 + pulse * 0.18) * s.tut})`;
       ctx.fill();
-      ctx.strokeStyle = `rgba(255,224,150,${(0.6 + pulse * 0.4) * s.tut})`;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#f6c25b';
-      ctx.shadowBlur = 16 * s.tut;
-      ctx.stroke();
+      const { image, pad } = tutorialRing(w, hgt, r, this.scene.svc.renderer.dpr);
+      ctx.globalAlpha *= (0.6 + pulse * 0.4) * s.tut;
+      ctx.drawImage(image, x - pad, y - pad, w + pad * 2, hgt + pad * 2);
       ctx.restore();
     }
     if (s.closesAnim > 0.01) {
