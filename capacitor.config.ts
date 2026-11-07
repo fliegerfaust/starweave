@@ -10,11 +10,15 @@ const config: CapacitorConfig = {
   appId: 'com.denvalgames.starweave',
   appName: 'Звёздное плетение',
   webDir: 'dist-android',
-  // Только для замеров на телефоне: `CAP_SERVER_URL=http://localhost:5173 npx cap copy android`
-  ...(process.env.CAP_SERVER_URL ? { server: { url: process.env.CAP_SERVER_URL, cleartext: true } } : {}),
+  server: {
+    // Старый WebView: вместо белого экрана просьба обновить его (APK.5); файл из android-www/
+    errorPath: 'webview-old.html',
+    // Только для замеров на телефоне: `CAP_SERVER_URL=http://localhost:5173 npx cap copy android`
+    ...(process.env.CAP_SERVER_URL ? { url: process.env.CAP_SERVER_URL, cleartext: true } : {}),
+  },
   android: {
-    // Сборка под ES2022: ниже этой версии WebView игра не запустится (APK.5)
-    minWebViewVersion: 94,
+    // Вёрстка опирается на :has() (105) и dvh (108), код на structuredClone (98) (APK.5)
+    minWebViewVersion: 108,
   },
   plugins: {
     // Отступы приходят переменными `--safe-area-inset-*`: `env()` в WebView ниже 140 врёт (APK.2)
