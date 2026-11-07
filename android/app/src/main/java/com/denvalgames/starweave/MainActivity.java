@@ -12,5 +12,8 @@ public class MainActivity extends BridgeActivity {
         // их отступы: игра отступала дважды. Рисуем под панелями на всех версиях (APK.2).
         // Строго после super: раньше окно создастся с темой запуска и покажет полосу заголовка.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        // Системный «Размер шрифта» WebView умножал на весь текст и ломал плашки; крупный текст
+        // в игре — своя настройка «Размер текста» (APK.7)
+        getBridge().getWebView().getSettings().setTextZoom(100);
     }
 }
