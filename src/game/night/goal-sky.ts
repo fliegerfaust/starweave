@@ -1,4 +1,5 @@
 import { starRadius, type SkyFigure } from '@/art/constellations';
+import { starGlow } from '@/art/glow';
 import { bossSigil } from '@/art/sigil';
 import type { NightState } from '@/core/types';
 import type { Entity } from '@/engine/ecs';
@@ -703,12 +704,10 @@ export class GoalSky {
       // Мерцание медленное, ореол сдержанный: звезда фигуры не спорит с картами на поле (критика 03.11)
       const tw = this.calm ? 1 : 0.9 + 0.1 * Math.sin(time * 1.2 + i * 1.7);
       const r = base * (1 + k * 1.1) * tw;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3);
-      g.addColorStop(0, `rgba(255, 250, 235, ${0.9 * k})`);
-      g.addColorStop(0.3, `rgba(255, 220, 150, ${0.32 * k})`);
-      g.addColorStop(1, 'rgba(255, 220, 150, 0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(p.x - r * 3, p.y - r * 3, r * 6, r * 6);
+      const alpha = ctx.globalAlpha;
+      ctx.globalAlpha = alpha * 0.9 * k;
+      ctx.drawImage(starGlow(0.36), p.x - r * 3, p.y - r * 3, r * 6, r * 6);
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = `rgba(255, 246, 224, ${0.25 * k})`;
       ctx.fillRect(p.x - r * 2.4, p.y - 0.5, r * 4.8, 1);
       ctx.fillRect(p.x - 0.5, p.y - r * 2.4, 1, r * 4.8);

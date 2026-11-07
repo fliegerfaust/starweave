@@ -46,7 +46,7 @@ export const LIMITS = {
   backdateMs: 24 * 60 * 60 * 1000,
 } as const;
 
-const PLATFORMS = new Set(['web', 'yandex', 'telegram', 'pikabu']);
+const PLATFORMS = new Set(['web', 'yandex', 'telegram', 'pikabu', 'android']);
 const ID = /^[a-z0-9-]{8,64}$/;
 const NAME = /^[a-z][a-z0-9_]{1,40}$/;
 const KEY = /^[a-z][a-z0-9_]{0,30}$/;

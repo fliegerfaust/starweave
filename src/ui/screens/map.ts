@@ -40,6 +40,10 @@ export class MapScreen implements Screen {
     private readonly peek = false,
   ) {}
 
+  back(): void {
+    void this.app.router.route();
+  }
+
   mount(root: HTMLElement): void {
     const run = this.run;
     // Глава с развилками — «Карта неба» (RT.2); цепочка из трёх ночей — «Восхождение»

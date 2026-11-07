@@ -51,6 +51,10 @@ export class ArchiveScreen implements Screen {
     this.selected = archiveDates()[0] ?? todayKey();
   }
 
+  back(): void {
+    void this.app.router.goMenu();
+  }
+
   mount(root: HTMLElement): void {
     this.el = h('div.archive');
     root.append(this.el);

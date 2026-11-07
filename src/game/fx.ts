@@ -269,3 +269,19 @@ export function flash(world: GameWorld, color = '255,240,200', strength = 0.5, d
   world.add(e, Lifetime, { left: duration });
   void world.res.tweens.to(t, { alpha: 0 }, { duration, ease: 'outQuad' });
 }
+
+/**
+ * Под заставкой запуска один раз показывает каждый приём рисования вспышки: видеочип компилирует
+ * свои программы при первом использовании, и в обучении это были рывки в самый яркий момент (APK.11).
+ */
+export function warmEffects(world: GameWorld, width: number, height: number): void {
+  const x = width / 2;
+  const y = height / 2;
+  burst(world, x, y, '#ffd98a', { count: 6 });
+  ring(world, x, y, '#ffd98a');
+  cellFlash(world, x - 40, y - 40, 80, 80);
+  floatText(world, x, y, '+12', { life: 0.4 });
+  floatText(world, x, y, '×2', { life: 0.4, punch: true });
+  floatText(world, x, y, 'ПАРА', { life: 0.4, display: true });
+  flash(world, '255,240,200', 0.2, 0.3);
+}

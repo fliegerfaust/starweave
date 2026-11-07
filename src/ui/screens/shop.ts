@@ -52,6 +52,10 @@ export class ShopScreen implements Screen {
     private readonly run: RunState,
   ) {}
 
+  back(): void {
+    showRunMenu(this.app, []);
+  }
+
   mount(root: HTMLElement): void {
     this.el = h('div.shop');
     root.append(this.el);
